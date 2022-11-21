@@ -35,6 +35,7 @@ func NewProvider() *schema.Provider {
 		DataSourcesMap:       map[string]*schema.Resource{},
 		ResourcesMap: map[string]*schema.Resource{
 			"bytebase_environment": resourceEnvironment(),
+			"bytebase_instance":    resourceInstance(),
 		},
 	}
 }

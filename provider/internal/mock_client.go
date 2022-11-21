@@ -113,21 +113,58 @@ func (*mockClient) ListInstance() ([]*api.Instance, error) {
 }
 
 // CreateInstance creates the instance.
-func (*mockClient) CreateInstance(_ *api.InstanceCreate) (*api.Instance, error) {
-	return nil, errors.Errorf("CreateInstance is not implemented yet")
+func (c *mockClient) CreateInstance(create *api.InstanceCreate) (*api.Instance, error) {
+	ins := &api.Instance{
+		ID:           len(c.instanceMap) + 1,
+		Environment:  create.Environment,
+		Name:         create.Name,
+		Engine:       create.Engine,
+		ExternalLink: create.ExternalLink,
+		Host:         create.Host,
+		Port:         create.Port,
+		Username:     create.Username,
+	}
+
+	c.instanceMap[ins.ID] = ins
+	return ins, nil
 }
 
 // GetInstance gets the instance by id.
-func (*mockClient) GetInstance(_ int) (*api.Instance, error) {
-	return nil, errors.Errorf("GetInstance is not implemented yet")
+func (c *mockClient) GetInstance(instanceID int) (*api.Instance, error) {
+	ins, ok := c.instanceMap[instanceID]
+	if !ok {
+		return nil, errors.Errorf("Cannot found instance with ID %d", instanceID)
+	}
+
+	return ins, nil
 }
 
 // UpdateInstance updates the instance.
-func (*mockClient) UpdateInstance(_ int, _ *api.InstancePatch) (*api.Instance, error) {
-	return nil, errors.Errorf("UpdateInstance is not implemented yet")
+func (c *mockClient) UpdateInstance(instanceID int, patch *api.InstancePatch) (*api.Instance, error) {
+	ins, err := c.GetInstance(instanceID)
+	if err != nil {
+		return nil, err
+	}
+
+	if v := patch.Name; v != nil {
+		ins.Name = *v
+	}
+	if v := patch.ExternalLink; v != nil {
+		ins.ExternalLink = *v
+	}
+	if v := patch.Host; v != nil {
+		ins.Host = *v
+	}
+	if v := patch.Port; v != nil {
+		ins.Port = *v
+	}
+
+	c.instanceMap[instanceID] = ins
+	return ins, nil
 }
 
 // DeleteInstance deletes the instance.
-func (*mockClient) DeleteInstance(_ int) error {
-	return errors.Errorf("DeleteInstance is not implemented yet")
+func (c *mockClient) DeleteInstance(instanceID int) error {
+	delete(c.instanceMap, instanceID)
+	return nil
 }

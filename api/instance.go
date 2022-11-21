@@ -38,13 +38,13 @@ type InstanceCreate struct {
 // InstancePatch is the API message for patching an instance.
 type InstancePatch struct {
 	// Domain specific fields
-	Name         string `json:"name,omitempty"`
-	ExternalLink string `json:"externalLink,omitempty"`
-	Host         string `json:"host,omitempty"`
-	Port         string `json:"port,omitempty"`
+	Name         *string `json:"name,omitempty"`
+	ExternalLink *string `json:"externalLink,omitempty"`
+	Host         *string `json:"host,omitempty"`
+	Port         *string `json:"port,omitempty"`
 }
 
 // HasChange returns if the patch struct has the value to update.
 func (p *InstancePatch) HasChange() bool {
-	return p.Name != "" || p.ExternalLink != "" || p.Host != "" || p.Port != ""
+	return p.Name != nil || p.ExternalLink != nil || p.Host != nil || p.Port != nil
 }
