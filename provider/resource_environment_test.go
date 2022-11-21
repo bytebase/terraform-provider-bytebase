@@ -5,9 +5,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/pkg/errors"
+
+	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
 func TestAccEnvironment(t *testing.T) {
@@ -62,11 +64,11 @@ func testAccCheckEnvironmentExists(n string) resource.TestCheckFunc {
 		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
-			return fmt.Errorf("Not found: %s", n)
+			return errors.Errorf("Not found: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No environment set")
+			return errors.Errorf("No environment set")
 		}
 
 		return nil

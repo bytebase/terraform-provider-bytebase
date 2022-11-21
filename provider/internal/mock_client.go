@@ -27,7 +27,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 }
 
 // Login will login the user and get the response.
-func (c *mockClient) Login() (*api.AuthResponse, error) {
+func (*mockClient) Login() (*api.AuthResponse, error) {
 	return &api.AuthResponse{}, nil
 }
 
@@ -45,7 +45,7 @@ func (c *mockClient) CreateEnvironment(create *api.EnvironmentCreate) (*api.Envi
 	}
 
 	if existed := c.findEnvironmentByName(env.Name); existed != nil {
-		return nil, errors.Errorf("Environment %s already exists.", create.Name)
+		return nil, errors.Errorf("Environment %s already exists", create.Name)
 	}
 	c.environmentMap[env.ID] = env
 
@@ -56,15 +56,15 @@ func (c *mockClient) CreateEnvironment(create *api.EnvironmentCreate) (*api.Envi
 func (c *mockClient) GetEnvironment(environmentID int) (*api.Environment, error) {
 	env, ok := c.environmentMap[environmentID]
 	if !ok {
-		return nil, errors.Errorf("Cannot found environment with ID %d.", environmentID)
+		return nil, errors.Errorf("Cannot found environment with ID %d", environmentID)
 	}
 
 	return env, nil
 }
 
 // ListEnvironment finds all environments.
-func (c *mockClient) ListEnvironment() ([]*api.Environment, error) {
-	return nil, errors.Errorf("ListEnvironment is not implemented yet.")
+func (*mockClient) ListEnvironment() ([]*api.Environment, error) {
+	return nil, errors.Errorf("ListEnvironment is not implemented yet")
 }
 
 // UpdateEnvironment updates the environment.
@@ -82,7 +82,7 @@ func (c *mockClient) UpdateEnvironment(environmentID int, patch *api.Environment
 	}
 
 	if existed := c.findEnvironmentByName(env.Name); existed != nil {
-		return nil, errors.Errorf("Environment %s already exists.", env.Name)
+		return nil, errors.Errorf("Environment %s already exists", env.Name)
 	}
 
 	delete(c.environmentMap, env.ID)
@@ -107,26 +107,26 @@ func (c *mockClient) findEnvironmentByName(envName string) *api.Environment {
 }
 
 // ListInstance will return all instances.
-func (c *mockClient) ListInstance() ([]*api.Instance, error) {
-	return nil, errors.Errorf("ListInstance is not implemented yet.")
+func (*mockClient) ListInstance() ([]*api.Instance, error) {
+	return nil, errors.Errorf("ListInstance is not implemented yet")
 }
 
 // CreateInstance creates the instance.
-func (c *mockClient) CreateInstance(create *api.InstanceCreate) (*api.Instance, error) {
-	return nil, errors.Errorf("CreateInstance is not implemented yet.")
+func (*mockClient) CreateInstance(_ *api.InstanceCreate) (*api.Instance, error) {
+	return nil, errors.Errorf("CreateInstance is not implemented yet")
 }
 
 // GetInstance gets the instance by id.
-func (c *mockClient) GetInstance(instanceID int) (*api.Instance, error) {
-	return nil, errors.Errorf("GetInstance is not implemented yet.")
+func (*mockClient) GetInstance(_ int) (*api.Instance, error) {
+	return nil, errors.Errorf("GetInstance is not implemented yet")
 }
 
 // UpdateInstance updates the instance.
-func (c *mockClient) UpdateInstance(instanceID int, patch *api.InstancePatch) (*api.Instance, error) {
-	return nil, errors.Errorf("UpdateInstance is not implemented yet.")
+func (*mockClient) UpdateInstance(_ int, _ *api.InstancePatch) (*api.Instance, error) {
+	return nil, errors.Errorf("UpdateInstance is not implemented yet")
 }
 
 // DeleteInstance deletes the instance.
-func (c *mockClient) DeleteInstance(instanceID int) error {
-	return errors.Errorf("DeleteInstance is not implemented yet.")
+func (*mockClient) DeleteInstance(_ int) error {
+	return errors.Errorf("DeleteInstance is not implemented yet")
 }
