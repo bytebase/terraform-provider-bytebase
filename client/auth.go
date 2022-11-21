@@ -12,7 +12,7 @@ import (
 )
 
 // Login will login the user and get the response.
-func (c *Client) Login() (*api.AuthResponse, error) {
+func (c *client) Login() (*api.AuthResponse, error) {
 	if c.Auth.Email == "" || c.Auth.Password == "" {
 		return nil, errors.Errorf("define username and password")
 	}

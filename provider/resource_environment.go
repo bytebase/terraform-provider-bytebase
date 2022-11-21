@@ -5,9 +5,7 @@ import (
 	"strconv"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
-	"github.com/bytebase/terraform-provider-bytebase/client"
 
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -37,7 +35,7 @@ func resourceEnvironment() *schema.Resource {
 }
 
 func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*client.Client)
+	c := m.(api.Client)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -56,15 +54,11 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		Name: name,
 	}
 
-	tflog.Info(ctx, "order", map[string]interface{}{"order": d.Get("order")})
-
 	order, ok := d.GetOk("order")
 	if ok {
 		val := order.(int)
 		create.Order = &val
 	}
-
-	tflog.Debug(ctx, "try to create environment with name", map[string]interface{}{"name": name})
 
 	env, err := c.CreateEnvironment(create)
 	if err != nil {
@@ -77,7 +71,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceEnvironmentRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*client.Client)
+	c := m.(api.Client)
 
 	envID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -93,7 +87,7 @@ func resourceEnvironmentRead(_ context.Context, d *schema.ResourceData, m interf
 }
 
 func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*client.Client)
+	c := m.(api.Client)
 
 	envID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -124,7 +118,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceEnvironmentDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*client.Client)
+	c := m.(api.Client)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
