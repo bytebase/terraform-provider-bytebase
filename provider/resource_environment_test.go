@@ -16,7 +16,9 @@ func TestAccEnvironment(t *testing.T) {
 	envName := "dev"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
