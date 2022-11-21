@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
+	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
-// Client is the API message for Bytebase API client.
-type Client struct {
+// client is the API message for Bytebase API client.
+type client struct {
 	HostURL    string
 	HTTPClient *http.Client
 	Token      string
@@ -24,8 +26,8 @@ type authStruct struct {
 }
 
 // NewClient returns the new Bytebase API client.
-func NewClient(url, email, password string) (*Client, error) {
-	c := Client{
+func NewClient(url, email, password string) (api.Client, error) {
+	c := client{
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 		HostURL:    url,
 	}
@@ -45,7 +47,7 @@ func NewClient(url, email, password string) (*Client, error) {
 	return &c, nil
 }
 
-func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+func (c *client) doRequest(req *http.Request) ([]byte, error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
 
 	res, err := c.HTTPClient.Do(req)

@@ -4,10 +4,10 @@ package provider
 import (
 	"context"
 
-	"github.com/bytebase/terraform-provider-bytebase/client"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/bytebase/terraform-provider-bytebase/client"
 )
 
 // NewProvider is the implement for Bytebase Terraform provider.
@@ -32,10 +32,10 @@ func NewProvider() *schema.Provider {
 			},
 		},
 		ConfigureContextFunc: providerConfigure,
-		// TODO: implement the data source.
-		DataSourcesMap: map[string]*schema.Resource{},
-		// TODO: implement the resource.
-		ResourcesMap: map[string]*schema.Resource{},
+		DataSourcesMap:       map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"bytebase_environment": resourceEnvironment(),
+		},
 	}
 }
 

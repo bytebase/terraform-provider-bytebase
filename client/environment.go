@@ -10,7 +10,7 @@ import (
 )
 
 // CreateEnvironment creates the environment.
-func (c *Client) CreateEnvironment(create *api.EnvironmentCreate) (*api.Environment, error) {
+func (c *client) CreateEnvironment(create *api.EnvironmentCreate) (*api.Environment, error) {
 	payload, err := json.Marshal(create)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func (c *Client) CreateEnvironment(create *api.EnvironmentCreate) (*api.Environm
 }
 
 // GetEnvironment gets the environment by id.
-func (c *Client) GetEnvironment(environmentID int) (*api.Environment, error) {
+func (c *client) GetEnvironment(environmentID int) (*api.Environment, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/environment/%d", c.HostURL, environmentID), nil)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (c *Client) GetEnvironment(environmentID int) (*api.Environment, error) {
 }
 
 // ListEnvironment finds all environments.
-func (c *Client) ListEnvironment() ([]*api.Environment, error) {
+func (c *client) ListEnvironment() ([]*api.Environment, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/environment", c.HostURL), nil)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (c *Client) ListEnvironment() ([]*api.Environment, error) {
 }
 
 // UpdateEnvironment updates the environment.
-func (c *Client) UpdateEnvironment(environmentID int, patch *api.EnvironmentPatch) (*api.Environment, error) {
+func (c *client) UpdateEnvironment(environmentID int, patch *api.EnvironmentPatch) (*api.Environment, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (c *Client) UpdateEnvironment(environmentID int, patch *api.EnvironmentPatc
 }
 
 // DeleteEnvironment deletes the environment.
-func (c *Client) DeleteEnvironment(environmentID int) error {
+func (c *client) DeleteEnvironment(environmentID int) error {
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/environment/%d", c.HostURL, environmentID), nil)
 	if err != nil {
 		return err
