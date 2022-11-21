@@ -32,10 +32,10 @@ func NewProvider() *schema.Provider {
 			},
 		},
 		ConfigureContextFunc: providerConfigure,
-		// TODO: implement the data source.
-		DataSourcesMap: map[string]*schema.Resource{},
-		// TODO: implement the resource.
-		ResourcesMap: map[string]*schema.Resource{},
+		DataSourcesMap:       map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"bytebase_environment": resourceEnvironment(),
+		},
 	}
 }
 

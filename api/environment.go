@@ -13,12 +13,12 @@ type Environment struct {
 type EnvironmentCreate struct {
 	// Domain specific fields
 	Name  string `json:"name"`
-	Order *int   `json:"order"`
+	Order *int   `json:"order,omitempty"`
 }
 
 // EnvironmentPatch is the API message for patching an environment.
 type EnvironmentPatch struct {
 	// Domain specific fields
-	Name  string `json:"name,omitempty"`
-	Order int    `json:"order"`
+	Name  *string `json:"name,omitempty"`
+	Order *int    `json:"order,omitempty"`
 }
