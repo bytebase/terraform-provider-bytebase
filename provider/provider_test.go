@@ -4,8 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 var testAccProviders map[string]*schema.Provider

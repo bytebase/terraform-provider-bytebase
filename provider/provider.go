@@ -4,10 +4,10 @@ package provider
 import (
 	"context"
 
-	"github.com/bytebase/terraform-provider-bytebase/client"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/bytebase/terraform-provider-bytebase/client"
 )
 
 // NewProvider is the implement for Bytebase Terraform provider.

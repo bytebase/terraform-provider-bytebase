@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/pkg/errors"
+
+	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
 // client is the API message for Bytebase API client.

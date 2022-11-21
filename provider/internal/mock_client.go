@@ -1,8 +1,9 @@
 package internal
 
 import (
-	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/pkg/errors"
+
+	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
 var environmentMap map[int]*api.Environment
