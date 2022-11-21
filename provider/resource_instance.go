@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
@@ -21,13 +22,20 @@ func resourceInstance() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"engine": {
-				// TODO: validation
 				Type:     schema.TypeString,
 				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"MYSQL",
+					"POSTGRES",
+					"TIDB",
+					"SNOWFLAKE",
+					"CLICKHOUSE",
+				}, false),
 			},
 			"engine_version": {
 				Type:     schema.TypeString,
@@ -39,17 +47,19 @@ func resourceInstance() *schema.Resource {
 				Computed: true,
 			},
 			"host": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "Host or socker for your instance, or the account name if the instance type is Snowflake.",
 			},
 			"port": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: false,
 			},
 			"password": {
 				Type:      schema.TypeString,
@@ -70,8 +80,10 @@ func resourceInstance() *schema.Resource {
 				Optional: true,
 			},
 			"environment": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The environment name for your instance.",
 			},
 		},
 	}
