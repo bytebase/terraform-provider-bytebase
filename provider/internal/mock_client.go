@@ -64,8 +64,13 @@ func (c *mockClient) GetEnvironment(environmentID int) (*api.Environment, error)
 }
 
 // ListEnvironment finds all environments.
-func (*mockClient) ListEnvironment() ([]*api.Environment, error) {
-	return nil, errors.Errorf("ListEnvironment is not implemented yet")
+func (c *mockClient) ListEnvironment() ([]*api.Environment, error) {
+	environments := make([]*api.Environment, 0)
+	for _, env := range c.environmentMap {
+		environments = append(environments, env)
+	}
+
+	return environments, nil
 }
 
 // UpdateEnvironment updates the environment.
@@ -107,8 +112,13 @@ func (c *mockClient) findEnvironmentByName(envName string) *api.Environment {
 }
 
 // ListInstance will return all instances.
-func (*mockClient) ListInstance() ([]*api.Instance, error) {
-	return nil, errors.Errorf("ListInstance is not implemented yet")
+func (c *mockClient) ListInstance() ([]*api.Instance, error) {
+	instances := make([]*api.Instance, 0)
+	for _, instance := range c.instanceMap {
+		instances = append(instances, instance)
+	}
+
+	return instances, nil
 }
 
 // CreateInstance creates the instance.

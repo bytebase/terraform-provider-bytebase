@@ -3,11 +3,18 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/bytebase/terraform-provider-bytebase/client"
+)
+
+const (
+	envKeyForBytebaseURL   = "BYTEBASE_URL"
+	envKeyForyUserEmail    = "BYTEBASE_USER_EMAIL"
+	envKeyForyUserPassword = "BYTEBASE_USER_PASSWORD"
 )
 
 // NewProvider is the implement for Bytebase Terraform provider.
@@ -17,22 +24,25 @@ func NewProvider() *schema.Provider {
 			"bytebase_url": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("BYTEBASE_URL", nil),
+				DefaultFunc: schema.EnvDefaultFunc(envKeyForBytebaseURL, nil),
 			},
 			"email": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("BYTEBASE_USER_EMAIL", nil),
+				DefaultFunc: schema.EnvDefaultFunc(envKeyForyUserEmail, nil),
 			},
 			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Sensitive:   true,
-				DefaultFunc: schema.EnvDefaultFunc("BYTEBASE_USER_PASSWORD", nil),
+				DefaultFunc: schema.EnvDefaultFunc(envKeyForyUserPassword, nil),
 			},
 		},
 		ConfigureContextFunc: providerConfigure,
-		DataSourcesMap:       map[string]*schema.Resource{},
+		DataSourcesMap: map[string]*schema.Resource{
+			"bytebase_instances":    dataSourceInstanceList(),
+			"bytebase_environments": dataSourceEnvironmentList(),
+		},
 		ResourcesMap: map[string]*schema.Resource{
 			"bytebase_environment": resourceEnvironment(),
 			"bytebase_instance":    resourceInstance(),
@@ -52,7 +62,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Unable to create HashiCups client",
-			Detail:   "BYTEBASE_USER_EMAIL or BYTEBASE_USER_PASSWORD cannot be empty",
+			Detail:   fmt.Sprintf("%s or %s cannot be empty", envKeyForyUserEmail, envKeyForyUserPassword),
 		})
 
 		return nil, diags
@@ -62,7 +72,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Unable to create HashiCups client",
-			Detail:   "BYTEBASE_URL cannot be empty",
+			Detail:   fmt.Sprintf("%s cannot be empty", envKeyForBytebaseURL),
 		})
 
 		return nil, diags

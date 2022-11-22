@@ -8,9 +8,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func TestAccEnvironment(t *testing.T) {
@@ -28,24 +28,45 @@ func TestAccEnvironment(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
-			// resource create
+			// resource list test
+			internal.TestGetTestStepForDataSource(
+				"bytebase_environments",
+				"before",
+				"environments",
+				0,
+			),
+			// resource create test
 			{
 				Config: testAccCheckEnvironmentConfigBasic(identifier, name, order),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEnvironmentExists(resourceName),
+					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order)),
 				),
 			},
-			// resource update
+			// resource list test
+			internal.TestGetTestStepForDataSource(
+				"bytebase_environments",
+				"after",
+				"environments",
+				1,
+			),
+			// resource update test
 			{
 				Config: testAccCheckEnvironmentConfigBasic(identifier, nameUpdated, order+1),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEnvironmentExists(resourceName),
+					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", nameUpdated),
 					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order+1)),
 				),
 			},
+			// resource list test
+			internal.TestGetTestStepForDataSource(
+				"bytebase_environments",
+				"after_update",
+				"environments",
+				1,
+			),
 		},
 	})
 }
@@ -97,20 +118,4 @@ func testAccCheckEnvironmentConfigBasic(identifier, envName string, order int) s
 		order = %d
 	}
 	`, identifier, envName, order)
-}
-
-func testAccCheckEnvironmentExists(n string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-
-		if !ok {
-			return errors.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return errors.Errorf("No environment set")
-		}
-
-		return nil
-	}
 }
