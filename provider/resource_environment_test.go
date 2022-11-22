@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -13,7 +14,12 @@ import (
 )
 
 func TestAccEnvironment(t *testing.T) {
-	envName := "dev"
+	identifier := "new_environment"
+	resourceName := fmt.Sprintf("bytebase_environment.%s", identifier)
+
+	name := "dev"
+	order := 1
+	nameUpdated := fmt.Sprintf("%s-updated", name)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -22,11 +28,42 @@ func TestAccEnvironment(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
+			// resource create
 			{
-				Config: testAccCheckEnvironmentConfigBasic(envName),
+				Config: testAccCheckEnvironmentConfigBasic(identifier, name, order),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckEnvironmentExists("bytebase_environment.new"),
+					testAccCheckEnvironmentExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", name),
+					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order)),
 				),
+			},
+			// resource update
+			{
+				Config: testAccCheckEnvironmentConfigBasic(identifier, nameUpdated, order+1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckEnvironmentExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", nameUpdated),
+					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order+1)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccEnvironment_InvalidInput(t *testing.T) {
+	identifier := "another_environment"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEnvironmentDestroy,
+		Steps: []resource.TestStep{
+			// Invalid environment name
+			{
+				Config:      testAccCheckEnvironmentConfigBasic(identifier, "", 0),
+				ExpectError: regexp.MustCompile("not be an empty string"),
 			},
 		},
 	})
@@ -53,12 +90,13 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckEnvironmentConfigBasic(envName string) string {
+func testAccCheckEnvironmentConfigBasic(identifier, envName string, order int) string {
 	return fmt.Sprintf(`
-	resource "bytebase_environment" "new" {
+	resource "bytebase_environment" "%s" {
 		name = "%s"
+		order = %d
 	}
-	`, envName)
+	`, identifier, envName, order)
 }
 
 func testAccCheckEnvironmentExists(n string) resource.TestCheckFunc {

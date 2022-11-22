@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -13,10 +14,14 @@ import (
 )
 
 func TestAccInstance(t *testing.T) {
+	identifier := "new_instance"
+	resourceName := fmt.Sprintf("bytebase_instance.%s", identifier)
+
 	name := "dev instance"
 	engine := "POSTGRES"
 	host := "127.0.0.1"
-	env := "dev"
+	environment := "dev"
+	nameUpdated := fmt.Sprintf("%s-updated", name)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -25,11 +30,55 @@ func TestAccInstance(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
+			// resource create
 			{
-				Config: testAccCheckInstanceConfigBasic(name, engine, host, env),
+				Config: testAccCheckInstanceConfigBasic(identifier, name, engine, host, environment),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists("bytebase_instance.new"),
+					testAccCheckInstanceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", name),
+					resource.TestCheckResourceAttr(resourceName, "engine", engine),
+					resource.TestCheckResourceAttr(resourceName, "host", host),
+					resource.TestCheckResourceAttr(resourceName, "environment", environment),
 				),
+			},
+			// resource updated
+			{
+				Config: testAccCheckInstanceConfigBasic(identifier, nameUpdated, engine, host, environment),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", nameUpdated),
+					resource.TestCheckResourceAttr(resourceName, "engine", engine),
+					resource.TestCheckResourceAttr(resourceName, "host", host),
+					resource.TestCheckResourceAttr(resourceName, "environment", environment),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_InvalidInput(t *testing.T) {
+	identifier := "another_instance"
+	engine := "POSTGRES"
+	name := "dev instance"
+	host := "127.0.0.1"
+	environment := "dev"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			// Invalid instance name
+			{
+				Config:      testAccCheckInstanceConfigBasic(identifier, "", engine, host, environment),
+				ExpectError: regexp.MustCompile("not be an empty string"),
+			},
+			// Invalid engine
+			{
+				Config:      testAccCheckInstanceConfigBasic(identifier, name, "engine", host, environment),
+				ExpectError: regexp.MustCompile("expected engine to be one of"),
 			},
 		},
 	})
@@ -56,15 +105,15 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckInstanceConfigBasic(name, engine, host, env string) string {
+func testAccCheckInstanceConfigBasic(identifier, name, engine, host, env string) string {
 	return fmt.Sprintf(`
-	resource "bytebase_instance" "new" {
+	resource "bytebase_instance" "%s" {
 		name = "%s"
 		engine = "%s"
 		host = "%s"
 		environment = "%s"
 	}
-	`, name, engine, host, env)
+	`, identifier, name, engine, host, env)
 }
 
 func testAccCheckInstanceExists(n string) resource.TestCheckFunc {

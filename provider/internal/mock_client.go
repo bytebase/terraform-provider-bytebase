@@ -76,14 +76,13 @@ func (c *mockClient) UpdateEnvironment(environmentID int, patch *api.Environment
 	}
 
 	if v := patch.Name; v != nil {
+		if existed := c.findEnvironmentByName(*v); existed != nil {
+			return nil, errors.Errorf("Environment %s already exists", env.Name)
+		}
 		env.Name = *v
 	}
 	if v := patch.Order; v != nil {
 		env.Order = *v
-	}
-
-	if existed := c.findEnvironmentByName(env.Name); existed != nil {
-		return nil, errors.Errorf("Environment %s already exists", env.Name)
 	}
 
 	delete(c.environmentMap, env.ID)
