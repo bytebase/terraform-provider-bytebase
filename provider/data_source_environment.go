@@ -52,7 +52,7 @@ func dataSourceEnvironmentRead(_ context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	environments := make([]map[string]interface{}, 0)
+	environments := make([]map[string]interface{})
 	for _, environment := range environmentList {
 		env := make(map[string]interface{})
 		env["id"] = environment.ID
