@@ -56,3 +56,15 @@ output "dev_instance" {
   # But we can still print the instance via `terraform output -json dev_instance`
   sensitive = true
 }
+
+# List data source
+data "bytebase_environments" "all" {}
+data "bytebase_instances" "all" {}
+
+output "all_environments" {
+  value = data.bytebase_environments.all.environments
+}
+
+output "all_instances" {
+  value = data.bytebase_instances.all.instances
+}

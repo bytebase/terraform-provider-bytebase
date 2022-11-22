@@ -8,9 +8,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func TestAccInstance(t *testing.T) {
@@ -30,28 +30,49 @@ func TestAccInstance(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
+			// resource list test
+			internal.TestGetTestStepForDataSource(
+				"bytebase_instances",
+				"before",
+				"instances",
+				0,
+			),
 			// resource create
 			{
 				Config: testAccCheckInstanceConfigBasic(identifier, name, engine, host, environment),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resourceName),
+					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "engine", engine),
 					resource.TestCheckResourceAttr(resourceName, "host", host),
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
 				),
 			},
+			// resource list test
+			internal.TestGetTestStepForDataSource(
+				"bytebase_instances",
+				"after",
+				"instances",
+				1,
+			),
 			// resource updated
 			{
 				Config: testAccCheckInstanceConfigBasic(identifier, nameUpdated, engine, host, environment),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceExists(resourceName),
+					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", nameUpdated),
 					resource.TestCheckResourceAttr(resourceName, "engine", engine),
 					resource.TestCheckResourceAttr(resourceName, "host", host),
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
 				),
 			},
+			// resource list test
+			internal.TestGetTestStepForDataSource(
+				"bytebase_instances",
+				"after_update",
+				"instances",
+				1,
+			),
 		},
 	})
 }
@@ -114,20 +135,4 @@ func testAccCheckInstanceConfigBasic(identifier, name, engine, host, env string)
 		environment = "%s"
 	}
 	`, identifier, name, engine, host, env)
-}
-
-func testAccCheckInstanceExists(n string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-
-		if !ok {
-			return errors.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return errors.Errorf("No instance set")
-		}
-
-		return nil
-	}
 }
