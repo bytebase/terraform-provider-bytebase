@@ -6,7 +6,8 @@
 # 4. Run `cd examples && terraform init`
 # 5. Run `terraform plan` to check the changes
 # 6. Run `terraform apply` to apply the changes
-# 7. Run `terraform destory` to delete the test resources
+# 7. Run `terraform output` to find the outputs
+# 8. Run `terraform destory` to delete the test resources
 terraform {
   required_providers {
     bytebase = {
@@ -46,4 +47,12 @@ resource "bytebase_instance" "dev_instance" {
   # port = 5432
   # username = "username"
   # password = "password"
+}
+
+# Print the new instance
+output "dev_instance" {
+  value = bytebase_instance.dev_instance
+  # The password in instance is sensitive, so you cannot directly get its value from the output.
+  # But we can still print the instance via `terraform output -json dev_instance`
+  sensitive = true
 }
