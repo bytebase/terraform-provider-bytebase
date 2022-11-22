@@ -17,12 +17,7 @@ type client struct {
 	HostURL    string
 	HTTPClient *http.Client
 	Token      string
-	Auth       *authStruct
-}
-
-type authStruct struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Auth       *api.Login
 }
 
 // NewClient returns the new Bytebase API client.
@@ -32,7 +27,7 @@ func NewClient(url, email, password string) (api.Client, error) {
 		HostURL:    url,
 	}
 
-	c.Auth = &authStruct{
+	c.Auth = &api.Login{
 		Email:    email,
 		Password: password,
 	}

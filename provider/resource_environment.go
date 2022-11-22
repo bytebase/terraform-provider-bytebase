@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
@@ -21,14 +22,17 @@ func resourceEnvironment() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The environment unique name.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"order": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
-				Default:  nil,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Default:     nil,
+				Description: "The environment sorting order.",
 			},
 		},
 	}
