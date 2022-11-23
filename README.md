@@ -56,3 +56,11 @@ This will generate the doc template in the `docs` folder
 ```bash
 go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs --provider-name=terraform-provider-bytebase
 ```
+
+## Release
+
+Follow [this doc](https://developer.hashicorp.com/terraform/registry/providers/publishing) to publish the provider.
+
+Note:
+
+We need to publish a new tag for a new version, the tag must be a valid [Semantic Version](https://semver.org/) **preceded with a v (for example, v1.2.3)**. There must not be a branch name with the same name as the tag.
