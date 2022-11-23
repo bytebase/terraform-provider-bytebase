@@ -7,10 +7,10 @@ This repository is the Terraform provider for Bytebase.
 ### Prerequisites
 
 - [Go](https://golang.org/doc/install) (1.19 or later)
-- [Air](https://github.com/cosmtrek/air#installation) (must use forked repo 87187cc). This is for backend live reload.
 - [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform) (1.3.5 or later)
+- [Bytebase](https://github.com/bytebase/bytebase)
 
-### Prepare
+### Prepare Bytebase OpenAPI server
 
 ```bash
 # clone Bytebase to get the OpenAPI server
@@ -22,7 +22,7 @@ git clone git@github.com:bytebase/terraform-provider-bytebase.git
 ```bash
 # start Bytebase OpenAPI server
 cd bytebase
-# check https://github.com/bytebase/bytebase for more information.
+# check https://github.com/bytebase/bytebase for starting the Bytebase server.
 air -c scripts/.air.toml
 ```
 
