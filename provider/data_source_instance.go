@@ -13,6 +13,7 @@ import (
 
 func dataSourceInstanceList() *schema.Resource {
 	return &schema.Resource{
+		Description: "The instance data source.",
 		ReadContext: dataSourceInstanceRead,
 		Schema: map[string]*schema.Schema{
 			"instances": {
@@ -21,40 +22,48 @@ func dataSourceInstanceList() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The instance id.",
 						},
 						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The instance name.",
 						},
 						"engine": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.",
 						},
 						"engine_version": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The version for instance engine.",
 						},
 						"external_link": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"host": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Host or socker for your instance, or the account name if the instance type is Snowflake.",
 						},
 						"port": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The port for your instance.",
 						},
 						"username": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The connection user name used by Bytebase to perform DDL and DML operations.",
 						},
 						"environment": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The environment name for your instance.",
 						},
 					},
 				},
