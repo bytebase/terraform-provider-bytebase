@@ -13,6 +13,7 @@ import (
 
 func resourceInstance() *schema.Resource {
 	return &schema.Resource{
+		Description:   "The instance resource.",
 		CreateContext: resourceInstanceCreate,
 		ReadContext:   resourceInstanceRead,
 		UpdateContext: resourceInstanceUpdate,
@@ -25,6 +26,7 @@ func resourceInstance() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The instance name.",
 			},
 			"engine": {
 				Type:     schema.TypeString,
@@ -36,10 +38,12 @@ func resourceInstance() *schema.Resource {
 					"SNOWFLAKE",
 					"CLICKHOUSE",
 				}, false),
+				Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.",
 			},
 			"engine_version": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The version for instance engine.",
 			},
 			"external_link": {
 				Type:     schema.TypeString,
@@ -53,19 +57,22 @@ func resourceInstance() *schema.Resource {
 				Description:  "Host or socker for your instance, or the account name if the instance type is Snowflake.",
 			},
 			"port": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The port for your instance.",
 			},
 			"username": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The connection user name used by Bytebase to perform DDL and DML operations.",
 			},
 			"password": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  false,
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    false,
+				Sensitive:   true,
+				Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
 			},
 			"ssl_ca": {
 				Type:     schema.TypeString,

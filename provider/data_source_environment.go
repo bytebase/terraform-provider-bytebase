@@ -13,6 +13,7 @@ import (
 
 func dataSourceEnvironmentList() *schema.Resource {
 	return &schema.Resource{
+		Description: "The environment data source.",
 		ReadContext: dataSourceEnvironmentRead,
 		Schema: map[string]*schema.Schema{
 			"environments": {
@@ -21,8 +22,9 @@ func dataSourceEnvironmentList() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The environment id.",
 						},
 						"name": {
 							Type:        schema.TypeString,

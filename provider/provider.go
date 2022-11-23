@@ -25,16 +25,19 @@ func NewProvider() *schema.Provider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc(envKeyForBytebaseURL, nil),
+				Description: "The OpenAPI URL for your Bytebase server.",
 			},
 			"email": {
 				Type:        schema.TypeString,
 				Required:    true,
+				Description: "The Bytebase user account email.",
 				DefaultFunc: schema.EnvDefaultFunc(envKeyForyUserEmail, nil),
 			},
 			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Sensitive:   true,
+				Description: "The Bytebase user account password.",
 				DefaultFunc: schema.EnvDefaultFunc(envKeyForyUserPassword, nil),
 			},
 		},
@@ -61,7 +64,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	if email == "" || password == "" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unable to create HashiCups client",
+			Summary:  "Unable to create the Bytebase client",
 			Detail:   fmt.Sprintf("%s or %s cannot be empty", envKeyForyUserEmail, envKeyForyUserPassword),
 		})
 
@@ -71,7 +74,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	if bytebaseURL == "" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unable to create HashiCups client",
+			Summary:  "Unable to create the Bytebase client",
 			Detail:   fmt.Sprintf("%s cannot be empty", envKeyForBytebaseURL),
 		})
 
