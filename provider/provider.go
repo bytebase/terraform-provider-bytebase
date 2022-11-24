@@ -23,22 +23,22 @@ func NewProvider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"bytebase_url": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(envKeyForBytebaseURL, nil),
-				Description: "The OpenAPI URL for your Bytebase server.",
+				Description: fmt.Sprintf("The OpenAPI URL for your Bytebase server. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForBytebaseURL),
 			},
 			"email": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The Bytebase user account email.",
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(envKeyForyUserEmail, nil),
+				Description: fmt.Sprintf("The Bytebase user account email. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForyUserEmail),
 			},
 			"password": {
 				Type:        schema.TypeString,
-				Required:    true,
 				Sensitive:   true,
-				Description: "The Bytebase user account password.",
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(envKeyForyUserPassword, nil),
+				Description: fmt.Sprintf("The Bytebase user account password. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForyUserPassword),
 			},
 		},
 		ConfigureContextFunc: providerConfigure,

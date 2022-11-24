@@ -1,10 +1,10 @@
 TEST?=$$(go list ./... | grep -v 'vendor')
-HOSTNAME=registry.terraform.io
+HOSTNAME=terraform.local
 NAMESPACE=bytebase
 NAME=bytebase
 BINARY=terraform-provider-${NAMESPACE}
 VERSION=${shell cat ./VERSION}
-OS_ARCH=$(shell go env GOHOSTOS)_$(shell go env GOHOSTARCH)
+OS_ARCH=darwin_amd64
 
 default: install
 

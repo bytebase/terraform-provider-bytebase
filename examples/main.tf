@@ -8,26 +8,22 @@
 # 6. Run `terraform apply` to apply the changes
 # 7. Run `terraform output` to find the outputs
 # 8. Run `terraform destory` to delete the test resources
-terraform {
-  required_providers {
-    bytebase = {
-      version = "0.0.1"
-      # The source is only used in the local example.
-      source = "registry.terraform.io/bytebase/bytebase"
-    }
-  }
-}
-
 provider "bytebase" {
   # You need to replace the email and password with your own Bytebase account.
-  email        = "ed+dev@bytebase.com"
-  password     = "ed"
+  email    = "ed+dev@bytebase.com"
+  password = "ed"
+  # The source is only used in the local example.
   bytebase_url = "http://localhost:8080/v1"
+}
+
+locals {
+  environment_name = "dev"
+  instance_name    = "dev instance"
 }
 
 # Create a new environment named "dev"
 resource "bytebase_environment" "dev" {
-  name = "dev"
+  name = local.environment_name
   # You can specific the environment order
   # order = 1
 }
@@ -39,7 +35,7 @@ output "staging_environment" {
 
 # Create a new instance named "dev instance"
 resource "bytebase_instance" "dev_instance" {
-  name        = "dev instance"
+  name        = local.instance_name
   engine      = "POSTGRES"
   host        = "127.0.0.1"
   environment = bytebase_environment.dev.name
@@ -57,14 +53,30 @@ output "dev_instance" {
   sensitive = true
 }
 
-# List data source
-data "bytebase_environments" "all" {}
-data "bytebase_instances" "all" {}
-
-output "all_environments" {
-  value = data.bytebase_environments.all.environments
+# import environments module and filter by environment name
+module "environment" {
+  source           = "./environments"
+  environment_name = local.environment_name
+  # Make sure the module exec after the "dev" environment is created
+  depends_on = [
+    bytebase_environment.dev
+  ]
 }
 
-output "all_instances" {
-  value = data.bytebase_instances.all.instances
+output "environment" {
+  value = module.environment.environment
+}
+
+# import instances module and filter by instance name
+module "instance" {
+  source        = "./instances"
+  instance_name = local.instance_name
+  # Make sure the module exec after the "dev instance" instance is created
+  depends_on = [
+    bytebase_instance.dev_instance
+  ]
+}
+
+output "instance" {
+  value = module.instance.instance
 }
