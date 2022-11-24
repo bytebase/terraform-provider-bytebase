@@ -4,7 +4,7 @@ NAMESPACE=bytebase
 NAME=bytebase
 BINARY=terraform-provider-${NAMESPACE}
 VERSION=0.0.1
-OS_ARCH=darwin_amd64
+OS_ARCH=$(shell go env GOHOSTOS)_$(shell go env GOHOSTARCH)
 
 default: install
 

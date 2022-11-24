@@ -12,12 +12,31 @@
 name: release
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+    paths:
+      - "VERSION"
 permissions:
   contents: write
 jobs:
+  create-tag:
+    name: Create Tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get Version
+        id: get-version
+        run: |
+          verion=`cat VERSION`
+          echo "::set-output name=version::$verion"
+      - name: Create Tag
+        uses: negz/create-tag@v1
+        with:
+          version: v${{ steps.get-version.outputs.version }}
+          message: "Release v${{ steps.get-version.outputs.version }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
   goreleaser:
+    needs: create-tag
     runs-on: ubuntu-latest
     steps:
       -
