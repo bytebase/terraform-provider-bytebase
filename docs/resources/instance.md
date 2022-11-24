@@ -8,7 +8,7 @@ description: |-
 
 # bytebase_instance (Resource)
 
-The instance resource.
+The instance resource. You can read, create, update or delete a single instance through `bytebase_instance` resource.
 
 ## Example Usage
 

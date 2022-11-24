@@ -8,7 +8,7 @@ description: |-
 
 # bytebase_environment (Resource)
 
-The environment resource.
+The environment resource. You can read, create, update or delete a single environment through `bytebase_environment` resource.
 
 ## Example Usage
 

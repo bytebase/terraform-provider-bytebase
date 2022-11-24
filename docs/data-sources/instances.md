@@ -8,7 +8,7 @@ description: |-
 
 # bytebase_instances (Data Source)
 
-The instance data source.
+The instance data source. You can list instances through `bytebase_instances` data source.
 
 ## Example Usage
 
