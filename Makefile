@@ -3,7 +3,7 @@ HOSTNAME=registry.terraform.io
 NAMESPACE=bytebase
 NAME=bytebase
 BINARY=terraform-provider-${NAMESPACE}
-VERSION=0.0.1
+VERSION=${shell cat ./VERSION}
 OS_ARCH=$(shell go env GOHOSTOS)_$(shell go env GOHOSTARCH)
 
 default: install
