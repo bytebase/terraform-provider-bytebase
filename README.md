@@ -33,7 +33,7 @@ air -c scripts/.air.toml
 cd terraform-provider-bytebase && make install
 
 # initial the terraform for your example
-# you may need to change the username and password
+# you may need to change the service_account and service_key
 cd examples && terraform init
 
 # check the changes

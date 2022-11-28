@@ -12,33 +12,39 @@ import (
 )
 
 const (
-	envKeyForBytebaseURL   = "BYTEBASE_URL"
-	envKeyForyUserEmail    = "BYTEBASE_USER_EMAIL"
-	envKeyForyUserPassword = "BYTEBASE_USER_PASSWORD"
+	openAPIVersion = "v1"
+
+	envKeyForBytebaseURL    = "BYTEBASE_URL"
+	envKeyForServiceAccount = "BYTEBASE_SERVICE_ACCOUNT"
+	envKeyForServiceKey     = "BYTEBASE_SERVICE_KEY"
+
+	settingKeyForURL            = "url"
+	settingKeyForServiceAccount = "service_account"
+	settingKeyForServiceKey     = "service_key"
 )
 
 // NewProvider is the implement for Bytebase Terraform provider.
 func NewProvider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"bytebase_url": {
+			settingKeyForURL: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(envKeyForBytebaseURL, nil),
-				Description: fmt.Sprintf("The OpenAPI URL for your Bytebase server. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForBytebaseURL),
+				Description: fmt.Sprintf("The external URL for your Bytebase server. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForBytebaseURL),
 			},
-			"email": {
+			settingKeyForServiceAccount: {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc(envKeyForyUserEmail, nil),
-				Description: fmt.Sprintf("The Bytebase user account email. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForyUserEmail),
+				DefaultFunc: schema.EnvDefaultFunc(envKeyForServiceAccount, nil),
+				Description: fmt.Sprintf("The Bytebase service account email. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForServiceAccount),
 			},
-			"password": {
+			settingKeyForServiceKey: {
 				Type:        schema.TypeString,
 				Sensitive:   true,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc(envKeyForyUserPassword, nil),
-				Description: fmt.Sprintf("The Bytebase user account password. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForyUserPassword),
+				DefaultFunc: schema.EnvDefaultFunc(envKeyForServiceKey, nil),
+				Description: fmt.Sprintf("The Bytebase service account key. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForServiceKey),
 			},
 		},
 		ConfigureContextFunc: providerConfigure,
@@ -57,15 +63,15 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	email := d.Get("email").(string)
-	password := d.Get("password").(string)
-	bytebaseURL := d.Get("bytebase_url").(string)
+	email := d.Get(settingKeyForServiceAccount).(string)
+	key := d.Get(settingKeyForServiceKey).(string)
+	bytebaseURL := d.Get(settingKeyForURL).(string)
 
-	if email == "" || password == "" {
+	if email == "" || key == "" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Unable to create the Bytebase client",
-			Detail:   fmt.Sprintf("%s or %s cannot be empty", envKeyForyUserEmail, envKeyForyUserPassword),
+			Detail:   fmt.Sprintf("%s or %s cannot be empty", envKeyForServiceAccount, envKeyForServiceKey),
 		})
 
 		return nil, diags
@@ -81,7 +87,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		return nil, diags
 	}
 
-	c, err := client.NewClient(bytebaseURL, email, password)
+	c, err := client.NewClient(fmt.Sprintf("%s/%s", bytebaseURL, openAPIVersion), email, key)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,

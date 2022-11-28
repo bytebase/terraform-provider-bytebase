@@ -1,7 +1,7 @@
 # This is an example for using Bytebase Terraform provider to manage your resource.
 # To run this provider in your local machine,
 # 1. Run your Bytebase service, then you can access the OpenAPI via http://localhost:8080/v1
-# 2. Replace the email and password with your own Bytebase account
+# 2. Replace the service_account and service_key with your own Bytebase service account
 # 3. Run `make install` under terraform-provider-bytebase folder
 # 4. Run `cd examples && terraform init`
 # 5. Run `terraform plan` to check the changes
@@ -9,11 +9,10 @@
 # 7. Run `terraform output` to find the outputs
 # 8. Run `terraform destory` to delete the test resources
 provider "bytebase" {
-  # You need to replace the email and password with your own Bytebase account.
-  email    = "ed+dev@bytebase.com"
-  password = "ed"
-  # The source is only used in the local example.
-  bytebase_url = "http://localhost:8080/v1"
+  # You need to replace the account and key with your Bytebase service account.
+  service_account = "ed+dev@bytebase.com"
+  service_key     = "ed"
+  url             = "http://localhost:8080"
 }
 
 locals {
