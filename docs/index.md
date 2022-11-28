@@ -62,9 +62,9 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Optional
 
-- `url`: The Bytebase external URL for your Bytebase server. If not provided in the configuration, you must set the `BYTEBASE_URL` variable in the environment.
-- `service_account`: The Bytebase service account email. The service account must have **DB** or **Owner** role. If not provided in the configuration, you must set the `BYTEBASE_SERVICE_ACCOUNT` variable in the environment.
-- `service_key`: The Bytebase service account key. If not provided in the configuration, you must set the `BYTEBASE_SERVICE_KEY` variable in the environment.
+- `url`: Required. The external URL for your Bytebase server. Alternatively, you can set `BYTEBASE_URL` environment variable.
+- `service_account`: Required. The Bytebase service account email. The user must have **Owner** or **DBA** role. Alternatively, you can set `BYTEBASE_SERVICE_ACCOUNT` environment variable.
+- `service_key`: Required. The Bytebase service account key. Alternatively, you can set `BYTEBASE_SERVICE_KEY` environment variable.
 
 It's optional to provide these configuration through the provider:
 
