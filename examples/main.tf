@@ -13,7 +13,7 @@ provider "bytebase" {
   # You need to replace the account and key with your Bytebase service account.
   service_account = "terraform@service.bytebase.com"
   service_key     = "bbs_qHX6CswQ1nMMELSCc2lk"
-  url             = "http://localhost:8080"
+  url             = "https://bytebase.example.com"
 }
 
 locals {
