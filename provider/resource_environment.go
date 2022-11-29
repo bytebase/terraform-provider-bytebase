@@ -154,12 +154,3 @@ func setEnvironment(d *schema.ResourceData, env *api.Environment) diag.Diagnosti
 
 	return nil
 }
-
-func getEnvironmentOrder(d *schema.ResourceData) *int {
-	order, ok := d.Get("order").(int)
-	if ok && order >= 0 {
-		return &order
-	}
-
-	return nil
-}
