@@ -58,8 +58,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		Name: name,
 	}
 
-	order := getEnvironmentOrder(d)
-	create.Order = order
+	create.Order = getEnvironmentOrder(d)
 
 	env, err := c.CreateEnvironment(create)
 	if err != nil {
@@ -103,8 +102,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 			patch.Name = &name
 		}
 
-		order := getEnvironmentOrder(d)
-		patch.Order = order
+		patch.Order = getEnvironmentOrder(d)
 
 		if _, err := c.UpdateEnvironment(envID, patch); err != nil {
 			return diag.FromErr(err)
