@@ -10,7 +10,7 @@
 # 8. Run `terraform destory` to delete the test resources
 provider "bytebase" {
   # You need to replace the account and key with your Bytebase service account.
-  service_account = "ed+dev@bytebase.com"
+  service_account = "ed+dev@service.bytebase.com"
   service_key     = "ed"
   url             = "http://localhost:8080"
 }
