@@ -94,7 +94,7 @@ provider "bytebase" {}
 ```
 
 ```bash
-export BYTEBASE_URL=<Your Bytebase OpenAPI URL> BYTEBASE_SERVICE_ACCOUNT=<Your Bytebase service account email> BYTEBASE_SERVICE_KEY=<Your Bytebase service account key>
+export BYTEBASE_URL=<Your Bytebase EXTERNAL URL> BYTEBASE_SERVICE_ACCOUNT=<Your Bytebase service account email> BYTEBASE_SERVICE_KEY=<Your Bytebase service account key>
 
 terraform init && terraform plan
 ```
