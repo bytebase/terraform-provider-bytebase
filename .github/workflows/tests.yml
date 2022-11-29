@@ -53,4 +53,4 @@ jobs:
           TF_ACC: '1'
           BYTEBASE_SERVICE_ACCOUNT: 'test@service.bytebase.com'
           BYTEBASE_SERVICE_KEY: 'test_secret'
-          BYTEBASE_URL: 'mock_url'
+          BYTEBASE_URL: 'https://bytebase.example.com'
