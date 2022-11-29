@@ -31,13 +31,13 @@ func TestProvider_impl(_ *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if err := os.Getenv("BYTEBASE_USER_EMAIL"); err == "" {
-		t.Fatal("BYTEBASE_USER_EMAIL must be set for acceptance tests")
+	if err := os.Getenv(envKeyForServiceAccount); err == "" {
+		t.Fatal("BYTEBASE_SERVICE_ACCOUNT must be set for acceptance tests")
 	}
-	if err := os.Getenv("BYTEBASE_USER_PASSWORD"); err == "" {
-		t.Fatal("BYTEBASE_USER_PASSWORD must be set for acceptance tests")
+	if err := os.Getenv(envKeyForServiceKey); err == "" {
+		t.Fatal("BYTEBASE_SERVICE_KEY must be set for acceptance tests")
 	}
-	if err := os.Getenv("BYTEBASE_URL"); err == "" {
+	if err := os.Getenv(envKeyForBytebaseURL); err == "" {
 		t.Fatal("BYTEBASE_URL must be set for acceptance tests")
 	}
 }

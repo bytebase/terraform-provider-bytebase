@@ -51,6 +51,6 @@ jobs:
           go test -v -cover ./...
         env:
           TF_ACC: '1'
-          BYTEBASE_USER_EMAIL: 'test_email'
-          BYTEBASE_USER_PASSWORD: 'test_pwd'
-          BYTEBASE_URL: 'test_url'
+          BYTEBASE_SERVICE_ACCOUNT: 'test@service.bytebase.com'
+          BYTEBASE_SERVICE_KEY: 'test_secret'
+          BYTEBASE_URL: 'https://bytebase.example.com'

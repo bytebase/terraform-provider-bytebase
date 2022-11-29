@@ -34,15 +34,10 @@ func (*mockClient) Login() (*api.AuthResponse, error) {
 
 // CreateEnvironment creates the environment.
 func (c *mockClient) CreateEnvironment(create *api.EnvironmentCreate) (*api.Environment, error) {
-	order := len(c.environmentMap) + 1
-	if v := create.Order; v != nil {
-		order = *v
-	}
-
 	env := &api.Environment{
 		ID:    len(c.environmentMap) + 1,
 		Name:  create.Name,
-		Order: order,
+		Order: create.Order,
 	}
 
 	if existed := c.findEnvironmentByName(env.Name); existed != nil {

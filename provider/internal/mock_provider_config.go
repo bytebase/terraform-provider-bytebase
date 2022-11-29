@@ -12,7 +12,7 @@ func MockProviderConfigure(_ context.Context, d *schema.ResourceData) (interface
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	c, err := newMockClient(d.Get("bytebase_url").(string), d.Get("email").(string), d.Get("password").(string))
+	c, err := newMockClient(d.Get("url").(string), d.Get("service_account").(string), d.Get("service_key").(string))
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,

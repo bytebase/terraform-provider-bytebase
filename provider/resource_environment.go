@@ -29,11 +29,10 @@ func resourceEnvironment() *schema.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"order": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Default:     nil,
-				Description: "The environment sorting order.",
+				Type:         schema.TypeInt,
+				Required:     true,
+				Description:  "The environment sorting order.",
+				ValidateFunc: validation.IntAtLeast(0),
 			},
 		},
 	}
@@ -55,14 +54,19 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		return diags
 	}
 
-	create := &api.EnvironmentCreate{
-		Name: name,
+	order, ok := d.Get("order").(int)
+	if !ok {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Unable to get the environment order",
+			Detail:   "The environment order is required for creation",
+		})
+		return diags
 	}
 
-	order, ok := d.GetOk("order")
-	if ok {
-		val := order.(int)
-		create.Order = &val
+	create := &api.EnvironmentCreate{
+		Name:  name,
+		Order: order,
 	}
 
 	env, err := c.CreateEnvironment(create)
@@ -102,16 +106,14 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 	if d.HasChange("name") || d.HasChange("order") {
 		patch := &api.EnvironmentPatch{}
 
-		name, ok := d.GetOk("name")
+		name, ok := d.Get("name").(string)
 		if ok {
-			val := name.(string)
-			patch.Name = &val
+			patch.Name = &name
 		}
 
-		order, ok := d.GetOk("order")
+		order, ok := d.Get("order").(int)
 		if ok {
-			val := order.(int)
-			patch.Order = &val
+			patch.Order = &order
 		}
 
 		if _, err := c.UpdateEnvironment(envID, patch); err != nil {
