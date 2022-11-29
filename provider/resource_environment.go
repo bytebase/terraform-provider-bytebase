@@ -59,19 +59,16 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		Name: name,
 	}
 
-	order, ok := d.Get("order").(string)
-	if ok && order != "" {
-		val, err := strconv.Atoi(order)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Unable to parse the environment order",
-				Detail:   err.Error(),
-			})
-			return diags
-		}
-		create.Order = &val
+	order, err := getEnvironmentOrder(d)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Unable to parse the environment order",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
+	create.Order = order
 
 	env, err := c.CreateEnvironment(create)
 	if err != nil {
@@ -101,6 +98,7 @@ func resourceEnvironmentRead(_ context.Context, d *schema.ResourceData, m interf
 
 func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	var diags diag.Diagnostics
 
 	envID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -116,11 +114,16 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 			patch.Name = &val
 		}
 
-		order, ok := d.GetOk("order")
-		if ok {
-			val := order.(int)
-			patch.Order = &val
+		order, err := getEnvironmentOrder(d)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Unable to parse the environment order",
+				Detail:   err.Error(),
+			})
+			return diags
 		}
+		patch.Order = order
 
 		if _, err := c.UpdateEnvironment(envID, patch); err != nil {
 			return diag.FromErr(err)
@@ -159,4 +162,17 @@ func setEnvironment(d *schema.ResourceData, env *api.Environment) diag.Diagnosti
 	}
 
 	return nil
+}
+
+func getEnvironmentOrder(d *schema.ResourceData) (*int, error) {
+	order, ok := d.Get("order").(string)
+	if ok && order != "" {
+		val, err := strconv.Atoi(order)
+		if err != nil {
+			return nil, err
+		}
+		return &val, nil
+	}
+
+	return nil, nil
 }
