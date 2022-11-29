@@ -30,7 +30,7 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Optional
 
-- `order` (Number) The environment sorting order.
+- `order` (Number) The environment sorting order. Default -1, means auto-increase the order.
 
 ### Read-Only
 

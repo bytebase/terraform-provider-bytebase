@@ -31,9 +31,8 @@ func resourceEnvironment() *schema.Resource {
 			"order": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Computed:    true,
-				Default:     nil,
-				Description: "The environment sorting order.",
+				Default:     -1,
+				Description: "The environment sorting order. Default -1, means auto-increase the order.",
 			},
 		},
 	}
@@ -59,15 +58,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		Name: name,
 	}
 
-	order, err := getEnvironmentOrder(d)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to parse the environment order",
-			Detail:   err.Error(),
-		})
-		return diags
-	}
+	order := getEnvironmentOrder(d)
 	create.Order = order
 
 	env, err := c.CreateEnvironment(create)
@@ -98,7 +89,6 @@ func resourceEnvironmentRead(_ context.Context, d *schema.ResourceData, m interf
 
 func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	var diags diag.Diagnostics
 
 	envID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -108,21 +98,12 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 	if d.HasChange("name") || d.HasChange("order") {
 		patch := &api.EnvironmentPatch{}
 
-		name, ok := d.GetOk("name")
+		name, ok := d.Get("name").(string)
 		if ok {
-			val := name.(string)
-			patch.Name = &val
+			patch.Name = &name
 		}
 
-		order, err := getEnvironmentOrder(d)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Unable to parse the environment order",
-				Detail:   err.Error(),
-			})
-			return diags
-		}
+		order := getEnvironmentOrder(d)
 		patch.Order = order
 
 		if _, err := c.UpdateEnvironment(envID, patch); err != nil {
@@ -164,15 +145,11 @@ func setEnvironment(d *schema.ResourceData, env *api.Environment) diag.Diagnosti
 	return nil
 }
 
-func getEnvironmentOrder(d *schema.ResourceData) (*int, error) {
-	order, ok := d.Get("order").(string)
-	if ok && order != "" {
-		val, err := strconv.Atoi(order)
-		if err != nil {
-			return nil, err
-		}
-		return &val, nil
+func getEnvironmentOrder(d *schema.ResourceData) *int {
+	order, ok := d.Get("order").(int)
+	if ok && order >= 0 {
+		return &order
 	}
 
-	return nil, nil
+	return nil
 }
