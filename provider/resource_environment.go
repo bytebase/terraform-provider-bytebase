@@ -68,6 +68,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 				Summary:  "Unable to parse the environment order",
 				Detail:   err.Error(),
 			})
+			return diags
 		}
 		create.Order = &val
 	}
