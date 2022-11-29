@@ -15,7 +15,8 @@ The environment resource. You can read, create, update or delete a single enviro
 ```terraform
 # Create a new environment named "dev"
 resource "bytebase_environment" "dev" {
-  name = "dev"
+  name  = "dev"
+  order = 1
 }
 ```
 
@@ -27,13 +28,8 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 ### Required
 
 - `name` (String) The environment unique name.
-
-### Optional
-
-- `order` (Number) The environment sorting order. Default -1, means auto-increase the order.
+- `order` (Number) The environment sorting order.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

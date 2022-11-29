@@ -29,10 +29,10 @@ func resourceEnvironment() *schema.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"order": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     -1,
-				Description: "The environment sorting order. Default -1, means auto-increase the order.",
+				Type:         schema.TypeInt,
+				Required:     true,
+				Description:  "The environment sorting order.",
+				ValidateFunc: validation.IntAtLeast(0),
 			},
 		},
 	}
@@ -54,11 +54,20 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		return diags
 	}
 
-	create := &api.EnvironmentCreate{
-		Name: name,
+	order, ok := d.Get("order").(int)
+	if !ok {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Unable to get the environment order",
+			Detail:   "The environment order is required for creation",
+		})
+		return diags
 	}
 
-	create.Order = getEnvironmentOrder(d)
+	create := &api.EnvironmentCreate{
+		Name:  name,
+		Order: order,
+	}
 
 	env, err := c.CreateEnvironment(create)
 	if err != nil {
@@ -102,7 +111,10 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 			patch.Name = &name
 		}
 
-		patch.Order = getEnvironmentOrder(d)
+		order, ok := d.Get("order").(int)
+		if ok {
+			patch.Order = &order
+		}
 
 		if _, err := c.UpdateEnvironment(envID, patch); err != nil {
 			return diag.FromErr(err)

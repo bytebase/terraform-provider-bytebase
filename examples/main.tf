@@ -11,7 +11,7 @@
 provider "bytebase" {
   # You need to replace the account and key with your Bytebase service account.
   service_account = "ed+dev@service.bytebase.com"
-  service_key     = "ed_secret"
+  service_key     = "bbs_qHX6CswQ1nMMELSCc2lk"
   url             = "http://localhost:8080"
 }
 
@@ -22,9 +22,8 @@ locals {
 
 # Create a new environment named "dev"
 resource "bytebase_environment" "dev" {
-  name = local.environment_name
-  # You can specific the environment order
-  # order = 1
+  name  = local.environment_name
+  order = 0
 }
 
 # Print the new environment
