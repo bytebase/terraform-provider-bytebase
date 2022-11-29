@@ -32,7 +32,7 @@ air -c scripts/.air.toml
 # install the provider in your local machine
 cd terraform-provider-bytebase && make install
 
-# initial the terraform for your example
+# initialize the terraform for your example
 # you may need to change the service_account and service_key
 cd examples && terraform init
 
