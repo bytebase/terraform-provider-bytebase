@@ -59,9 +59,16 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		Name: name,
 	}
 
-	order, ok := d.GetOk("order")
-	if ok {
-		val := order.(int)
+	order, ok := d.Get("order").(string)
+	if ok && order != "" {
+		val, err := strconv.Atoi(order)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Unable to parse the environment order",
+				Detail:   err.Error(),
+			})
+		}
 		create.Order = &val
 	}
 
