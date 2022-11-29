@@ -11,7 +11,7 @@
 provider "bytebase" {
   # You need to replace the account and key with your Bytebase service account.
   service_account = "ed+dev@service.bytebase.com"
-  service_key     = "ed"
+  service_key     = "ed_secret"
   url             = "http://localhost:8080"
 }
 
