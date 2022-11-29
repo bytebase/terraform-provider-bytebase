@@ -1,4 +1,5 @@
 # This is an example for using Bytebase Terraform provider to manage your resource.
+# Docs: https://www.bytebase.com/docs/get-started/work-with-terraform/overview
 # To run this provider in your local machine,
 # 1. Run your Bytebase service, then you can access the OpenAPI via http://localhost:8080/v1
 # 2. Replace the service_account and service_key with your own Bytebase service account
@@ -10,20 +11,27 @@
 # 8. Run `terraform destory` to delete the test resources
 provider "bytebase" {
   # You need to replace the account and key with your Bytebase service account.
-  service_account = "ed+dev@service.bytebase.com"
+  service_account = "terraform@service.bytebase.com"
   service_key     = "bbs_qHX6CswQ1nMMELSCc2lk"
   url             = "http://localhost:8080"
 }
 
 locals {
-  environment_name = "dev"
-  instance_name    = "dev instance"
+  environment_name_dev  = "dev"
+  environment_name_prod = "prod"
+  instance_name         = "dev instance"
 }
 
 # Create a new environment named "dev"
 resource "bytebase_environment" "dev" {
-  name  = local.environment_name
+  name  = local.environment_name_dev
   order = 0
+}
+
+# Create another environment named "prod"
+resource "bytebase_environment" "prod" {
+  name  = local.environment_name_prod
+  order = 1
 }
 
 # Print the new environment
@@ -54,7 +62,7 @@ output "dev_instance" {
 # import environments module and filter by environment name
 module "environment" {
   source           = "./environments"
-  environment_name = local.environment_name
+  environment_name = local.environment_name_dev
   # Make sure the module exec after the "dev" environment is created
   depends_on = [
     bytebase_environment.dev
