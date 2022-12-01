@@ -13,7 +13,9 @@ provider "bytebase" {
   # You need to replace the account and key with your Bytebase service account.
   service_account = "terraform@service.bytebase.com"
   service_key     = "bbs_qHX6CswQ1nMMELSCc2lk"
-  url             = "https://bytebase.example.com"
+  # The Bytebase service URL. You can use the external URL in production.
+  # Check the docs about external URL: https://www.bytebase.com/docs/get-started/install/external-url
+  url = "https://bytebase.example.com"
 }
 
 locals {
