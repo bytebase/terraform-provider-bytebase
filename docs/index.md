@@ -10,7 +10,7 @@ description: |-
 
 This is the Bytebase Terraform provider to manage your Bytebase resources. For now we support manage the Bytebase instances and environments.
 
-Please follow this docs [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get-started/terraform) to use the provider.
+Please follow [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get-started/terraform) to use the provider.
 
 ## Example Usage
 
