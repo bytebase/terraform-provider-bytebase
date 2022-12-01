@@ -10,6 +10,8 @@ description: |-
 
 This is the Bytebase Terraform provider to manage your Bytebase resources. For now we support manage the Bytebase instances and environments.
 
+Please follow [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get-started/terraform) to use the provider.
+
 ## Example Usage
 
 > Require Terraform 0.13+
@@ -62,7 +64,7 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Optional
 
-- `url`: Required. The [external URL](/docs/get-started/install/external-url) for your Bytebase server. Alternatively, you can set `BYTEBASE_URL` environment variable.
+- `url`: Required. The [external URL](https://www.bytebase.com/docs/get-started/install/external-url) for your Bytebase server. Alternatively, you can set `BYTEBASE_URL` environment variable.
 - `service_account`: Required. The Bytebase service account email. The user must have **Owner** or **DBA** role. Alternatively, you can set `BYTEBASE_SERVICE_ACCOUNT` environment variable.
 - `service_key`: Required. The Bytebase service account key. Alternatively, you can set `BYTEBASE_SERVICE_KEY` environment variable.
 
