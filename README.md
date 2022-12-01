@@ -6,7 +6,7 @@ This repository is the Terraform provider for Bytebase.
 
 You can download this provider at [registry.terraform.io](https://registry.terraform.io/providers/bytebase/bytebase).
 
-Please follow this docs [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get-started/terraform) to use the provider.
+Please follow [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get-started/terraform) to use the provider.
 
 ## Development
 
