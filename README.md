@@ -1,6 +1,10 @@
 # Terraform Provider Bytebase
 
-This repository is the Terraform provider for Bytebase.
+This repository is the Terraform provider for [Bytebase](https://bytebase.com). A typical setup
+involves teams using Cloud vendors' Terraform provider to provision database instances, followed by
+using Bytebase Terraform provider to prepare those instances ready for application use.
+
+![Overview](https://raw.githubusercontent.com/bytebase/terraform-provider-bytebase/main/docs/assets/overview.webp)
 
 ## Usage
 
