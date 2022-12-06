@@ -61,10 +61,12 @@ func (c *mockClient) GetEnvironment(_ context.Context, environmentID int) (*api.
 }
 
 // ListEnvironment finds all environments.
-func (c *mockClient) ListEnvironment(_ context.Context) ([]*api.Environment, error) {
+func (c *mockClient) ListEnvironment(_ context.Context, find *api.EnvironmentFind) ([]*api.Environment, error) {
 	environments := make([]*api.Environment, 0)
 	for _, env := range c.environmentMap {
-		environments = append(environments, env)
+		if find.Name == "" || env.Name == find.Name {
+			environments = append(environments, env)
+		}
 	}
 
 	return environments, nil
@@ -109,10 +111,12 @@ func (c *mockClient) findEnvironmentByName(envName string) *api.Environment {
 }
 
 // ListInstance will return all instances.
-func (c *mockClient) ListInstance(_ context.Context) ([]*api.Instance, error) {
+func (c *mockClient) ListInstance(_ context.Context, find *api.InstanceFind) ([]*api.Instance, error) {
 	instances := make([]*api.Instance, 0)
 	for _, instance := range c.instanceMap {
-		instances = append(instances, instance)
+		if find.Name == "" || instance.Name == find.Name {
+			instances = append(instances, instance)
+		}
 	}
 
 	return instances, nil

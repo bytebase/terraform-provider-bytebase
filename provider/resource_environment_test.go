@@ -29,45 +29,24 @@ func TestAccEnvironment(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
-			// resource list test
-			internal.TestGetTestStepForDataSource(
-				"bytebase_environments",
-				"before",
-				"environments",
-				0,
-			),
 			// resource create test
 			{
-				Config: testAccCheckEnvironmentConfigBasic(identifier, name, order),
+				Config: testAccCheckEnvironmentResource(identifier, name, order),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order)),
 				),
 			},
-			// resource list test
-			internal.TestGetTestStepForDataSource(
-				"bytebase_environments",
-				"after",
-				"environments",
-				1,
-			),
 			// resource update test
 			{
-				Config: testAccCheckEnvironmentConfigBasic(identifier, nameUpdated, order+1),
+				Config: testAccCheckEnvironmentResource(identifier, nameUpdated, order+1),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", nameUpdated),
 					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order+1)),
 				),
 			},
-			// resource list test
-			internal.TestGetTestStepForDataSource(
-				"bytebase_environments",
-				"after_update",
-				"environments",
-				1,
-			),
 		},
 	})
 }
@@ -84,7 +63,7 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Invalid environment name
 			{
-				Config:      testAccCheckEnvironmentConfigBasic(identifier, "", 0),
+				Config:      testAccCheckEnvironmentResource(identifier, "", 0),
 				ExpectError: regexp.MustCompile("not be an empty string"),
 			},
 		},
@@ -112,7 +91,7 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckEnvironmentConfigBasic(identifier, envName string, order int) string {
+func testAccCheckEnvironmentResource(identifier, envName string, order int) string {
 	return fmt.Sprintf(`
 	resource "bytebase_environment" "%s" {
 		name = "%s"

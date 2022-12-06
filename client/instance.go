@@ -7,12 +7,19 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/go-querystring/query"
+
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
 // ListInstance will return all instances.
-func (c *client) ListInstance(ctx context.Context) ([]*api.Instance, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/instance", c.HostURL), nil)
+func (c *client) ListInstance(ctx context.Context, find *api.InstanceFind) ([]*api.Instance, error) {
+	q, err := query.Values(find)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/instance?%s", c.HostURL, q.Encode()), nil)
 	if err != nil {
 		return nil, err
 	}

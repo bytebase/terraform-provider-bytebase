@@ -9,6 +9,12 @@ type Environment struct {
 	Order int    `json:"order"`
 }
 
+// EnvironmentFind is the API message for finding environment.
+type EnvironmentFind struct {
+	// Domain specific fields
+	Name string `url:"name,omitempty"`
+}
+
 // EnvironmentCreate is the API message for creating an environment.
 type EnvironmentCreate struct {
 	// Domain specific fields

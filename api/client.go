@@ -14,7 +14,7 @@ type Client interface {
 	// GetEnvironment gets the environment by id.
 	GetEnvironment(ctx context.Context, environmentID int) (*Environment, error)
 	// ListEnvironment finds all environments.
-	ListEnvironment(ctx context.Context) ([]*Environment, error)
+	ListEnvironment(ctx context.Context, find *EnvironmentFind) ([]*Environment, error)
 	// UpdateEnvironment updates the environment.
 	UpdateEnvironment(ctx context.Context, environmentID int, patch *EnvironmentPatch) (*Environment, error)
 	// DeleteEnvironment deletes the environment.
@@ -22,7 +22,7 @@ type Client interface {
 
 	// Instance
 	// ListInstance will return all instances.
-	ListInstance(ctx context.Context) ([]*Instance, error)
+	ListInstance(ctx context.Context, find *InstanceFind) ([]*Instance, error)
 	// CreateInstance creates the instance.
 	CreateInstance(ctx context.Context, create *InstanceCreate) (*Instance, error)
 	// GetInstance gets the instance by id.

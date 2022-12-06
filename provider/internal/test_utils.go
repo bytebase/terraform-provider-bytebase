@@ -8,16 +8,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TestGetTestStepForDataSource returns the test step for data source test.
-func TestGetTestStepForDataSource(
-	dataSourceKey, identifier, fieldKey string,
+// GetTestStepForDataSourceList returns the test step for data source test.
+func GetTestStepForDataSourceList(
+	createResource, dependsOn, dataSourceKey, identifier, fieldKey string,
 	expectCount int,
 ) resource.TestStep {
 	resourceKey := fmt.Sprintf("data.%s.%s", dataSourceKey, identifier)
 	outputKey := fmt.Sprintf("%s_%s_output_count", dataSourceKey, identifier)
 
 	return resource.TestStep{
-		Config: getDataSourceListConfig(dataSourceKey, identifier, fieldKey, outputKey),
+		Config: getDataSourceListConfig(createResource, dependsOn, dataSourceKey, identifier, fieldKey, outputKey),
 		Check: resource.ComposeTestCheckFunc(
 			TestCheckResourceExists(resourceKey),
 			resource.TestCheckOutput(outputKey, fmt.Sprintf("%d", expectCount)),
@@ -25,14 +25,20 @@ func TestGetTestStepForDataSource(
 	}
 }
 
-func getDataSourceListConfig(dataSourceKey, identifier, fieldKey, outputKey string) string {
+func getDataSourceListConfig(resource, dependsOn, dataSourceKey, identifier, fieldKey, outputKey string) string {
 	return fmt.Sprintf(`
-	data "%s" "%s" {}
+	%s
+
+	data "%s" "%s" {
+		depends_on = [
+    		%s
+  		]
+	}
 
 	output "%s" {
 		value = length(data.%s.%s.%s)
 	}
-	`, dataSourceKey, identifier, outputKey, dataSourceKey, identifier, fieldKey)
+	`, resource, dataSourceKey, identifier, dependsOn, outputKey, dataSourceKey, identifier, fieldKey)
 }
 
 // TestCheckResourceExists will check if the resource exists in the state.

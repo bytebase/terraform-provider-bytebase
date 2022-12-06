@@ -49,8 +49,10 @@ func NewProvider() *schema.Provider {
 		},
 		ConfigureContextFunc: providerConfigure,
 		DataSourcesMap: map[string]*schema.Resource{
-			"bytebase_instances":    dataSourceInstanceList(),
-			"bytebase_environments": dataSourceEnvironmentList(),
+			"bytebase_instance":         dataSourceInstance(),
+			"bytebase_instance_list":    dataSourceInstanceList(),
+			"bytebase_environment":      dataSourceEnvironment(),
+			"bytebase_environment_list": dataSourceEnvironmentList(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"bytebase_environment": resourceEnvironment(),

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/go-querystring/query"
+
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
@@ -58,8 +60,13 @@ func (c *client) GetEnvironment(ctx context.Context, environmentID int) (*api.En
 }
 
 // ListEnvironment finds all environments.
-func (c *client) ListEnvironment(ctx context.Context) ([]*api.Environment, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environment", c.HostURL), nil)
+func (c *client) ListEnvironment(ctx context.Context, find *api.EnvironmentFind) ([]*api.Environment, error) {
+	q, err := query.Values(find)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environment?%s", c.HostURL, q.Encode()), nil)
 	if err != nil {
 		return nil, err
 	}
