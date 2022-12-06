@@ -1,0 +1,80 @@
+package provider
+
+import (
+	"fmt"
+	"regexp"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
+)
+
+func TestAccEnvironmentDataSource(t *testing.T) {
+	identifier := "dev"
+	resourceName := fmt.Sprintf("bytebase_environment.%s", identifier)
+	name := "dev"
+	order := 1
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEnvironmentDestroy,
+		Steps: []resource.TestStep{
+			// get single environment test
+			{
+				Config: testAccCheckEnvironmentDataSource(
+					testAccCheckEnvironmentResource(identifier, name, order),
+					identifier,
+					name,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(fmt.Sprintf("data.%s", resourceName)),
+					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "name", name),
+					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "order", fmt.Sprintf("%d", order)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccEnvironmentDataSource_NotFound(t *testing.T) {
+	identifier := "dev"
+	name := "dev"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEnvironmentDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+				data "bytebase_environment" "%s" {
+					name = "%s"
+				}`, identifier, name),
+				ExpectError: regexp.MustCompile("Unable to get the environment"),
+			},
+		},
+	})
+}
+
+func testAccCheckEnvironmentDataSource(
+	resource,
+	identifier,
+	envName string,
+) string {
+	return fmt.Sprintf(`
+	%s
+
+	data "bytebase_environment" "%s" {
+		name = "%s"
+		depends_on = [
+    		bytebase_environment.%s
+  		]
+	}
+	`, resource, identifier, envName, identifier)
+}

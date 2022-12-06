@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TestGetTestStepForDataSource returns the test step for data source test.
-func TestGetTestStepForDataSource(
+// GetTestStepForDataSourceList returns the test step for data source test.
+func GetTestStepForDataSourceList(
 	dataSourceKey, identifier, fieldKey string,
 	expectCount int,
 ) resource.TestStep {
