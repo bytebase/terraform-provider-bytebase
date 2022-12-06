@@ -14,16 +14,16 @@ variable "environment_name" {
 }
 
 # List all environment
-data "bytebase_environments" "all" {}
+data "bytebase_environment_list" "all" {}
 
 output "all_environments" {
-  value = data.bytebase_environments.all.environments
+  value = data.bytebase_environment_list.all.environments
 }
 
 # Only returns specific environment
 output "environment" {
   value = {
-    for environment in data.bytebase_environments.all.environments :
+    for environment in data.bytebase_environment_list.all.environments :
     environment.id => environment
     if environment.name == var.environment_name
   }

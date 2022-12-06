@@ -30,16 +30,9 @@ func TestAccInstance(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			// resource list test
-			internal.TestGetTestStepForDataSource(
-				"bytebase_instances",
-				"before",
-				"instances",
-				0,
-			),
 			// resource create
 			{
-				Config: testAccCheckInstanceConfigBasic(identifier, name, engine, host, environment),
+				Config: testAccCheckInstanceResource(identifier, name, engine, host, environment),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
@@ -48,16 +41,9 @@ func TestAccInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
 				),
 			},
-			// resource list test
-			internal.TestGetTestStepForDataSource(
-				"bytebase_instances",
-				"after",
-				"instances",
-				1,
-			),
 			// resource updated
 			{
-				Config: testAccCheckInstanceConfigBasic(identifier, nameUpdated, engine, host, environment),
+				Config: testAccCheckInstanceResource(identifier, nameUpdated, engine, host, environment),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", nameUpdated),
@@ -66,13 +52,6 @@ func TestAccInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
 				),
 			},
-			// resource list test
-			internal.TestGetTestStepForDataSource(
-				"bytebase_instances",
-				"after_update",
-				"instances",
-				1,
-			),
 		},
 	})
 }
@@ -93,12 +72,12 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Invalid instance name
 			{
-				Config:      testAccCheckInstanceConfigBasic(identifier, "", engine, host, environment),
+				Config:      testAccCheckInstanceResource(identifier, "", engine, host, environment),
 				ExpectError: regexp.MustCompile("not be an empty string"),
 			},
 			// Invalid engine
 			{
-				Config:      testAccCheckInstanceConfigBasic(identifier, name, "engine", host, environment),
+				Config:      testAccCheckInstanceResource(identifier, name, "engine", host, environment),
 				ExpectError: regexp.MustCompile("expected engine to be one of"),
 			},
 		},
@@ -126,7 +105,7 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckInstanceConfigBasic(identifier, name, engine, host, env string) string {
+func testAccCheckInstanceResource(identifier, name, engine, host, env string) string {
 	return fmt.Sprintf(`
 	resource "bytebase_instance" "%s" {
 		name = "%s"

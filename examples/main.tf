@@ -88,3 +88,15 @@ module "instance" {
 output "instance" {
   value = module.instance.instance
 }
+
+# find single environment named "dev"
+data "bytebase_environment" "dev" {
+  name = local.environment_name_dev
+  depends_on = [
+    bytebase_environment.dev
+  ]
+}
+
+output "dev_env" {
+  value = data.bytebase_environment.dev
+}
