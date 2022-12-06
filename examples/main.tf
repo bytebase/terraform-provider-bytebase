@@ -91,7 +91,10 @@ output "instance" {
 
 # find single environment named "dev"
 data "bytebase_environment" "dev" {
-  name = environment_name_dev
+  name = local.environment_name_dev
+  depends_on = [
+    bytebase_environment.dev
+  ]
 }
 
 output "dev_env" {
