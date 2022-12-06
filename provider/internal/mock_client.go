@@ -62,7 +62,7 @@ func (c *mockClient) GetEnvironment(environmentID int) (*api.Environment, error)
 func (c *mockClient) ListEnvironment(find *api.EnvironmentFind) ([]*api.Environment, error) {
 	environments := make([]*api.Environment, 0)
 	for _, env := range c.environmentMap {
-		if find.Name != "" && env.Name == find.Name {
+		if find.Name == "" || env.Name == find.Name {
 			environments = append(environments, env)
 		}
 	}
@@ -112,7 +112,7 @@ func (c *mockClient) findEnvironmentByName(envName string) *api.Environment {
 func (c *mockClient) ListInstance(find *api.InstanceFind) ([]*api.Instance, error) {
 	instances := make([]*api.Instance, 0)
 	for _, instance := range c.instanceMap {
-		if find.Name != "" && instance.Name == find.Name {
+		if find.Name == "" || instance.Name == find.Name {
 			instances = append(instances, instance)
 		}
 	}

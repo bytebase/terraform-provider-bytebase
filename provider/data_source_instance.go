@@ -66,7 +66,7 @@ func dataSourceInstance() *schema.Resource {
 	}
 }
 
-func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	name := d.Get("name").(string)
