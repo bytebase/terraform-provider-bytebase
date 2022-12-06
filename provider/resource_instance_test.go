@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -118,7 +119,7 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 			return err
 		}
 
-		if err := c.DeleteInstance(instanceID); err != nil {
+		if err := c.DeleteInstance(context.Background(), instanceID); err != nil {
 			return err
 		}
 	}

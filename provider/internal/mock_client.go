@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
@@ -33,7 +35,7 @@ func (*mockClient) Login() (*api.AuthResponse, error) {
 }
 
 // CreateEnvironment creates the environment.
-func (c *mockClient) CreateEnvironment(create *api.EnvironmentCreate) (*api.Environment, error) {
+func (c *mockClient) CreateEnvironment(_ context.Context, create *api.EnvironmentCreate) (*api.Environment, error) {
 	env := &api.Environment{
 		ID:    len(c.environmentMap) + 1,
 		Name:  create.Name,
@@ -49,7 +51,7 @@ func (c *mockClient) CreateEnvironment(create *api.EnvironmentCreate) (*api.Envi
 }
 
 // GetEnvironment gets the environment by id.
-func (c *mockClient) GetEnvironment(environmentID int) (*api.Environment, error) {
+func (c *mockClient) GetEnvironment(_ context.Context, environmentID int) (*api.Environment, error) {
 	env, ok := c.environmentMap[environmentID]
 	if !ok {
 		return nil, errors.Errorf("Cannot found environment with ID %d", environmentID)
@@ -59,7 +61,7 @@ func (c *mockClient) GetEnvironment(environmentID int) (*api.Environment, error)
 }
 
 // ListEnvironment finds all environments.
-func (c *mockClient) ListEnvironment() ([]*api.Environment, error) {
+func (c *mockClient) ListEnvironment(_ context.Context) ([]*api.Environment, error) {
 	environments := make([]*api.Environment, 0)
 	for _, env := range c.environmentMap {
 		environments = append(environments, env)
@@ -69,8 +71,8 @@ func (c *mockClient) ListEnvironment() ([]*api.Environment, error) {
 }
 
 // UpdateEnvironment updates the environment.
-func (c *mockClient) UpdateEnvironment(environmentID int, patch *api.EnvironmentPatch) (*api.Environment, error) {
-	env, err := c.GetEnvironment(environmentID)
+func (c *mockClient) UpdateEnvironment(ctx context.Context, environmentID int, patch *api.EnvironmentPatch) (*api.Environment, error) {
+	env, err := c.GetEnvironment(ctx, environmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +94,7 @@ func (c *mockClient) UpdateEnvironment(environmentID int, patch *api.Environment
 }
 
 // DeleteEnvironment deletes the environment.
-func (c *mockClient) DeleteEnvironment(environmentID int) error {
+func (c *mockClient) DeleteEnvironment(_ context.Context, environmentID int) error {
 	delete(c.environmentMap, environmentID)
 	return nil
 }
@@ -107,7 +109,7 @@ func (c *mockClient) findEnvironmentByName(envName string) *api.Environment {
 }
 
 // ListInstance will return all instances.
-func (c *mockClient) ListInstance() ([]*api.Instance, error) {
+func (c *mockClient) ListInstance(_ context.Context) ([]*api.Instance, error) {
 	instances := make([]*api.Instance, 0)
 	for _, instance := range c.instanceMap {
 		instances = append(instances, instance)
@@ -117,7 +119,7 @@ func (c *mockClient) ListInstance() ([]*api.Instance, error) {
 }
 
 // CreateInstance creates the instance.
-func (c *mockClient) CreateInstance(create *api.InstanceCreate) (*api.Instance, error) {
+func (c *mockClient) CreateInstance(_ context.Context, create *api.InstanceCreate) (*api.Instance, error) {
 	ins := &api.Instance{
 		ID:           len(c.instanceMap) + 1,
 		Environment:  create.Environment,
@@ -134,7 +136,7 @@ func (c *mockClient) CreateInstance(create *api.InstanceCreate) (*api.Instance, 
 }
 
 // GetInstance gets the instance by id.
-func (c *mockClient) GetInstance(instanceID int) (*api.Instance, error) {
+func (c *mockClient) GetInstance(_ context.Context, instanceID int) (*api.Instance, error) {
 	ins, ok := c.instanceMap[instanceID]
 	if !ok {
 		return nil, errors.Errorf("Cannot found instance with ID %d", instanceID)
@@ -144,8 +146,8 @@ func (c *mockClient) GetInstance(instanceID int) (*api.Instance, error) {
 }
 
 // UpdateInstance updates the instance.
-func (c *mockClient) UpdateInstance(instanceID int, patch *api.InstancePatch) (*api.Instance, error) {
-	ins, err := c.GetInstance(instanceID)
+func (c *mockClient) UpdateInstance(ctx context.Context, instanceID int, patch *api.InstancePatch) (*api.Instance, error) {
+	ins, err := c.GetInstance(ctx, instanceID)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +170,7 @@ func (c *mockClient) UpdateInstance(instanceID int, patch *api.InstancePatch) (*
 }
 
 // DeleteInstance deletes the instance.
-func (c *mockClient) DeleteInstance(instanceID int) error {
+func (c *mockClient) DeleteInstance(_ context.Context, instanceID int) error {
 	delete(c.instanceMap, instanceID)
 	return nil
 }

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,8 +11,8 @@ import (
 )
 
 // ListInstance will return all instances.
-func (c *client) ListInstance() ([]*api.Instance, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/instance", c.HostURL), nil)
+func (c *client) ListInstance(ctx context.Context) ([]*api.Instance, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/instance", c.HostURL), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -31,13 +32,13 @@ func (c *client) ListInstance() ([]*api.Instance, error) {
 }
 
 // CreateInstance creates the instance.
-func (c *client) CreateInstance(create *api.InstanceCreate) (*api.Instance, error) {
+func (c *client) CreateInstance(ctx context.Context, create *api.InstanceCreate) (*api.Instance, error) {
 	payload, err := json.Marshal(create)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/instance", c.HostURL), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/instance", c.HostURL), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +58,8 @@ func (c *client) CreateInstance(create *api.InstanceCreate) (*api.Instance, erro
 }
 
 // GetInstance gets the instance by id.
-func (c *client) GetInstance(instanceID int) (*api.Instance, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/instance/%d", c.HostURL, instanceID), nil)
+func (c *client) GetInstance(ctx context.Context, instanceID int) (*api.Instance, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/instance/%d", c.HostURL, instanceID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -78,13 +79,13 @@ func (c *client) GetInstance(instanceID int) (*api.Instance, error) {
 }
 
 // UpdateInstance updates the instance.
-func (c *client) UpdateInstance(instanceID int, patch *api.InstancePatch) (*api.Instance, error) {
+func (c *client) UpdateInstance(ctx context.Context, instanceID int, patch *api.InstancePatch) (*api.Instance, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("PATCH", fmt.Sprintf("%s/instance/%d", c.HostURL, instanceID), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/instance/%d", c.HostURL, instanceID), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +105,8 @@ func (c *client) UpdateInstance(instanceID int, patch *api.InstancePatch) (*api.
 }
 
 // DeleteInstance deletes the instance.
-func (c *client) DeleteInstance(instanceID int) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/instance/%d", c.HostURL, instanceID), nil)
+func (c *client) DeleteInstance(ctx context.Context, instanceID int) error {
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/instance/%d", c.HostURL, instanceID), nil)
 	if err != nil {
 		return err
 	}

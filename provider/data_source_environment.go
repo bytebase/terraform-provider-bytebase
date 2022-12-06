@@ -43,13 +43,13 @@ func dataSourceEnvironmentList() *schema.Resource {
 	}
 }
 
-func dataSourceEnvironmentRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	environmentList, err := c.ListEnvironment()
+	environmentList, err := c.ListEnvironment(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}
