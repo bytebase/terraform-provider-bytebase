@@ -66,13 +66,13 @@ func dataSourceInstance() *schema.Resource {
 	}
 }
 
-func dataSourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	name := d.Get("name").(string)
-
 	var diags diag.Diagnostics
-	instanceList, err := c.ListInstance(&api.InstanceFind{
+
+	instanceList, err := c.ListInstance(ctx, &api.InstanceFind{
 		Name: name,
 	})
 	if err != nil {

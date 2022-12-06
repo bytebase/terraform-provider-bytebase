@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -82,7 +83,7 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 			return err
 		}
 
-		if err := c.DeleteEnvironment(envID); err != nil {
+		if err := c.DeleteEnvironment(context.Background(), envID); err != nil {
 			return err
 		}
 	}

@@ -72,13 +72,13 @@ func dataSourceInstanceList() *schema.Resource {
 	}
 }
 
-func dataSourceInstanceListRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	instanceList, err := c.ListInstance(&api.InstanceFind{})
+	instanceList, err := c.ListInstance(ctx, &api.InstanceFind{})
 	if err != nil {
 		return diag.FromErr(err)
 	}

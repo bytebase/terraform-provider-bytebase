@@ -99,7 +99,7 @@ func resourceInstance() *schema.Resource {
 func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	instance, err := c.CreateInstance(&api.InstanceCreate{
+	instance, err := c.CreateInstance(ctx, &api.InstanceCreate{
 		Environment:  d.Get("environment").(string),
 		Name:         d.Get("name").(string),
 		Engine:       d.Get("engine").(string),
@@ -121,7 +121,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	return resourceInstanceRead(ctx, d, m)
 }
 
-func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	instanceID, err := strconv.Atoi(d.Id())
@@ -129,7 +129,7 @@ func resourceInstanceRead(_ context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	instance, err := c.GetInstance(instanceID)
+	instance, err := c.GetInstance(ctx, instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -172,7 +172,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if patch.HasChange() {
-		if _, err := c.UpdateInstance(instanceID, patch); err != nil {
+		if _, err := c.UpdateInstance(ctx, instanceID, patch); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -180,7 +180,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	return resourceInstanceRead(ctx, d, m)
 }
 
-func resourceInstanceDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	// Warning or errors can be collected in a slice type
@@ -191,7 +191,7 @@ func resourceInstanceDelete(_ context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	if err := c.DeleteInstance(instanceID); err != nil {
+	if err := c.DeleteInstance(ctx, instanceID); err != nil {
 		return diag.FromErr(err)
 	}
 

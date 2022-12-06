@@ -69,7 +69,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		Order: order,
 	}
 
-	env, err := c.CreateEnvironment(create)
+	env, err := c.CreateEnvironment(ctx, create)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -79,7 +79,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceEnvironmentRead(ctx, d, m)
 }
 
-func resourceEnvironmentRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	envID, err := strconv.Atoi(d.Id())
@@ -87,7 +87,7 @@ func resourceEnvironmentRead(_ context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
-	env, err := c.GetEnvironment(envID)
+	env, err := c.GetEnvironment(ctx, envID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -116,7 +116,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 			patch.Order = &order
 		}
 
-		if _, err := c.UpdateEnvironment(envID, patch); err != nil {
+		if _, err := c.UpdateEnvironment(ctx, envID, patch); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -124,7 +124,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceEnvironmentRead(ctx, d, m)
 }
 
-func resourceEnvironmentDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	// Warning or errors can be collected in a slice type
@@ -135,7 +135,7 @@ func resourceEnvironmentDelete(_ context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	if err := c.DeleteEnvironment(envID); err != nil {
+	if err := c.DeleteEnvironment(ctx, envID); err != nil {
 		return diag.FromErr(err)
 	}
 
