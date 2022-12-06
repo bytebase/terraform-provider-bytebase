@@ -88,3 +88,12 @@ module "instance" {
 output "instance" {
   value = module.instance.instance
 }
+
+# find single environment named "dev"
+data "bytebase_environment" "dev" {
+  name = environment_name_dev
+}
+
+output "dev_env" {
+  value = data.bytebase_environment.dev
+}

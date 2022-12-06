@@ -222,6 +222,9 @@ func setInstance(d *schema.ResourceData, instance *api.Instance) diag.Diagnostic
 	if err := d.Set("environment", instance.Environment); err != nil {
 		return diag.Errorf("cannot set environment for instance: %s", err.Error())
 	}
+	if err := d.Set("username", instance.Username); err != nil {
+		return diag.Errorf("cannot set environment for instance: %s", err.Error())
+	}
 
 	return nil
 }

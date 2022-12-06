@@ -17,6 +17,12 @@ type Instance struct {
 	Username      string `json:"username"`
 }
 
+// InstanceFind is the API message for finding instance.
+type InstanceFind struct {
+	// Domain specific fields
+	Name string `url:"name,omitempty"`
+}
+
 // InstanceCreate is the API message for creating an instance.
 type InstanceCreate struct {
 	// Related fields

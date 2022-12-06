@@ -30,7 +30,7 @@ func TestAccEnvironment(t *testing.T) {
 		Steps: []resource.TestStep{
 			// resource list test
 			internal.TestGetTestStepForDataSource(
-				"bytebase_environments",
+				"bytebase_environment_list",
 				"before",
 				"environments",
 				0,
@@ -46,7 +46,7 @@ func TestAccEnvironment(t *testing.T) {
 			},
 			// resource list test
 			internal.TestGetTestStepForDataSource(
-				"bytebase_environments",
+				"bytebase_environment_list",
 				"after",
 				"environments",
 				1,
@@ -62,7 +62,7 @@ func TestAccEnvironment(t *testing.T) {
 			},
 			// resource list test
 			internal.TestGetTestStepForDataSource(
-				"bytebase_environments",
+				"bytebase_environment_list",
 				"after_update",
 				"environments",
 				1,

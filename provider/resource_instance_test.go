@@ -32,7 +32,7 @@ func TestAccInstance(t *testing.T) {
 		Steps: []resource.TestStep{
 			// resource list test
 			internal.TestGetTestStepForDataSource(
-				"bytebase_instances",
+				"bytebase_instance_list",
 				"before",
 				"instances",
 				0,
@@ -50,7 +50,7 @@ func TestAccInstance(t *testing.T) {
 			},
 			// resource list test
 			internal.TestGetTestStepForDataSource(
-				"bytebase_instances",
+				"bytebase_instance_list",
 				"after",
 				"instances",
 				1,
@@ -68,7 +68,7 @@ func TestAccInstance(t *testing.T) {
 			},
 			// resource list test
 			internal.TestGetTestStepForDataSource(
-				"bytebase_instances",
+				"bytebase_instance_list",
 				"after_update",
 				"instances",
 				1,

@@ -14,16 +14,16 @@ variable "instance_name" {
 }
 
 # List all instance
-data "bytebase_instances" "all" {}
+data "bytebase_instance_list" "all" {}
 
 output "all_instances" {
-  value = data.bytebase_instances.all.instances
+  value = data.bytebase_instance_list.all.instances
 }
 
 # Only returns specific instance
 output "instance" {
   value = {
-    for instance in data.bytebase_instances.all.instances :
+    for instance in data.bytebase_instance_list.all.instances :
     instance.id => instance
     if instance.name == var.instance_name
   }
