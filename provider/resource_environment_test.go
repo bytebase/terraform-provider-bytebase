@@ -28,13 +28,6 @@ func TestAccEnvironment(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
-			// resource list test
-			internal.GetTestStepForDataSourceList(
-				"bytebase_environment_list",
-				"before",
-				"environments",
-				0,
-			),
 			// resource create test
 			{
 				Config: testAccCheckEnvironmentResource(identifier, name, order),
@@ -53,13 +46,6 @@ func TestAccEnvironment(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order+1)),
 				),
 			},
-			// resource list test
-			internal.GetTestStepForDataSourceList(
-				"bytebase_environment_list",
-				"after",
-				"environments",
-				1,
-			),
 		},
 	})
 }

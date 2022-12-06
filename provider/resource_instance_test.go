@@ -30,13 +30,6 @@ func TestAccInstance(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			// resource list test
-			internal.GetTestStepForDataSourceList(
-				"bytebase_instance_list",
-				"before",
-				"instances",
-				0,
-			),
 			// resource create
 			{
 				Config: testAccCheckInstanceResource(identifier, name, engine, host, environment),
@@ -59,13 +52,6 @@ func TestAccInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
 				),
 			},
-			// resource list test
-			internal.GetTestStepForDataSourceList(
-				"bytebase_instance_list",
-				"after",
-				"instances",
-				1,
-			),
 		},
 	})
 }

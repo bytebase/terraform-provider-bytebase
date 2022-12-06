@@ -27,6 +27,7 @@ func TestAccEnvironmentDataSource(t *testing.T) {
 			{
 				Config: testAccCheckEnvironmentDataSource(
 					testAccCheckEnvironmentResource(identifier, name, order),
+					resourceName,
 					identifier,
 					name,
 				),
@@ -52,10 +53,12 @@ func TestAccEnvironmentDataSource_NotFound(t *testing.T) {
 		CheckDestroy: testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-				data "bytebase_environment" "%s" {
-					name = "%s"
-				}`, identifier, name),
+				Config: testAccCheckEnvironmentDataSource(
+					"",
+					"",
+					identifier,
+					name,
+				),
 				ExpectError: regexp.MustCompile("Unable to get the environment"),
 			},
 		},
@@ -64,6 +67,7 @@ func TestAccEnvironmentDataSource_NotFound(t *testing.T) {
 
 func testAccCheckEnvironmentDataSource(
 	resource,
+	dependsOn,
 	identifier,
 	envName string,
 ) string {
@@ -73,8 +77,8 @@ func testAccCheckEnvironmentDataSource(
 	data "bytebase_environment" "%s" {
 		name = "%s"
 		depends_on = [
-    		bytebase_environment.%s
+    		%s
   		]
 	}
-	`, resource, identifier, envName, identifier)
+	`, resource, identifier, envName, dependsOn)
 }

@@ -30,6 +30,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 			{
 				Config: testAccCheckInstanceDataSource(
 					testAccCheckInstanceResource(identifier, name, engine, host, environment),
+					resourceName,
 					identifier,
 					name,
 				),
@@ -57,10 +58,12 @@ func TestAccInstanceDataSource_NotFound(t *testing.T) {
 		CheckDestroy: testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-				data "bytebase_instance" "%s" {
-					name = "%s"
-				}`, identifier, name),
+				Config: testAccCheckInstanceDataSource(
+					"",
+					"",
+					identifier,
+					name,
+				),
 				ExpectError: regexp.MustCompile("Unable to get the instance"),
 			},
 		},
@@ -69,6 +72,7 @@ func TestAccInstanceDataSource_NotFound(t *testing.T) {
 
 func testAccCheckInstanceDataSource(
 	resource,
+	dependsOn,
 	identifier,
 	name string) string {
 	return fmt.Sprintf(`
@@ -77,8 +81,8 @@ func testAccCheckInstanceDataSource(
 	data "bytebase_instance" "%s" {
 		name = "%s"
 		depends_on = [
-    		bytebase_instance.%s
+    		%s
   		]
 	}
-	`, resource, identifier, name, identifier)
+	`, resource, identifier, name, dependsOn)
 }
