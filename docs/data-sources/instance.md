@@ -37,7 +37,7 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 - `id` (Number) The instance id.
 - `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.
 - `engine_version` (String) The version for instance engine.
-- `environment` (String) The environment name for the instance.
+- `environment` (String) The unique environment name for the instance.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
 - `host` (String) Host or socket for the instance, or the account name if the instance type is Snowflake.
 - `port` (String) The port for the instance.
