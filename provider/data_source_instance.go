@@ -39,13 +39,14 @@ func dataSourceInstance() *schema.Resource {
 				Description: "The version for instance engine.",
 			},
 			"external_link": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)",
 			},
 			"host": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Host or socker for your instance, or the account name if the instance type is Snowflake.",
+				Description: "Host or socket for your instance, or the account name if the instance type is Snowflake.",
 			},
 			"port": {
 				Type:        schema.TypeString,
@@ -90,7 +91,7 @@ func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Unable to get the instance",
-			Detail:   "The instance name must be unique",
+			Detail:   fmt.Sprintf("The instance name is not unique %s", name),
 		})
 		return diags
 	}

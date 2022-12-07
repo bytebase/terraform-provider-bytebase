@@ -8,7 +8,7 @@ description: |-
 
 # bytebase_instance (Data Source)
 
-The instance data source. You can get instances through `bytebase_instance` data source.
+The instance data source. You can get a single instance through `bytebase_instance` data source.
 
 ## Example Usage
 
@@ -34,11 +34,11 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Read-Only
 
-- `id` (Number) The ID of this resource.
-- `engine` (String)
-- `engine_version` (String)
-- `environment` (String)
-- `external_link` (String)
-- `host` (String)
-- `port` (String)
-- `username` (String)
+- `id` (Number) The instance id.
+- `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.
+- `engine_version` (String) The version for instance engine.
+- `environment` (String) The unique environment name for the instance.
+- `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
+- `host` (String) Host or socket for the instance, or the account name if the instance type is Snowflake.
+- `port` (String) The port for the instance.
+- `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
