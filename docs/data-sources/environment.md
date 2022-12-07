@@ -8,7 +8,7 @@ description: |-
 
 # bytebase_environment (Data Source)
 
-The environment data source. You can get environment through `bytebase_environment` data source.
+The environment data source. You can get a single environment through `bytebase_environment` data source.
 
 ## Example Usage
 

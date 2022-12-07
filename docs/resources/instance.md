@@ -31,17 +31,17 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 - `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.
 - `environment` (String) The environment name for your instance.
-- `host` (String) Host or socker for your instance, or the account name if the instance type is Snowflake.
+- `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.
 - `name` (String) The instance name.
 
 ### Optional
 
-- `external_link` (String)
+- `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
 - `password` (String, Sensitive) The connection user password used by Bytebase to perform DDL and DML operations.
 - `port` (String) The port for your instance.
-- `ssl_ca` (String)
-- `ssl_cert` (String)
-- `ssl_key` (String)
+- `ssl_ca` (String) The CA certificate. Optional, you can set this if the engine type is CLICKHOUSE.
+- `ssl_cert` (String) The client certificate. Optional, you can set this if the engine type is CLICKHOUSE.
+- `ssl_key` (String) The client key. Optional, you can set this if the engine type is CLICKHOUSE.
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
 
 ### Read-Only

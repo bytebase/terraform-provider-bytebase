@@ -20,11 +20,10 @@ output "all_environments" {
   value = data.bytebase_environment_list.all.environments
 }
 
-# Only returns specific environment
+data "bytebase_environment" "find_env" {
+  name = var.environment_name
+}
+
 output "environment" {
-  value = {
-    for environment in data.bytebase_environment_list.all.environments :
-    environment.id => environment
-    if environment.name == var.environment_name
-  }
+  value = data.bytebase_environment.find_env
 }

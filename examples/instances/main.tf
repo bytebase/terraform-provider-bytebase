@@ -20,11 +20,11 @@ output "all_instances" {
   value = data.bytebase_instance_list.all.instances
 }
 
-# Only returns specific instance
+data "bytebase_instance" "find_instance" {
+  name = var.instance_name
+}
+
+
 output "instance" {
-  value = {
-    for instance in data.bytebase_instance_list.all.instances :
-    instance.id => instance
-    if instance.name == var.instance_name
-  }
+  value = data.bytebase_instance.find_instance
 }

@@ -46,15 +46,16 @@ func resourceInstance() *schema.Resource {
 				Description: "The version for instance engine.",
 			},
 			"external_link": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)",
 			},
 			"host": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "Host or socker for your instance, or the account name if the instance type is Snowflake.",
+				Description:  "Host or socket for your instance, or the account name if the instance type is Snowflake.",
 			},
 			"port": {
 				Type:        schema.TypeString,
@@ -75,16 +76,19 @@ func resourceInstance() *schema.Resource {
 				Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
 			},
 			"ssl_ca": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The CA certificate. Optional, you can set this if the engine type is CLICKHOUSE.",
 			},
 			"ssl_cert": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The client certificate. Optional, you can set this if the engine type is CLICKHOUSE.",
 			},
 			"ssl_key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The client key. Optional, you can set this if the engine type is CLICKHOUSE.",
 			},
 			"environment": {
 				Type:         schema.TypeString,
@@ -223,7 +227,7 @@ func setInstance(d *schema.ResourceData, instance *api.Instance) diag.Diagnostic
 		return diag.Errorf("cannot set environment for instance: %s", err.Error())
 	}
 	if err := d.Set("username", instance.Username); err != nil {
-		return diag.Errorf("cannot set environment for instance: %s", err.Error())
+		return diag.Errorf("cannot set username for instance: %s", err.Error())
 	}
 
 	return nil
