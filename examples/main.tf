@@ -46,11 +46,24 @@ resource "bytebase_instance" "dev_instance" {
   name        = local.instance_name
   engine      = "POSTGRES"
   host        = "127.0.0.1"
+  port        = 3306
   environment = bytebase_environment.dev.name
-  # You can also provide the port, username, password
-  # port = 5432
-  # username = "username"
-  # password = "password"
+
+  # You need to specific the data source
+  data_source_list {
+    name     = "admin data source"
+    type     = "ADMIN"
+    username = "<The connection user name>"
+    password = "<The connection user password>"
+  }
+
+  # And you can add another data_source_list with RO type
+  data_source_list {
+    name     = "read-only data source"
+    type     = "RO"
+    username = "<The connection user name>"
+    password = "<The connection user password>"
+  }
 }
 
 # Print the new instance

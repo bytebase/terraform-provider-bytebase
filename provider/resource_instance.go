@@ -78,7 +78,7 @@ func resourceInstance() *schema.Resource {
 			"data_source_list": {
 				Type:     schema.TypeList,
 				Required: true,
-				MaxItems: 3,
+				MaxItems: 2,
 				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
