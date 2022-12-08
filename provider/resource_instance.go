@@ -48,7 +48,7 @@ func resourceInstance() *schema.Resource {
 			"external_link": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
+				Default:     "",
 				Description: "The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)",
 			},
 			"host": {
@@ -58,43 +58,93 @@ func resourceInstance() *schema.Resource {
 				Description:  "Host or socket for your instance, or the account name if the instance type is Snowflake.",
 			},
 			"port": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "The port for your instance.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The port for your instance.",
 			},
-			"username": {
+			"database": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The connection user name used by Bytebase to perform DDL and DML operations.",
-			},
-			"password": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    false,
-				Sensitive:   true,
-				Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
-			},
-			"ssl_ca": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The CA certificate. Optional, you can set this if the engine type is CLICKHOUSE.",
-			},
-			"ssl_cert": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The client certificate. Optional, you can set this if the engine type is CLICKHOUSE.",
-			},
-			"ssl_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The client key. Optional, you can set this if the engine type is CLICKHOUSE.",
+				Default:     "",
+				Description: "The database for your instance.",
 			},
 			"environment": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The environment name for your instance.",
+			},
+			"data_source_list": {
+				Type:     schema.TypeList,
+				Required: true,
+				MaxItems: 3,
+				MinItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The data source unique id",
+						},
+						"name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The unique data source name in this instance.",
+						},
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								"ADMIN",
+								"RO",
+							}, false),
+							Description: "The data source type. Should be ADMIN or RO.",
+						},
+						"username": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The connection user name used by Bytebase to perform DDL and DML operations.",
+						},
+						"password": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
+						},
+						"ssl_ca": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The CA certificate. Optional, you can set this if the engine type is CLICKHOUSE.",
+						},
+						"ssl_cert": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The client certificate. Optional, you can set this if the engine type is CLICKHOUSE.",
+						},
+						"ssl_key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The client key. Optional, you can set this if the engine type is CLICKHOUSE.",
+						},
+						"host_override": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The Read-replica Host. Only works for RO type data source",
+						},
+						"port_override": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The Read-replica Port. Only works for RO type data source",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -104,17 +154,14 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	c := m.(api.Client)
 
 	instance, err := c.CreateInstance(ctx, &api.InstanceCreate{
-		Environment:  d.Get("environment").(string),
-		Name:         d.Get("name").(string),
-		Engine:       d.Get("engine").(string),
-		ExternalLink: d.Get("external_link").(string),
-		Host:         d.Get("host").(string),
-		Port:         d.Get("port").(string),
-		Username:     d.Get("username").(string),
-		Password:     d.Get("password").(string),
-		SslCa:        d.Get("ssl_ca").(string),
-		SslCert:      d.Get("ssl_cert").(string),
-		SslKey:       d.Get("ssl_key").(string),
+		Environment:    d.Get("environment").(string),
+		Name:           d.Get("name").(string),
+		Engine:         d.Get("engine").(string),
+		ExternalLink:   d.Get("external_link").(string),
+		Database:       d.Get("database").(string),
+		Host:           d.Get("host").(string),
+		Port:           d.Get("port").(string),
+		DataSourceList: convertDataSourceCreateList(d),
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -174,6 +221,15 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			patch.Port = &val
 		}
 	}
+	if d.HasChange("database") {
+		if database, ok := d.GetOk("database"); ok {
+			val := database.(string)
+			patch.Database = &val
+		}
+	}
+	if d.HasChange("data_source_list") {
+		patch.DataSourceList = convertDataSourceCreateList(d)
+	}
 
 	if patch.HasChange() {
 		if _, err := c.UpdateInstance(ctx, instanceID, patch); err != nil {
@@ -226,9 +282,62 @@ func setInstance(d *schema.ResourceData, instance *api.Instance) diag.Diagnostic
 	if err := d.Set("environment", instance.Environment); err != nil {
 		return diag.Errorf("cannot set environment for instance: %s", err.Error())
 	}
-	if err := d.Set("username", instance.Username); err != nil {
-		return diag.Errorf("cannot set username for instance: %s", err.Error())
+	if err := d.Set("data_source_list", flattenDataSourceList(instance.DataSourceList)); err != nil {
+		return diag.Errorf("cannot set data_source_list for instance: %s", err.Error())
 	}
 
 	return nil
+}
+
+func flattenDataSourceList(dataSourceList []*api.DataSource) []interface{} {
+	res := []interface{}{}
+	for _, dataSource := range dataSourceList {
+		raw := map[string]interface{}{}
+		raw["id"] = dataSource.ID
+		raw["name"] = dataSource.Name
+		raw["type"] = dataSource.Type
+		raw["username"] = dataSource.Username
+		raw["host_override"] = dataSource.HostOverride
+		raw["port_override"] = dataSource.PortOverride
+		res = append(res, raw)
+	}
+	return res
+}
+
+func convertDataSourceCreateList(d *schema.ResourceData) []*api.DataSourceCreate {
+	var dataSourceList []*api.DataSourceCreate
+	if rawList, ok := d.Get("data_source_list").([]interface{}); ok {
+		for _, raw := range rawList {
+			obj := raw.(map[string]interface{})
+			dataSource := &api.DataSourceCreate{
+				Name: obj["name"].(string),
+				Type: obj["type"].(string),
+			}
+
+			if v, ok := obj["username"].(string); ok {
+				dataSource.Username = v
+			}
+			if v, ok := obj["password"].(string); ok && v != "" {
+				dataSource.Password = v
+			}
+			if v, ok := obj["ssl_ca"].(string); ok {
+				dataSource.SslCa = v
+			}
+			if v, ok := obj["ssl_cert"].(string); ok {
+				dataSource.SslCert = v
+			}
+			if v, ok := obj["ssl_key"].(string); ok {
+				dataSource.SslKey = v
+			}
+			if v, ok := obj["host_override"].(string); ok {
+				dataSource.HostOverride = v
+			}
+			if v, ok := obj["port_override"].(string); ok {
+				dataSource.PortOverride = v
+			}
+			dataSourceList = append(dataSourceList, dataSource)
+		}
+	}
+
+	return dataSourceList
 }

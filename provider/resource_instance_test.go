@@ -40,6 +40,7 @@ func TestAccInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "engine", engine),
 					resource.TestCheckResourceAttr(resourceName, "host", host),
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
+					resource.TestCheckResourceAttr(resourceName, "data_source_list.#", "1"),
 				),
 			},
 			// resource updated
@@ -51,6 +52,7 @@ func TestAccInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "engine", engine),
 					resource.TestCheckResourceAttr(resourceName, "host", host),
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
+					resource.TestCheckResourceAttr(resourceName, "data_source_list.#", "1"),
 				),
 			},
 		},
@@ -112,7 +114,13 @@ func testAccCheckInstanceResource(identifier, name, engine, host, env string) st
 		name = "%s"
 		engine = "%s"
 		host = "%s"
+		port = 3306
 		environment = "%s"
+		data_source_list {
+			name     = "admin data source"
+			type     = "ADMIN"
+			username = "bytebase"
+		}
 	}
 	`, identifier, name, engine, host, env)
 }

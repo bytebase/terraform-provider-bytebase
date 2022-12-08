@@ -124,15 +124,27 @@ func (c *mockClient) ListInstance(_ context.Context, find *api.InstanceFind) ([]
 
 // CreateInstance creates the instance.
 func (c *mockClient) CreateInstance(_ context.Context, create *api.InstanceCreate) (*api.Instance, error) {
+	dataSourceList := []*api.DataSource{}
+	for _, dataSource := range create.DataSourceList {
+		dataSourceList = append(dataSourceList, &api.DataSource{
+			Name:         dataSource.Name,
+			Type:         dataSource.Type,
+			Username:     dataSource.Username,
+			HostOverride: dataSource.HostOverride,
+			PortOverride: dataSource.PortOverride,
+		})
+	}
+
 	ins := &api.Instance{
-		ID:           len(c.instanceMap) + 1,
-		Environment:  create.Environment,
-		Name:         create.Name,
-		Engine:       create.Engine,
-		ExternalLink: create.ExternalLink,
-		Host:         create.Host,
-		Port:         create.Port,
-		Username:     create.Username,
+		ID:             len(c.instanceMap) + 1,
+		Environment:    create.Environment,
+		Name:           create.Name,
+		Engine:         create.Engine,
+		ExternalLink:   create.ExternalLink,
+		Host:           create.Host,
+		Port:           create.Port,
+		Database:       create.Database,
+		DataSourceList: dataSourceList,
 	}
 
 	c.instanceMap[ins.ID] = ins
