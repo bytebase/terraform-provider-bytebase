@@ -53,15 +53,53 @@ func dataSourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: "The port for your instance.",
 			},
-			"username": {
+			"database": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The connection user name used by Bytebase to perform DDL and DML operations.",
+				Description: "The database for your instance.",
 			},
 			"environment": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The environment name for your instance.",
+			},
+			"data_source_list": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The data source unique id",
+						},
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The unique data source name in this instance.",
+						},
+						"type": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The data source type. Should be ADMIN or RO.",
+						},
+						"username": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The connection user name used by Bytebase to perform DDL and DML operations.",
+						},
+						"host_override": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The Read-replica Host. Only works for RO type data source",
+						},
+						"port_override": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The Read-replica Port. Only works for RO type data source",
+						},
+					},
+				},
 			},
 		},
 	}
