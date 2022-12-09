@@ -47,7 +47,7 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 ### Optional
 
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
-- `database` (String) The database for your instance.
+- `database` (String) The database for your instance, you can set this if the engine type is POSTGRES.
 
 ### Read-Only
 

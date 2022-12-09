@@ -69,7 +69,7 @@ func resourceInstance() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
-				Description: "The database for your instance.",
+				Description: "The database for your instance, you can set this if the engine type is POSTGRES.",
 			},
 			"environment": {
 				Type:         schema.TypeString,
@@ -103,7 +103,7 @@ func resourceInstance() *schema.Resource {
 								string(api.DataSourceRW),
 								string(api.DataSourceRO),
 							}, false),
-							Description: "The data source type. Should be ADMIN or RO.",
+							Description: "The data source type. Should be ADMIN, RW or RO.",
 						},
 						"username": {
 							Type:        schema.TypeString,
