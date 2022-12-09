@@ -4,6 +4,11 @@ package api
 type Environment struct {
 	ID int `json:"id"`
 
+	// Related fields
+	EnvironmentTierPolicy  *EnvironmentTierPolicy  `json:"environmentTierPolicy,omitempty"`
+	PipelineApprovalPolicy *PipelineApprovalPolicy `json:"pipelineApprovalPolicy,omitempty"`
+	BackupPlanPolicy       *BackupPlanPolicy       `json:"backupPlanPolicy,omitempty"`
+
 	// Domain specific fields
 	Name  string `json:"name"`
 	Order int    `json:"order"`
@@ -15,16 +20,19 @@ type EnvironmentFind struct {
 	Name string `url:"name,omitempty"`
 }
 
-// EnvironmentCreate is the API message for creating an environment.
-type EnvironmentCreate struct {
-	// Domain specific fields
-	Name  string `json:"name"`
-	Order int    `json:"order"`
-}
+// EnvironmentUpsert is the API message for upserting an environment.
+type EnvironmentUpsert struct {
+	// Related fields
+	EnvironmentTierPolicy  *EnvironmentTierPolicy  `json:"environmentTierPolicy,omitempty"`
+	PipelineApprovalPolicy *PipelineApprovalPolicy `json:"pipelineApprovalPolicy,omitempty"`
+	BackupPlanPolicy       *BackupPlanPolicy       `json:"backupPlanPolicy,omitempty"`
 
-// EnvironmentPatch is the API message for patching an environment.
-type EnvironmentPatch struct {
 	// Domain specific fields
 	Name  *string `json:"name,omitempty"`
 	Order *int    `json:"order,omitempty"`
+}
+
+// HasChange returns if the patch struct has the value to update.
+func (e *EnvironmentUpsert) HasChange() bool {
+	return e.Name != nil || e.Order != nil || e.EnvironmentTierPolicy != nil || e.PipelineApprovalPolicy != nil || e.BackupPlanPolicy != nil
 }

@@ -13,7 +13,7 @@ import (
 )
 
 // CreateEnvironment creates the environment.
-func (c *client) CreateEnvironment(ctx context.Context, create *api.EnvironmentCreate) (*api.Environment, error) {
+func (c *client) CreateEnvironment(ctx context.Context, create *api.EnvironmentUpsert) (*api.Environment, error) {
 	payload, err := json.Marshal(create)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (c *client) ListEnvironment(ctx context.Context, find *api.EnvironmentFind)
 }
 
 // UpdateEnvironment updates the environment.
-func (c *client) UpdateEnvironment(ctx context.Context, environmentID int, patch *api.EnvironmentPatch) (*api.Environment, error) {
+func (c *client) UpdateEnvironment(ctx context.Context, environmentID int, patch *api.EnvironmentUpsert) (*api.Environment, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err

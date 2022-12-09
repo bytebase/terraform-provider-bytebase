@@ -26,14 +26,20 @@ locals {
 
 # Create a new environment named "dev"
 resource "bytebase_environment" "dev" {
-  name  = local.environment_name_dev
-  order = 0
+  name                     = local.environment_name_dev
+  order                    = 0
+  environment_tier_policy  = "UNPROTECTED"
+  pipeline_approval_policy = "MANUAL_APPROVAL_NEVER"
+  backup_plan_policy       = "UNSET"
 }
 
 # Create another environment named "prod"
 resource "bytebase_environment" "prod" {
-  name  = local.environment_name_prod
-  order = 1
+  name                     = local.environment_name_prod
+  order                    = 1
+  environment_tier_policy  = "PROTECTED"
+  pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
+  backup_plan_policy       = "DAILY"
 }
 
 # Print the new environment

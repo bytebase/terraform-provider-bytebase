@@ -52,8 +52,6 @@ func TestAccEnvironment(t *testing.T) {
 }
 
 func TestAccEnvironment_InvalidInput(t *testing.T) {
-	identifier := "another_environment"
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -61,10 +59,55 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
+			// Invalid environment order
+			{
+				Config: `
+					resource "bytebase_environment" "new_env" {
+						name = "new_env"
+						environment_tier_policy  = "PROTECTED"
+						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
+						backup_plan_policy       = "DAILY"
+					}
+				`,
+				ExpectError: regexp.MustCompile("The argument \"order\" is required, but no definition was found"),
+			},
 			// Invalid environment name
 			{
-				Config:      testAccCheckEnvironmentResource(identifier, "", 0),
-				ExpectError: regexp.MustCompile("not be an empty string"),
+				Config: `
+					resource "bytebase_environment" "new_env" {
+						name = ""
+						order = 1
+						environment_tier_policy  = "PROTECTED"
+						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
+						backup_plan_policy       = "DAILY"
+					}
+				`,
+				ExpectError: regexp.MustCompile("expected \"name\" to not be an empty string"),
+			},
+			// Invalid policy
+			{
+				Config: `
+					resource "bytebase_environment" "new_env" {
+						name = "new_env"
+						order = 1
+						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
+						backup_plan_policy       = "DAILY"
+					}
+				`,
+				ExpectError: regexp.MustCompile("The argument \"environment_tier_policy\" is required"),
+			},
+			// Invalid policy
+			{
+				Config: `
+					resource "bytebase_environment" "new_env" {
+						name = "new_env"
+						order = 1
+						environment_tier_policy = "UNKNOWN"
+						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
+						backup_plan_policy       = "DAILY"
+					}
+				`,
+				ExpectError: regexp.MustCompile("expected environment_tier_policy to be one of"),
 			},
 		},
 	})
@@ -96,6 +139,9 @@ func testAccCheckEnvironmentResource(identifier, envName string, order int) stri
 	resource "bytebase_environment" "%s" {
 		name = "%s"
 		order = %d
+		environment_tier_policy  = "PROTECTED"
+		pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
+		backup_plan_policy       = "DAILY"
 	}
 	`, identifier, envName, order)
 }
