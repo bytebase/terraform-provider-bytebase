@@ -46,7 +46,7 @@ func (c *mockClient) CreateEnvironment(_ context.Context, create *api.Environmen
 	}
 
 	if existed := c.findEnvironmentByName(env.Name); existed != nil {
-		return nil, errors.Errorf("Environment %s already exists", create.Name)
+		return nil, errors.Errorf("Environment %s already exists", *create.Name)
 	}
 	c.environmentMap[env.ID] = env
 
