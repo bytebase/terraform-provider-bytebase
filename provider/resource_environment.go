@@ -221,14 +221,13 @@ func setEnvironment(d *schema.ResourceData, env *api.Environment) diag.Diagnosti
 func flattenPipelineApprovalPolicy(policy *api.PipelineApprovalPolicy) string {
 	approvalType := api.PipelineApprovalTypeNever
 
-	for _, assigneeGroup := range policy.AssigneeGroupList {
-		switch assigneeGroup.Value {
+	if len(policy.AssigneeGroupList) > 0 {
+		switch policy.AssigneeGroupList[0].Value {
 		case api.AssigneeGroupValueProjectOwner:
 			approvalType = api.PipelineApprovalTypeByProjectOwner
 		case api.AssigneeGroupValueWorkspaceOwnerOrDBA:
 			approvalType = api.PipelineApprovalTypeByWorkspaceOwnerORDBA
 		}
-		break
 	}
 
 	return string(approvalType)

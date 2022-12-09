@@ -32,6 +32,7 @@ type EnvironmentUpsert struct {
 	Order *int    `json:"order,omitempty"`
 }
 
+// HasChange returns if the patch struct has the value to update.
 func (e *EnvironmentUpsert) HasChange() bool {
 	return e.Name != nil || e.Order != nil || e.EnvironmentTierPolicy != nil || e.PipelineApprovalPolicy != nil || e.BackupPlanPolicy != nil
 }

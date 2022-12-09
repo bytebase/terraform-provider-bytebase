@@ -61,19 +61,19 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Invalid environment order
 			{
-				Config: fmt.Sprintf(`
+				Config: `
 					resource "bytebase_environment" "new_env" {
 						name = "new_env"
 						environment_tier_policy  = "PROTECTED"
 						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
 						backup_plan_policy       = "DAILY"
 					}
-				`),
+				`,
 				ExpectError: regexp.MustCompile("The argument \"order\" is required, but no definition was found"),
 			},
 			// Invalid environment name
 			{
-				Config: fmt.Sprintf(`
+				Config: `
 					resource "bytebase_environment" "new_env" {
 						name = ""
 						order = 1
@@ -81,24 +81,24 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
 						backup_plan_policy       = "DAILY"
 					}
-				`),
+				`,
 				ExpectError: regexp.MustCompile("expected \"name\" to not be an empty string"),
 			},
 			// Invalid policy
 			{
-				Config: fmt.Sprintf(`
+				Config: `
 					resource "bytebase_environment" "new_env" {
 						name = "new_env"
 						order = 1
 						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
 						backup_plan_policy       = "DAILY"
 					}
-				`),
+				`,
 				ExpectError: regexp.MustCompile("The argument \"environment_tier_policy\" is required"),
 			},
 			// Invalid policy
 			{
-				Config: fmt.Sprintf(`
+				Config: `
 					resource "bytebase_environment" "new_env" {
 						name = "new_env"
 						order = 1
@@ -106,7 +106,7 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
 						backup_plan_policy       = "DAILY"
 					}
-				`),
+				`,
 				ExpectError: regexp.MustCompile("expected environment_tier_policy to be one of"),
 			},
 		},
