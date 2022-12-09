@@ -35,11 +35,14 @@ func (*mockClient) Login() (*api.AuthResponse, error) {
 }
 
 // CreateEnvironment creates the environment.
-func (c *mockClient) CreateEnvironment(_ context.Context, create *api.EnvironmentCreate) (*api.Environment, error) {
+func (c *mockClient) CreateEnvironment(_ context.Context, create *api.EnvironmentUpsert) (*api.Environment, error) {
 	env := &api.Environment{
-		ID:    len(c.environmentMap) + 1,
-		Name:  create.Name,
-		Order: create.Order,
+		ID:                     len(c.environmentMap) + 1,
+		Name:                   *create.Name,
+		Order:                  *create.Order,
+		PipelineApprovalPolicy: create.PipelineApprovalPolicy,
+		EnvironmentTierPolicy:  create.EnvironmentTierPolicy,
+		BackupPlanPolicy:       create.BackupPlanPolicy,
 	}
 
 	if existed := c.findEnvironmentByName(env.Name); existed != nil {
@@ -73,7 +76,7 @@ func (c *mockClient) ListEnvironment(_ context.Context, find *api.EnvironmentFin
 }
 
 // UpdateEnvironment updates the environment.
-func (c *mockClient) UpdateEnvironment(ctx context.Context, environmentID int, patch *api.EnvironmentPatch) (*api.Environment, error) {
+func (c *mockClient) UpdateEnvironment(ctx context.Context, environmentID int, patch *api.EnvironmentUpsert) (*api.Environment, error) {
 	env, err := c.GetEnvironment(ctx, environmentID)
 	if err != nil {
 		return nil, err
@@ -87,6 +90,15 @@ func (c *mockClient) UpdateEnvironment(ctx context.Context, environmentID int, p
 	}
 	if v := patch.Order; v != nil {
 		env.Order = *v
+	}
+	if v := patch.PipelineApprovalPolicy; v != nil {
+		env.PipelineApprovalPolicy = v
+	}
+	if v := patch.EnvironmentTierPolicy; v != nil {
+		env.EnvironmentTierPolicy = v
+	}
+	if v := patch.BackupPlanPolicy; v != nil {
+		env.BackupPlanPolicy = v
 	}
 
 	delete(c.environmentMap, env.ID)

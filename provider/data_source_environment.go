@@ -33,6 +33,21 @@ func dataSourceEnvironment() *schema.Resource {
 				Computed:    true,
 				Description: "The environment sorting order.",
 			},
+			"environment_tier_policy": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default.",
+			},
+			"pipeline_approval_policy": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "For updating schema on the existing database, this setting controls whether the task requires manual approval.",
+			},
+			"backup_plan_policy": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The database backup policy in this environment.",
+			},
 		},
 	}
 }
