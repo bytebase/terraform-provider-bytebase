@@ -11,7 +11,7 @@ import (
 
 func TestAccInstanceListDataSource(t *testing.T) {
 	identifier := "new_instance"
-	name := "dev instance"
+	name := "dev-instance"
 	engine := "POSTGRES"
 	host := "127.0.0.1"
 	environment := "dev"

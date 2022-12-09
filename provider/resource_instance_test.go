@@ -18,7 +18,7 @@ func TestAccInstance(t *testing.T) {
 	identifier := "new_instance"
 	resourceName := fmt.Sprintf("bytebase_instance.%s", identifier)
 
-	name := "dev instance"
+	name := "dev-instance"
 	engine := "POSTGRES"
 	host := "127.0.0.1"
 	environment := "dev"
@@ -62,7 +62,6 @@ func TestAccInstance(t *testing.T) {
 func TestAccInstance_InvalidInput(t *testing.T) {
 	identifier := "another_instance"
 	engine := "POSTGRES"
-	name := "dev instance"
 	host := "127.0.0.1"
 	environment := "dev"
 
@@ -75,13 +74,30 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Invalid instance name
 			{
-				Config:      testAccCheckInstanceResource(identifier, "", engine, host, environment),
-				ExpectError: regexp.MustCompile("not be an empty string"),
+				Config:      testAccCheckInstanceResource(identifier, "A Instance", engine, host, environment),
+				ExpectError: regexp.MustCompile("expected value of name to match regular expression"),
 			},
 			// Invalid engine
 			{
-				Config:      testAccCheckInstanceResource(identifier, name, "engine", host, environment),
+				Config:      testAccCheckInstanceResource(identifier, "dev-instance", "engine", host, environment),
 				ExpectError: regexp.MustCompile("expected engine to be one of"),
+			},
+			// Invalid engine
+			{
+				Config: `
+				resource "bytebase_instance" "dev_instance" {
+					name        = "dev"
+					engine      = "POSTGRES"
+					host        = "127.0.0.1"
+					port        = 5432
+					environment = "dev"
+					data_source_list {
+						name     = "read-only data source"
+						type     = "RO"
+					}
+				}
+				`,
+				ExpectError: regexp.MustCompile("data source \"ADMIN\" is required"),
 			},
 		},
 	})
@@ -116,6 +132,7 @@ func testAccCheckInstanceResource(identifier, name, engine, host, env string) st
 		host = "%s"
 		port = 3306
 		environment = "%s"
+
 		data_source_list {
 			name     = "admin data source"
 			type     = "ADMIN"

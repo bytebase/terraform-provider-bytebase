@@ -2,11 +2,13 @@ package provider
 
 import (
 	"context"
+	"regexp"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
@@ -25,8 +27,8 @@ func resourceInstance() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The instance name.",
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9\-]{2,}$`), ""),
+				Description:  "The instance unique name.",
 			},
 			"engine": {
 				Type:     schema.TypeString,
@@ -76,16 +78,17 @@ func resourceInstance() *schema.Resource {
 				Description:  "The environment name for your instance.",
 			},
 			"data_source_list": {
-				Type:     schema.TypeList,
-				Required: true,
-				MaxItems: 2,
-				MinItems: 1,
+				Type:        schema.TypeList,
+				Required:    true,
+				MaxItems:    3,
+				MinItems:    1,
+				Description: "The connection for the instance. You can configure read-only or admin connection account here.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
 							Type:        schema.TypeInt,
 							Computed:    true,
-							Description: "The data source unique id",
+							Description: "The data source unique id.",
 						},
 						"name": {
 							Type:        schema.TypeString,
@@ -96,8 +99,9 @@ func resourceInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ValidateFunc: validation.StringInSlice([]string{
-								"ADMIN",
-								"RO",
+								string(api.DataSourceAdmin),
+								string(api.DataSourceRW),
+								string(api.DataSourceRO),
 							}, false),
 							Description: "The data source type. Should be ADMIN or RO.",
 						},
@@ -135,13 +139,13 @@ func resourceInstance() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "The Read-replica Host. Only works for RO type data source",
+							Description: "The Read-replica Host. Only works for RO type data source.",
 						},
 						"port_override": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "The Read-replica Port. Only works for RO type data source",
+							Description: "The Read-replica Port. Only works for RO type data source.",
 						},
 					},
 				},
@@ -153,6 +157,11 @@ func resourceInstance() *schema.Resource {
 func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
+	dataSourceList, err := convertDataSourceCreateList(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	instance, err := c.CreateInstance(ctx, &api.InstanceCreate{
 		Environment:    d.Get("environment").(string),
 		Name:           d.Get("name").(string),
@@ -161,7 +170,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		Database:       d.Get("database").(string),
 		Host:           d.Get("host").(string),
 		Port:           d.Get("port").(string),
-		DataSourceList: convertDataSourceCreateList(d),
+		DataSourceList: dataSourceList,
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -228,7 +237,11 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 	}
 	if d.HasChange("data_source_list") {
-		patch.DataSourceList = convertDataSourceCreateList(d)
+		dataSourceList, err := convertDataSourceCreateList(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.DataSourceList = dataSourceList
 	}
 
 	if patch.HasChange() {
@@ -304,15 +317,21 @@ func flattenDataSourceList(dataSourceList []*api.DataSource) []interface{} {
 	return res
 }
 
-func convertDataSourceCreateList(d *schema.ResourceData) []*api.DataSourceCreate {
+func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceCreate, error) {
 	var dataSourceList []*api.DataSourceCreate
 	if rawList, ok := d.Get("data_source_list").([]interface{}); ok {
+		dataSourceTypeMap := map[api.DataSourceType]bool{}
 		for _, raw := range rawList {
 			obj := raw.(map[string]interface{})
 			dataSource := &api.DataSourceCreate{
 				Name: obj["name"].(string),
-				Type: obj["type"].(string),
+				Type: api.DataSourceType(obj["type"].(string)),
 			}
+
+			if dataSourceTypeMap[dataSource.Type] {
+				return nil, errors.Errorf("duplicate data source type %s", dataSource.Type)
+			}
+			dataSourceTypeMap[dataSource.Type] = true
 
 			if v, ok := obj["username"].(string); ok {
 				dataSource.Username = v
@@ -337,7 +356,11 @@ func convertDataSourceCreateList(d *schema.ResourceData) []*api.DataSourceCreate
 			}
 			dataSourceList = append(dataSourceList, dataSource)
 		}
+
+		if !dataSourceTypeMap[api.DataSourceAdmin] {
+			return nil, errors.Errorf("data source \"%v\" is required", api.DataSourceAdmin)
+		}
 	}
 
-	return dataSourceList
+	return dataSourceList, nil
 }

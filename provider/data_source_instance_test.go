@@ -14,7 +14,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 	identifier := "new_instance"
 	resourceName := fmt.Sprintf("bytebase_instance.%s", identifier)
 
-	name := "dev instance"
+	name := "dev-instance"
 	engine := "POSTGRES"
 	host := "127.0.0.1"
 	environment := "dev"

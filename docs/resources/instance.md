@@ -13,12 +13,20 @@ The instance resource. You can read, create, update or delete a single instance 
 ## Example Usage
 
 ```terraform
-# Create a new instance named "dev instance"
+# Create a new instance named "dev-instance"
 resource "bytebase_instance" "dev_instance" {
-  name        = "dev instance"
+  name        = "dev-instance"
   engine      = "POSTGRES"
   host        = "127.0.0.1"
   environment = "dev"
+  port        = 5432
+
+  data_source_list {
+    name     = "admin data source"
+    type     = "ADMIN"
+    username = "<The connection user name>"
+    password = "<The connection user password>"
+  }
 }
 ```
 
@@ -29,24 +37,41 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Required
 
-- `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.
+- `name` (String) The instance unique name.
+- `engine` (String) The instance engine. Support `MYSQL`, `POSTGRES`, `TIDB`, `SNOWFLAKE`, `CLICKHOUSE`.
 - `environment` (String) The unique environment name for your instance.
 - `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.
-- `name` (String) The instance name.
+- `port` (String) The port for your instance.
+- `data_source_list` (List of Object, Min: 1, Max: 3) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_source_list))
 
 ### Optional
 
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
-- `password` (String, Sensitive) The connection user password used by Bytebase to perform DDL and DML operations.
-- `port` (String) The port for your instance.
-- `ssl_ca` (String) The CA certificate. Optional, you can set this if the engine type is CLICKHOUSE.
-- `ssl_cert` (String) The client certificate. Optional, you can set this if the engine type is CLICKHOUSE.
-- `ssl_key` (String) The client key. Optional, you can set this if the engine type is CLICKHOUSE.
-- `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
+- `database` (String) The database for your instance.
 
 ### Read-Only
 
 - `engine_version` (String) The version for instance engine.
 - `id` (String) The ID of this resource.
 
+<a id="nestedblock--data_source_list"></a>
+### Nested Schema for `data_source_list`
 
+#### Required
+
+- `name` (String) The unique data source name in this instance.
+- `type` (String) The data source type. Should be `ADMIN`, `RW` or `RO`.
+
+#### Optional
+
+- `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
+- `password` (String) The connection user password used by Bytebase to perform DDL and DML operations.
+- `ssl_ca` (String) The CA certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
+- `ssl_cert` (String) The client certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
+- `ssl_key` (String) The client key. Optional, you can set this if the engine type is `CLICKHOUSE`.
+- `host_override` (String) The Read-replica Host. Only works for RO type data source.
+- `port_override` (String) The Read-replica Port. Only works for RO type data source.
+
+#### Read-Only
+
+- `id` (String) The data source unique id.

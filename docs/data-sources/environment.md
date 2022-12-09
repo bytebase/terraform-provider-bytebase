@@ -36,3 +36,6 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 - `id` (Number) The ID of this resource.
 - `order` (Number) The environment sorting order.
+- `environment_tier_policy` (String) If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default.
+- `pipeline_approval_policy` (String) For updating schema on the existing database, this setting controls whether the task requires manual approval.
+- `backup_plan_policy` (String) The database backup policy in this environment.

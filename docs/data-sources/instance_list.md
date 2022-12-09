@@ -34,15 +34,29 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 <a id="nestedatt--instances"></a>
 ### Nested Schema for `instances`
 
-Read-Only:
+#### Read-Only
 
-- `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.
-- `engine_version` (String) The version for instance engine.
-- `environment` (String) The unique environment name for the instance.
-- `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
-- `host` (String) Host or socket for the instance, or the account name if the instance type is Snowflake.
 - `id` (Number) The instance id.
-- `name` (String) The instance name.
-- `port` (String) The port for the instance.
-- `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
+- `engine` (String) The instance engine. Support `MYSQL`, `POSTGRES`, `TIDB`, `SNOWFLAKE`, `CLICKHOUSE`.
+- `environment` (String) The unique environment name for your instance.
+- `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.
+- `port` (String) The port for your instance.
+- `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
+- `database` (String) The database for your instance.
+- `data_source_list` (List of Object, Min: 1, Max: 3) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_source_list))
 
+<a id="nestedblock--data_source_list"></a>
+### Nested Schema for `data_source_list`
+
+#### Read-Only
+
+- `id` (Number) The data source id.
+- `name` (String) The unique data source name in this instance.
+- `type` (String) The data source type. Should be `ADMIN`, `RW` or `RO`.
+- `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
+- `password` (String) The connection user password used by Bytebase to perform DDL and DML operations.
+- `ssl_ca` (String) The CA certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
+- `ssl_cert` (String) The client certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
+- `ssl_key` (String) The client key. Optional, you can set this if the engine type is `CLICKHOUSE`.
+- `host_override` (String) The Read-replica Host. Only works for RO type data source.
+- `port_override` (String) The Read-replica Port. Only works for RO type data source.

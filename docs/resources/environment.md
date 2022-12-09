@@ -17,6 +17,9 @@ The environment resource. You can read, create, update or delete a single enviro
 resource "bytebase_environment" "dev" {
   name  = "dev"
   order = 1
+  environment_tier_policy  = "UNPROTECTED"
+  pipeline_approval_policy = "MANUAL_APPROVAL_NEVER"
+  backup_plan_policy       = "UNSET"
 }
 ```
 
@@ -29,6 +32,9 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 - `name` (String) The environment unique name.
 - `order` (Number) The environment sorting order.
+- `environment_tier_policy` (String) If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default. Should be `PROTECTED` or `UNPROTECTED`.
+- `pipeline_approval_policy` (String) For updating schema on the existing database, this setting controls whether the task requires manual approval. Should be `MANUAL_APPROVAL_NEVER`, `MANUAL_APPROVAL_BY_PROJECT_OWNER` or `MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA`.
+- `backup_plan_policy` (String) The database backup policy in this environment. Should be `UNSET`, `DAILY` or `WEEKLY`.
 
 ### Read-Only
 
