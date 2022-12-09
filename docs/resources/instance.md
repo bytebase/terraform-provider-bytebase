@@ -42,7 +42,7 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 - `environment` (String) The unique environment name for your instance.
 - `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.
 - `port` (String) The port for your instance.
-- `data_source_list` (List of Object, Min: 1, Max: 3) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_source_list))
+- `data_source_list` (List of Object, Min: 1, Max: 3) The connection for the instance. You can configure read-only, read-write or admin connection account here. (see [below for nested schema](#nestedblock--data_source_list))
 
 ### Optional
 
@@ -60,7 +60,10 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 #### Required
 
 - `name` (String) The unique data source name in this instance.
-- `type` (String) The data source type. Should be `ADMIN`, `RW` or `RO`.
+- `type` (String) The data source type. Should be one of:
+  - `ADMIN`: The ADMIN type of data source.
+  - `RW`: The read/write type of data source.
+  - `RO`: The read-only type of data source.
 
 #### Optional
 
