@@ -1,5 +1,6 @@
 package api
 
+// DataSourceType is the type for data source.
 type DataSourceType string
 
 const (

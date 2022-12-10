@@ -380,7 +380,7 @@ func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceCreat
 	return dataSourceList, nil
 }
 
-func validateInstanceName(v interface{}, p cty.Path) diag.Diagnostics {
+func validateInstanceName(v interface{}, _ cty.Path) diag.Diagnostics {
 	var diags diag.Diagnostics
 	instanceName := v.(string)
 
