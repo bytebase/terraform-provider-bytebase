@@ -2,30 +2,14 @@ package provider
 
 import (
 	"context"
-	"fmt"
-	"regexp"
 	"strconv"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
-)
-
-const (
-	// instanceNamePattern is the regex to check the instance name.
-	// it allows lowercase and number, a single dash ("-") can be used as the word separator.
-	// e.g. foo, foo-bar.
-	instanceNamePattern = "^([0-9a-z]+-?)+[0-9a-z]+$"
-
-	// instanceNameMinLength is the minimum length for the instance name.
-	instanceNameMinLength = 2
-
-	// instanceNameMinLength is the maximum length for the instance name.
-	instanceNameMaxLength = 20
 )
 
 func resourceInstance() *schema.Resource {
@@ -40,10 +24,10 @@ func resourceInstance() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ValidateDiagFunc: validateInstanceName,
-				Description:      "The instance unique name. Should only allows lowercase and number, and a single dash (\"-\") can be used as the word separator. For example, new-instance",
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The instance unique name.",
 			},
 			"engine": {
 				Type:     schema.TypeString,
@@ -378,28 +362,4 @@ func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceCreat
 	}
 
 	return dataSourceList, nil
-}
-
-func validateInstanceName(v interface{}, _ cty.Path) diag.Diagnostics {
-	var diags diag.Diagnostics
-	instanceName := v.(string)
-
-	if len(instanceName) < instanceNameMinLength || len(instanceName) > instanceNameMaxLength {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Invalid instance name",
-			Detail:   fmt.Sprintf("Invalid length for the instance name \"%s\", it should in %d-%d length", instanceName, instanceNameMinLength, instanceNameMaxLength),
-		})
-	}
-
-	pattern := regexp.MustCompile(instanceNamePattern)
-	if !pattern.MatchString(instanceName) {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Invalid instance name",
-			Detail:   fmt.Sprintf("\"%v\" doesn't match the pattern \"%s\"", instanceName, instanceNamePattern),
-		})
-	}
-
-	return diags
 }
