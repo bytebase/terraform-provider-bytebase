@@ -30,7 +30,7 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Required
 
-- `name` (String) The environment unique name.
+- `name` (String) The environment **unique** name.
 - `order` (Number) The environment sorting order.
 - `environment_tier_policy` (String) If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default. Should be one of:
   - `PROTECTED`: The envirnoment is projected and developers cannot execute any query.
