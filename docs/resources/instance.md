@@ -37,7 +37,7 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Required
 
-- `name` (String) The instance unique name.
+- `name` (String) The instance unique name. Should only allows lowercase and number, and a single dash (\"-\") can be used as the word separator. For example, new-instance.
 - `engine` (String) The instance engine. Support `MYSQL`, `POSTGRES`, `TIDB`, `SNOWFLAKE`, `CLICKHOUSE`.
 - `environment` (String) The unique environment name for your instance.
 - `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.

@@ -75,7 +75,12 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 			// Invalid instance name
 			{
 				Config:      testAccCheckInstanceResource(identifier, "A Instance", engine, host, environment),
-				ExpectError: regexp.MustCompile("expected value of name to match regular expression"),
+				ExpectError: regexp.MustCompile("\"A Instance\" doesn't match the pattern"),
+			},
+			// Invalid instance name
+			{
+				Config:      testAccCheckInstanceResource(identifier, "a", engine, host, environment),
+				ExpectError: regexp.MustCompile("Invalid length for the instance name \"a\", it should in 2-20 length"),
 			},
 			// Invalid engine
 			{
