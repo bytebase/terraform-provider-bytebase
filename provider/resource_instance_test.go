@@ -87,7 +87,7 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 				Config:      testAccCheckInstanceResource(identifier, "dev-instance", "engine", host, environment),
 				ExpectError: regexp.MustCompile("expected engine to be one of"),
 			},
-			// Invalid engine
+			// Invalid data source
 			{
 				Config: `
 				resource "bytebase_instance" "dev_instance" {
@@ -103,6 +103,44 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 				}
 				`,
 				ExpectError: regexp.MustCompile("data source \"ADMIN\" is required"),
+			},
+			// Invalid data source
+			{
+				Config: `
+				resource "bytebase_instance" "dev_instance" {
+					name        = "dev"
+					engine      = "POSTGRES"
+					host        = "127.0.0.1"
+					port        = 5432
+					environment = "dev"
+					data_source_list {
+						name     = "unknown data source"
+						type     = "UNKNOWN"
+					}
+				}
+				`,
+				ExpectError: regexp.MustCompile("expected data_source_list.0.type to be one of"),
+			},
+			// Invalid data source
+			{
+				Config: `
+				resource "bytebase_instance" "dev_instance" {
+					name        = "dev"
+					engine      = "POSTGRES"
+					host        = "127.0.0.1"
+					port        = 5432
+					environment = "dev"
+					data_source_list {
+						name     = "admin data source"
+						type     = "ADMIN"
+					}
+					data_source_list {
+						name     = "admin data source 2"
+						type     = "ADMIN"
+					}
+				}
+				`,
+				ExpectError: regexp.MustCompile("duplicate data source type ADMIN"),
 			},
 		},
 	})
