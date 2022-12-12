@@ -6,8 +6,6 @@ type DataSourceType string
 const (
 	// DataSourceAdmin is the ADMIN type of data source.
 	DataSourceAdmin DataSourceType = "ADMIN"
-	// DataSourceRW is the read/write type of data source.
-	DataSourceRW DataSourceType = "RW"
 	// DataSourceRO is the read-only type of data source.
 	DataSourceRO DataSourceType = "RO"
 )
