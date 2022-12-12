@@ -99,10 +99,9 @@ func resourceInstance() *schema.Resource {
 							Required: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(api.DataSourceAdmin),
-								string(api.DataSourceRW),
 								string(api.DataSourceRO),
 							}, false),
-							Description: "The data source type. Should be ADMIN, RW or RO.",
+							Description: "The data source type. Should be ADMIN or RO.",
 						},
 						"username": {
 							Type:        schema.TypeString,
