@@ -55,7 +55,6 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 #### Read-Only
 
-- `id` (Number) The data source id.
 - `name` (String) The unique data source name in this instance.
 - `type` (String) The data source type. Should be one of:
   - `ADMIN`: The ADMIN type of data source.

@@ -84,11 +84,6 @@ func resourceInstance() *schema.Resource {
 				Description: "The connection for the instance. You can configure read-only or admin connection account here.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeInt,
-							Computed:    true,
-							Description: "The data source unique id.",
-						},
 						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
@@ -304,7 +299,6 @@ func flattenDataSourceList(dataSourceList []*api.DataSource) []interface{} {
 	res := []interface{}{}
 	for _, dataSource := range dataSourceList {
 		raw := map[string]interface{}{}
-		raw["id"] = dataSource.ID
 		raw["name"] = dataSource.Name
 		raw["type"] = dataSource.Type
 		raw["username"] = dataSource.Username
