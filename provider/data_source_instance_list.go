@@ -71,11 +71,6 @@ func dataSourceInstanceList() *schema.Resource {
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"id": {
-										Type:        schema.TypeInt,
-										Computed:    true,
-										Description: "The data source unique id",
-									},
 									"name": {
 										Type:        schema.TypeString,
 										Computed:    true,

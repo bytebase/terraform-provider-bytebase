@@ -80,7 +80,3 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 - `ssl_key` (String) The client key. Optional, you can set this if the engine type is `CLICKHOUSE`.
 - `host_override` (String) The Read-replica Host. Only works for RO type data source.
 - `port_override` (String) The Read-replica Port. Only works for RO type data source.
-
-#### Read-Only
-
-- `id` (String) The data source unique id.
