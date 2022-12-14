@@ -10,15 +10,18 @@ import (
 
 var environmentMap map[int]*api.Environment
 var instanceMap map[int]*api.Instance
+var roleMap map[int]*api.PGRole
 
 func init() {
 	environmentMap = map[int]*api.Environment{}
 	instanceMap = map[int]*api.Instance{}
+	roleMap = map[int]*api.PGRole{}
 }
 
 type mockClient struct {
 	environmentMap map[int]*api.Environment
 	instanceMap    map[int]*api.Instance
+	roleMap        map[int]*api.PGRole
 }
 
 // newMockClient returns the new Bytebase API mock client.
@@ -26,6 +29,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 	return &mockClient{
 		environmentMap: environmentMap,
 		instanceMap:    instanceMap,
+		roleMap:        roleMap,
 	}, nil
 }
 
@@ -201,4 +205,24 @@ func (c *mockClient) UpdateInstance(ctx context.Context, instanceID int, patch *
 func (c *mockClient) DeleteInstance(_ context.Context, instanceID int) error {
 	delete(c.instanceMap, instanceID)
 	return nil
+}
+
+// CreatePGRole creates the role in the instance.
+func (c *mockClient) CreatePGRole(ctx context.Context, instanceID int, create *api.PGRoleUpsert) (*api.PGRole, error) {
+	return nil, errors.Errorf("not implement yet")
+}
+
+// GetPGRole gets the role by instance id and role name.
+func (c *mockClient) GetPGRole(ctx context.Context, instanceID int, roleName string) (*api.PGRole, error) {
+	return nil, errors.Errorf("not implement yet")
+}
+
+// UpdatePGRole updates the role in instance.
+func (c *mockClient) UpdatePGRole(ctx context.Context, instanceID int, patch *api.PGRoleUpsert) (*api.PGRole, error) {
+	return nil, errors.Errorf("not implement yet")
+}
+
+// DeletePGRole deletes the role in the instance.
+func (c *mockClient) DeletePGRole(ctx context.Context, instanceID int, roleName string) error {
+	return errors.Errorf("not implement yet")
 }
