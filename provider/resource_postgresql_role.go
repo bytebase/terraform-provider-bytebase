@@ -50,8 +50,7 @@ func resourcePostgresqlRole() *schema.Resource {
 				Default:  "",
 			},
 			"attribute": {
-				Type:     schema.TypeSet,
-				MinItems: 0,
+				Type:     schema.TypeList,
 				MaxItems: 1,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -222,7 +221,7 @@ func setPGRole(d *schema.ResourceData, role *api.PGRole) diag.Diagnostics {
 }
 
 func convertRoleAttribute(d *schema.ResourceData) *api.PGRoleAttribute {
-	rawList := d.Get("attribute").(*schema.Set).List()
+	rawList := d.Get("attribute").([]interface{})
 	if len(rawList) < 1 {
 		return nil
 	}
