@@ -41,7 +41,7 @@ resource "bytebase_instance" "dev_instance" {
   name        = local.instance_name
   engine      = "POSTGRES"
   host        = "127.0.0.1"
-  port        = 5432
+  port        = "5432"
   environment = bytebase_environment.dev.name
 
   # You need to specific the data source
@@ -54,10 +54,12 @@ resource "bytebase_instance" "dev_instance" {
 
   # And you can add another data_source_list with RO type
   data_source_list {
-    name     = "read-only data source"
-    type     = "RO"
-    username = "<The connection user name>"
-    password = "<The connection user password>"
+    name          = "read-only data source"
+    type          = "RO"
+    username      = "<The connection user name>"
+    password      = "<The connection user password>"
+    host_override = "192.168.0.1"
+    port_override = "1234"
   }
 }
 
@@ -92,4 +94,27 @@ module "instance" {
 
 output "instance" {
   value = module.instance.instance
+}
+
+# TODO(ed): refactor the examples
+resource "bytebase_postgresql_role" "test_role" {
+  name             = "test_role"
+  instance_id      = bytebase_instance.dev_instance.id
+  password         = "123456"
+  connection_limit = 99
+  valid_until      = "2022-12-31T00:00:00+08:00"
+
+  attribute {
+    super_user  = true
+    no_inherit  = true
+    create_role = true
+    create_db   = false
+    can_login   = true
+    replication = true
+    bypass_rls  = true
+  }
+
+  depends_on = [
+    bytebase_instance.dev_instance
+  ]
 }
