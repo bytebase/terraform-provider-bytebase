@@ -209,7 +209,7 @@ func (c *mockClient) DeleteInstance(_ context.Context, instanceID int) error {
 }
 
 // CreatePGRole creates the role in the instance.
-func (c *mockClient) CreatePGRole(ctx context.Context, instanceID int, create *api.PGRoleUpsert) (*api.PGRole, error) {
+func (c *mockClient) CreatePGRole(_ context.Context, instanceID int, create *api.PGRoleUpsert) (*api.PGRole, error) {
 	id := getRoleMapID(instanceID, create.Name)
 
 	if _, ok := c.roleMap[id]; ok {
@@ -237,7 +237,7 @@ func (c *mockClient) CreatePGRole(ctx context.Context, instanceID int, create *a
 }
 
 // GetPGRole gets the role by instance id and role name.
-func (c *mockClient) GetPGRole(ctx context.Context, instanceID int, roleName string) (*api.PGRole, error) {
+func (c *mockClient) GetPGRole(_ context.Context, instanceID int, roleName string) (*api.PGRole, error) {
 	id := getRoleMapID(instanceID, roleName)
 	role, ok := c.roleMap[id]
 	if !ok {
@@ -271,7 +271,7 @@ func (c *mockClient) UpdatePGRole(ctx context.Context, instanceID int, name stri
 }
 
 // DeletePGRole deletes the role in the instance.
-func (c *mockClient) DeletePGRole(ctx context.Context, instanceID int, roleName string) error {
+func (c *mockClient) DeletePGRole(_ context.Context, instanceID int, roleName string) error {
 	delete(c.roleMap, getRoleMapID(instanceID, roleName))
 	return nil
 }

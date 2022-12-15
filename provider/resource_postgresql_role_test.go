@@ -20,7 +20,7 @@ func TestAccPGRole(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckInstanceDestroy,
+		CheckDestroy: testAccCheckPGRoleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
