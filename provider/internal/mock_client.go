@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -10,18 +11,18 @@ import (
 
 var environmentMap map[int]*api.Environment
 var instanceMap map[int]*api.Instance
-var roleMap map[int]*api.PGRole
+var roleMap map[string]*api.PGRole
 
 func init() {
 	environmentMap = map[int]*api.Environment{}
 	instanceMap = map[int]*api.Instance{}
-	roleMap = map[int]*api.PGRole{}
+	roleMap = map[string]*api.PGRole{}
 }
 
 type mockClient struct {
 	environmentMap map[int]*api.Environment
 	instanceMap    map[int]*api.Instance
-	roleMap        map[int]*api.PGRole
+	roleMap        map[string]*api.PGRole
 }
 
 // newMockClient returns the new Bytebase API mock client.
@@ -209,20 +210,71 @@ func (c *mockClient) DeleteInstance(_ context.Context, instanceID int) error {
 
 // CreatePGRole creates the role in the instance.
 func (c *mockClient) CreatePGRole(ctx context.Context, instanceID int, create *api.PGRoleUpsert) (*api.PGRole, error) {
-	return nil, errors.Errorf("not implement yet")
+	id := getRoleMapID(instanceID, create.Name)
+
+	if _, ok := c.roleMap[id]; ok {
+		return nil, errors.Errorf("Role %s already exists", create.Name)
+	}
+
+	role := &api.PGRole{
+		Name:            create.Name,
+		InstanceID:      instanceID,
+		ConnectionLimit: -1,
+		Attribute:       &api.PGRoleAttribute{},
+	}
+	if v := create.ConnectionLimit; v != nil {
+		role.ConnectionLimit = *v
+	}
+	if v := create.ValidUntil; v != nil {
+		role.ValidUntil = v
+	}
+	if v := create.Attribute; v != nil {
+		role.Attribute = v
+	}
+
+	c.roleMap[id] = role
+	return role, nil
 }
 
 // GetPGRole gets the role by instance id and role name.
 func (c *mockClient) GetPGRole(ctx context.Context, instanceID int, roleName string) (*api.PGRole, error) {
-	return nil, errors.Errorf("not implement yet")
+	id := getRoleMapID(instanceID, roleName)
+	role, ok := c.roleMap[id]
+	if !ok {
+		return nil, errors.Errorf("Cannot found role with ID %s", id)
+	}
+
+	return role, nil
 }
 
 // UpdatePGRole updates the role in instance.
 func (c *mockClient) UpdatePGRole(ctx context.Context, instanceID int, patch *api.PGRoleUpsert) (*api.PGRole, error) {
-	return nil, errors.Errorf("not implement yet")
+	role, err := c.GetPGRole(ctx, instanceID, patch.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	if v := patch.ConnectionLimit; v != nil {
+		role.ConnectionLimit = *v
+	}
+	if v := patch.ValidUntil; v != nil {
+		role.ValidUntil = v
+	}
+	if v := patch.Attribute; v != nil {
+		role.Attribute = v
+	}
+
+	id := getRoleMapID(instanceID, patch.Name)
+	c.roleMap[id] = role
+	return role, nil
 }
 
 // DeletePGRole deletes the role in the instance.
 func (c *mockClient) DeletePGRole(ctx context.Context, instanceID int, roleName string) error {
-	return errors.Errorf("not implement yet")
+	delete(c.roleMap, getRoleMapID(instanceID, roleName))
+	return nil
+}
+
+func getRoleMapID(instanceID int, roleName string) string {
+	return fmt.Sprintf("%d-%s", instanceID, roleName)
 }

@@ -2,13 +2,19 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
+
+const roleIdentifierSeparator = "__"
 
 func resourcePostgresqlRole() *schema.Resource {
 	return &schema.Resource{
@@ -52,7 +58,7 @@ func resourcePostgresqlRole() *schema.Resource {
 			"attribute": {
 				Type:     schema.TypeList,
 				MaxItems: 1,
-				Optional: true,
+				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"super_user": {
@@ -122,16 +128,20 @@ func resourcePGRoleCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	d.SetId(role.Name)
+	d.SetId(getRoleIdentifier(role))
 	return resourcePGRoleRead(ctx, d, m)
 }
 
 func resourcePGRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	instanceID := d.Get("instance_id").(int)
+
+	instanceID, name, err := parseRoleIdentifier(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	upsert := &api.PGRoleUpsert{
-		Name: d.Id(),
+		Name: name,
 	}
 
 	if d.HasChange("password") {
@@ -153,19 +163,19 @@ func resourcePGRoleUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		upsert.Attribute = convertRoleAttribute(d)
 	}
 
-	role, err := c.UpdatePGRole(ctx, instanceID, upsert)
-	if err != nil {
+	if _, err := c.UpdatePGRole(ctx, instanceID, upsert); err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(role.Name)
 	return resourcePGRoleRead(ctx, d, m)
 }
 
 func resourcePGRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	name := d.Id()
-	instanceID := d.Get("instance_id").(int)
+	instanceID, name, err := parseRoleIdentifier(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	role, err := c.GetPGRole(ctx, instanceID, name)
 	if err != nil {
@@ -177,9 +187,11 @@ func resourcePGRoleRead(ctx context.Context, d *schema.ResourceData, m interface
 
 func resourcePGRoleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	name := d.Id()
-	instanceID := d.Get("instance_id").(int)
-	var diags diag.Diagnostics
+
+	instanceID, name, err := parseRoleIdentifier(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	if err := c.DeletePGRole(ctx, instanceID, name); err != nil {
 		return diag.FromErr(err)
@@ -187,7 +199,7 @@ func resourcePGRoleDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId("")
 
-	return diags
+	return nil
 }
 
 func setPGRole(d *schema.ResourceData, role *api.PGRole) diag.Diagnostics {
@@ -240,4 +252,22 @@ func convertRoleAttribute(d *schema.ResourceData) *api.PGRoleAttribute {
 		Replication: raw["replication"].(bool),
 		ByPassRLS:   raw["bypass_rls"].(bool),
 	}
+}
+
+func getRoleIdentifier(r *api.PGRole) string {
+	return fmt.Sprintf("%d%s%s", r.InstanceID, roleIdentifierSeparator, r.Name)
+}
+
+func parseRoleIdentifier(identifier string) (int, string, error) {
+	slice := strings.Split(identifier, roleIdentifierSeparator)
+	if len(slice) < 2 {
+		return 0, "", errors.Errorf("invalid role identifier: %s", identifier)
+	}
+
+	instanceID, err := strconv.Atoi(slice[0])
+	if err != nil {
+		return 0, "", errors.Errorf("failed to parse the instance id with error: %v", err)
+	}
+
+	return instanceID, strings.Join(slice[1:], roleIdentifierSeparator), nil
 }
