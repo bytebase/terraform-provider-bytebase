@@ -38,7 +38,7 @@ type Client interface {
 	// GetPGRole gets the role by instance id and role name.
 	GetPGRole(ctx context.Context, instanceID int, roleName string) (*PGRole, error)
 	// UpdatePGRole updates the role in instance.
-	UpdatePGRole(ctx context.Context, instanceID int, patch *PGRoleUpsert) (*PGRole, error)
+	UpdatePGRole(ctx context.Context, instanceID int, roleName string, patch *PGRoleUpsert) (*PGRole, error)
 	// DeletePGRole deletes the role in the instance.
 	DeletePGRole(ctx context.Context, instanceID int, roleName string) error
 }

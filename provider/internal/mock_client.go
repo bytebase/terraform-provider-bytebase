@@ -248,12 +248,13 @@ func (c *mockClient) GetPGRole(ctx context.Context, instanceID int, roleName str
 }
 
 // UpdatePGRole updates the role in instance.
-func (c *mockClient) UpdatePGRole(ctx context.Context, instanceID int, patch *api.PGRoleUpsert) (*api.PGRole, error) {
-	role, err := c.GetPGRole(ctx, instanceID, patch.Name)
+func (c *mockClient) UpdatePGRole(ctx context.Context, instanceID int, name string, patch *api.PGRoleUpsert) (*api.PGRole, error) {
+	role, err := c.GetPGRole(ctx, instanceID, name)
 	if err != nil {
 		return nil, err
 	}
 
+	role.Name = patch.Name
 	if v := patch.ConnectionLimit; v != nil {
 		role.ConnectionLimit = *v
 	}
@@ -264,7 +265,7 @@ func (c *mockClient) UpdatePGRole(ctx context.Context, instanceID int, patch *ap
 		role.Attribute = v
 	}
 
-	id := getRoleMapID(instanceID, patch.Name)
+	id := getRoleMapID(instanceID, name)
 	c.roleMap[id] = role
 	return role, nil
 }

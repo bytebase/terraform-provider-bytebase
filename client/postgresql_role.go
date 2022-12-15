@@ -58,13 +58,13 @@ func (c *client) GetPGRole(ctx context.Context, instanceID int, roleName string)
 }
 
 // UpdatePGRole updates the role in instance.
-func (c *client) UpdatePGRole(ctx context.Context, instanceID int, patch *api.PGRoleUpsert) (*api.PGRole, error) {
+func (c *client) UpdatePGRole(ctx context.Context, instanceID int, roleName string, patch *api.PGRoleUpsert) (*api.PGRole, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/instance/%d/role/%s", c.HostURL, instanceID, patch.Name), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/instance/%d/role/%s", c.HostURL, instanceID, roleName), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}

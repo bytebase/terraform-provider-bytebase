@@ -153,6 +153,11 @@ func resourcePGRoleUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		Name: name,
 	}
 
+	if d.HasChange("name") {
+		if v := d.Get("name").(string); v != "" {
+			upsert.Name = v
+		}
+	}
 	if d.HasChange("password") {
 		if v := d.Get("password").(string); v != "" {
 			upsert.Password = &v
@@ -172,11 +177,17 @@ func resourcePGRoleUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		upsert.Attribute = convertRoleAttribute(d)
 	}
 
-	if _, err := c.UpdatePGRole(ctx, instanceID, upsert); err != nil {
+	if _, err := c.UpdatePGRole(ctx, instanceID, name, upsert); err != nil {
 		return diag.FromErr(err)
 	}
 
-	return resourcePGRoleRead(ctx, d, m)
+	role, err := c.GetPGRole(ctx, instanceID, upsert.Name)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId(getRoleIdentifier(role))
+	return setPGRole(d, role)
 }
 
 func resourcePGRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -191,6 +202,7 @@ func resourcePGRoleRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
+	d.SetId(getRoleIdentifier(role))
 	return setPGRole(d, role)
 }
 
