@@ -1,4 +1,4 @@
-// Package main is the main binary for Bytebase Terraform provider.
+// Package main is the main binary for Terraform Bytebase Provider.
 package main
 
 import (
