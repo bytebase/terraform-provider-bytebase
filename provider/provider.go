@@ -1,4 +1,4 @@
-// Package provider is the implement for Bytebase Terraform provider.
+// Package provider is the implement for Terraform Bytebase Provider.
 package provider
 
 import (
@@ -23,7 +23,7 @@ const (
 	settingKeyForServiceKey     = "service_key"
 )
 
-// NewProvider is the implement for Bytebase Terraform provider.
+// NewProvider is the implement for Terraform Bytebase Provider.
 func NewProvider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{

@@ -3,7 +3,7 @@
 page_title: "Bytebase Provider"
 subcategory: ""
 description: |-
-  The Bytebase Terraform provider to manage your Bytebase resources.
+  The Terraform Bytebase Provider to manage your Bytebase resources.
 ---
 
 # Bytebase Provider
@@ -12,7 +12,7 @@ description: |-
 the database development lifecycle.
 
 Bytebase models the database development business logic into [resources](https://www.bytebase.com/docs/concepts/data-model).
-This is the Bytebase Terraform provider to manage some of those Bytebase resources:
+This is the Terraform Bytebase Provider to manage some of those Bytebase resources:
 
 - Environments, models after various environments in the development pipeline such as test, staging,
   prod
@@ -21,7 +21,7 @@ This is the Bytebase Terraform provider to manage some of those Bytebase resourc
   provider.
 
 A typical setup involves teams using Cloud vendors' Terraform provider to provision database
-instances, followed by using Bytebase Terraform provider to prepare those instances ready for
+instances, followed by using Terraform Bytebase Provider to prepare those instances ready for
 application use.
 
 ![Overview](https://raw.githubusercontent.com/bytebase/terraform-provider-bytebase/main/docs/assets/overview.webp)
@@ -128,7 +128,7 @@ terraform init && terraform plan
 
 ## References
 
-- [Sample Bytebase Terraform provider Config](https://github.com/bytebase/terraform-provider-bytebase/blob/main/examples/main.tf)
+- [Sample Terraform Bytebase Provider Config](https://github.com/bytebase/terraform-provider-bytebase/blob/main/examples/main.tf)
 - [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get-started/terraform)
 - [Bytebase Data Model](https://www.bytebase.com/docs/concepts/data-model)
 - [Official Terraform Tutorials](https://developer.hashicorp.com/terraform/tutorials)

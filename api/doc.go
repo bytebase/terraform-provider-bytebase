@@ -1,2 +1,2 @@
-// Package api is the API message for Bytebase Terraform provider.
+// Package api is the API message for Terraform Bytebase Provider.
 package api
