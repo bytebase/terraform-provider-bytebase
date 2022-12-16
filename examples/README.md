@@ -1,6 +1,6 @@
 # Examples for Bytebase Terraform Porvider
 
-Examples of using the Bytebase Terraform provider to manage your resource:
+Examples of using the Terraform Bytebase Provider to manage your resource:
 
 - [setup](./setup): Initial the data.
 - [environments](./environments): Use the Bytebase provider to query the environment.
