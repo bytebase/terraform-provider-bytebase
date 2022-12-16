@@ -1,3 +1,4 @@
+# Examples for query the instances
 terraform {
   required_providers {
     bytebase = {
@@ -18,65 +19,32 @@ provider "bytebase" {
 }
 
 locals {
-  environment_name_dev = "dev_env_test"
-  instance_name        = "dev_instance_test"
+  instance_name_dev  = "dev_instance_test"
+  instance_name_prod = "prod_instance_test"
 }
-
-# Create a new environment named "dev"
-resource "bytebase_environment" "dev" {
-  name                     = local.environment_name_dev
-  order                    = 0
-  environment_tier_policy  = "UNPROTECTED"
-  pipeline_approval_policy = "MANUAL_APPROVAL_NEVER"
-  backup_plan_policy       = "UNSET"
-}
-
-# Create a new instance named "dev_instance_test"
-resource "bytebase_instance" "dev" {
-  name        = local.instance_name
-  engine      = "POSTGRES"
-  host        = "127.0.0.1"
-  port        = 5432
-  environment = bytebase_environment.dev.name
-
-  # You need to specific the data source
-  data_source_list {
-    name     = "admin data source"
-    type     = "ADMIN"
-    username = "<The connection user name>"
-    password = "<The connection user password>"
-  }
-
-  # And you can add another data_source_list with RO type
-  data_source_list {
-    name     = "read-only data source"
-    type     = "RO"
-    username = "<The connection user name>"
-    password = "<The connection user password>"
-  }
-}
-
 
 # List all instance
-data "bytebase_instance_list" "all" {
-  depends_on = [
-    bytebase_instance.dev
-  ]
-}
+data "bytebase_instance_list" "all" {}
 
 output "all_instances" {
   value = data.bytebase_instance_list.all.instances
 }
 
 # Find a specific instance by name
-data "bytebase_instance" "find_instance" {
-  name = local.instance_name
-  depends_on = [
-    bytebase_instance.dev
-  ]
+data "bytebase_instance" "dev" {
+  name = local.instance_name_dev
 }
 
 
-output "instance" {
-  value = data.bytebase_instance.find_instance
+output "dev_instance" {
+  value = data.bytebase_instance.dev
+}
+
+data "bytebase_instance" "prod" {
+  name = local.instance_name_prod
+}
+
+
+output "prod_instance" {
+  value = data.bytebase_instance.prod
 }

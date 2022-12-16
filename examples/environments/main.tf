@@ -1,3 +1,4 @@
+# Examples for query the environments
 terraform {
   required_providers {
     bytebase = {
@@ -22,44 +23,26 @@ locals {
   environment_name_prod = "prod_test"
 }
 
-# Create a new environment named "dev_test"
-resource "bytebase_environment" "dev" {
-  name                     = local.environment_name_dev
-  order                    = 0
-  environment_tier_policy  = "UNPROTECTED"
-  pipeline_approval_policy = "MANUAL_APPROVAL_NEVER"
-  backup_plan_policy       = "UNSET"
-}
-
-# Create another environment named "prod_test"
-resource "bytebase_environment" "prod" {
-  name                     = local.environment_name_prod
-  order                    = 1
-  environment_tier_policy  = "PROTECTED"
-  pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
-  backup_plan_policy       = "DAILY"
-}
-
 # List all environment
-data "bytebase_environment_list" "all" {
-  depends_on = [
-    bytebase_environment.dev,
-    bytebase_environment.prod
-  ]
-}
+data "bytebase_environment_list" "all" {}
 
 output "all_environments" {
   value = data.bytebase_environment_list.all.environments
 }
 
 // Find a specific environment by the name
-data "bytebase_environment" "find_dev_env" {
+data "bytebase_environment" "dev" {
   name = local.environment_name_dev
-  depends_on = [
-    bytebase_environment.dev
-  ]
 }
 
 output "dev_environment" {
-  value = data.bytebase_environment.find_dev_env
+  value = data.bytebase_environment.dev
+}
+
+data "bytebase_environment" "prod" {
+  name = local.environment_name_prod
+}
+
+output "prod_environment" {
+  value = data.bytebase_environment.prod
 }
