@@ -16,13 +16,13 @@ import (
 
 const roleIdentifierSeparator = "__"
 
-func resourcePostgresqlRole() *schema.Resource {
+func resourceDatabaseRole() *schema.Resource {
 	return &schema.Resource{
-		Description:   "The Postgresql role resource.",
-		CreateContext: resourcePGRoleCreate,
-		ReadContext:   resourcePGRoleRead,
-		UpdateContext: resourcePGRoleUpdate,
-		DeleteContext: resourcePGRoleDelete,
+		Description:   "The role resource.",
+		CreateContext: resourceRoleCreate,
+		ReadContext:   resourceRoleRead,
+		UpdateContext: resourceRoleUpdate,
+		DeleteContext: resourceRoleDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -30,13 +30,13 @@ func resourcePostgresqlRole() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "The Postgresql role unique name.",
+				Description:  "The role unique name.",
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
-			"instance_id": {
-				Type:        schema.TypeInt,
+			"instance": {
+				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The instance id.",
+				Description: "The instance unique name.",
 			},
 			"password": {
 				Type:        schema.TypeString,
@@ -112,12 +112,16 @@ func resourcePostgresqlRole() *schema.Resource {
 	}
 }
 
-func resourcePGRoleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	instanceID := d.Get("instance_id").(int)
+	instanceName := d.Get("instance").(string)
+	ins, diags := findInstanceByName(ctx, c, instanceName)
+	if diags != nil {
+		return diags
+	}
 
-	upsert := &api.PGRoleUpsert{
+	upsert := &api.RoleUpsert{
 		Name:      d.Get("name").(string),
 		Attribute: convertRoleAttribute(d),
 	}
@@ -132,16 +136,16 @@ func resourcePGRoleCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		upsert.ValidUntil = &v
 	}
 
-	role, err := c.CreatePGRole(ctx, instanceID, upsert)
+	role, err := c.CreateRole(ctx, ins.ID, upsert)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(getRoleIdentifier(role))
-	return resourcePGRoleRead(ctx, d, m)
+	return resourceRoleRead(ctx, d, m)
 }
 
-func resourcePGRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	instanceID, name, err := parseRoleIdentifier(d.Id())
@@ -149,7 +153,7 @@ func resourcePGRoleUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	upsert := &api.PGRoleUpsert{
+	upsert := &api.RoleUpsert{
 		Name: name,
 	}
 
@@ -177,36 +181,36 @@ func resourcePGRoleUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		upsert.Attribute = convertRoleAttribute(d)
 	}
 
-	if _, err := c.UpdatePGRole(ctx, instanceID, name, upsert); err != nil {
+	if _, err := c.UpdateRole(ctx, instanceID, name, upsert); err != nil {
 		return diag.FromErr(err)
 	}
 
-	role, err := c.GetPGRole(ctx, instanceID, upsert.Name)
+	role, err := c.GetRole(ctx, instanceID, upsert.Name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(getRoleIdentifier(role))
-	return setPGRole(d, role)
+	return setRole(d, role)
 }
 
-func resourcePGRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 	instanceID, name, err := parseRoleIdentifier(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	role, err := c.GetPGRole(ctx, instanceID, name)
+	role, err := c.GetRole(ctx, instanceID, name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(getRoleIdentifier(role))
-	return setPGRole(d, role)
+	return setRole(d, role)
 }
 
-func resourcePGRoleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
 	instanceID, name, err := parseRoleIdentifier(d.Id())
@@ -214,7 +218,7 @@ func resourcePGRoleDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	if err := c.DeletePGRole(ctx, instanceID, name); err != nil {
+	if err := c.DeleteRole(ctx, instanceID, name); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -223,7 +227,7 @@ func resourcePGRoleDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	return nil
 }
 
-func setPGRole(d *schema.ResourceData, role *api.PGRole) diag.Diagnostics {
+func setRole(d *schema.ResourceData, role *api.Role) diag.Diagnostics {
 	if err := d.Set("name", role.Name); err != nil {
 		return diag.Errorf("cannot set name for role: %s", err.Error())
 	}
@@ -253,7 +257,7 @@ func setPGRole(d *schema.ResourceData, role *api.PGRole) diag.Diagnostics {
 	return nil
 }
 
-func convertRoleAttribute(d *schema.ResourceData) *api.PGRoleAttribute {
+func convertRoleAttribute(d *schema.ResourceData) *api.RoleAttribute {
 	rawList := d.Get("attribute").([]interface{})
 	if len(rawList) < 1 {
 		return nil
@@ -264,7 +268,7 @@ func convertRoleAttribute(d *schema.ResourceData) *api.PGRoleAttribute {
 		return nil
 	}
 
-	return &api.PGRoleAttribute{
+	return &api.RoleAttribute{
 		SuperUser:   raw["super_user"].(bool),
 		NoInherit:   raw["no_inherit"].(bool),
 		CreateRole:  raw["create_role"].(bool),
@@ -275,7 +279,7 @@ func convertRoleAttribute(d *schema.ResourceData) *api.PGRoleAttribute {
 	}
 }
 
-func getRoleIdentifier(r *api.PGRole) string {
+func getRoleIdentifier(r *api.Role) string {
 	return fmt.Sprintf("%d%s%s", r.InstanceID, roleIdentifierSeparator, r.Name)
 }
 

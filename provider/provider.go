@@ -55,9 +55,9 @@ func NewProvider() *schema.Provider {
 			"bytebase_environment_list": dataSourceEnvironmentList(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"bytebase_environment":     resourceEnvironment(),
-			"bytebase_instance":        resourceInstance(),
-			"bytebase_postgresql_role": resourcePostgresqlRole(),
+			"bytebase_environment":   resourceEnvironment(),
+			"bytebase_instance":      resourceInstance(),
+			"bytebase_database_role": resourceDatabaseRole(),
 		},
 	}
 }

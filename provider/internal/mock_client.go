@@ -11,18 +11,18 @@ import (
 
 var environmentMap map[int]*api.Environment
 var instanceMap map[int]*api.Instance
-var roleMap map[string]*api.PGRole
+var roleMap map[string]*api.Role
 
 func init() {
 	environmentMap = map[int]*api.Environment{}
 	instanceMap = map[int]*api.Instance{}
-	roleMap = map[string]*api.PGRole{}
+	roleMap = map[string]*api.Role{}
 }
 
 type mockClient struct {
 	environmentMap map[int]*api.Environment
 	instanceMap    map[int]*api.Instance
-	roleMap        map[string]*api.PGRole
+	roleMap        map[string]*api.Role
 }
 
 // newMockClient returns the new Bytebase API mock client.
@@ -208,19 +208,19 @@ func (c *mockClient) DeleteInstance(_ context.Context, instanceID int) error {
 	return nil
 }
 
-// CreatePGRole creates the role in the instance.
-func (c *mockClient) CreatePGRole(_ context.Context, instanceID int, create *api.PGRoleUpsert) (*api.PGRole, error) {
+// CreateRole creates the role in the instance.
+func (c *mockClient) CreateRole(_ context.Context, instanceID int, create *api.RoleUpsert) (*api.Role, error) {
 	id := getRoleMapID(instanceID, create.Name)
 
 	if _, ok := c.roleMap[id]; ok {
 		return nil, errors.Errorf("Role %s already exists", create.Name)
 	}
 
-	role := &api.PGRole{
+	role := &api.Role{
 		Name:            create.Name,
 		InstanceID:      instanceID,
 		ConnectionLimit: -1,
-		Attribute:       &api.PGRoleAttribute{},
+		Attribute:       &api.RoleAttribute{},
 	}
 	if v := create.ConnectionLimit; v != nil {
 		role.ConnectionLimit = *v
@@ -236,8 +236,8 @@ func (c *mockClient) CreatePGRole(_ context.Context, instanceID int, create *api
 	return role, nil
 }
 
-// GetPGRole gets the role by instance id and role name.
-func (c *mockClient) GetPGRole(_ context.Context, instanceID int, roleName string) (*api.PGRole, error) {
+// GetRole gets the role by instance id and role name.
+func (c *mockClient) GetRole(_ context.Context, instanceID int, roleName string) (*api.Role, error) {
 	id := getRoleMapID(instanceID, roleName)
 	role, ok := c.roleMap[id]
 	if !ok {
@@ -247,9 +247,9 @@ func (c *mockClient) GetPGRole(_ context.Context, instanceID int, roleName strin
 	return role, nil
 }
 
-// UpdatePGRole updates the role in instance.
-func (c *mockClient) UpdatePGRole(ctx context.Context, instanceID int, name string, patch *api.PGRoleUpsert) (*api.PGRole, error) {
-	role, err := c.GetPGRole(ctx, instanceID, name)
+// UpdateRole updates the role in instance.
+func (c *mockClient) UpdateRole(ctx context.Context, instanceID int, name string, patch *api.RoleUpsert) (*api.Role, error) {
+	role, err := c.GetRole(ctx, instanceID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -270,8 +270,8 @@ func (c *mockClient) UpdatePGRole(ctx context.Context, instanceID int, name stri
 	return role, nil
 }
 
-// DeletePGRole deletes the role in the instance.
-func (c *mockClient) DeletePGRole(_ context.Context, instanceID int, roleName string) error {
+// DeleteRole deletes the role in the instance.
+func (c *mockClient) DeleteRole(_ context.Context, instanceID int, roleName string) error {
 	delete(c.roleMap, getRoleMapID(instanceID, roleName))
 	return nil
 }

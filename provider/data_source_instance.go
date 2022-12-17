@@ -104,33 +104,47 @@ func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	c := m.(api.Client)
 
 	name := d.Get("name").(string)
+	ins, diags := findInstanceByName(ctx, c, name)
+	if diags != nil {
+		return diags
+	}
+
+	d.SetId(strconv.Itoa(ins.ID))
+
+	return setInstance(d, ins)
+}
+
+func findInstanceByName(ctx context.Context, client api.Client, instanceName string) (*api.Instance, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	instanceList, err := c.ListInstance(ctx, &api.InstanceFind{
-		Name: name,
+	instanceList, err := client.ListInstance(ctx, &api.InstanceFind{
+		Name: instanceName,
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get the instance",
+			Detail:   err.Error(),
+		})
+		return nil, diags
 	}
+
 	if len(instanceList) == 0 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Unable to get the instance",
-			Detail:   fmt.Sprintf("Cannot find the instance %s", name),
+			Detail:   fmt.Sprintf("Cannot find the instance %s", instanceName),
 		})
-		return diags
+		return nil, diags
 	}
 	if len(instanceList) > 1 {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Unable to get the instance",
-			Detail:   fmt.Sprintf("The instance name is not unique %s", name),
+			Detail:   fmt.Sprintf("The instance name is not unique %s", instanceName),
 		})
-		return diags
+		return nil, diags
 	}
 
-	ins := instanceList[0]
-	d.SetId(strconv.Itoa(ins.ID))
-
-	return setInstance(d, ins)
+	return instanceList[0], nil
 }

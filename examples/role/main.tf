@@ -27,9 +27,9 @@ data "bytebase_instance" "dev" {
 }
 
 # Create a new role in the instance
-resource "bytebase_postgresql_role" "test_role" {
+resource "bytebase_database_role" "test_role" {
   name             = "test_role"
-  instance_id      = data.bytebase_instance.dev.id
+  instance         = data.bytebase_instance.dev.name
   password         = "123456"
   connection_limit = 99
   valid_until      = "2022-12-31T00:00:00+08:00"
@@ -46,5 +46,5 @@ resource "bytebase_postgresql_role" "test_role" {
 }
 
 output "test_role" {
-  value = bytebase_postgresql_role.test_role
+  value = bytebase_database_role.test_role
 }

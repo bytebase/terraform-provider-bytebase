@@ -32,13 +32,13 @@ type Client interface {
 	// DeleteInstance deletes the instance.
 	DeleteInstance(ctx context.Context, instanceID int) error
 
-	// PGRole
-	// CreatePGRole creates the role in the instance.
-	CreatePGRole(ctx context.Context, instanceID int, create *PGRoleUpsert) (*PGRole, error)
-	// GetPGRole gets the role by instance id and role name.
-	GetPGRole(ctx context.Context, instanceID int, roleName string) (*PGRole, error)
-	// UpdatePGRole updates the role in instance.
-	UpdatePGRole(ctx context.Context, instanceID int, roleName string, patch *PGRoleUpsert) (*PGRole, error)
-	// DeletePGRole deletes the role in the instance.
-	DeletePGRole(ctx context.Context, instanceID int, roleName string) error
+	// Role
+	// CreateRole creates the role in the instance.
+	CreateRole(ctx context.Context, instanceID int, create *RoleUpsert) (*Role, error)
+	// GetRole gets the role by instance id and role name.
+	GetRole(ctx context.Context, instanceID int, roleName string) (*Role, error)
+	// UpdateRole updates the role in instance.
+	UpdateRole(ctx context.Context, instanceID int, roleName string, patch *RoleUpsert) (*Role, error)
+	// DeleteRole deletes the role in the instance.
+	DeleteRole(ctx context.Context, instanceID int, roleName string) error
 }

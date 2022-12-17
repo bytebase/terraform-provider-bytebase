@@ -10,8 +10,8 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
-// CreatePGRole creates the role in the instance.
-func (c *client) CreatePGRole(ctx context.Context, instanceID int, create *api.PGRoleUpsert) (*api.PGRole, error) {
+// CreateRole creates the role in the instance.
+func (c *client) CreateRole(ctx context.Context, instanceID int, create *api.RoleUpsert) (*api.Role, error) {
 	payload, err := json.Marshal(create)
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (c *client) CreatePGRole(ctx context.Context, instanceID int, create *api.P
 		return nil, err
 	}
 
-	var role api.PGRole
+	var role api.Role
 	err = json.Unmarshal(body, &role)
 	if err != nil {
 		return nil, err
@@ -36,8 +36,8 @@ func (c *client) CreatePGRole(ctx context.Context, instanceID int, create *api.P
 	return &role, nil
 }
 
-// GetPGRole gets the role by instance id and role name.
-func (c *client) GetPGRole(ctx context.Context, instanceID int, roleName string) (*api.PGRole, error) {
+// GetRole gets the role by instance id and role name.
+func (c *client) GetRole(ctx context.Context, instanceID int, roleName string) (*api.Role, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/instance/%d/role/%s", c.HostURL, instanceID, roleName), nil)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (c *client) GetPGRole(ctx context.Context, instanceID int, roleName string)
 		return nil, err
 	}
 
-	var role api.PGRole
+	var role api.Role
 	err = json.Unmarshal(body, &role)
 	if err != nil {
 		return nil, err
@@ -57,8 +57,8 @@ func (c *client) GetPGRole(ctx context.Context, instanceID int, roleName string)
 	return &role, nil
 }
 
-// UpdatePGRole updates the role in instance.
-func (c *client) UpdatePGRole(ctx context.Context, instanceID int, roleName string, patch *api.PGRoleUpsert) (*api.PGRole, error) {
+// UpdateRole updates the role in instance.
+func (c *client) UpdateRole(ctx context.Context, instanceID int, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (c *client) UpdatePGRole(ctx context.Context, instanceID int, roleName stri
 		return nil, err
 	}
 
-	var role api.PGRole
+	var role api.Role
 	err = json.Unmarshal(body, &role)
 	if err != nil {
 		return nil, err
@@ -83,8 +83,8 @@ func (c *client) UpdatePGRole(ctx context.Context, instanceID int, roleName stri
 	return &role, nil
 }
 
-// DeletePGRole deletes the role in the instance.
-func (c *client) DeletePGRole(ctx context.Context, instanceID int, roleName string) error {
+// DeleteRole deletes the role in the instance.
+func (c *client) DeleteRole(ctx context.Context, instanceID int, roleName string) error {
 	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/instance/%d/role/%s", c.HostURL, instanceID, roleName), nil)
 	if err != nil {
 		return err
