@@ -31,4 +31,14 @@ type Client interface {
 	UpdateInstance(ctx context.Context, instanceID int, patch *InstancePatch) (*Instance, error)
 	// DeleteInstance deletes the instance.
 	DeleteInstance(ctx context.Context, instanceID int) error
+
+	// Role
+	// CreateRole creates the role in the instance.
+	CreateRole(ctx context.Context, instanceID int, create *RoleUpsert) (*Role, error)
+	// GetRole gets the role by instance id and role name.
+	GetRole(ctx context.Context, instanceID int, roleName string) (*Role, error)
+	// UpdateRole updates the role in instance.
+	UpdateRole(ctx context.Context, instanceID int, roleName string, patch *RoleUpsert) (*Role, error)
+	// DeleteRole deletes the role in the instance.
+	DeleteRole(ctx context.Context, instanceID int, roleName string) error
 }

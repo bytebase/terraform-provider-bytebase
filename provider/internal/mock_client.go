@@ -2,6 +2,8 @@ package internal
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 
 	"github.com/pkg/errors"
 
@@ -10,15 +12,18 @@ import (
 
 var environmentMap map[int]*api.Environment
 var instanceMap map[int]*api.Instance
+var roleMap map[string]*api.Role
 
 func init() {
 	environmentMap = map[int]*api.Environment{}
 	instanceMap = map[int]*api.Instance{}
+	roleMap = map[string]*api.Role{}
 }
 
 type mockClient struct {
 	environmentMap map[int]*api.Environment
 	instanceMap    map[int]*api.Instance
+	roleMap        map[string]*api.Role
 }
 
 // newMockClient returns the new Bytebase API mock client.
@@ -26,6 +31,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 	return &mockClient{
 		environmentMap: environmentMap,
 		instanceMap:    instanceMap,
+		roleMap:        roleMap,
 	}, nil
 }
 
@@ -37,7 +43,7 @@ func (*mockClient) Login() (*api.AuthResponse, error) {
 // CreateEnvironment creates the environment.
 func (c *mockClient) CreateEnvironment(_ context.Context, create *api.EnvironmentUpsert) (*api.Environment, error) {
 	env := &api.Environment{
-		ID:                     len(c.environmentMap) + 1,
+		ID:                     rand.Intn(1000),
 		Name:                   *create.Name,
 		Order:                  *create.Order,
 		PipelineApprovalPolicy: create.PipelineApprovalPolicy,
@@ -148,7 +154,7 @@ func (c *mockClient) CreateInstance(_ context.Context, create *api.InstanceCreat
 	}
 
 	ins := &api.Instance{
-		ID:             len(c.instanceMap) + 1,
+		ID:             rand.Intn(1000),
 		Environment:    create.Environment,
 		Name:           create.Name,
 		Engine:         create.Engine,
@@ -201,4 +207,76 @@ func (c *mockClient) UpdateInstance(ctx context.Context, instanceID int, patch *
 func (c *mockClient) DeleteInstance(_ context.Context, instanceID int) error {
 	delete(c.instanceMap, instanceID)
 	return nil
+}
+
+// CreateRole creates the role in the instance.
+func (c *mockClient) CreateRole(_ context.Context, instanceID int, create *api.RoleUpsert) (*api.Role, error) {
+	id := getRoleMapID(instanceID, create.Name)
+
+	if _, ok := c.roleMap[id]; ok {
+		return nil, errors.Errorf("Role %s already exists", create.Name)
+	}
+
+	role := &api.Role{
+		Name:            create.Name,
+		InstanceID:      instanceID,
+		ConnectionLimit: -1,
+		Attribute:       &api.RoleAttribute{},
+	}
+	if v := create.ConnectionLimit; v != nil {
+		role.ConnectionLimit = *v
+	}
+	if v := create.ValidUntil; v != nil {
+		role.ValidUntil = v
+	}
+	if v := create.Attribute; v != nil {
+		role.Attribute = v
+	}
+
+	c.roleMap[id] = role
+	return role, nil
+}
+
+// GetRole gets the role by instance id and role name.
+func (c *mockClient) GetRole(_ context.Context, instanceID int, roleName string) (*api.Role, error) {
+	id := getRoleMapID(instanceID, roleName)
+	role, ok := c.roleMap[id]
+	if !ok {
+		return nil, errors.Errorf("Cannot found role with ID %s", id)
+	}
+
+	return role, nil
+}
+
+// UpdateRole updates the role in instance.
+func (c *mockClient) UpdateRole(ctx context.Context, instanceID int, name string, patch *api.RoleUpsert) (*api.Role, error) {
+	role, err := c.GetRole(ctx, instanceID, name)
+	if err != nil {
+		return nil, err
+	}
+
+	role.Name = patch.Name
+	if v := patch.ConnectionLimit; v != nil {
+		role.ConnectionLimit = *v
+	}
+	if v := patch.ValidUntil; v != nil {
+		role.ValidUntil = v
+	}
+	if v := patch.Attribute; v != nil {
+		role.Attribute = v
+	}
+
+	id := getRoleMapID(instanceID, name)
+	c.roleMap[id] = role
+	return role, nil
+}
+
+// DeleteRole deletes the role in the instance.
+func (c *mockClient) DeleteRole(_ context.Context, instanceID int, roleName string) error {
+	delete(c.roleMap, getRoleMapID(instanceID, roleName))
+	return nil
+}
+
+func getRoleMapID(instanceID int, roleName string) string {
+	return fmt.Sprintf("%d__%s", instanceID, roleName)
 }

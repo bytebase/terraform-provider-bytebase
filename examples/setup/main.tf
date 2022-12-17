@@ -44,6 +44,7 @@ resource "bytebase_environment" "prod" {
 }
 
 # Create a new instance named "dev_instance_test"
+# You can replace the parameters with your real instance
 resource "bytebase_instance" "dev" {
   name        = local.instance_name_dev
   engine      = "POSTGRES"
@@ -53,8 +54,9 @@ resource "bytebase_instance" "dev" {
 
   # You need to specific the data source
   data_source_list {
-    name = "admin data source"
-    type = "ADMIN"
+    name     = "admin data source"
+    type     = "ADMIN"
+    username = "admin"
   }
 
   # And you can add another data_source_list with RO type
