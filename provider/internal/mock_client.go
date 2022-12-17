@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"math/rand"
 
 	"github.com/pkg/errors"
 
@@ -42,7 +43,7 @@ func (*mockClient) Login() (*api.AuthResponse, error) {
 // CreateEnvironment creates the environment.
 func (c *mockClient) CreateEnvironment(_ context.Context, create *api.EnvironmentUpsert) (*api.Environment, error) {
 	env := &api.Environment{
-		ID:                     len(c.environmentMap) + 1,
+		ID:                     rand.Intn(1000),
 		Name:                   *create.Name,
 		Order:                  *create.Order,
 		PipelineApprovalPolicy: create.PipelineApprovalPolicy,
@@ -153,7 +154,7 @@ func (c *mockClient) CreateInstance(_ context.Context, create *api.InstanceCreat
 	}
 
 	ins := &api.Instance{
-		ID:             len(c.instanceMap) + 1,
+		ID:             rand.Intn(1000),
 		Environment:    create.Environment,
 		Name:           create.Name,
 		Engine:         create.Engine,
@@ -277,5 +278,5 @@ func (c *mockClient) DeleteRole(_ context.Context, instanceID int, roleName stri
 }
 
 func getRoleMapID(instanceID int, roleName string) string {
-	return fmt.Sprintf("%d-%s", instanceID, roleName)
+	return fmt.Sprintf("%d__%s", instanceID, roleName)
 }

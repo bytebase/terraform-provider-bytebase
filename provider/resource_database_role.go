@@ -196,6 +196,7 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface
 
 func resourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+
 	instanceID, name, err := parseRoleIdentifier(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -230,9 +231,6 @@ func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, m interface
 func setRole(d *schema.ResourceData, role *api.Role) diag.Diagnostics {
 	if err := d.Set("name", role.Name); err != nil {
 		return diag.Errorf("cannot set name for role: %s", err.Error())
-	}
-	if err := d.Set("instance_id", role.InstanceID); err != nil {
-		return diag.Errorf("cannot set instance_id for role: %s", err.Error())
 	}
 	if err := d.Set("connection_limit", role.ConnectionLimit); err != nil {
 		return diag.Errorf("cannot set connection_limit for role: %s", err.Error())
