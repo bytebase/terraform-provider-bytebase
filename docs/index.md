@@ -128,7 +128,7 @@ terraform init && terraform plan
 
 ## References
 
-- [Sample Terraform Bytebase Provider Config](https://github.com/bytebase/terraform-provider-bytebase/blob/main/examples/main.tf)
+- [Sample Terraform Bytebase Provider Config](https://github.com/bytebase/terraform-provider-bytebase/blob/main/examples)
 - [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get-started/terraform)
 - [Bytebase Data Model](https://www.bytebase.com/docs/concepts/data-model)
 - [Official Terraform Tutorials](https://developer.hashicorp.com/terraform/tutorials)
