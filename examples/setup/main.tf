@@ -1,8 +1,7 @@
-# Setup the data for examples
 terraform {
   required_providers {
     bytebase = {
-      version = "0.0.5"
+      version = "0.0.6"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -23,6 +22,7 @@ locals {
   environment_name_prod = "prod_test"
   instance_name_dev     = "dev_instance_test"
   instance_name_prod    = "prod_instance_test"
+  role_name_dev         = "dev_role_test"
 }
 
 # Create a new environment named "dev_test"
@@ -56,7 +56,7 @@ resource "bytebase_instance" "dev" {
   data_source_list {
     name     = "admin data source"
     type     = "ADMIN"
-    username = "admin"
+    username = "ecmadao"
   }
 
   # And you can add another data_source_list with RO type
@@ -84,5 +84,24 @@ resource "bytebase_instance" "prod" {
     type     = "ADMIN"
     username = "<The connection user name>"
     password = "<The connection user password>"
+  }
+}
+
+# Create a new role named "dev_role_test" in the instance "dev_instance_test"
+resource "bytebase_database_role" "dev" {
+  name             = local.role_name_dev
+  instance         = data.bytebase_instance.dev.name
+  password         = "123456"
+  connection_limit = 10
+  valid_until      = "2022-12-31T00:00:00+08:00"
+
+  attribute {
+    super_user  = true
+    no_inherit  = true
+    create_role = true
+    create_db   = false
+    can_login   = true
+    replication = true
+    bypass_rls  = true
   }
 }
