@@ -37,6 +37,8 @@ type Client interface {
 	CreateRole(ctx context.Context, instanceID int, create *RoleUpsert) (*Role, error)
 	// GetRole gets the role by instance id and role name.
 	GetRole(ctx context.Context, instanceID int, roleName string) (*Role, error)
+	// ListRole lists the role in instance.
+	ListRole(ctx context.Context, instanceID int) ([]*Role, error)
 	// UpdateRole updates the role in instance.
 	UpdateRole(ctx context.Context, instanceID int, roleName string, patch *RoleUpsert) (*Role, error)
 	// DeleteRole deletes the role in the instance.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"regexp"
 
 	"github.com/pkg/errors"
 
@@ -246,6 +247,18 @@ func (c *mockClient) GetRole(_ context.Context, instanceID int, roleName string)
 	}
 
 	return role, nil
+}
+
+func (c *mockClient) ListRole(_ context.Context, instanceID int) ([]*api.Role, error) {
+	res := []*api.Role{}
+	regex := regexp.MustCompile(fmt.Sprintf("^%d__", instanceID))
+	for key, role := range c.roleMap {
+		if regex.MatchString(key) {
+			res = append(res, role)
+		}
+	}
+
+	return res, nil
 }
 
 // UpdateRole updates the role in instance.
