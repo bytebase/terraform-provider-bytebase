@@ -8,6 +8,8 @@ description: |-
 
 # bytebase_database_role (Resource)
 
+> Requires the Bytebase version > 1.9.1 or use the release-ci.
+
 Database role resource. You can read, create, update or delete a single role in a specific instance through `bytebase_database_role` resource.
 
 ## Example Usage

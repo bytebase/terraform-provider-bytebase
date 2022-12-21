@@ -8,6 +8,8 @@ description: |-
 
 # bytebase_database_role_list (Data Source)
 
+> Requires the Bytebase version > 1.9.1 or use the release-ci.
+
 The database role list data source. You can list roles in a specific instance through the `bytebase_database_role_list` data source.
 
 ## Example Usage
