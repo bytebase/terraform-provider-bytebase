@@ -34,9 +34,10 @@ func resourceDatabaseRole() *schema.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"instance": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The instance unique name.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The instance unique name.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"password": {
 				Type:        schema.TypeString,

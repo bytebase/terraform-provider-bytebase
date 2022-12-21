@@ -5,10 +5,10 @@ type RoleAttribute struct {
 	SuperUser   bool `json:"superUser"`
 	NoInherit   bool `json:"noInherit"`
 	CreateRole  bool `json:"createRole"`
-	CreateDB    bool `json:"createDB"`
+	CreateDB    bool `json:"createDb"`
 	CanLogin    bool `json:"canLogin"`
 	Replication bool `json:"replication"`
-	ByPassRLS   bool `json:"byPassRLS"`
+	ByPassRLS   bool `json:"bypassRls"`
 }
 
 // Role is the API message for role.

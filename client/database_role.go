@@ -57,6 +57,30 @@ func (c *client) GetRole(ctx context.Context, instanceID int, roleName string) (
 	return &role, nil
 }
 
+// ListRole lists the role in instance.
+func (c *client) ListRole(ctx context.Context, instanceID int) ([]*api.Role, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/instance/%d/role", c.HostURL, instanceID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var roleList struct {
+		RoleList []*api.Role `json:"roleList"`
+	}
+
+	err = json.Unmarshal(body, &roleList)
+	if err != nil {
+		return nil, err
+	}
+
+	return roleList.RoleList, nil
+}
+
 // UpdateRole updates the role in instance.
 func (c *client) UpdateRole(ctx context.Context, instanceID int, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
 	payload, err := json.Marshal(patch)
