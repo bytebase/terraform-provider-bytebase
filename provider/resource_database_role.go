@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -46,16 +47,18 @@ func resourceDatabaseRole() *schema.Resource {
 				Description: "The password.",
 			},
 			"connection_limit": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     -1,
-				Description: "Connection count limit for role",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      -1,
+				ValidateFunc: validation.IntAtLeast(-1),
+				Description:  "Connection count limit for role",
 			},
 			"valid_until": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "",
-				Description: "It sets a date and time after which the role's password is no longer valid.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "",
+				ValidateFunc: validateDatetime,
+				Description:  "It sets a date and time after which the role's password is no longer valid.",
 			},
 			"attribute": {
 				Type:        schema.TypeList,
@@ -294,4 +297,19 @@ func parseRoleIdentifier(identifier string) (int, string, error) {
 	}
 
 	return instanceID, strings.Join(slice[1:], roleIdentifierSeparator), nil
+}
+
+func validateDatetime(val interface{}, key string) (ws []string, es []error) {
+	raw := val.(string)
+	if raw == "" {
+		return
+	}
+
+	if _, err := time.Parse(time.RFC3339, raw); err != nil {
+		if err.Error() == "day out of range" {
+			return ws, append(es, errors.Errorf("invalid timestamp %s, %s", raw, err.Error()))
+		}
+		return ws, append(es, errors.Errorf(`valid_until should in "2006-01-02T15:04:05+08:00" format with timezone`))
+	}
+	return
 }
