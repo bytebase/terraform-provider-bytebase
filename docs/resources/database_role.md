@@ -48,7 +48,7 @@ resource "bytebase_database_role" "admin" {
 
 - `password` (String) The password for the role.
 - `connection_limit` (Number) The connection limit for the role.
-- `valid_until` (String) The `valid_until` sets a date and time after which the role's password is no longer valid.
+- `valid_until` (String) The `valid_until` sets a date and time after which the role's password is no longer valid. Should be a timestamp in "2006-01-02T15:04:05+08:00" format.
 
 <a id="nestedblock--attribute"></a>
 
