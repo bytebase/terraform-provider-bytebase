@@ -299,10 +299,10 @@ func parseRoleIdentifier(identifier string) (int, string, error) {
 	return instanceID, strings.Join(slice[1:], roleIdentifierSeparator), nil
 }
 
-func validateDatetime(val interface{}, key string) (ws []string, es []error) {
+func validateDatetime(val interface{}, _ string) (ws []string, es []error) {
 	raw := val.(string)
 	if raw == "" {
-		return
+		return nil, nil
 	}
 
 	if _, err := time.Parse(time.RFC3339, raw); err != nil {
@@ -311,5 +311,5 @@ func validateDatetime(val interface{}, key string) (ws []string, es []error) {
 		}
 		return ws, append(es, errors.Errorf(`valid_until should in "2006-01-02T15:04:05+08:00" format with timezone`))
 	}
-	return
+	return nil, nil
 }

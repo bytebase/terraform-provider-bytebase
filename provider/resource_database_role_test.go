@@ -49,7 +49,7 @@ func TestAccRole(t *testing.T) {
 					name = "%s"
 					instance = bytebase_instance.%s.name
 					connection_limit = 99
-					valid_until = "2022-12-31"
+					valid_until = "2022-12-31T15:04:05+08:00"
 					attribute {}
 				}
 				`, mockInstanceResource("instance_2"), roleName, "instance_2"),
@@ -58,7 +58,7 @@ func TestAccRole(t *testing.T) {
 					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "name", roleName),
 					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "instance", "instance_2"),
 					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "connection_limit", "99"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "valid_until", "2022-12-31"),
+					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "valid_until", "2022-12-31T15:04:05+08:00"),
 					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "attribute.#", "1"),
 				),
 			},
