@@ -58,7 +58,7 @@ func resourceDatabaseRole() *schema.Resource {
 				Optional:     true,
 				Default:      "",
 				ValidateFunc: validateDatetime,
-				Description:  "It sets a date and time after which the role's password is no longer valid.",
+				Description:  "It sets a date and time after which the role's password is no longer valid. Should be a timestamp in \"2006-01-02T15:04:05+08:00\" format.",
 			},
 			"attribute": {
 				Type:        schema.TypeList,
