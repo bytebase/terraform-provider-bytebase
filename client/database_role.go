@@ -70,7 +70,7 @@ func (c *client) ListRole(ctx context.Context, instanceID int) ([]*api.Role, err
 	}
 
 	var roleList struct {
-		RoleList []*api.Role `json:"roleList"`
+		Roles []*api.Role `json:"roles"`
 	}
 
 	err = json.Unmarshal(body, &roleList)
@@ -78,7 +78,7 @@ func (c *client) ListRole(ctx context.Context, instanceID int) ([]*api.Role, err
 		return nil, err
 	}
 
-	return roleList.RoleList, nil
+	return roleList.Roles, nil
 }
 
 // UpdateRole updates the role in instance.
