@@ -98,7 +98,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		return diag.Errorf("Invalid pipeline approval policy: %v", err.Error())
 	}
 
-	create := &api.EnvironmentUpsert{
+	upsert := &api.EnvironmentUpsert{
 		Name:                   &name,
 		Order:                  &order,
 		EnvironmentTierPolicy:  convertEnvironmentTierPolicy(d),
@@ -106,12 +106,32 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		BackupPlanPolicy:       convertBackupPlanPolicy(d),
 	}
 
-	env, err := c.CreateEnvironment(ctx, create)
+	envList, err := c.ListEnvironment(ctx, &api.EnvironmentFind{
+		Name: name,
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	if len(envList) > 1 {
+		return diag.Errorf("found %v environments with same name %s", len(envList), name)
+	}
 
-	d.SetId(strconv.Itoa(env.ID))
+	if len(envList) == 0 {
+		env, err := c.CreateEnvironment(ctx, upsert)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		d.SetId(strconv.Itoa(env.ID))
+	} else {
+		existed := envList[0]
+		env, err := c.UpdateEnvironment(ctx, existed.ID, upsert)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		d.SetId(strconv.Itoa(env.ID))
+	}
 
 	return resourceEnvironmentRead(ctx, d, m)
 }
