@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "0.0.6-beta"
+      version = "0.0.6-beta.3"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -18,14 +18,14 @@ provider "bytebase" {
 }
 
 locals {
-  environment_name_dev  = "dev_test"
-  environment_name_prod = "prod_test"
+  environment_name_dev  = "dev"
+  environment_name_prod = "prod"
   instance_name_dev     = "dev_instance_test"
   instance_name_prod    = "prod_instance_test"
   role_name_dev         = "dev_role_test"
 }
 
-# Create a new environment named "dev_test"
+# Create a new environment named "dev"
 resource "bytebase_environment" "dev" {
   name                     = local.environment_name_dev
   order                    = 0
@@ -34,7 +34,7 @@ resource "bytebase_environment" "dev" {
   backup_plan_policy       = "UNSET"
 }
 
-# Create another environment named "prod_test"
+# Create another environment named "prod"
 resource "bytebase_environment" "prod" {
   name                     = local.environment_name_prod
   order                    = 1

@@ -1,7 +1,7 @@
 # Setup examples
 
 This is the setup for examples.
-We will create two environments named `dev_test` and `prod_test`. Each environment contains one instance.
+We will create two environments named `dev` and `prod`. Each environment contains one instance.
 
 Before you start, please make sure you have running your Bytebase service and have created the service account, and replace the provider initial variables. Check the [README](../README.md) for details.
 

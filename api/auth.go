@@ -8,8 +8,5 @@ type Login struct {
 
 // AuthResponse is the API message for user login response.
 type AuthResponse struct {
-	UserID   int    `json:"userId"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Token    string `json:"token"`
+	Token string `json:"token"`
 }
