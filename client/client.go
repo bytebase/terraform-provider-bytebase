@@ -43,7 +43,9 @@ func NewClient(url, email, password string) (api.Client, error) {
 }
 
 func (c *client) doRequest(req *http.Request) ([]byte, error) {
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
+	if c.Token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
+	}
 
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {

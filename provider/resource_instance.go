@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -10,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func resourceInstance() *schema.Resource {
@@ -23,11 +23,23 @@ func resourceInstance() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": {
+			"resource_id": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: internal.ResourceIDValidation,
+				Description:  "The instance unique resource id.",
+			},
+			"environment": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: internal.ResourceIDValidation,
+				Description:  "The environment resource id for your instance.",
+			},
+			"title": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The instance unique name.",
+				Description:  "The instance title.",
 			},
 			"engine": {
 				Type:     schema.TypeString,
@@ -38,13 +50,10 @@ func resourceInstance() *schema.Resource {
 					"TIDB",
 					"SNOWFLAKE",
 					"CLICKHOUSE",
+					"MONGODB",
+					"SQLITE",
 				}, false),
 				Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.",
-			},
-			"engine_version": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The version for instance engine.",
 			},
 			"external_link": {
 				Type:        schema.TypeString,
@@ -52,39 +61,15 @@ func resourceInstance() *schema.Resource {
 				Default:     "",
 				Description: "The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)",
 			},
-			"host": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "Host or socket for your instance, or the account name if the instance type is Snowflake.",
-			},
-			"port": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The port for your instance.",
-			},
-			"database": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "",
-				Description: "The database for your instance, you can set this if the engine type is POSTGRES.",
-			},
-			"environment": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The environment name for your instance.",
-			},
-			"data_source_list": {
+			"data_sources": {
 				Type:        schema.TypeList,
 				Required:    true,
-				MaxItems:    3,
+				MaxItems:    2,
 				MinItems:    1,
 				Description: "The connection for the instance. You can configure read-only or admin connection account here.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": {
+						"title": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The unique data source name in this instance.",
@@ -128,17 +113,23 @@ func resourceInstance() *schema.Resource {
 							Default:     "",
 							Description: "The client key. Optional, you can set this if the engine type is CLICKHOUSE.",
 						},
-						"host_override": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "",
-							Description: "The Read-replica Host. Only works for RO type data source.",
+						"host": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
+							Description:  "Host or socket for your instance, or the account name if the instance type is Snowflake.",
 						},
-						"port_override": {
+						"port": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
+							Description:  "The port for your instance.",
+						},
+						"database": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "The Read-replica Port. Only works for RO type data source.",
+							Description: "The database for the instance, you can set this if the engine type is POSTGRES.",
 						},
 					},
 				},
@@ -155,21 +146,18 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	instance, err := c.CreateInstance(ctx, &api.InstanceCreate{
-		Environment:    d.Get("environment").(string),
-		Name:           d.Get("name").(string),
-		Engine:         d.Get("engine").(string),
-		ExternalLink:   d.Get("external_link").(string),
-		Database:       d.Get("database").(string),
-		Host:           d.Get("host").(string),
-		Port:           d.Get("port").(string),
-		DataSourceList: dataSourceList,
+	instance, err := c.CreateInstance(ctx, d.Get("environment").(string), d.Get("resource_id").(string), &api.InstanceMessage{
+		Title:        d.Get("title").(string),
+		Engine:       d.Get("engine").(string),
+		ExternalLink: d.Get("external_link").(string),
+		State:        api.Active,
+		DataSources:  dataSourceList,
 	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.Itoa(instance.ID))
+	d.SetId(instance.Name)
 
 	return resourceInstanceRead(ctx, d, m)
 }
@@ -177,70 +165,51 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	instanceID, err := strconv.Atoi(d.Id())
+	envID, instanceID, err := internal.GetEnvironmentInstanceID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	instance, err := c.GetInstance(ctx, instanceID)
+	instance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
+		EnvironmentID: envID,
+		InstanceID:    instanceID,
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	return setInstance(d, instance)
+	return setInstanceMessage(d, instance)
 }
 
 func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	instanceID, err := strconv.Atoi(d.Id())
+	envID, instanceID, err := internal.GetEnvironmentInstanceID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	patch := &api.InstancePatch{}
-	if d.HasChange("name") {
-		if name, ok := d.GetOk("name"); ok {
-			val := name.(string)
-			patch.Name = &val
+	patch := &api.InstanceMessage{}
+	if d.HasChange("title") {
+		if title, ok := d.GetOk("title"); ok {
+			patch.Title = title.(string)
 		}
 	}
 	if d.HasChange("external_link") {
 		if link, ok := d.GetOk("external_link"); ok {
-			val := link.(string)
-			patch.ExternalLink = &val
+			patch.ExternalLink = link.(string)
 		}
 	}
-	if d.HasChange("host") {
-		if host, ok := d.GetOk("host"); ok {
-			val := host.(string)
-			patch.Host = &val
-		}
-	}
-	if d.HasChange("port") {
-		if port, ok := d.GetOk("port"); ok {
-			val := port.(string)
-			patch.Port = &val
-		}
-	}
-	if d.HasChange("database") {
-		if database, ok := d.GetOk("database"); ok {
-			val := database.(string)
-			patch.Database = &val
-		}
-	}
-	if d.HasChange("data_source_list") {
+	if d.HasChange("data_sources") {
 		dataSourceList, err := convertDataSourceCreateList(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		patch.DataSourceList = dataSourceList
+		patch.DataSources = dataSourceList
 	}
 
-	if patch.HasChange() {
-		if _, err := c.UpdateInstance(ctx, instanceID, patch); err != nil {
-			return diag.FromErr(err)
-		}
+	if _, err := c.UpdateInstance(ctx, envID, instanceID, patch); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return resourceInstanceRead(ctx, d, m)
@@ -252,12 +221,12 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	instanceID, err := strconv.Atoi(d.Id())
+	envID, instanceID, err := internal.GetEnvironmentInstanceID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := c.DeleteInstance(ctx, instanceID); err != nil {
+	if err := c.DeleteInstance(ctx, envID, instanceID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -266,58 +235,56 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 	return diags
 }
 
-func setInstance(d *schema.ResourceData, instance *api.Instance) diag.Diagnostics {
-	if err := d.Set("name", instance.Name); err != nil {
+func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) diag.Diagnostics {
+	envID, instanceID, err := internal.GetEnvironmentInstanceID(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("resource_id", instanceID); err != nil {
 		return diag.Errorf("cannot set name for instance: %s", err.Error())
+	}
+	if err := d.Set("title", instance.Title); err != nil {
+		return diag.Errorf("cannot set name for instance: %s", err.Error())
+	}
+	if err := d.Set("environment", envID); err != nil {
+		return diag.Errorf("cannot set environment for instance: %s", err.Error())
 	}
 	if err := d.Set("engine", instance.Engine); err != nil {
 		return diag.Errorf("cannot set engine for instance: %s", err.Error())
 	}
-	if err := d.Set("engine_version", instance.EngineVersion); err != nil {
-		return diag.Errorf("cannot set engine_version for instance: %s", err.Error())
-	}
 	if err := d.Set("external_link", instance.ExternalLink); err != nil {
 		return diag.Errorf("cannot set external_link for instance: %s", err.Error())
 	}
-	if err := d.Set("host", instance.Host); err != nil {
-		return diag.Errorf("cannot set host for instance: %s", err.Error())
-	}
-	if err := d.Set("port", instance.Port); err != nil {
-		return diag.Errorf("cannot set port for instance: %s", err.Error())
-	}
-	if err := d.Set("environment", instance.Environment); err != nil {
-		return diag.Errorf("cannot set environment for instance: %s", err.Error())
-	}
-	if err := d.Set("data_source_list", flattenDataSourceList(instance.DataSourceList)); err != nil {
-		return diag.Errorf("cannot set data_source_list for instance: %s", err.Error())
+	if err := d.Set("data_sources", flattenDataSourceList(instance.DataSources)); err != nil {
+		return diag.Errorf("cannot set data_sources for instance: %s", err.Error())
 	}
 
 	return nil
 }
 
-func flattenDataSourceList(dataSourceList []*api.DataSource) []interface{} {
+func flattenDataSourceList(dataSourceList []*api.DataSourceMessage) []interface{} {
 	res := []interface{}{}
 	for _, dataSource := range dataSourceList {
 		raw := map[string]interface{}{}
-		raw["name"] = dataSource.Name
+		raw["title"] = dataSource.Title
 		raw["type"] = dataSource.Type
 		raw["username"] = dataSource.Username
-		raw["host_override"] = dataSource.HostOverride
-		raw["port_override"] = dataSource.PortOverride
+		raw["host"] = dataSource.Host
+		raw["port"] = dataSource.Port
 		res = append(res, raw)
 	}
 	return res
 }
 
-func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceCreate, error) {
-	var dataSourceList []*api.DataSourceCreate
-	if rawList, ok := d.Get("data_source_list").([]interface{}); ok {
+func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceMessage, error) {
+	var dataSourceList []*api.DataSourceMessage
+	if rawList, ok := d.Get("data_sources").([]interface{}); ok {
 		dataSourceTypeMap := map[api.DataSourceType]bool{}
 		for _, raw := range rawList {
 			obj := raw.(map[string]interface{})
-			dataSource := &api.DataSourceCreate{
-				Name: obj["name"].(string),
-				Type: api.DataSourceType(obj["type"].(string)),
+			dataSource := &api.DataSourceMessage{
+				Title: obj["title"].(string),
+				Type:  api.DataSourceType(obj["type"].(string)),
 			}
 
 			if dataSourceTypeMap[dataSource.Type] {
@@ -340,11 +307,14 @@ func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceCreat
 			if v, ok := obj["ssl_key"].(string); ok {
 				dataSource.SslKey = v
 			}
-			if v, ok := obj["host_override"].(string); ok {
-				dataSource.HostOverride = v
+			if v, ok := obj["host"].(string); ok {
+				dataSource.Host = v
 			}
-			if v, ok := obj["port_override"].(string); ok {
-				dataSource.PortOverride = v
+			if v, ok := obj["port"].(string); ok {
+				dataSource.Port = v
+			}
+			if v, ok := obj["database"].(string); ok {
+				dataSource.Database = v
 			}
 			dataSourceList = append(dataSourceList, dataSource)
 		}

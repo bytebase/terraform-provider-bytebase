@@ -14,9 +14,9 @@ func TestAccInstanceDataSource(t *testing.T) {
 	identifier := "new_instance"
 	resourceName := fmt.Sprintf("bytebase_instance.%s", identifier)
 
-	name := "dev-instance"
+	resourceID := "dev-instance"
+	title := "dev instance"
 	engine := "POSTGRES"
-	host := "127.0.0.1"
 	environment := "dev"
 
 	resource.Test(t, resource.TestCase{
@@ -29,16 +29,16 @@ func TestAccInstanceDataSource(t *testing.T) {
 			// get single instance test
 			{
 				Config: testAccCheckInstanceDataSource(
-					testAccCheckInstanceResource(identifier, name, engine, host, environment),
+					testAccCheckInstanceResource(identifier, resourceID, title, engine, environment),
 					resourceName,
 					identifier,
-					name,
+					resourceID,
+					environment,
 				),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(fmt.Sprintf("data.%s", resourceName)),
-					resource.TestCheckResourceAttr(resourceName, "name", name),
+					resource.TestCheckResourceAttr(resourceName, "title", title),
 					resource.TestCheckResourceAttr(resourceName, "engine", engine),
-					resource.TestCheckResourceAttr(resourceName, "host", host),
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
 				),
 			},
@@ -47,9 +47,6 @@ func TestAccInstanceDataSource(t *testing.T) {
 }
 
 func TestAccInstanceDataSource_NotFound(t *testing.T) {
-	identifier := "dev_instance"
-	name := "dev"
-
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -61,10 +58,11 @@ func TestAccInstanceDataSource_NotFound(t *testing.T) {
 				Config: testAccCheckInstanceDataSource(
 					"",
 					"",
-					identifier,
-					name,
+					"dev_instance",
+					"mock-id",
+					"env",
 				),
-				ExpectError: regexp.MustCompile("Unable to get the instance"),
+				ExpectError: regexp.MustCompile("Cannot found instance"),
 			},
 		},
 	})
@@ -74,15 +72,17 @@ func testAccCheckInstanceDataSource(
 	resource,
 	dependsOn,
 	identifier,
-	name string) string {
+	resourceID,
+	environment string) string {
 	return fmt.Sprintf(`
 	%s
 
 	data "bytebase_instance" "%s" {
-		name = "%s"
+		resource_id = "%s"
+		environment = "%s"
 		depends_on = [
     		%s
   		]
 	}
-	`, resource, identifier, name, dependsOn)
+	`, resource, identifier, resourceID, environment, dependsOn)
 }

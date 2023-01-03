@@ -92,15 +92,10 @@ func dataSourceDatabaseRole() *schema.Resource {
 
 func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	instanceName := d.Get("instance").(string)
 	roleName := d.Get("name").(string)
 
-	ins, diags := findInstanceByName(ctx, c, instanceName)
-	if diags != nil {
-		return diags
-	}
-
-	role, err := c.GetRole(ctx, ins.ID, roleName)
+	// TODO: migrate role api
+	role, err := c.GetRole(ctx, 0, roleName)
 	if err != nil {
 		return diag.FromErr(err)
 	}

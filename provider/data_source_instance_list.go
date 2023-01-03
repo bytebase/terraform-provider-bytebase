@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func dataSourceInstanceList() *schema.Resource {
@@ -16,62 +17,55 @@ func dataSourceInstanceList() *schema.Resource {
 		Description: "The instance data source list.",
 		ReadContext: dataSourceInstanceListRead,
 		Schema: map[string]*schema.Schema{
+			"environment": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "-",
+				ValidateFunc: internal.ResourceIDValidation,
+				Description:  "The environment resource id.",
+			},
+			"show_deleted": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Including removed instance in the response.",
+			},
 			"instances": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeInt,
-							Computed:    true,
-							Description: "The instance id.",
-						},
-						"name": {
+						"resource_id": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The instance name.",
+							Description: "The instance unique resource id.",
+						},
+						"environment": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The environment resource id for the instance.",
+						},
+						"title": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The instance title.",
 						},
 						"engine": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.",
 						},
-						"engine_version": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The version for instance engine.",
-						},
 						"external_link": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)",
 						},
-						"host": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Host or socket for your instance, or the account name if the instance type is Snowflake.",
-						},
-						"port": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The port for your instance.",
-						},
-						"database": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The database for your instance.",
-						},
-						"environment": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The environment name for your instance.",
-						},
-						"data_source_list": {
+						"data_sources": {
 							Type:     schema.TypeList,
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"name": {
+									"title": {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "The unique data source name in this instance.",
@@ -86,15 +80,20 @@ func dataSourceInstanceList() *schema.Resource {
 										Computed:    true,
 										Description: "The connection user name used by Bytebase to perform DDL and DML operations.",
 									},
-									"host_override": {
+									"host": {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "The Read-replica Host. Only works for RO type data source",
 									},
-									"port_override": {
+									"port": {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: "The Read-replica Port. Only works for RO type data source",
+									},
+									"database": {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The database for the instance, you can set this if the engine type is POSTGRES.",
 									},
 								},
 							},
@@ -112,24 +111,28 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	instanceList, err := c.ListInstance(ctx, &api.InstanceFind{})
+	response, err := c.ListInstance(ctx, &api.InstanceFindMessage{
+		EnvironmentID: d.Get("environment").(string),
+		ShowDeleted:   d.Get("show_deleted").(bool),
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	instances := make([]map[string]interface{}, 0)
-	for _, instance := range instanceList {
+	for _, instance := range response.Instances {
+		envID, instanceID, err := internal.GetEnvironmentInstanceID(instance.Name)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
 		ins := make(map[string]interface{})
-		ins["id"] = instance.ID
-		ins["name"] = instance.Name
+		ins["resource_id"] = instanceID
+		ins["environment"] = envID
+		ins["title"] = instance.Title
 		ins["engine"] = instance.Engine
-		ins["engine_version"] = instance.EngineVersion
 		ins["external_link"] = instance.ExternalLink
-		ins["host"] = instance.Host
-		ins["port"] = instance.Port
-		ins["environment"] = instance.Environment
-		ins["database"] = instance.Database
-		ins["data_source_list"] = flattenDataSourceList(instance.DataSourceList)
+		ins["data_sources"] = flattenDataSourceList(instance.DataSources)
 
 		instances = append(instances, ins)
 	}
