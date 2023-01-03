@@ -18,16 +18,16 @@ provider "bytebase" {
 }
 
 locals {
-  environment_name_dev  = "dev"
-  environment_name_prod = "prod"
-  instance_name_dev     = "dev_instance_test"
-  instance_name_prod    = "prod_instance_test"
-  role_name_dev         = "dev_role_test"
+  environment_id_dev  = "dev"
+  environment_id_prod = "prod"
+  instance_id_dev     = "dev-instance"
+  instance_id_prod    = "prod-instance"
+  role_name_dev       = "dev_role_test"
 }
 
 # Create a new environment named "dev"
 resource "bytebase_environment" "dev" {
-  name                     = local.environment_name_dev
+  name                     = local.environment_id_dev
   order                    = 0
   environment_tier_policy  = "UNPROTECTED"
   pipeline_approval_policy = "MANUAL_APPROVAL_NEVER"
@@ -36,7 +36,7 @@ resource "bytebase_environment" "dev" {
 
 # Create another environment named "prod"
 resource "bytebase_environment" "prod" {
-  name                     = local.environment_name_prod
+  name                     = local.environment_id_prod
   order                    = 1
   environment_tier_policy  = "PROTECTED"
   pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
@@ -46,44 +46,46 @@ resource "bytebase_environment" "prod" {
 # Create a new instance named "dev_instance_test"
 # You can replace the parameters with your real instance
 resource "bytebase_instance" "dev" {
-  name        = local.instance_name_dev
-  engine      = "POSTGRES"
-  host        = "127.0.0.1"
-  port        = 5432
+  resource_id = local.instance_id_dev
   environment = bytebase_environment.dev.name
+  title       = "dev instance"
+  engine      = "POSTGRES"
 
   # You need to specific the data source
-  data_source_list {
-    name     = "admin data source"
+  data_sources {
+    title    = "admin data source"
     type     = "ADMIN"
     username = "ecmadao"
+    host     = "127.0.0.1"
+    port     = "5432"
   }
 
-  # And you can add another data_source_list with RO type
-  data_source_list {
-    name          = "read-only data source"
-    type          = "RO"
-    username      = "<The connection user name>"
-    password      = "<The connection user password>"
-    host_override = "192.168.0.1"
-    port_override = "1234"
+  # And you can add another data_sources with RO type
+  data_sources {
+    title    = "read-only data source"
+    type     = "READ_ONLY"
+    username = "<The connection user name>"
+    password = "<The connection user password>"
+    host     = "192.168.0.1"
+    port     = "1234"
   }
 }
 
 # Create a new instance named "prod_instance_test"
 resource "bytebase_instance" "prod" {
-  name        = local.instance_name_prod
-  engine      = "POSTGRES"
-  host        = "127.0.0.1"
-  port        = 5432
+  resource_id = local.instance_id_prod
   environment = bytebase_environment.prod.name
+  title       = "prod instance"
+  engine      = "POSTGRES"
 
   # You need to specific the data source
-  data_source_list {
-    name     = "admin data source"
+  data_sources {
+    title    = "admin data source"
     type     = "ADMIN"
     username = "<The connection user name>"
     password = "<The connection user password>"
+    host     = "127.0.0.1"
+    port     = "5432"
   }
 }
 

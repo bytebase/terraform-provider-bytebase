@@ -11,9 +11,9 @@ import (
 
 func TestAccInstanceListDataSource(t *testing.T) {
 	identifier := "new_instance"
-	name := "dev-instance"
+	resourceID := "dev-instance"
+	title := "dev instance"
 	engine := "POSTGRES"
-	host := "127.0.0.1"
 	environment := "dev"
 
 	resource.Test(t, resource.TestCase{
@@ -32,7 +32,7 @@ func TestAccInstanceListDataSource(t *testing.T) {
 				0,
 			),
 			internal.GetTestStepForDataSourceList(
-				testAccCheckInstanceResource(identifier, name, engine, host, environment),
+				testAccCheckInstanceResource(identifier, resourceID, title, engine, environment),
 				fmt.Sprintf("bytebase_instance.%s", identifier),
 				"bytebase_instance_list",
 				"after",

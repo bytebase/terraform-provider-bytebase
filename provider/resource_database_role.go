@@ -119,12 +119,6 @@ func resourceDatabaseRole() *schema.Resource {
 func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	instanceName := d.Get("instance").(string)
-	ins, diags := findInstanceByName(ctx, c, instanceName)
-	if diags != nil {
-		return diags
-	}
-
 	upsert := &api.RoleUpsert{
 		Name:      d.Get("name").(string),
 		Attribute: convertRoleAttribute(d),
@@ -140,7 +134,8 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface
 		upsert.ValidUntil = &v
 	}
 
-	role, err := c.CreateRole(ctx, ins.ID, upsert)
+	// TODO: migrate instance api
+	role, err := c.CreateRole(ctx, 0, upsert)
 	if err != nil {
 		return diag.FromErr(err)
 	}

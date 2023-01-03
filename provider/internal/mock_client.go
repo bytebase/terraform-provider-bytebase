@@ -12,18 +12,18 @@ import (
 )
 
 var environmentMap map[int]*api.Environment
-var instanceMap map[int]*api.Instance
+var instanceMap map[string]*api.InstanceMessage
 var roleMap map[string]*api.Role
 
 func init() {
 	environmentMap = map[int]*api.Environment{}
-	instanceMap = map[int]*api.Instance{}
+	instanceMap = map[string]*api.InstanceMessage{}
 	roleMap = map[string]*api.Role{}
 }
 
 type mockClient struct {
 	environmentMap map[int]*api.Environment
-	instanceMap    map[int]*api.Instance
+	instanceMap    map[string]*api.InstanceMessage
 	roleMap        map[string]*api.Role
 }
 
@@ -129,84 +129,90 @@ func (c *mockClient) findEnvironmentByName(envName string) *api.Environment {
 	return nil
 }
 
-// ListInstance will return all instances.
-func (c *mockClient) ListInstance(_ context.Context, find *api.InstanceFind) ([]*api.Instance, error) {
-	instances := make([]*api.Instance, 0)
+// ListInstance will return instances in environment.
+func (c *mockClient) ListInstance(_ context.Context, find *api.InstanceFindMessage) (*api.ListInstanceMessage, error) {
+	instances := make([]*api.InstanceMessage, 0)
 	for _, instance := range c.instanceMap {
-		if find.Name == "" || instance.Name == find.Name {
+		envID, _, err := GetEnvironmentInstanceID(instance.Name)
+		if err != nil {
+			return nil, err
+		}
+		if instance.State == api.Deleted && !find.ShowDeleted {
+			continue
+		}
+		if find.EnvironmentID == "-" || find.EnvironmentID == envID {
 			instances = append(instances, instance)
 		}
 	}
 
-	return instances, nil
-}
-
-// CreateInstance creates the instance.
-func (c *mockClient) CreateInstance(_ context.Context, create *api.InstanceCreate) (*api.Instance, error) {
-	dataSourceList := []*api.DataSource{}
-	for _, dataSource := range create.DataSourceList {
-		dataSourceList = append(dataSourceList, &api.DataSource{
-			Name:         dataSource.Name,
-			Type:         dataSource.Type,
-			Username:     dataSource.Username,
-			HostOverride: dataSource.HostOverride,
-			PortOverride: dataSource.PortOverride,
-		})
-	}
-
-	ins := &api.Instance{
-		ID:             rand.Intn(1000),
-		Environment:    create.Environment,
-		Name:           create.Name,
-		Engine:         create.Engine,
-		ExternalLink:   create.ExternalLink,
-		Host:           create.Host,
-		Port:           create.Port,
-		Database:       create.Database,
-		DataSourceList: dataSourceList,
-	}
-
-	c.instanceMap[ins.ID] = ins
-	return ins, nil
+	return &api.ListInstanceMessage{
+		Instances: instances,
+	}, nil
 }
 
 // GetInstance gets the instance by id.
-func (c *mockClient) GetInstance(_ context.Context, instanceID int) (*api.Instance, error) {
-	ins, ok := c.instanceMap[instanceID]
+func (c *mockClient) GetInstance(_ context.Context, find *api.InstanceFindMessage) (*api.InstanceMessage, error) {
+	name := fmt.Sprintf("environments/%s/instances/%s", find.EnvironmentID, find.InstanceID)
+	ins, ok := c.instanceMap[name]
 	if !ok {
-		return nil, errors.Errorf("Cannot found instance with ID %d", instanceID)
+		return nil, errors.Errorf("Cannot found instance %s", name)
 	}
 
+	return ins, nil
+}
+
+// CreateInstance creates the instance.
+func (c *mockClient) CreateInstance(_ context.Context, environmentID, instanceID string, instance *api.InstanceMessage) (*api.InstanceMessage, error) {
+	ins := &api.InstanceMessage{
+		Name:         fmt.Sprintf("environments/%s/instances/%s", environmentID, instanceID),
+		State:        api.Active,
+		Title:        instance.Title,
+		Engine:       instance.Engine,
+		ExternalLink: instance.ExternalLink,
+		DataSources:  instance.DataSources,
+	}
+
+	c.instanceMap[ins.Name] = ins
 	return ins, nil
 }
 
 // UpdateInstance updates the instance.
-func (c *mockClient) UpdateInstance(ctx context.Context, instanceID int, patch *api.InstancePatch) (*api.Instance, error) {
-	ins, err := c.GetInstance(ctx, instanceID)
+func (c *mockClient) UpdateInstance(ctx context.Context, environmentID, instanceID string, instance *api.InstanceMessage) (*api.InstanceMessage, error) {
+	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
+		InstanceID:    instanceID,
+		EnvironmentID: environmentID,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if v := patch.Name; v != nil {
-		ins.Name = *v
+	if instance.Title != "" {
+		ins.Title = instance.Title
 	}
-	if v := patch.ExternalLink; v != nil {
-		ins.ExternalLink = *v
+	if instance.ExternalLink != "" {
+		ins.ExternalLink = instance.ExternalLink
 	}
-	if v := patch.Host; v != nil {
-		ins.Host = *v
-	}
-	if v := patch.Port; v != nil {
-		ins.Port = *v
+	if instance.DataSources != nil {
+		ins.DataSources = instance.DataSources
 	}
 
-	c.instanceMap[instanceID] = ins
+	c.instanceMap[ins.Name] = ins
 	return ins, nil
 }
 
 // DeleteInstance deletes the instance.
-func (c *mockClient) DeleteInstance(_ context.Context, instanceID int) error {
-	delete(c.instanceMap, instanceID)
+func (c *mockClient) DeleteInstance(ctx context.Context, environmentID, instanceID string) error {
+	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
+		EnvironmentID: environmentID,
+		InstanceID:    instanceID,
+	})
+	if err != nil {
+		return err
+	}
+
+	ins.State = api.Deleted
+	c.instanceMap[ins.Name] = ins
+
 	return nil
 }
 

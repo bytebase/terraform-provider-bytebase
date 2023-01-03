@@ -110,12 +110,9 @@ func dataSourceRoleListRead(ctx context.Context, d *schema.ResourceData, m inter
 	c := m.(api.Client)
 
 	instanceName := d.Get("instance").(string)
-	ins, diags := findInstanceByName(ctx, c, instanceName)
-	if diags != nil {
-		return diags
-	}
 
-	roleList, err := c.ListRole(ctx, ins.ID)
+	// TODO: migrate role api
+	roleList, err := c.ListRole(ctx, 0)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -150,5 +147,5 @@ func dataSourceRoleListRead(ctx context.Context, d *schema.ResourceData, m inter
 	// always refresh
 	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 
-	return diags
+	return nil
 }

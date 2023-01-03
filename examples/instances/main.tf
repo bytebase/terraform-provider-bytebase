@@ -19,20 +19,32 @@ provider "bytebase" {
 }
 
 locals {
-  instance_name_dev  = "dev_instance_test"
-  instance_name_prod = "prod_instance_test"
+  environment_id_dev  = "dev"
+  environment_id_prod = "prod"
+  instance_id_dev     = "dev-instance"
+  instance_id_prod    = "prod-instance"
 }
 
-# List all instance
+# List all instances in all environments
 data "bytebase_instance_list" "all" {}
 
 output "all_instances" {
   value = data.bytebase_instance_list.all.instances
 }
 
+# List all instances in dev environment
+data "bytebase_instance_list" "dev" {
+  environment = local.environment_id_dev
+}
+
+output "dev_instances" {
+  value = data.bytebase_instance_list.dev.instances
+}
+
 # Find a specific instance by name
 data "bytebase_instance" "dev" {
-  name = local.instance_name_dev
+  resource_id = local.instance_id_dev
+  environment = local.environment_id_dev
 }
 
 
@@ -41,7 +53,8 @@ output "dev_instance" {
 }
 
 data "bytebase_instance" "prod" {
-  name = local.instance_name_prod
+  resource_id = local.instance_id_prod
+  environment = local.environment_id_prod
 }
 
 

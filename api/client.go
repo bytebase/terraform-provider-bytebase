@@ -21,16 +21,16 @@ type Client interface {
 	DeleteEnvironment(ctx context.Context, environmentID int) error
 
 	// Instance
-	// ListInstance will return all instances.
-	ListInstance(ctx context.Context, find *InstanceFind) ([]*Instance, error)
-	// CreateInstance creates the instance.
-	CreateInstance(ctx context.Context, create *InstanceCreate) (*Instance, error)
+	// ListInstance will return instances in environment.
+	ListInstance(ctx context.Context, find *InstanceFindMessage) (*ListInstanceMessage, error)
 	// GetInstance gets the instance by id.
-	GetInstance(ctx context.Context, instanceID int) (*Instance, error)
+	GetInstance(ctx context.Context, find *InstanceFindMessage) (*InstanceMessage, error)
+	// CreateInstance creates the instance.
+	CreateInstance(ctx context.Context, environmentID, instanceID string, instance *InstanceMessage) (*InstanceMessage, error)
 	// UpdateInstance updates the instance.
-	UpdateInstance(ctx context.Context, instanceID int, patch *InstancePatch) (*Instance, error)
+	UpdateInstance(ctx context.Context, environmentID, instanceID string, instance *InstanceMessage) (*InstanceMessage, error)
 	// DeleteInstance deletes the instance.
-	DeleteInstance(ctx context.Context, instanceID int) error
+	DeleteInstance(ctx context.Context, environmentID, instanceID string) error
 
 	// Role
 	// CreateRole creates the role in the instance.
