@@ -22,13 +22,13 @@ func dataSourceDatabaseRoleList() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  "The environment resource id.",
-				ValidateFunc: validation.StringIsNotEmpty,
+				ValidateFunc: internal.ResourceIDValidation,
 			},
 			"instance": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  "The instance resource id.",
-				ValidateFunc: validation.StringIsNotEmpty,
+				ValidateFunc: internal.ResourceIDValidation,
 			},
 			"roles": {
 				Type:     schema.TypeList,

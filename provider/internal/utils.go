@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	resourceIDRegex = regexp.MustCompile("^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$")
+	resourceIDRegex = regexp.MustCompile("^([0-9a-z]+-?)+[0-9a-z]+$")
 )
 
 // ResourceIDValidation is the resource id regexp validation.

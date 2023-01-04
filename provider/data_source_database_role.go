@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func dataSourceDatabaseRole() *schema.Resource {
@@ -21,17 +22,17 @@ func dataSourceDatabaseRole() *schema.Resource {
 				Description:  "The role unique name.",
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
-			"instance": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The instance resource id.",
-				ValidateFunc: validation.StringIsNotEmpty,
-			},
 			"environment": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  "The environment resource id.",
-				ValidateFunc: validation.StringIsNotEmpty,
+				ValidateFunc: internal.ResourceIDValidation,
+			},
+			"instance": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The instance resource id.",
+				ValidateFunc: internal.ResourceIDValidation,
 			},
 			"connection_limit": {
 				Type:        schema.TypeInt,
