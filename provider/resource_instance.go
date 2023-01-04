@@ -163,7 +163,6 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	var diags diag.Diagnostics
 	if existedInstance != nil && err == nil {
-
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Instance already exists",
