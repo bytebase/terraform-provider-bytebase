@@ -3,19 +3,17 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
-
-const roleIdentifierSeparator = "__"
 
 func resourceDatabaseRole() *schema.Resource {
 	return &schema.Resource{
@@ -34,11 +32,17 @@ func resourceDatabaseRole() *schema.Resource {
 				Description:  "The role unique name.",
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
+			"environment": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The environment resource id.",
+				ValidateFunc: internal.ResourceIDValidation,
+			},
 			"instance": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "The instance unique name.",
-				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The instance resource id.",
+				ValidateFunc: internal.ResourceIDValidation,
 			},
 			"password": {
 				Type:        schema.TypeString,
@@ -119,8 +123,12 @@ func resourceDatabaseRole() *schema.Resource {
 func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
+	environmentID := d.Get("environment").(string)
+	instanceID := d.Get("instance").(string)
+	roleName := d.Get("name").(string)
+
 	upsert := &api.RoleUpsert{
-		Name:      d.Get("name").(string),
+		Title:     roleName,
 		Attribute: convertRoleAttribute(d),
 	}
 
@@ -134,31 +142,58 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface
 		upsert.ValidUntil = &v
 	}
 
-	// TODO: migrate instance api
-	role, err := c.CreateRole(ctx, 0, upsert)
+	existedRole, err := c.GetRole(ctx, environmentID, instanceID, roleName)
 	if err != nil {
-		return diag.FromErr(err)
+		tflog.Debug(ctx, fmt.Sprintf("get role %s failed with error: %v", roleName, err))
 	}
 
-	d.SetId(getRoleIdentifier(role))
-	return resourceRoleRead(ctx, d, m)
+	var diags diag.Diagnostics
+	if existedRole != nil && err == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Role already exists",
+			Detail:   fmt.Sprintf("Role %s already exists, try to exec the update operation", roleName),
+		})
+
+		role, err := c.UpdateRole(ctx, environmentID, instanceID, roleName, upsert)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(role.Name)
+	} else {
+		role, err := c.CreateRole(ctx, environmentID, instanceID, upsert)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(role.Name)
+	}
+
+	diag := resourceRoleRead(ctx, d, m)
+	if diag != nil {
+		diags = append(diags, diag...)
+	}
+
+	return diags
 }
 
 func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	instanceID, name, err := parseRoleIdentifier(d.Id())
+	environmentID, instanceID, roleName, err := internal.GetEnvironmentInstanceRoleID(d.Id())
 	if err != nil {
+		return diag.FromErr(err)
+	}
+	if _, err := c.GetRole(ctx, environmentID, instanceID, roleName); err != nil {
 		return diag.FromErr(err)
 	}
 
 	upsert := &api.RoleUpsert{
-		Name: name,
+		Title: roleName,
 	}
 
 	if d.HasChange("name") {
 		if v := d.Get("name").(string); v != "" {
-			upsert.Name = v
+			upsert.Title = v
 		}
 	}
 	if d.HasChange("password") {
@@ -180,45 +215,45 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface
 		upsert.Attribute = convertRoleAttribute(d)
 	}
 
-	if _, err := c.UpdateRole(ctx, instanceID, name, upsert); err != nil {
+	if _, err := c.UpdateRole(ctx, environmentID, instanceID, roleName, upsert); err != nil {
 		return diag.FromErr(err)
 	}
 
-	role, err := c.GetRole(ctx, instanceID, upsert.Name)
+	role, err := c.GetRole(ctx, environmentID, instanceID, upsert.Title)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(getRoleIdentifier(role))
+	d.SetId(role.Name)
 	return setRole(d, role)
 }
 
 func resourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	instanceID, name, err := parseRoleIdentifier(d.Id())
+	environmentID, instanceID, roleName, err := internal.GetEnvironmentInstanceRoleID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	role, err := c.GetRole(ctx, instanceID, name)
+	role, err := c.GetRole(ctx, environmentID, instanceID, roleName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(getRoleIdentifier(role))
+	d.SetId(role.Name)
 	return setRole(d, role)
 }
 
 func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	instanceID, name, err := parseRoleIdentifier(d.Id())
+	environmentID, instanceID, roleName, err := internal.GetEnvironmentInstanceRoleID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := c.DeleteRole(ctx, instanceID, name); err != nil {
+	if err := c.DeleteRole(ctx, environmentID, instanceID, roleName); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -228,7 +263,7 @@ func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func setRole(d *schema.ResourceData, role *api.Role) diag.Diagnostics {
-	if err := d.Set("name", role.Name); err != nil {
+	if err := d.Set("name", role.Title); err != nil {
 		return diag.Errorf("cannot set name for role: %s", err.Error())
 	}
 	if err := d.Set("connection_limit", role.ConnectionLimit); err != nil {
@@ -274,24 +309,6 @@ func convertRoleAttribute(d *schema.ResourceData) *api.RoleAttribute {
 		Replication: raw["replication"].(bool),
 		ByPassRLS:   raw["bypass_rls"].(bool),
 	}
-}
-
-func getRoleIdentifier(r *api.Role) string {
-	return fmt.Sprintf("%d%s%s", r.InstanceID, roleIdentifierSeparator, r.Name)
-}
-
-func parseRoleIdentifier(identifier string) (int, string, error) {
-	slice := strings.Split(identifier, roleIdentifierSeparator)
-	if len(slice) < 2 {
-		return 0, "", errors.Errorf("invalid role identifier: %s", identifier)
-	}
-
-	instanceID, err := strconv.Atoi(slice[0])
-	if err != nil {
-		return 0, "", errors.Errorf("failed to parse the instance id with error: %v", err)
-	}
-
-	return instanceID, strings.Join(slice[1:], roleIdentifierSeparator), nil
 }
 
 func validateDatetime(val interface{}, _ string) (ws []string, es []error) {

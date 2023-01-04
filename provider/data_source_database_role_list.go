@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func dataSourceDatabaseRoleList() *schema.Resource {
@@ -17,32 +18,27 @@ func dataSourceDatabaseRoleList() *schema.Resource {
 		Description: "The database role data source list.",
 		ReadContext: dataSourceRoleListRead,
 		Schema: map[string]*schema.Schema{
+			"environment": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The environment resource id.",
+				ValidateFunc: internal.ResourceIDValidation,
+			},
 			"instance": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "The instance unique name.",
-				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The instance resource id.",
+				ValidateFunc: internal.ResourceIDValidation,
 			},
 			"roles": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The database role id.",
-						},
 						"name": {
 							Type:         schema.TypeString,
 							Required:     true,
 							Description:  "The role unique name.",
-							ValidateFunc: validation.StringIsNotEmpty,
-						},
-						"instance": {
-							Type:         schema.TypeString,
-							Required:     true,
-							Description:  "The instance unique name.",
 							ValidateFunc: validation.StringIsNotEmpty,
 						},
 						"connection_limit": {
@@ -109,20 +105,23 @@ func dataSourceDatabaseRoleList() *schema.Resource {
 func dataSourceRoleListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	instanceName := d.Get("instance").(string)
+	instanceID := d.Get("instance").(string)
+	environmentID := d.Get("environment").(string)
 
-	// TODO: migrate role api
-	roleList, err := c.ListRole(ctx, 0)
+	roleList, err := c.ListRole(ctx, environmentID, instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	roles := []map[string]interface{}{}
 	for _, raw := range roleList {
+		_, _, roleName, err := internal.GetEnvironmentInstanceRoleID(raw.Name)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
 		role := make(map[string]interface{})
-		role["id"] = getRoleIdentifier(raw)
-		role["name"] = raw.Name
-		role["instance"] = instanceName
+		role["name"] = roleName
 		role["connection_limit"] = raw.ConnectionLimit
 		role["valid_until"] = raw.ValidUntil
 

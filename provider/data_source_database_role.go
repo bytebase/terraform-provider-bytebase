@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func dataSourceDatabaseRole() *schema.Resource {
@@ -15,22 +16,23 @@ func dataSourceDatabaseRole() *schema.Resource {
 		Description: "The database role data source.",
 		ReadContext: dataSourceRoleRead,
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The database role id.",
-			},
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  "The role unique name.",
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
+			"environment": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The environment resource id.",
+				ValidateFunc: internal.ResourceIDValidation,
+			},
 			"instance": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "The instance unique name.",
-				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The instance resource id.",
+				ValidateFunc: internal.ResourceIDValidation,
 			},
 			"connection_limit": {
 				Type:        schema.TypeInt,
@@ -92,14 +94,12 @@ func dataSourceDatabaseRole() *schema.Resource {
 
 func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	roleName := d.Get("name").(string)
 
-	// TODO: migrate role api
-	role, err := c.GetRole(ctx, 0, roleName)
+	role, err := c.GetRole(ctx, d.Get("environment").(string), d.Get("instance").(string), d.Get("name").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(getRoleIdentifier(role))
+	d.SetId(role.Name)
 	return setRole(d, role)
 }

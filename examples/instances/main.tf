@@ -29,7 +29,7 @@ locals {
 data "bytebase_instance_list" "all" {}
 
 output "all_instances" {
-  value = data.bytebase_instance_list.all.instances
+  value = data.bytebase_instance_list.all
 }
 
 # List all instances in dev environment
@@ -56,7 +56,6 @@ data "bytebase_instance" "prod" {
   resource_id = local.instance_id_prod
   environment = local.environment_id_prod
 }
-
 
 output "prod_instance" {
   value = data.bytebase_instance.prod

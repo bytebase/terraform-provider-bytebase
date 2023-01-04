@@ -91,8 +91,10 @@ resource "bytebase_instance" "prod" {
 
 # Create a new role named "dev_role_test" in the instance "dev_instance_test"
 resource "bytebase_database_role" "dev" {
-  name             = local.role_name_dev
-  instance         = bytebase_instance.dev.name
+  name        = local.role_name_dev
+  instance    = bytebase_instance.dev.resource_id
+  environment = bytebase_instance.dev.environment
+
   password         = "123456"
   connection_limit = 10
   valid_until      = "2022-12-31T00:00:00+08:00"

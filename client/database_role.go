@@ -11,13 +11,13 @@ import (
 )
 
 // CreateRole creates the role in the instance.
-func (c *client) CreateRole(ctx context.Context, instanceID int, create *api.RoleUpsert) (*api.Role, error) {
+func (c *client) CreateRole(ctx context.Context, environmentID, instanceID string, create *api.RoleUpsert) (*api.Role, error) {
 	payload, err := json.Marshal(create)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/instance/%d/role", c.HostURL, instanceID), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environments/%s/instances/%s/roles", c.HostURL, environmentID, instanceID), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +37,8 @@ func (c *client) CreateRole(ctx context.Context, instanceID int, create *api.Rol
 }
 
 // GetRole gets the role by instance id and role name.
-func (c *client) GetRole(ctx context.Context, instanceID int, roleName string) (*api.Role, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/instance/%d/role/%s", c.HostURL, instanceID, roleName), nil)
+func (c *client) GetRole(ctx context.Context, environmentID, instanceID, roleName string) (*api.Role, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s/instances/%s/roles/%s", c.HostURL, environmentID, instanceID, roleName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func (c *client) GetRole(ctx context.Context, instanceID int, roleName string) (
 }
 
 // ListRole lists the role in instance.
-func (c *client) ListRole(ctx context.Context, instanceID int) ([]*api.Role, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/instance/%d/role", c.HostURL, instanceID), nil)
+func (c *client) ListRole(ctx context.Context, environmentID, instanceID string) ([]*api.Role, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s/instances/%s/roles", c.HostURL, environmentID, instanceID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -82,13 +82,30 @@ func (c *client) ListRole(ctx context.Context, instanceID int) ([]*api.Role, err
 }
 
 // UpdateRole updates the role in instance.
-func (c *client) UpdateRole(ctx context.Context, instanceID int, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
+func (c *client) UpdateRole(ctx context.Context, environmentID, instanceID, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/instance/%d/role/%s", c.HostURL, instanceID, roleName), strings.NewReader(string(payload)))
+	paths := []string{}
+	if patch.Title != roleName {
+		paths = append(paths, "role.title")
+	}
+	if patch.Password != nil {
+		paths = append(paths, "role.password")
+	}
+	if patch.ConnectionLimit != nil {
+		paths = append(paths, "role.connection_limit")
+	}
+	if patch.ValidUntil != nil {
+		paths = append(paths, "role.valid_until")
+	}
+	if patch.Attribute != nil {
+		paths = append(paths, "role.attribute")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/environments/%s/instances/%s/roles/%s?update_mask=%s", c.HostURL, environmentID, instanceID, roleName, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +125,8 @@ func (c *client) UpdateRole(ctx context.Context, instanceID int, roleName string
 }
 
 // DeleteRole deletes the role in the instance.
-func (c *client) DeleteRole(ctx context.Context, instanceID int, roleName string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/instance/%d/role/%s", c.HostURL, instanceID, roleName), nil)
+func (c *client) DeleteRole(ctx context.Context, environmentID, instanceID, roleName string) error {
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/environments/%s/instances/%s/roles/%s", c.HostURL, environmentID, instanceID, roleName), nil)
 	if err != nil {
 		return err
 	}
