@@ -28,9 +28,11 @@ type Client interface {
 	// CreateInstance creates the instance.
 	CreateInstance(ctx context.Context, environmentID, instanceID string, instance *InstanceMessage) (*InstanceMessage, error)
 	// UpdateInstance updates the instance.
-	UpdateInstance(ctx context.Context, environmentID, instanceID string, instance *InstanceMessage) (*InstanceMessage, error)
+	UpdateInstance(ctx context.Context, environmentID, instanceID string, patch *InstancePatchMessage) (*InstanceMessage, error)
 	// DeleteInstance deletes the instance.
 	DeleteInstance(ctx context.Context, environmentID, instanceID string) error
+	// UndeleteInstance undeletes the instance.
+	UndeleteInstance(ctx context.Context, environmentID, instanceID string) (*InstanceMessage, error)
 
 	// Role
 	// CreateRole creates the role in the instance.

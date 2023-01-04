@@ -80,13 +80,24 @@ func (c *client) CreateInstance(ctx context.Context, environmentID, instanceID s
 }
 
 // UpdateInstance updates the instance.
-func (c *client) UpdateInstance(ctx context.Context, environmentID, instanceID string, instance *api.InstanceMessage) (*api.InstanceMessage, error) {
-	payload, err := json.Marshal(instance)
+func (c *client) UpdateInstance(ctx context.Context, environmentID, instanceID string, patch *api.InstancePatchMessage) (*api.InstanceMessage, error) {
+	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/environments/%s/instances/%s", c.HostURL, environmentID, instanceID), strings.NewReader(string(payload)))
+	paths := []string{}
+	if patch.Title != nil {
+		paths = append(paths, "instance.title")
+	}
+	if patch.ExternalLink != nil {
+		paths = append(paths, "instance.external_link")
+	}
+	if patch.DataSources != nil {
+		paths = append(paths, "instance.data_sources")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/environments/%s/instances/%s?update_mask=%s", c.HostURL, environmentID, instanceID, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 
 	if err != nil {
 		return nil, err
@@ -117,4 +128,25 @@ func (c *client) DeleteInstance(ctx context.Context, environmentID, instanceID s
 		return err
 	}
 	return nil
+}
+
+// UndeleteInstance undeletes the instance.
+func (c *client) UndeleteInstance(ctx context.Context, environmentID, instanceID string) (*api.InstanceMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environments/%s/instances/%s:undelete", c.HostURL, environmentID, instanceID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var res api.InstanceMessage
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
