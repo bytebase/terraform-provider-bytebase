@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	environmentNamePrefix = "environments/"
-	instanceNamePrefix    = "instances/"
+	environmentNamePrefix  = "environments/"
+	instanceNamePrefix     = "instances/"
+	instanceRoleNamePrefix = "roles/"
 )
 
 var (
@@ -29,6 +30,16 @@ func GetEnvironmentInstanceID(name string) (string, string, error) {
 		return "", "", err
 	}
 	return tokens[0], tokens[1], nil
+}
+
+// GetEnvironmentInstanceRoleID will parse the environment resource id, instance resource id and the role name.
+func GetEnvironmentInstanceRoleID(name string) (string, string, string, error) {
+	// the instance request should be environments/{environment-id}/instances/{instance-id}/roles/{role-name}
+	tokens, err := getNameParentTokens(name, environmentNamePrefix, instanceNamePrefix, instanceRoleNamePrefix)
+	if err != nil {
+		return "", "", "", err
+	}
+	return tokens[0], tokens[1], tokens[2], nil
 }
 
 func getNameParentTokens(name string, tokenPrefixes ...string) ([]string, error) {

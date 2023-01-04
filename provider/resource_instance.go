@@ -34,7 +34,7 @@ func resourceInstance() *schema.Resource {
 			"environment": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: internal.ResourceIDValidation,
+				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The environment resource id for your instance.",
 			},
 			"title": {

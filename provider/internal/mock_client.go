@@ -233,16 +233,16 @@ func (c *mockClient) UndeleteInstance(ctx context.Context, environmentID, instan
 }
 
 // CreateRole creates the role in the instance.
-func (c *mockClient) CreateRole(_ context.Context, instanceID int, create *api.RoleUpsert) (*api.Role, error) {
-	id := getRoleMapID(instanceID, create.Name)
+func (c *mockClient) CreateRole(_ context.Context, environmentID, instanceID string, create *api.RoleUpsert) (*api.Role, error) {
+	id := getRoleMapID(environmentID, instanceID, create.Title)
 
 	if _, ok := c.roleMap[id]; ok {
-		return nil, errors.Errorf("Role %s already exists", create.Name)
+		return nil, errors.Errorf("Role %s already exists", create.Title)
 	}
 
 	role := &api.Role{
-		Name:            create.Name,
-		InstanceID:      instanceID,
+		Name:            id,
+		Title:           create.Title,
 		ConnectionLimit: -1,
 		Attribute:       &api.RoleAttribute{},
 	}
@@ -261,8 +261,8 @@ func (c *mockClient) CreateRole(_ context.Context, instanceID int, create *api.R
 }
 
 // GetRole gets the role by instance id and role name.
-func (c *mockClient) GetRole(_ context.Context, instanceID int, roleName string) (*api.Role, error) {
-	id := getRoleMapID(instanceID, roleName)
+func (c *mockClient) GetRole(_ context.Context, environmentID, instanceID, roleName string) (*api.Role, error) {
+	id := getRoleMapID(environmentID, instanceID, roleName)
 	role, ok := c.roleMap[id]
 	if !ok {
 		return nil, errors.Errorf("Cannot found role with ID %s", id)
@@ -271,9 +271,9 @@ func (c *mockClient) GetRole(_ context.Context, instanceID int, roleName string)
 	return role, nil
 }
 
-func (c *mockClient) ListRole(_ context.Context, instanceID int) ([]*api.Role, error) {
+func (c *mockClient) ListRole(_ context.Context, environmentID, instanceID string) ([]*api.Role, error) {
 	res := []*api.Role{}
-	regex := regexp.MustCompile(fmt.Sprintf("^%d__", instanceID))
+	regex := regexp.MustCompile(fmt.Sprintf("^environments/%s/instances/%s/roles/", environmentID, instanceID))
 	for key, role := range c.roleMap {
 		if regex.MatchString(key) {
 			res = append(res, role)
@@ -284,34 +284,41 @@ func (c *mockClient) ListRole(_ context.Context, instanceID int) ([]*api.Role, e
 }
 
 // UpdateRole updates the role in instance.
-func (c *mockClient) UpdateRole(ctx context.Context, instanceID int, name string, patch *api.RoleUpsert) (*api.Role, error) {
-	role, err := c.GetRole(ctx, instanceID, name)
+func (c *mockClient) UpdateRole(ctx context.Context, environmentID, instanceID, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
+	role, err := c.GetRole(ctx, environmentID, instanceID, roleName)
 	if err != nil {
 		return nil, err
 	}
 
-	role.Name = patch.Name
+	newRole := &api.Role{
+		Name:            getRoleMapID(environmentID, instanceID, patch.Title),
+		Title:           patch.Title,
+		ConnectionLimit: role.ConnectionLimit,
+		ValidUntil:      role.ValidUntil,
+		Attribute:       role.Attribute,
+	}
+	c.DeleteRole(ctx, environmentID, instanceID, roleName)
+
 	if v := patch.ConnectionLimit; v != nil {
-		role.ConnectionLimit = *v
+		newRole.ConnectionLimit = *v
 	}
 	if v := patch.ValidUntil; v != nil {
-		role.ValidUntil = v
+		newRole.ValidUntil = v
 	}
 	if v := patch.Attribute; v != nil {
-		role.Attribute = v
+		newRole.Attribute = v
 	}
 
-	id := getRoleMapID(instanceID, name)
-	c.roleMap[id] = role
+	c.roleMap[newRole.Name] = newRole
 	return role, nil
 }
 
 // DeleteRole deletes the role in the instance.
-func (c *mockClient) DeleteRole(_ context.Context, instanceID int, roleName string) error {
-	delete(c.roleMap, getRoleMapID(instanceID, roleName))
+func (c *mockClient) DeleteRole(_ context.Context, environmentID, instanceID, roleName string) error {
+	delete(c.roleMap, getRoleMapID(environmentID, instanceID, roleName))
 	return nil
 }
 
-func getRoleMapID(instanceID int, roleName string) string {
-	return fmt.Sprintf("%d__%s", instanceID, roleName)
+func getRoleMapID(environmentID, instanceID, roleName string) string {
+	return fmt.Sprintf("environments/%s/instances/%s/roles/%s", environmentID, instanceID, roleName)
 }
