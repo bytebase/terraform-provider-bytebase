@@ -11,6 +11,13 @@ type InstanceMessage struct {
 	DataSources  []*DataSourceMessage `json:"dataSources"`
 }
 
+// InstancePatchMessage is the API message to patch the instance.
+type InstancePatchMessage struct {
+	Title        *string              `json:"title,omitempty"`
+	ExternalLink *string              `json:"externalLink,omitempty"`
+	DataSources  []*DataSourceMessage `json:"dataSources,omitempty"`
+}
+
 // InstanceFindMessage is the API message for finding instance.
 type InstanceFindMessage struct {
 	EnvironmentID string

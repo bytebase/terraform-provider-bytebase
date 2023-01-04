@@ -2,7 +2,9 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -146,20 +148,91 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	instance, err := c.CreateInstance(ctx, d.Get("environment").(string), d.Get("resource_id").(string), &api.InstanceMessage{
-		Title:        d.Get("title").(string),
-		Engine:       d.Get("engine").(string),
-		ExternalLink: d.Get("external_link").(string),
-		State:        api.Active,
-		DataSources:  dataSourceList,
+	environmentID := d.Get("environment").(string)
+	instanceID := d.Get("resource_id").(string)
+	instanceName := fmt.Sprintf("environments/%s/instances/%s", environmentID, instanceID)
+
+	existedInstance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
+		EnvironmentID: environmentID,
+		InstanceID:    instanceID,
+		ShowDeleted:   true,
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		tflog.Debug(ctx, fmt.Sprintf("get instance %s failed with error: %v", instanceName, err))
 	}
 
-	d.SetId(instance.Name)
+	var diags diag.Diagnostics
+	if existedInstance != nil && err == nil {
 
-	return resourceInstanceRead(ctx, d, m)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Instance already exists",
+			Detail:   fmt.Sprintf("Instance %s already exists, try to exec the update operation", instanceName),
+		})
+
+		engine := d.Get("engine").(string)
+		if existedInstance.Engine != engine {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Invalid argument",
+				Detail:   fmt.Sprintf("cannot update instance %s engine to %s", instanceName, engine),
+			})
+			return diags
+		}
+
+		if existedInstance.State == api.Deleted {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Instance is deleted",
+				Detail:   fmt.Sprintf("Instance %s already deleted, try to undelete the instance", instanceName),
+			})
+			if _, err := c.UndeleteInstance(ctx, environmentID, instanceID); err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to undelete instance",
+					Detail:   fmt.Sprintf("Undelete instance %s failed, error: %v", instanceName, err),
+				})
+				return diags
+			}
+		}
+
+		title := d.Get("title").(string)
+		externalLink := d.Get("external_link").(string)
+		instance, err := c.UpdateInstance(ctx, environmentID, instanceID, &api.InstancePatchMessage{
+			Title:        &title,
+			ExternalLink: &externalLink,
+			DataSources:  dataSourceList,
+		})
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update instance",
+				Detail:   fmt.Sprintf("Update instance %s failed, error: %v", instanceName, err),
+			})
+			return diags
+		}
+
+		d.SetId(instance.Name)
+	} else {
+		instance, err := c.CreateInstance(ctx, environmentID, instanceID, &api.InstanceMessage{
+			Title:        d.Get("title").(string),
+			Engine:       d.Get("engine").(string),
+			ExternalLink: d.Get("external_link").(string),
+			State:        api.Active,
+			DataSources:  dataSourceList,
+		})
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(instance.Name)
+	}
+
+	diag := resourceInstanceRead(ctx, d, m)
+	if diag != nil {
+		diags = append(diags, diag...)
+	}
+
+	return diags
 }
 
 func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -189,16 +262,50 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	patch := &api.InstanceMessage{}
-	if d.HasChange("title") {
-		if title, ok := d.GetOk("title"); ok {
-			patch.Title = title.(string)
+	instanceName := fmt.Sprintf("environments/%s/instances/%s", envID, instanceID)
+
+	existedInstance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
+		EnvironmentID: envID,
+		InstanceID:    instanceID,
+		ShowDeleted:   true,
+	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	var diags diag.Diagnostics
+	if existedInstance.Engine != d.Get("engine").(string) {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Invalid argument",
+			Detail:   fmt.Sprintf("cannot update instance %s engine to %s", instanceName, d.Get("engine").(string)),
+		})
+		return diags
+	}
+	if existedInstance.State == api.Deleted {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Instance is deleted",
+			Detail:   fmt.Sprintf("Instance %s already deleted, try to undelete the instance", instanceName),
+		})
+		if _, err := c.UndeleteInstance(ctx, envID, instanceID); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to undelete instance",
+				Detail:   fmt.Sprintf("Undelete instance %s failed, error: %v", instanceName, err),
+			})
+			return diags
 		}
 	}
+
+	patch := &api.InstancePatchMessage{}
+	if d.HasChange("title") {
+		v := d.Get("title").(string)
+		patch.Title = &v
+	}
 	if d.HasChange("external_link") {
-		if link, ok := d.GetOk("external_link"); ok {
-			patch.ExternalLink = link.(string)
-		}
+		v := d.Get("external_link").(string)
+		patch.ExternalLink = &v
 	}
 	if d.HasChange("data_sources") {
 		dataSourceList, err := convertDataSourceCreateList(d)
@@ -212,7 +319,12 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	return resourceInstanceRead(ctx, d, m)
+	diag := resourceInstanceRead(ctx, d, m)
+	if diag != nil {
+		diags = append(diags, diag...)
+	}
+
+	return diags
 }
 
 func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

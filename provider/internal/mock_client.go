@@ -177,7 +177,7 @@ func (c *mockClient) CreateInstance(_ context.Context, environmentID, instanceID
 }
 
 // UpdateInstance updates the instance.
-func (c *mockClient) UpdateInstance(ctx context.Context, environmentID, instanceID string, instance *api.InstanceMessage) (*api.InstanceMessage, error) {
+func (c *mockClient) UpdateInstance(ctx context.Context, environmentID, instanceID string, patch *api.InstancePatchMessage) (*api.InstanceMessage, error) {
 	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
 		InstanceID:    instanceID,
 		EnvironmentID: environmentID,
@@ -186,14 +186,14 @@ func (c *mockClient) UpdateInstance(ctx context.Context, environmentID, instance
 		return nil, err
 	}
 
-	if instance.Title != "" {
-		ins.Title = instance.Title
+	if v := patch.Title; v != nil {
+		ins.Title = *v
 	}
-	if instance.ExternalLink != "" {
-		ins.ExternalLink = instance.ExternalLink
+	if v := patch.ExternalLink; v != nil {
+		ins.ExternalLink = *v
 	}
-	if instance.DataSources != nil {
-		ins.DataSources = instance.DataSources
+	if v := patch.DataSources; v != nil {
+		ins.DataSources = v
 	}
 
 	c.instanceMap[ins.Name] = ins
@@ -214,6 +214,22 @@ func (c *mockClient) DeleteInstance(ctx context.Context, environmentID, instance
 	c.instanceMap[ins.Name] = ins
 
 	return nil
+}
+
+// UndeleteInstance undeletes the instance.
+func (c *mockClient) UndeleteInstance(ctx context.Context, environmentID, instanceID string) (*api.InstanceMessage, error) {
+	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
+		EnvironmentID: environmentID,
+		InstanceID:    instanceID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ins.State = api.Active
+	c.instanceMap[ins.Name] = ins
+
+	return ins, nil
 }
 
 // CreateRole creates the role in the instance.
