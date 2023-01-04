@@ -18,19 +18,22 @@ provider "bytebase" {
 }
 
 locals {
-  role_name_dev     = "dev_role_test"
-  instance_name_dev = "dev_instance_test"
+  role_name_dev      = "dev_role_test"
+  instance_id_dev    = "dev-instance"
+  environment_id_dev = "dev"
 }
 
 # Find the instance
 data "bytebase_instance" "dev" {
-  name = local.instance_name_dev
+  resource_id = local.instance_id_dev
+  environment = local.environment_id_dev
 }
 
 # Find the role "dev_role_test" in the instance "dev_instance_test"
 data "bytebase_database_role" "dev" {
-  name     = local.role_name_dev
-  instance = data.bytebase_instance.dev.name
+  name        = local.role_name_dev
+  instance    = data.bytebase_instance.dev.resource_id
+  environment = data.bytebase_instance.dev.environment
 }
 
 output "dev_role" {
@@ -39,7 +42,8 @@ output "dev_role" {
 
 # List all roles in the instance "dev_instance_test"
 data "bytebase_database_role_list" "all" {
-  instance = data.bytebase_instance.dev.name
+  instance    = data.bytebase_instance.dev.resource_id
+  environment = data.bytebase_instance.dev.environment
 }
 
 output "list_role" {
