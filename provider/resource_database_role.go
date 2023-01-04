@@ -168,7 +168,12 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface
 		d.SetId(role.Name)
 	}
 
-	return resourceRoleRead(ctx, d, m)
+	diag := resourceRoleRead(ctx, d, m)
+	if diag != nil {
+		diags = append(diags, diag...)
+	}
+
+	return diags
 }
 
 func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
