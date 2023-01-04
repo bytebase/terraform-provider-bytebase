@@ -297,7 +297,9 @@ func (c *mockClient) UpdateRole(ctx context.Context, environmentID, instanceID, 
 		ValidUntil:      role.ValidUntil,
 		Attribute:       role.Attribute,
 	}
-	c.DeleteRole(ctx, environmentID, instanceID, roleName)
+	if err := c.DeleteRole(ctx, environmentID, instanceID, roleName); err != nil {
+		return nil, err
+	}
 
 	if v := patch.ConnectionLimit; v != nil {
 		newRole.ConnectionLimit = *v
