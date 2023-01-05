@@ -7,19 +7,17 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-querystring/query"
-
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
 // CreateEnvironment creates the environment.
-func (c *client) CreateEnvironment(ctx context.Context, create *api.EnvironmentUpsert) (*api.Environment, error) {
+func (c *client) CreateEnvironment(ctx context.Context, environmentID string, create *api.EnvironmentMessage) (*api.EnvironmentMessage, error) {
 	payload, err := json.Marshal(create)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environment", c.HostURL), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environments?environmentId=%s", c.HostURL, environmentID), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +27,7 @@ func (c *client) CreateEnvironment(ctx context.Context, create *api.EnvironmentU
 		return nil, err
 	}
 
-	var env api.Environment
+	var env api.EnvironmentMessage
 	err = json.Unmarshal(body, &env)
 	if err != nil {
 		return nil, err
@@ -39,8 +37,8 @@ func (c *client) CreateEnvironment(ctx context.Context, create *api.EnvironmentU
 }
 
 // GetEnvironment gets the environment by id.
-func (c *client) GetEnvironment(ctx context.Context, environmentID int) (*api.Environment, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environment/%d", c.HostURL, environmentID), nil)
+func (c *client) GetEnvironment(ctx context.Context, environmentID string) (*api.EnvironmentMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s", c.HostURL, environmentID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +48,7 @@ func (c *client) GetEnvironment(ctx context.Context, environmentID int) (*api.En
 		return nil, err
 	}
 
-	var env api.Environment
+	var env api.EnvironmentMessage
 	err = json.Unmarshal(body, &env)
 	if err != nil {
 		return nil, err
@@ -60,13 +58,8 @@ func (c *client) GetEnvironment(ctx context.Context, environmentID int) (*api.En
 }
 
 // ListEnvironment finds all environments.
-func (c *client) ListEnvironment(ctx context.Context, find *api.EnvironmentFind) ([]*api.Environment, error) {
-	q, err := query.Values(find)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environment?%s", c.HostURL, q.Encode()), nil)
+func (c *client) ListEnvironment(ctx context.Context, showDeleted bool) (*api.ListEnvironmentMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments?showDeleted=%v", c.HostURL, showDeleted), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -76,23 +69,34 @@ func (c *client) ListEnvironment(ctx context.Context, find *api.EnvironmentFind)
 		return nil, err
 	}
 
-	res := []*api.Environment{}
+	var res api.ListEnvironmentMessage
 	err = json.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	return &res, nil
 }
 
 // UpdateEnvironment updates the environment.
-func (c *client) UpdateEnvironment(ctx context.Context, environmentID int, patch *api.EnvironmentUpsert) (*api.Environment, error) {
+func (c *client) UpdateEnvironment(ctx context.Context, environmentID string, patch *api.EnvironmentPatchMessage) (*api.EnvironmentMessage, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/environment/%d", c.HostURL, environmentID), strings.NewReader(string(payload)))
+	paths := []string{}
+	if patch.Title != nil {
+		paths = append(paths, "environment.title")
+	}
+	if patch.Order != nil {
+		paths = append(paths, "environment.order")
+	}
+	if patch.Tier != nil {
+		paths = append(paths, "environment.tier")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/environments/%s?update_mask=%s", c.HostURL, environmentID, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +106,7 @@ func (c *client) UpdateEnvironment(ctx context.Context, environmentID int, patch
 		return nil, err
 	}
 
-	var env api.Environment
+	var env api.EnvironmentMessage
 	err = json.Unmarshal(body, &env)
 	if err != nil {
 		return nil, err
@@ -112,8 +116,8 @@ func (c *client) UpdateEnvironment(ctx context.Context, environmentID int, patch
 }
 
 // DeleteEnvironment deletes the environment.
-func (c *client) DeleteEnvironment(ctx context.Context, environmentID int) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/environment/%d", c.HostURL, environmentID), nil)
+func (c *client) DeleteEnvironment(ctx context.Context, environmentID string) error {
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/environments/%s", c.HostURL, environmentID), nil)
 	if err != nil {
 		return err
 	}
@@ -122,4 +126,25 @@ func (c *client) DeleteEnvironment(ctx context.Context, environmentID int) error
 		return err
 	}
 	return nil
+}
+
+// UndeleteEnvironment undeletes the environment.
+func (c *client) UndeleteEnvironment(ctx context.Context, environmentID string) (*api.EnvironmentMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environments/%s:undelete", c.HostURL, environmentID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var res api.EnvironmentMessage
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }

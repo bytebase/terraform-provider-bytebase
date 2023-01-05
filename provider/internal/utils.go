@@ -22,6 +22,16 @@ var (
 // ResourceIDValidation is the resource id regexp validation.
 var ResourceIDValidation = validation.StringMatch(resourceIDRegex, fmt.Sprintf("resource id must matches %v", resourceIDRegex))
 
+// GetEnvironmentID will parse the environment resource id.
+func GetEnvironmentID(name string) (string, error) {
+	// the environment request should be environments/{environment-id}
+	tokens, err := getNameParentTokens(name, environmentNamePrefix)
+	if err != nil {
+		return "", err
+	}
+	return tokens[0], nil
+}
+
 // GetEnvironmentInstanceID will parse the environment resource id and instance resource id.
 func GetEnvironmentInstanceID(name string) (string, string, error) {
 	// the instance request should be environments/{environment-id}/instances/{instance-id}

@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -11,18 +10,18 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
-var environmentMap map[int]*api.Environment
+var environmentMap map[string]*api.EnvironmentMessage
 var instanceMap map[string]*api.InstanceMessage
 var roleMap map[string]*api.Role
 
 func init() {
-	environmentMap = map[int]*api.Environment{}
+	environmentMap = map[string]*api.EnvironmentMessage{}
 	instanceMap = map[string]*api.InstanceMessage{}
 	roleMap = map[string]*api.Role{}
 }
 
 type mockClient struct {
-	environmentMap map[int]*api.Environment
+	environmentMap map[string]*api.EnvironmentMessage
 	instanceMap    map[string]*api.InstanceMessage
 	roleMap        map[string]*api.Role
 }
@@ -42,91 +41,93 @@ func (*mockClient) Login() (*api.AuthResponse, error) {
 }
 
 // CreateEnvironment creates the environment.
-func (c *mockClient) CreateEnvironment(_ context.Context, create *api.EnvironmentUpsert) (*api.Environment, error) {
-	env := &api.Environment{
-		ID:                     rand.Intn(1000),
-		Name:                   *create.Name,
-		Order:                  *create.Order,
-		PipelineApprovalPolicy: create.PipelineApprovalPolicy,
-		EnvironmentTierPolicy:  create.EnvironmentTierPolicy,
-		BackupPlanPolicy:       create.BackupPlanPolicy,
+func (c *mockClient) CreateEnvironment(_ context.Context, environmentID string, create *api.EnvironmentMessage) (*api.EnvironmentMessage, error) {
+	env := &api.EnvironmentMessage{
+		Name:  fmt.Sprintf("environments/%s", environmentID),
+		Order: create.Order,
+		Title: create.Title,
+		State: api.Active,
+		Tier:  create.Tier,
 	}
 
-	if existed := c.findEnvironmentByName(env.Name); existed != nil {
-		return nil, errors.Errorf("Environment %s already exists", *create.Name)
+	if _, ok := c.environmentMap[env.Name]; ok {
+		return nil, errors.Errorf("Environment %s already exists", env.Name)
 	}
-	c.environmentMap[env.ID] = env
+
+	c.environmentMap[env.Name] = env
 
 	return env, nil
 }
 
 // GetEnvironment gets the environment by id.
-func (c *mockClient) GetEnvironment(_ context.Context, environmentID int) (*api.Environment, error) {
-	env, ok := c.environmentMap[environmentID]
+func (c *mockClient) GetEnvironment(_ context.Context, environmentID string) (*api.EnvironmentMessage, error) {
+	env, ok := c.environmentMap[fmt.Sprintf("environments/%s", environmentID)]
 	if !ok {
-		return nil, errors.Errorf("Cannot found environment with ID %d", environmentID)
+		return nil, errors.Errorf("Cannot found environment with ID %s", environmentID)
 	}
 
 	return env, nil
 }
 
 // ListEnvironment finds all environments.
-func (c *mockClient) ListEnvironment(_ context.Context, find *api.EnvironmentFind) ([]*api.Environment, error) {
-	environments := make([]*api.Environment, 0)
+func (c *mockClient) ListEnvironment(_ context.Context, showDeleted bool) (*api.ListEnvironmentMessage, error) {
+	environments := make([]*api.EnvironmentMessage, 0)
 	for _, env := range c.environmentMap {
-		if find.Name == "" || env.Name == find.Name {
-			environments = append(environments, env)
+		if env.State == api.Deleted && !showDeleted {
+			continue
 		}
+		environments = append(environments, env)
 	}
 
-	return environments, nil
+	return &api.ListEnvironmentMessage{
+		Environments: environments,
+	}, nil
 }
 
 // UpdateEnvironment updates the environment.
-func (c *mockClient) UpdateEnvironment(ctx context.Context, environmentID int, patch *api.EnvironmentUpsert) (*api.Environment, error) {
+func (c *mockClient) UpdateEnvironment(ctx context.Context, environmentID string, patch *api.EnvironmentPatchMessage) (*api.EnvironmentMessage, error) {
 	env, err := c.GetEnvironment(ctx, environmentID)
 	if err != nil {
 		return nil, err
 	}
 
-	if v := patch.Name; v != nil {
-		if existed := c.findEnvironmentByName(*v); existed != nil {
-			return nil, errors.Errorf("Environment %s already exists", env.Name)
-		}
-		env.Name = *v
+	if v := patch.Title; v != nil {
+		env.Title = *v
 	}
 	if v := patch.Order; v != nil {
 		env.Order = *v
 	}
-	if v := patch.PipelineApprovalPolicy; v != nil {
-		env.PipelineApprovalPolicy = v
-	}
-	if v := patch.EnvironmentTierPolicy; v != nil {
-		env.EnvironmentTierPolicy = v
-	}
-	if v := patch.BackupPlanPolicy; v != nil {
-		env.BackupPlanPolicy = v
+	if v := patch.Tier; v != nil {
+		env.Tier = *v
 	}
 
-	delete(c.environmentMap, env.ID)
-	c.environmentMap[env.ID] = env
+	c.environmentMap[env.Name] = env
 
 	return env, nil
 }
 
 // DeleteEnvironment deletes the environment.
-func (c *mockClient) DeleteEnvironment(_ context.Context, environmentID int) error {
-	delete(c.environmentMap, environmentID)
+func (c *mockClient) DeleteEnvironment(ctx context.Context, environmentID string) error {
+	env, err := c.GetEnvironment(ctx, environmentID)
+	if err != nil {
+		return err
+	}
+
+	env.State = api.Deleted
+	c.environmentMap[env.Name] = env
 	return nil
 }
 
-func (c *mockClient) findEnvironmentByName(envName string) *api.Environment {
-	for _, env := range c.environmentMap {
-		if env.Name == envName {
-			return env
-		}
+// UndeleteEnvironment undeletes the environment.
+func (c *mockClient) UndeleteEnvironment(ctx context.Context, environmentID string) (*api.EnvironmentMessage, error) {
+	env, err := c.GetEnvironment(ctx, environmentID)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+
+	env.State = api.Active
+	c.environmentMap[env.Name] = env
+	return env, nil
 }
 
 // ListInstance will return instances in environment.

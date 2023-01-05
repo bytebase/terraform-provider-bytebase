@@ -1,38 +1,26 @@
 package api
 
-// Environment is the API message for an environment.
-type Environment struct {
-	ID int `json:"id"`
-
-	// Related fields
-	EnvironmentTierPolicy  *EnvironmentTierPolicy  `json:"environmentTierPolicy,omitempty"`
-	PipelineApprovalPolicy *PipelineApprovalPolicy `json:"pipelineApprovalPolicy,omitempty"`
-	BackupPlanPolicy       *BackupPlanPolicy       `json:"backupPlanPolicy,omitempty"`
+// EnvironmentMessage is the API message for an environment.
+type EnvironmentMessage struct {
+	UID string `json:"uid"`
 
 	// Domain specific fields
 	Name  string `json:"name"`
+	Title string `json:"title"`
 	Order int    `json:"order"`
+	State State  `json:"state,omitempty"`
+	Tier  string `json:"tier"`
 }
 
-// EnvironmentFind is the API message for finding environment.
-type EnvironmentFind struct {
-	// Domain specific fields
-	Name string `url:"name,omitempty"`
+// ListEnvironmentMessage is the API message for list environment response.
+type ListEnvironmentMessage struct {
+	Environments  []*EnvironmentMessage `json:"environments"`
+	NextPageToken string                `json:"nextPageToken"`
 }
 
-// EnvironmentUpsert is the API message for upserting an environment.
-type EnvironmentUpsert struct {
-	// Related fields
-	EnvironmentTierPolicy  *EnvironmentTierPolicy  `json:"environmentTierPolicy,omitempty"`
-	PipelineApprovalPolicy *PipelineApprovalPolicy `json:"pipelineApprovalPolicy,omitempty"`
-	BackupPlanPolicy       *BackupPlanPolicy       `json:"backupPlanPolicy,omitempty"`
-
-	// Domain specific fields
-	Name  *string `json:"name,omitempty"`
+// EnvironmentPatchMessage is the API message to patch the environment.
+type EnvironmentPatchMessage struct {
+	Title *string `json:"title,omitempty"`
 	Order *int    `json:"order,omitempty"`
-}
-
-// HasChange returns if the patch struct has the value to update.
-func (e *EnvironmentUpsert) HasChange() bool {
-	return e.Name != nil || e.Order != nil || e.EnvironmentTierPolicy != nil || e.PipelineApprovalPolicy != nil || e.BackupPlanPolicy != nil
+	Tier  *string `json:"tier,omitempty"`
 }

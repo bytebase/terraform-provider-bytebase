@@ -19,20 +19,20 @@ provider "bytebase" {
 }
 
 locals {
-  environment_name_dev  = "dev"
-  environment_name_prod = "prod"
+  environment_id_dev  = "dev"
+  environment_id_prod = "prod"
 }
 
 # List all environment
 data "bytebase_environment_list" "all" {}
 
 output "all_environments" {
-  value = data.bytebase_environment_list.all.environments
+  value = data.bytebase_environment_list.all
 }
 
 // Find a specific environment by the name
 data "bytebase_environment" "dev" {
-  name = local.environment_name_dev
+  resource_id = local.environment_id_dev
 }
 
 output "dev_environment" {
@@ -40,7 +40,7 @@ output "dev_environment" {
 }
 
 data "bytebase_environment" "prod" {
-  name = local.environment_name_prod
+  resource_id = local.environment_id_prod
 }
 
 output "prod_environment" {
