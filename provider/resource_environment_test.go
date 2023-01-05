@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -15,12 +14,12 @@ import (
 )
 
 func TestAccEnvironment(t *testing.T) {
-	identifier := "new_environment"
+	identifier := "new-environment"
 	resourceName := fmt.Sprintf("bytebase_environment.%s", identifier)
 
-	name := "dev"
+	title := "dev"
 	order := 1
-	nameUpdated := fmt.Sprintf("%s-updated", name)
+	titleUpdated := fmt.Sprintf("%supdated", title)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -31,19 +30,19 @@ func TestAccEnvironment(t *testing.T) {
 		Steps: []resource.TestStep{
 			// resource create test
 			{
-				Config: testAccCheckEnvironmentResource(identifier, name, order),
+				Config: testAccCheckEnvironmentResource(identifier, title, order),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "name", name),
+					resource.TestCheckResourceAttr(resourceName, "title", title),
 					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order)),
 				),
 			},
 			// resource update test
 			{
-				Config: testAccCheckEnvironmentResource(identifier, nameUpdated, order+1),
+				Config: testAccCheckEnvironmentResource(identifier, titleUpdated, order+1),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "name", nameUpdated),
+					resource.TestCheckResourceAttr(resourceName, "title", titleUpdated),
 					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order+1)),
 				),
 			},
@@ -63,10 +62,9 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 			{
 				Config: `
 					resource "bytebase_environment" "new_env" {
-						name = "new_env"
+						resource_id              = "dev"
+						title                    = "new_env"
 						environment_tier_policy  = "PROTECTED"
-						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
-						backup_plan_policy       = "DAILY"
 					}
 				`,
 				ExpectError: regexp.MustCompile("The argument \"order\" is required, but no definition was found"),
@@ -75,23 +73,21 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 			{
 				Config: `
 					resource "bytebase_environment" "new_env" {
-						name = ""
-						order = 1
+						resource_id              = "dev"
+						title                    = ""
+						order                    = 1
 						environment_tier_policy  = "PROTECTED"
-						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
-						backup_plan_policy       = "DAILY"
 					}
 				`,
-				ExpectError: regexp.MustCompile("expected \"name\" to not be an empty string"),
+				ExpectError: regexp.MustCompile("environment title must matches"),
 			},
 			// Invalid policy
 			{
 				Config: `
 					resource "bytebase_environment" "new_env" {
-						name = "new_env"
-						order = 1
-						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
-						backup_plan_policy       = "DAILY"
+						resource_id = "dev"
+						title       = "new_env"
+						order       = 1
 					}
 				`,
 				ExpectError: regexp.MustCompile("The argument \"environment_tier_policy\" is required"),
@@ -100,11 +96,10 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 			{
 				Config: `
 					resource "bytebase_environment" "new_env" {
-						name = "new_env"
-						order = 1
+						resource_id             = "dev"
+						title                   = "new_env"
+						order                   = 1
 						environment_tier_policy = "UNKNOWN"
-						pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
-						backup_plan_policy       = "DAILY"
 					}
 				`,
 				ExpectError: regexp.MustCompile("expected environment_tier_policy to be one of"),
@@ -121,7 +116,7 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 			continue
 		}
 
-		envID, err := strconv.Atoi(rs.Primary.ID)
+		envID, err := internal.GetEnvironmentID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -137,11 +132,10 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 func testAccCheckEnvironmentResource(identifier, envName string, order int) string {
 	return fmt.Sprintf(`
 	resource "bytebase_environment" "%s" {
-		name = "%s"
-		order = %d
-		environment_tier_policy  = "PROTECTED"
-		pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
-		backup_plan_policy       = "DAILY"
+		resource_id             = "%s"
+		title                   = "%s"
+		order                   = %d
+		environment_tier_policy = "PROTECTED"
 	}
-	`, identifier, envName, order)
+	`, identifier, identifier, envName, order)
 }

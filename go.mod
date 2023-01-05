@@ -3,7 +3,6 @@ module github.com/bytebase/terraform-provider-bytebase
 go 1.19
 
 require (
-	github.com/google/go-querystring v1.1.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
 	github.com/hashicorp/terraform-plugin-log v0.7.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.0

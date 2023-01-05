@@ -2,14 +2,19 @@ package provider
 
 import (
 	"context"
-	"strconv"
+	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
+
+var environmentTitleRegex = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
 
 func resourceEnvironment() *schema.Resource {
 	return &schema.Resource{
@@ -22,11 +27,17 @@ func resourceEnvironment() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": {
+			"resource_id": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: internal.ResourceIDValidation,
+				Description:  "The environment unique resource id.",
+			},
+			"title": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  "The environment unique name.",
-				ValidateFunc: validation.StringIsNotEmpty,
+				ValidateFunc: validation.StringMatch(environmentTitleRegex, fmt.Sprintf("environment title must matches %v", environmentTitleRegex)),
 			},
 			"order": {
 				Type:         schema.TypeInt,
@@ -43,26 +54,6 @@ func resourceEnvironment() *schema.Resource {
 				}, false),
 				Description: "If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default.",
 			},
-			"pipeline_approval_policy": {
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					string(api.PipelineApprovalTypeNever),
-					string(api.PipelineApprovalTypeByProjectOwner),
-					string(api.PipelineApprovalTypeByWorkspaceOwnerORDBA),
-				}, false),
-				Description: "For updating schema on the existing database, this setting controls whether the task requires manual approval.",
-			},
-			"backup_plan_policy": {
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					"UNSET",
-					"DAILY",
-					"WEEKLY",
-				}, false),
-				Description: "The database backup policy in this environment.",
-			},
 		},
 	}
 }
@@ -70,76 +61,79 @@ func resourceEnvironment() *schema.Resource {
 func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	// Warning or errors can be collected in a slice type
+	environmentID := d.Get("resource_id").(string)
+	existedEnv, err := c.GetEnvironment(ctx, environmentID)
+	if err != nil {
+		tflog.Debug(ctx, fmt.Sprintf("get environment %s failed with error: %v", environmentID, err))
+	}
+
 	var diags diag.Diagnostics
-
-	name, ok := d.Get("name").(string)
-	if !ok {
+	if existedEnv != nil && err == nil {
 		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to get the environment name",
-			Detail:   "The environment name is required for creation",
+			Severity: diag.Warning,
+			Summary:  "Environment already exists",
+			Detail:   fmt.Sprintf("Environment %s already exists, try to exec the update operation", environmentID),
 		})
-		return diags
-	}
 
-	order, ok := d.Get("order").(int)
-	if !ok {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to get the environment order",
-			Detail:   "The environment order is required for creation",
-		})
-		return diags
-	}
-
-	pipelineApprovalPolicy, err := convertPipelineApprovalPolicy(d)
-	if err != nil {
-		return diag.Errorf("Invalid pipeline approval policy: %v", err.Error())
-	}
-
-	upsert := &api.EnvironmentUpsert{
-		Name:                   &name,
-		Order:                  &order,
-		EnvironmentTierPolicy:  convertEnvironmentTierPolicy(d),
-		PipelineApprovalPolicy: pipelineApprovalPolicy,
-		BackupPlanPolicy:       convertBackupPlanPolicy(d),
-	}
-
-	envList, err := c.ListEnvironment(ctx, &api.EnvironmentFind{
-		Name: name,
-	})
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	if len(envList) > 1 {
-		return diag.Errorf("found %v environments with same name %s", len(envList), name)
-	}
-
-	if len(envList) == 0 {
-		env, err := c.CreateEnvironment(ctx, upsert)
-		if err != nil {
-			return diag.FromErr(err)
+		if existedEnv.State == api.Deleted {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Environment is deleted",
+				Detail:   fmt.Sprintf("Environment %s already deleted, try to undelete the environment", environmentID),
+			})
+			if _, err := c.UndeleteEnvironment(ctx, environmentID); err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to undelete environment",
+					Detail:   fmt.Sprintf("Undelete environment %s failed, error: %v", environmentID, err),
+				})
+				return diags
+			}
 		}
 
-		d.SetId(strconv.Itoa(env.ID))
+		title := d.Get("title").(string)
+		order := d.Get("order").(int)
+		tier := d.Get("environment_tier_policy").(string)
+		env, err := c.UpdateEnvironment(ctx, environmentID, &api.EnvironmentPatchMessage{
+			Title: &title,
+			Order: &order,
+			Tier:  &tier,
+		})
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update environment",
+				Detail:   fmt.Sprintf("Update environment %s failed, error: %v", environmentID, err),
+			})
+			return diags
+		}
+
+		d.SetId(env.Name)
 	} else {
-		existed := envList[0]
-		env, err := c.UpdateEnvironment(ctx, existed.ID, upsert)
+		env, err := c.CreateEnvironment(ctx, environmentID, &api.EnvironmentMessage{
+			Title: d.Get("title").(string),
+			Order: d.Get("order").(int),
+			Tier:  d.Get("environment_tier_policy").(string),
+		})
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		d.SetId(strconv.Itoa(env.ID))
+		d.SetId(env.Name)
 	}
 
-	return resourceEnvironmentRead(ctx, d, m)
+	diag := resourceEnvironmentRead(ctx, d, m)
+	if diag != nil {
+		diags = append(diags, diag...)
+	}
+
+	return diags
 }
 
 func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	envID, err := strconv.Atoi(d.Id())
+	envID, err := internal.GetEnvironmentID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -155,16 +149,38 @@ func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m inte
 func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	envID, err := strconv.Atoi(d.Id())
+	envID, err := internal.GetEnvironmentID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	patch := &api.EnvironmentUpsert{}
-	if d.HasChange("name") {
-		name, ok := d.Get("name").(string)
+	existedEnv, err := c.GetEnvironment(ctx, envID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	var diags diag.Diagnostics
+	if existedEnv.State == api.Deleted {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Environment is deleted",
+			Detail:   fmt.Sprintf("Environment %s already deleted, try to undelete the environment", envID),
+		})
+		if _, err := c.UndeleteEnvironment(ctx, envID); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to undelete environment",
+				Detail:   fmt.Sprintf("Undelete environment %s failed, error: %v", envID, err),
+			})
+			return diags
+		}
+	}
+
+	patch := &api.EnvironmentPatchMessage{}
+	if d.HasChange("title") {
+		title, ok := d.Get("title").(string)
 		if ok {
-			patch.Name = &name
+			patch.Title = &title
 		}
 	}
 
@@ -176,26 +192,22 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	if d.HasChange("environment_tier_policy") {
-		patch.EnvironmentTierPolicy = convertEnvironmentTierPolicy(d)
-	}
-	if d.HasChange("pipeline_approval_policy") {
-		pipelineApprovalPolicy, err := convertPipelineApprovalPolicy(d)
-		if err != nil {
-			return diag.Errorf("Invalid pipeline approval policy: %v", err.Error())
-		}
-		patch.PipelineApprovalPolicy = pipelineApprovalPolicy
-	}
-	if d.HasChange("backup_plan_policy") {
-		patch.BackupPlanPolicy = convertBackupPlanPolicy(d)
-	}
-
-	if patch.HasChange() {
-		if _, err := c.UpdateEnvironment(ctx, envID, patch); err != nil {
-			return diag.FromErr(err)
+		tier, ok := d.Get("environment_tier_policy").(string)
+		if ok {
+			patch.Tier = &tier
 		}
 	}
 
-	return resourceEnvironmentRead(ctx, d, m)
+	if _, err := c.UpdateEnvironment(ctx, envID, patch); err != nil {
+		return diag.FromErr(err)
+	}
+
+	diag := resourceEnvironmentRead(ctx, d, m)
+	if diag != nil {
+		diags = append(diags, diag...)
+	}
+
+	return diags
 }
 
 func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -204,7 +216,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m in
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	envID, err := strconv.Atoi(d.Id())
+	envID, err := internal.GetEnvironmentID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -218,112 +230,16 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m in
 	return diags
 }
 
-func setEnvironment(d *schema.ResourceData, env *api.Environment) diag.Diagnostics {
-	if err := d.Set("name", env.Name); err != nil {
+func setEnvironment(d *schema.ResourceData, env *api.EnvironmentMessage) diag.Diagnostics {
+	if err := d.Set("title", env.Title); err != nil {
 		return diag.Errorf("cannot set name for environment: %s", err.Error())
 	}
 	if err := d.Set("order", env.Order); err != nil {
 		return diag.Errorf("cannot set order for environment: %s", err.Error())
 	}
-	if err := d.Set("environment_tier_policy", env.EnvironmentTierPolicy.EnvironmentTier); err != nil {
+	if err := d.Set("environment_tier_policy", env.Tier); err != nil {
 		return diag.Errorf("cannot set environment_tier_policy for environment: %s", err.Error())
-	}
-	if err := d.Set("pipeline_approval_policy", flattenPipelineApprovalPolicy(env.PipelineApprovalPolicy)); err != nil {
-		return diag.Errorf("cannot set pipeline_approval_policy for environment: %s", err.Error())
-	}
-	if err := d.Set("backup_plan_policy", env.BackupPlanPolicy.Schedule); err != nil {
-		return diag.Errorf("cannot set backup_plan_policy for environment: %s", err.Error())
 	}
 
 	return nil
-}
-
-func flattenPipelineApprovalPolicy(policy *api.PipelineApprovalPolicy) string {
-	approvalType := api.PipelineApprovalTypeNever
-
-	if len(policy.AssigneeGroupList) > 0 {
-		switch policy.AssigneeGroupList[0].Value {
-		case api.AssigneeGroupValueProjectOwner:
-			approvalType = api.PipelineApprovalTypeByProjectOwner
-		case api.AssigneeGroupValueWorkspaceOwnerOrDBA:
-			approvalType = api.PipelineApprovalTypeByWorkspaceOwnerORDBA
-		}
-	}
-
-	return string(approvalType)
-}
-
-func convertEnvironmentTierPolicy(d *schema.ResourceData) *api.EnvironmentTierPolicy {
-	var policy *api.EnvironmentTierPolicy
-
-	if v, ok := d.GetOk("environment_tier_policy"); ok {
-		policy = &api.EnvironmentTierPolicy{
-			EnvironmentTier: v.(string),
-		}
-	}
-
-	return policy
-}
-
-func convertPipelineApprovalPolicy(d *schema.ResourceData) (*api.PipelineApprovalPolicy, error) {
-	var policy *api.PipelineApprovalPolicy
-
-	if v, ok := d.GetOk("pipeline_approval_policy"); ok {
-		assigneeGroupList := []api.AssigneeGroup{}
-		pipelineApprovalValue := api.PipelineApprovalValueManualNever
-
-		switch api.PipelineApprovalType(v.(string)) {
-		case api.PipelineApprovalTypeByProjectOwner:
-			pipelineApprovalValue = api.PipelineApprovalValueManualAlways
-			assigneeGroupList = []api.AssigneeGroup{
-				{
-					IssueType: api.IssueDatabaseDataUpdate,
-					Value:     api.AssigneeGroupValueProjectOwner,
-				},
-				{
-					IssueType: api.IssueDatabaseSchemaUpdate,
-					Value:     api.AssigneeGroupValueProjectOwner,
-				},
-				{
-					IssueType: api.IssueDatabaseSchemaUpdateGhost,
-					Value:     api.AssigneeGroupValueProjectOwner,
-				},
-			}
-		case api.PipelineApprovalTypeByWorkspaceOwnerORDBA:
-			pipelineApprovalValue = api.PipelineApprovalValueManualAlways
-			assigneeGroupList = []api.AssigneeGroup{
-				{
-					IssueType: api.IssueDatabaseDataUpdate,
-					Value:     api.AssigneeGroupValueWorkspaceOwnerOrDBA,
-				},
-				{
-					IssueType: api.IssueDatabaseSchemaUpdate,
-					Value:     api.AssigneeGroupValueWorkspaceOwnerOrDBA,
-				},
-				{
-					IssueType: api.IssueDatabaseSchemaUpdateGhost,
-					Value:     api.AssigneeGroupValueWorkspaceOwnerOrDBA,
-				},
-			}
-		}
-
-		policy = &api.PipelineApprovalPolicy{
-			Value:             pipelineApprovalValue,
-			AssigneeGroupList: assigneeGroupList,
-		}
-	}
-
-	return policy, nil
-}
-
-func convertBackupPlanPolicy(d *schema.ResourceData) *api.BackupPlanPolicy {
-	var policy *api.BackupPlanPolicy
-
-	if v, ok := d.GetOk("backup_plan_policy"); ok {
-		policy = &api.BackupPlanPolicy{
-			Schedule: v.(string),
-		}
-	}
-
-	return policy
 }

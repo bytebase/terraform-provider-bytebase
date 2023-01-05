@@ -10,8 +10,8 @@ import (
 )
 
 func TestAccEnvironmentListDataSource(t *testing.T) {
-	identifier := "new_environment"
-	name := "dev"
+	identifier := "new-environment"
+	title := "dev"
 	order := 1
 
 	resource.Test(t, resource.TestCase{
@@ -30,7 +30,7 @@ func TestAccEnvironmentListDataSource(t *testing.T) {
 				0,
 			),
 			internal.GetTestStepForDataSourceList(
-				testAccCheckEnvironmentResource(identifier, name, order),
+				testAccCheckEnvironmentResource(identifier, title, order),
 				fmt.Sprintf("bytebase_environment.%s", identifier),
 				"bytebase_environment_list",
 				"after",

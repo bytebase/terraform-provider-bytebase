@@ -33,7 +33,7 @@ func (c *client) ListInstance(ctx context.Context, find *api.InstanceFindMessage
 
 // GetInstance gets the instance by id.
 func (c *client) GetInstance(ctx context.Context, find *api.InstanceFindMessage) (*api.InstanceMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s/instances/%s?showDeleted=%v", c.HostURL, find.EnvironmentID, find.InstanceID, find.ShowDeleted), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s/instances/%s", c.HostURL, find.EnvironmentID, find.InstanceID), nil)
 	if err != nil {
 		return nil, err
 	}

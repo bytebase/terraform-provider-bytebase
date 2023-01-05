@@ -13,7 +13,7 @@ import (
 func TestAccEnvironmentDataSource(t *testing.T) {
 	identifier := "dev"
 	resourceName := fmt.Sprintf("bytebase_environment.%s", identifier)
-	name := "dev"
+	title := "dev"
 	order := 1
 
 	resource.Test(t, resource.TestCase{
@@ -26,18 +26,15 @@ func TestAccEnvironmentDataSource(t *testing.T) {
 			// get single environment test
 			{
 				Config: testAccCheckEnvironmentDataSource(
-					testAccCheckEnvironmentResource(identifier, name, order),
+					testAccCheckEnvironmentResource(identifier, title, order),
 					resourceName,
 					identifier,
-					name,
 				),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(fmt.Sprintf("data.%s", resourceName)),
-					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "name", name),
+					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "title", title),
 					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "order", fmt.Sprintf("%d", order)),
 					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "environment_tier_policy", "PROTECTED"),
-					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "pipeline_approval_policy", "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"),
-					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "backup_plan_policy", "DAILY"),
 				),
 			},
 		},
@@ -45,8 +42,7 @@ func TestAccEnvironmentDataSource(t *testing.T) {
 }
 
 func TestAccEnvironmentDataSource_NotFound(t *testing.T) {
-	identifier := "dev"
-	name := "dev"
+	identifier := "dev-notfound"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -60,9 +56,8 @@ func TestAccEnvironmentDataSource_NotFound(t *testing.T) {
 					"",
 					"",
 					identifier,
-					name,
 				),
-				ExpectError: regexp.MustCompile("Unable to get the environment"),
+				ExpectError: regexp.MustCompile("Cannot found environment with ID"),
 			},
 		},
 	})
@@ -71,17 +66,16 @@ func TestAccEnvironmentDataSource_NotFound(t *testing.T) {
 func testAccCheckEnvironmentDataSource(
 	resource,
 	dependsOn,
-	identifier,
-	envName string,
+	identifier string,
 ) string {
 	return fmt.Sprintf(`
 	%s
 
 	data "bytebase_environment" "%s" {
-		name = "%s"
+		resource_id = "%s"
 		depends_on = [
     		%s
   		]
 	}
-	`, resource, identifier, envName, dependsOn)
+	`, resource, identifier, identifier, dependsOn)
 }

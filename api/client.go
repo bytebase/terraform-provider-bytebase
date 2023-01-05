@@ -10,15 +10,17 @@ type Client interface {
 
 	// Environment
 	// CreateEnvironment creates the environment.
-	CreateEnvironment(ctx context.Context, create *EnvironmentUpsert) (*Environment, error)
+	CreateEnvironment(ctx context.Context, environmentID string, create *EnvironmentMessage) (*EnvironmentMessage, error)
 	// GetEnvironment gets the environment by id.
-	GetEnvironment(ctx context.Context, environmentID int) (*Environment, error)
+	GetEnvironment(ctx context.Context, environmentID string) (*EnvironmentMessage, error)
 	// ListEnvironment finds all environments.
-	ListEnvironment(ctx context.Context, find *EnvironmentFind) ([]*Environment, error)
+	ListEnvironment(ctx context.Context, showDeleted bool) (*ListEnvironmentMessage, error)
 	// UpdateEnvironment updates the environment.
-	UpdateEnvironment(ctx context.Context, environmentID int, patch *EnvironmentUpsert) (*Environment, error)
+	UpdateEnvironment(ctx context.Context, environmentID string, patch *EnvironmentPatchMessage) (*EnvironmentMessage, error)
 	// DeleteEnvironment deletes the environment.
-	DeleteEnvironment(ctx context.Context, environmentID int) error
+	DeleteEnvironment(ctx context.Context, environmentID string) error
+	// UndeleteEnvironment undeletes the environment.
+	UndeleteEnvironment(ctx context.Context, environmentID string) (*EnvironmentMessage, error)
 
 	// Instance
 	// ListInstance will return instances in environment.

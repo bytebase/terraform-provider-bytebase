@@ -2,14 +2,12 @@ package provider
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func dataSourceEnvironment() *schema.Resource {
@@ -17,16 +15,16 @@ func dataSourceEnvironment() *schema.Resource {
 		Description: "The environment data source.",
 		ReadContext: dataSourceEnvironmentRead,
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "The environment id.",
-			},
-			"name": {
+			"resource_id": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The environment unique name.",
+				ValidateFunc: internal.ResourceIDValidation,
+				Description:  "The environment unique resource id.",
+			},
+			"title": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The environment unique name.",
 			},
 			"order": {
 				Type:        schema.TypeInt,
@@ -38,16 +36,6 @@ func dataSourceEnvironment() *schema.Resource {
 				Computed:    true,
 				Description: "If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default.",
 			},
-			"pipeline_approval_policy": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "For updating schema on the existing database, this setting controls whether the task requires manual approval.",
-			},
-			"backup_plan_policy": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The database backup policy in this environment.",
-			},
 		},
 	}
 }
@@ -55,26 +43,12 @@ func dataSourceEnvironment() *schema.Resource {
 func dataSourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	name := d.Get("name").(string)
-
-	var diags diag.Diagnostics
-	environmentList, err := c.ListEnvironment(ctx, &api.EnvironmentFind{
-		Name: name,
-	})
+	environment, err := c.GetEnvironment(ctx, d.Get("resource_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	if len(environmentList) == 0 {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to get the environment",
-			Detail:   fmt.Sprintf("Cannot find the environment %s", name),
-		})
-		return diags
-	}
 
-	env := environmentList[0]
-	d.SetId(strconv.Itoa(env.ID))
+	d.SetId(environment.Name)
 
-	return setEnvironment(d, env)
+	return setEnvironment(d, environment)
 }
