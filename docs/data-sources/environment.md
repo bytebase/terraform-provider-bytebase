@@ -13,9 +13,9 @@ The environment data source. You can get a single environment through `bytebase_
 ## Example Usage
 
 ```terraform
-# Get environment named "dev"
+# Get environment by resource id
 data "bytebase_environment" "dev" {
-    name = "dev"
+    resource_id = "dev"
 }
 
 output "env" {
@@ -31,20 +31,13 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Required
 
-- `name` (String) The environment unique name.
+- `resource_id` (String) The environment **unique resource id**.
 
 ### Read-Only
 
 - `id` (Number) The ID of this resource.
+- `title` (String) The environment **unique** name.
 - `order` (Number) The environment sorting order. Starting with 1. Lower number appears first in the deployment pipeline.
 - `environment_tier_policy` (String) Check [Environment Tier](https://www.bytebase.com/docs/administration/environment-policy/tier) for details. Should be one of:
   - `PROTECTED`
   - `UNPROTECTED`
-- `pipeline_approval_policy` (String) Check [Approval Policy](https://www.bytebase.com/docs/administration/environment-policy/approval-policy) for details. Should be one of:
-  - `MANUAL_APPROVAL_NEVER`
-  - `MANUAL_APPROVAL_BY_PROJECT_OWNER`
-  - `MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA`
-- `backup_plan_policy` (String) Check [Backup Schedule Policy](https://www.bytebase.com/docs/administration/environment-policy/backup-schedule-policy) for details. Should be one of:
-  - `UNSET`
-  - `DAILY`
-  - `WEEKLY`

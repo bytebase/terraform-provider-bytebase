@@ -15,20 +15,18 @@ The environment resource. You can read, create, update or delete a single enviro
 ```terraform
 # Create a new environment named "dev"
 resource "bytebase_environment" "dev" {
-  name  = "dev"
-  order = 1
+  resource_id              = "dev"
+  title                    = "Dev"
+  order                    = 1
   environment_tier_policy  = "UNPROTECTED"
-  pipeline_approval_policy = "MANUAL_APPROVAL_NEVER"
-  backup_plan_policy       = "UNSET"
 }
 
 # Create a new environment named "prod"
 resource "bytebase_environment" "prod" {
-  name  = "prod"
-  order = 2
+  resource_id              = "prod"
+  title                    = "Prod"
+  order                    = 2
   environment_tier_policy  = "PROTECTED"
-  pipeline_approval_policy = "MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA"
-  backup_plan_policy       = "DAILY"
 }
 ```
 
@@ -40,19 +38,12 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Required
 
-- `name` (String) The environment **unique** name.
+- `resource_id` (String) The environment **unique resource id**. For example, `dev`, `dev-env`.
+- `title` (String) The environment **unique name**. For example, `Dev`.
 - `order` (Number) The environment sorting order. Starting with 1. Lower number appears first in the deployment pipeline.
 - `environment_tier_policy` (String) Check [Environment Tier](https://www.bytebase.com/docs/administration/environment-policy/tier) for details. Should be one of:
   - `PROTECTED`
   - `UNPROTECTED`
-- `pipeline_approval_policy` (String) Check [Approval Policy](https://www.bytebase.com/docs/administration/environment-policy/approval-policy) for details. Should be one of:
-  - `MANUAL_APPROVAL_NEVER`
-  - `MANUAL_APPROVAL_BY_PROJECT_OWNER`
-  - `MANUAL_APPROVAL_BY_WORKSPACE_OWNER_OR_DBA`
-- `backup_plan_policy` (String) Check [Backup Schedule Policy](https://www.bytebase.com/docs/administration/environment-policy/backup-schedule-policy) for details. Should be one of:
-  - `UNSET`
-  - `DAILY`
-  - `WEEKLY`
 
 ### Read-Only
 

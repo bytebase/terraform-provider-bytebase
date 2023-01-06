@@ -13,19 +13,20 @@ The instance resource. You can read, create, update or delete a single instance 
 ## Example Usage
 
 ```terraform
-# Create a new instance named "dev-instance"
+# Create a new instance with identifier "dev-instance"
 resource "bytebase_instance" "dev_instance" {
-  name        = "dev-instance"
+  resource_id = "dev-instance"
+  title       = "dev instance"
   engine      = "POSTGRES"
-  host        = "127.0.0.1"
   environment = "dev"
-  port        = 5432
 
   data_source_list {
-    name     = "admin data source"
+    title    = "admin data source"
     type     = "ADMIN"
     username = "<The connection user name>"
     password = "<The connection user password>"
+    host     = "127.0.0.1"
+    port     = 5432
   }
 }
 ```
@@ -38,38 +39,39 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Required
 
-- `name` (String) The instance **unique** name.
+- `resource_id` (String) The instance **unique resource id**.
+- `environment` (String) The environment **resource id** for the instance.
+- `title` (String) The instance name.
 - `engine` (String) The instance engine. Should be one of:
   - `MYSQL`
   - `POSTGRES`
   - `TIDB`
   - `SNOWFLAKE`
   - `CLICKHOUSE`
-- `environment` (String) The unique environment name for your instance.
-- `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.
-- `port` (String) The port for your instance.
-- `data_source_list` (List of Object, Min: 1, Max: 3) The connection for the instance. You can configure read-only, read-write or admin connection account here. (see [below for nested schema](#nestedblock--data_source_list))
+  - `SQLITE`
+  - `MONGODB`
+- `data_sources` (List of Object, Min: 1, Max: 2) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_sources))
 
 ### Optional
 
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
-- `database` (String) The database for your instance, you can set this if the engine type is POSTGRES.
 
 ### Read-Only
 
-- `engine_version` (String) The version for instance engine.
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--data_source_list"></a>
+<a id="nestedblock--data_sources"></a>
 
-### Nested Schema for `data_source_list`
+### Nested Schema for `data_sources`
 
 #### Required
 
-- `name` (String) The unique data source name in this instance.
+- `title` (String) The unique data source name in this instance.
 - `type` (String) The data source type. Should be one of:
   - `ADMIN`: The ADMIN type of data source.
-  - `RO`: The read-only type of data source.
+  - `READ_ONLY`: The read-only type of data source.
+- `host` (String) Host or socket for the data source, or the account name if the instance type is Snowflake.
+- `port` (String) The port for the data source.
 
 #### Optional
 
@@ -78,5 +80,4 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 - `ssl_ca` (String) The CA certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
 - `ssl_cert` (String) The client certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
 - `ssl_key` (String) The client key. Optional, you can set this if the engine type is `CLICKHOUSE`.
-- `host_override` (String) The Read-replica Host. Only works for RO type data source.
-- `port_override` (String) The Read-replica Port. Only works for RO type data source.
+- `database` (String) The database for the data source, you can set this if the engine type is `POSTGRES`.
