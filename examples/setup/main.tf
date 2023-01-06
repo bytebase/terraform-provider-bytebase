@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "0.0.6-beta.3"
+      version = "0.0.7-alpha"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -18,42 +18,43 @@ provider "bytebase" {
 }
 
 locals {
-  environment_id_dev  = "dev"
+  environment_id_test = "test"
   environment_id_prod = "prod"
-  instance_id_dev     = "dev-instance"
+  instance_id_test    = "test-instance"
   instance_id_prod    = "prod-instance"
-  role_name_dev       = "dev_role_test"
+  role_name           = "role_test_terraform"
 }
 
-# Create a new environment named "dev"
-resource "bytebase_environment" "dev" {
-  resource_id             = local.environment_id_dev
-  title                   = local.environment_id_dev
+# Create a new environment named "Test"
+resource "bytebase_environment" "test" {
+  resource_id             = local.environment_id_test
+  title                   = "Test"
   order                   = 0
   environment_tier_policy = "UNPROTECTED"
 }
 
-# Create another environment named "prod"
+# Create another environment named "Prod"
 resource "bytebase_environment" "prod" {
   resource_id             = local.environment_id_prod
-  title                   = local.environment_id_prod
+  title                   = "Prod"
   order                   = 1
   environment_tier_policy = "PROTECTED"
 }
 
-# Create a new instance named "dev_instance_test"
+# Create a new instance named "test instance"
 # You can replace the parameters with your real instance
-resource "bytebase_instance" "dev" {
-  resource_id = local.instance_id_dev
-  environment = bytebase_environment.dev.name
-  title       = "dev instance"
+resource "bytebase_instance" "test" {
+  resource_id = local.instance_id_test
+  environment = bytebase_environment.test.resource_id
+  title       = "test instance"
   engine      = "POSTGRES"
 
   # You need to specific the data source
   data_sources {
     title    = "admin data source"
     type     = "ADMIN"
-    username = "ecmadao"
+    username = "<The admin role name>"
+    password = "<The admin password name>"
     host     = "127.0.0.1"
     port     = "5432"
   }
@@ -62,17 +63,17 @@ resource "bytebase_instance" "dev" {
   data_sources {
     title    = "read-only data source"
     type     = "READ_ONLY"
-    username = "<The connection user name>"
-    password = "<The connection user password>"
+    username = "<The read-only user name>"
+    password = "<The read-only user password>"
     host     = "192.168.0.1"
     port     = "1234"
   }
 }
 
-# Create a new instance named "prod_instance_test"
+# Create a new instance named "prod instance"
 resource "bytebase_instance" "prod" {
   resource_id = local.instance_id_prod
-  environment = bytebase_environment.prod.name
+  environment = bytebase_environment.prod.resource_id
   title       = "prod instance"
   engine      = "POSTGRES"
 
@@ -87,11 +88,11 @@ resource "bytebase_instance" "prod" {
   }
 }
 
-# Create a new role named "dev_role_test" in the instance "dev_instance_test"
-resource "bytebase_database_role" "dev" {
-  name        = local.role_name_dev
-  instance    = bytebase_instance.dev.resource_id
-  environment = bytebase_instance.dev.environment
+# Create a new role named "role_test_terraform" in the instance "test-instance"
+resource "bytebase_database_role" "test" {
+  name        = local.role_name
+  instance    = bytebase_instance.test.resource_id
+  environment = bytebase_instance.test.environment
 
   password         = "123456"
   connection_limit = 10

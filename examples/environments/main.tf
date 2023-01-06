@@ -2,7 +2,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "0.0.6-beta.3"
+      version = "0.0.7-alpha"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -19,7 +19,7 @@ provider "bytebase" {
 }
 
 locals {
-  environment_id_dev  = "dev"
+  environment_id_test = "test"
   environment_id_prod = "prod"
 }
 
@@ -31,12 +31,12 @@ output "all_environments" {
 }
 
 // Find a specific environment by the name
-data "bytebase_environment" "dev" {
-  resource_id = local.environment_id_dev
+data "bytebase_environment" "test" {
+  resource_id = local.environment_id_test
 }
 
-output "dev_environment" {
-  value = data.bytebase_environment.dev
+output "test_environment" {
+  value = data.bytebase_environment.test
 }
 
 data "bytebase_environment" "prod" {

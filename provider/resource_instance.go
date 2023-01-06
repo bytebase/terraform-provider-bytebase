@@ -254,6 +254,13 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	if d.HasChange("resource_id") {
+		return diag.Errorf("cannot change the resource id")
+	}
+	if d.HasChange("environment") {
+		return diag.Errorf("cannot change the environment in instance")
+	}
+
 	c := m.(api.Client)
 
 	envID, instanceID, err := internal.GetEnvironmentInstanceID(d.Id())
