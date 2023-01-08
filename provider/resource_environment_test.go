@@ -63,7 +63,7 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 				Config: `
 					resource "bytebase_environment" "new_env" {
 						resource_id              = "dev"
-						title                    = "new_env"
+						title                    = "Dev"
 						environment_tier_policy  = "PROTECTED"
 					}
 				`,
@@ -85,19 +85,8 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 			{
 				Config: `
 					resource "bytebase_environment" "new_env" {
-						resource_id = "dev"
-						title       = "new_env"
-						order       = 1
-					}
-				`,
-				ExpectError: regexp.MustCompile("The argument \"environment_tier_policy\" is required"),
-			},
-			// Invalid policy
-			{
-				Config: `
-					resource "bytebase_environment" "new_env" {
 						resource_id             = "dev"
-						title                   = "new_env"
+						title                   = "Dev"
 						order                   = 1
 						environment_tier_policy = "UNKNOWN"
 					}

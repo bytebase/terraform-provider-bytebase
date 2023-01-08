@@ -27,10 +27,13 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ## Schema
 
+### Optional
+
+- `show_deleted` (Boolean) If also show the deleted environments.
+
 ### Read-Only
 
 - `environments` (List of Object) (see [below for nested schema](#nestedatt--environments))
-- `id` (String) The ID of this resource.
 
 <a id="nestedatt--environments"></a>
 

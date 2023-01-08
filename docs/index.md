@@ -61,9 +61,12 @@ provider "bytebase" {
 
 ```terraform
 # Usage example
-# Create a new environment named "dev"
+# Create a new environment named "Dev"
 resource "bytebase_environment" "dev" {
-  name = "dev"
+  resource_id             = "dev"
+  title                   = "Dev"
+  order                   = 0
+  environment_tier_policy = "UNPROTECTED"
 }
 ```
 
