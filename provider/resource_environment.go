@@ -47,7 +47,8 @@ func resourceEnvironment() *schema.Resource {
 			},
 			"environment_tier_policy": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "UNPROTECTED",
 				ValidateFunc: validation.StringInSlice([]string{
 					"PROTECTED",
 					"UNPROTECTED",
@@ -147,6 +148,10 @@ func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	if d.HasChange("resource_id") {
+		return diag.Errorf("cannot change the resource id")
+	}
+
 	c := m.(api.Client)
 
 	envID, err := internal.GetEnvironmentID(d.Id())

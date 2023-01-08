@@ -177,6 +177,13 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	if d.HasChange("instance") {
+		return diag.Errorf("cannot change the instance")
+	}
+	if d.HasChange("environment") {
+		return diag.Errorf("cannot change the environment")
+	}
+
 	c := m.(api.Client)
 
 	environmentID, instanceID, roleName, err := internal.GetEnvironmentInstanceRoleID(d.Id())

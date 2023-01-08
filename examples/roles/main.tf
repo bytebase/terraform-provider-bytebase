@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "0.0.6-beta.3"
+      version = "0.0.7-alpha"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -18,32 +18,32 @@ provider "bytebase" {
 }
 
 locals {
-  role_name_dev      = "dev_role_test"
-  instance_id_dev    = "dev-instance"
-  environment_id_dev = "dev"
+  role_name           = "role_test_terraform"
+  instance_id_test    = "test-instance"
+  environment_id_test = "test"
 }
 
 # Find the instance
-data "bytebase_instance" "dev" {
-  resource_id = local.instance_id_dev
-  environment = local.environment_id_dev
+data "bytebase_instance" "test" {
+  resource_id = local.instance_id_test
+  environment = local.environment_id_test
 }
 
-# Find the role "dev_role_test" in the instance "dev_instance_test"
-data "bytebase_instance_role" "dev" {
-  name        = local.role_name_dev
-  instance    = data.bytebase_instance.dev.resource_id
-  environment = data.bytebase_instance.dev.environment
+# Find the role "role_test_terraform" in the instance "test-instance"
+data "bytebase_instance_role" "test" {
+  name        = local.role_name
+  instance    = data.bytebase_instance.test.resource_id
+  environment = data.bytebase_instance.test.environment
 }
 
-output "dev_role" {
-  value = data.bytebase_instance_role.dev
+output "role" {
+  value = data.bytebase_instance_role.test
 }
 
-# List all roles in the instance "dev_instance_test"
+# List all roles in the instance "test-instance"
 data "bytebase_instance_role_list" "all" {
-  instance    = data.bytebase_instance.dev.resource_id
-  environment = data.bytebase_instance.dev.environment
+  instance    = data.bytebase_instance.test.resource_id
+  environment = data.bytebase_instance.test.environment
 }
 
 output "list_role" {

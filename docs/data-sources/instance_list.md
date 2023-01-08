@@ -13,11 +13,20 @@ The instance data source list. You can list instances through `bytebase_instance
 ## Example Usage
 
 ```terraform
-# List instances
+# List all instances in all environments
 data "bytebase_instance_list" "all" {}
 
 output "all_instances" {
-  value = data.bytebase_instance_list.all.instances
+  value = data.bytebase_instance_list.all
+}
+
+# List all instances in the "dev" environment
+data "bytebase_instance_list" "dev_instances" {
+  environment = "dev"
+}
+
+output "dev_instances" {
+  value = data.bytebase_instance_list.dev_instances
 }
 ```
 
@@ -27,9 +36,13 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ## Schema
 
+### Optional
+
+- `environment` (String) The environment **unique resource id**.
+- `show_deleted` (Boolean) If also show the deleted instances.
+
 ### Read-Only
 
-- `id` (String) The ID of this resource.
 - `instances` (List of Object) (see [below for nested schema](#nestedatt--instances))
 
 <a id="nestedatt--instances"></a>
@@ -38,6 +51,6 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 See [Instance Schema](https://registry.terraform.io/providers/bytebase/bytebase/latest/docs/data-sources/instance#schema).
 
-### Nested Schema for `data_source_list`
+### Nested Schema for `data_sources`
 
-See [Data Source Schema](https://registry.terraform.io/providers/bytebase/bytebase/latest/docs/data-sources/instance#nested-schema-for-data_source_list).
+See [Data Source Schema](https://registry.terraform.io/providers/bytebase/bytebase/latest/docs/data-sources/instance#nested-schema-for-data_sources).

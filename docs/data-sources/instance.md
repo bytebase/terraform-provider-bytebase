@@ -13,9 +13,10 @@ The instance data source. You can get a single instance through `bytebase_instan
 ## Example Usage
 
 ```terraform
-# Find a instance named "dev-instance"
+# Find a instance by resource id "dev-instance" in the "dev" environment.
 data "bytebase_instance" "dev" {
-    name = "dev-instance"
+  resource_id = "dev-instance"
+  environment = "dev"
 }
 
 output "instance" {
@@ -31,38 +32,39 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Required
 
-- `name` (String) The instance unique name.
+- `resource_id` (String) The instance **unique resource id**.
+- `environment` (String) The environment **unique resource id** for the instance.
 
 ### Read-Only
 
 - `id` (Number) The instance id.
+- `title` (String) The instance name.
 - `engine` (String) The instance engine. Should be one of:
   - `MYSQL`
   - `POSTGRES`
   - `TIDB`
   - `SNOWFLAKE`
   - `CLICKHOUSE`
-- `environment` (String) The unique environment name for your instance.
-- `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.
-- `port` (String) The port for your instance.
+  - `SQLITE`
+  - `MONGODB`
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
-- `database` (String) The database for your instance.
-- `data_source_list` (List of Object, Min: 1, Max: 3) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_source_list))
+- `data_sources` (List of Object) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_sources))
 
-<a id="nestedblock--data_source_list"></a>
+<a id="nestedblock--data_sources"></a>
 
-### Nested Schema for `data_source_list`
+### Nested Schema for `data_sources`
 
 #### Read-Only
 
-- `name` (String) The unique data source name in this instance.
+- `title` (String) The unique data source name in this instance.
 - `type` (String) The data source type. Should be one of:
   - `ADMIN`: The ADMIN type of data source.
-  - `RO`: The read-only type of data source.
+  - `READ_ONLY`: The read-only type of data source.
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
 - `password` (String) The connection user password used by Bytebase to perform DDL and DML operations.
 - `ssl_ca` (String) The CA certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
 - `ssl_cert` (String) The client certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
 - `ssl_key` (String) The client key. Optional, you can set this if the engine type is `CLICKHOUSE`.
-- `host_override` (String) The Read-replica Host. Only works for RO type data source.
-- `port_override` (String) The Read-replica Port. Only works for RO type data source.
+- `host` (String) Host or socket for the data source, or the account name if the instance type is Snowflake.
+- `port` (String) The port for the data source.
+- `database` (String) The database for the data source.

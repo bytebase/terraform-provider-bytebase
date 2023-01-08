@@ -2,7 +2,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "0.0.6-beta.3"
+      version = "0.0.7-alpha"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -19,9 +19,9 @@ provider "bytebase" {
 }
 
 locals {
-  environment_id_dev  = "dev"
+  environment_id_test = "test"
   environment_id_prod = "prod"
-  instance_id_dev     = "dev-instance"
+  instance_id_test    = "test-instance"
   instance_id_prod    = "prod-instance"
 }
 
@@ -33,23 +33,23 @@ output "all_instances" {
 }
 
 # List all instances in dev environment
-data "bytebase_instance_list" "dev" {
-  environment = local.environment_id_dev
+data "bytebase_instance_list" "test" {
+  environment = local.environment_id_test
 }
 
-output "dev_instances" {
-  value = data.bytebase_instance_list.dev.instances
+output "test_instances" {
+  value = data.bytebase_instance_list.test
 }
 
 # Find a specific instance by name
-data "bytebase_instance" "dev" {
-  resource_id = local.instance_id_dev
-  environment = local.environment_id_dev
+data "bytebase_instance" "test" {
+  resource_id = local.instance_id_test
+  environment = local.environment_id_test
 }
 
 
-output "dev_instance" {
-  value = data.bytebase_instance.dev
+output "test_instance" {
+  value = data.bytebase_instance.test
 }
 
 data "bytebase_instance" "prod" {
