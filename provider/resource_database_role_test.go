@@ -26,7 +26,7 @@ func TestAccRole(t *testing.T) {
 				Config: fmt.Sprintf(`
 				%s
 
-				resource "bytebase_database_role" "test_role_1" {
+				resource "bytebase_instance_role" "test_role_1" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
 					environment = bytebase_instance.%s.environment
@@ -35,19 +35,19 @@ func TestAccRole(t *testing.T) {
 				}
 				`, mockInstanceResource("instance-1"), roleName, "instance-1", "instance-1"),
 				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists("bytebase_database_role.test_role_1"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_1", "name", roleName),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_1", "instance", "instance-1"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_1", "connection_limit", "-1"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_1", "valid_until", ""),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_1", "attribute.#", "1"),
+					internal.TestCheckResourceExists("bytebase_instance_role.test_role_1"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_1", "name", roleName),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_1", "instance", "instance-1"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_1", "connection_limit", "-1"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_1", "valid_until", ""),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_1", "attribute.#", "1"),
 				),
 			},
 			{
 				Config: fmt.Sprintf(`
 				%s
 
-				resource "bytebase_database_role" "test_role_2" {
+				resource "bytebase_instance_role" "test_role_2" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
 					environment = bytebase_instance.%s.environment
@@ -58,19 +58,19 @@ func TestAccRole(t *testing.T) {
 				}
 				`, mockInstanceResource("instance-2"), roleName, "instance-2", "instance-2"),
 				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists("bytebase_database_role.test_role_2"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "name", roleName),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "instance", "instance-2"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "connection_limit", "99"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "valid_until", "2022-12-31T15:04:05+08:00"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_2", "attribute.#", "1"),
+					internal.TestCheckResourceExists("bytebase_instance_role.test_role_2"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_2", "name", roleName),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_2", "instance", "instance-2"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_2", "connection_limit", "99"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_2", "valid_until", "2022-12-31T15:04:05+08:00"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_2", "attribute.#", "1"),
 				),
 			},
 			{
 				Config: fmt.Sprintf(`
 				%s
 
-				resource "bytebase_database_role" "test_role_3" {
+				resource "bytebase_instance_role" "test_role_3" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
 					environment = bytebase_instance.%s.environment
@@ -83,13 +83,13 @@ func TestAccRole(t *testing.T) {
 				}
 				`, mockInstanceResource("instance-3"), roleName, "instance-3", "instance-3"),
 				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists("bytebase_database_role.test_role_3"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_3", "name", roleName),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_3", "instance", "instance-3"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_3", "attribute.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_3", "attribute.0.super_user", "true"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_3", "attribute.0.no_inherit", "true"),
-					resource.TestCheckResourceAttr("bytebase_database_role.test_role_3", "attribute.0.create_role", "false"),
+					internal.TestCheckResourceExists("bytebase_instance_role.test_role_3"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_3", "name", roleName),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_3", "instance", "instance-3"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_3", "attribute.#", "1"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_3", "attribute.0.super_user", "true"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_3", "attribute.0.no_inherit", "true"),
+					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_3", "attribute.0.create_role", "false"),
 				),
 			},
 		},
@@ -100,7 +100,7 @@ func testAccCheckRoleDestroy(s *terraform.State) error {
 	c := testAccProvider.Meta().(api.Client)
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "bytebase_database_role" {
+		if rs.Type != "bytebase_instance_role" {
 			continue
 		}
 

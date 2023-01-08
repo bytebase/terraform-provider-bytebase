@@ -13,7 +13,7 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
-func dataSourceDatabaseRoleList() *schema.Resource {
+func dataSourceInstanceRoleList() *schema.Resource {
 	return &schema.Resource{
 		Description: "The database role data source list.",
 		ReadContext: dataSourceRoleListRead,

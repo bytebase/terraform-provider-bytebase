@@ -30,22 +30,22 @@ data "bytebase_instance" "dev" {
 }
 
 # Find the role "dev_role_test" in the instance "dev_instance_test"
-data "bytebase_database_role" "dev" {
+data "bytebase_instance_role" "dev" {
   name        = local.role_name_dev
   instance    = data.bytebase_instance.dev.resource_id
   environment = data.bytebase_instance.dev.environment
 }
 
 output "dev_role" {
-  value = data.bytebase_database_role.dev
+  value = data.bytebase_instance_role.dev
 }
 
 # List all roles in the instance "dev_instance_test"
-data "bytebase_database_role_list" "all" {
+data "bytebase_instance_role_list" "all" {
   instance    = data.bytebase_instance.dev.resource_id
   environment = data.bytebase_instance.dev.environment
 }
 
 output "list_role" {
-  value = data.bytebase_database_role_list.all
+  value = data.bytebase_instance_role_list.all
 }

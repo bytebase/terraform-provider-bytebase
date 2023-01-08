@@ -88,7 +88,7 @@ resource "bytebase_instance" "prod" {
 }
 
 # Create a new role named "dev_role_test" in the instance "dev_instance_test"
-resource "bytebase_database_role" "dev" {
+resource "bytebase_instance_role" "dev" {
   name        = local.role_name_dev
   instance    = bytebase_instance.dev.resource_id
   environment = bytebase_instance.dev.environment

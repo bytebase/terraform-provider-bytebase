@@ -9,11 +9,11 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
-func TestAccDatabaseRoleListDataSource(t *testing.T) {
+func TestAccInstanceRoleListDataSource(t *testing.T) {
 	instanceName := "test-instance"
 	roleName := "test_role"
 	outputName := "role_list"
-	resourceName := fmt.Sprintf("data.bytebase_database_role_list.%s", outputName)
+	resourceName := fmt.Sprintf("data.bytebase_instance_role_list.%s", outputName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -26,7 +26,7 @@ func TestAccDatabaseRoleListDataSource(t *testing.T) {
 				Config: fmt.Sprintf(`
 				%s
 
-				data "bytebase_database_role_list" "%s" {
+				data "bytebase_instance_role_list" "%s" {
 					instance    = bytebase_instance.%s.resource_id
 					environment = bytebase_instance.%s.environment
 				}
@@ -40,7 +40,7 @@ func TestAccDatabaseRoleListDataSource(t *testing.T) {
 				Config: fmt.Sprintf(`
 				%s
 
-				resource "bytebase_database_role" "%s" {
+				resource "bytebase_instance_role" "%s" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
 					environment = bytebase_instance.%s.environment
@@ -48,12 +48,12 @@ func TestAccDatabaseRoleListDataSource(t *testing.T) {
 					attribute {}
 				}
 
-				data "bytebase_database_role_list" "%s" {
+				data "bytebase_instance_role_list" "%s" {
 					instance = bytebase_instance.%s.resource_id
 					environment = bytebase_instance.%s.environment
 
 					depends_on = [
-    					bytebase_database_role.%s
+    					bytebase_instance_role.%s
   					]
 				}
 				`, mockInstanceResource(instanceName), roleName, roleName, instanceName, instanceName, outputName, instanceName, instanceName, roleName),

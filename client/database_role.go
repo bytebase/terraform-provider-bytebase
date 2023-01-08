@@ -89,8 +89,8 @@ func (c *client) UpdateRole(ctx context.Context, environmentID, instanceID, role
 	}
 
 	paths := []string{}
-	if patch.Title != roleName {
-		paths = append(paths, "role.title")
+	if patch.RoleName != roleName {
+		paths = append(paths, "role.role_name")
 	}
 	if patch.Password != nil {
 		paths = append(paths, "role.password")

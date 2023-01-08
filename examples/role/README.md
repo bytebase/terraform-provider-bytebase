@@ -9,7 +9,7 @@ You should replace the provider initial variables with your own and exec the [se
 ## List roles
 
 ```terraform
-data "bytebase_database_role_list" "all" {
+data "bytebase_instance_role_list" "all" {
   instance = "<the instance name>"
 }
 ```
@@ -17,7 +17,7 @@ data "bytebase_database_role_list" "all" {
 ## Find role by name
 
 ```terraform
-data "bytebase_database_role" "dev" {
+data "bytebase_instance_role" "dev" {
   name     = "<the role name>"
   instance = "<the instance name>"
 }

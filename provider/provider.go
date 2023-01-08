@@ -53,13 +53,13 @@ func NewProvider() *schema.Provider {
 			"bytebase_instance_list":      dataSourceInstanceList(),
 			"bytebase_environment":        dataSourceEnvironment(),
 			"bytebase_environment_list":   dataSourceEnvironmentList(),
-			"bytebase_database_role":      dataSourceDatabaseRole(),
-			"bytebase_database_role_list": dataSourceDatabaseRoleList(),
+			"bytebase_instance_role":      dataSourceInstanceRole(),
+			"bytebase_instance_role_list": dataSourceInstanceRoleList(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"bytebase_environment":   resourceEnvironment(),
 			"bytebase_instance":      resourceInstance(),
-			"bytebase_database_role": resourceDatabaseRole(),
+			"bytebase_instance_role": resourceInstanceRole(),
 		},
 	}
 }
