@@ -1,6 +1,6 @@
-# Example of database role resource
+# Example of instance role resource
 
-This is an example of using the Terraform Bytebase Provider to query the database role in a specific instance.
+This is an example of using the Terraform Bytebase Provider to query the instance role in a specific instance.
 
 You should replace the provider initial variables with your own and exec the [setup](../setup/) before running this example.
 

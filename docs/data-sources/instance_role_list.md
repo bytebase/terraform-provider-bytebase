@@ -3,14 +3,14 @@
 page_title: "bytebase_instance_role_list Data Source - terraform-provider-bytebase"
 subcategory: ""
 description: |-
-  The database role list data source.
+  The instance role list data source.
 ---
 
 # bytebase_instance_role_list (Data Source)
 
 > Requires the Bytebase version > 1.9.1 or use the release-ci.
 
-The database role list data source. You can list roles in a specific instance through the `bytebase_instance_role_list` data source.
+The instance role list data source. You can list roles in a specific instance through the `bytebase_instance_role_list` data source.
 
 ## Example Usage
 

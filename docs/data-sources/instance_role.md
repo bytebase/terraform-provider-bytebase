@@ -3,19 +3,19 @@
 page_title: "bytebase_instance_role Data Source - terraform-provider-bytebase"
 subcategory: ""
 description: |-
-  The database role data source.
+  The instance role data source.
 ---
 
 # bytebase_instance_role (Data Source)
 
 > Requires the Bytebase version > 1.9.1 or use the release-ci.
 
-The database role data source. You can get a single role in a specific instance through the `bytebase_instance_role` data source.
+The instance role data source. You can get a single role in a specific instance through the `bytebase_instance_role` data source.
 
 ## Example Usage
 
 ```terraform
-data "bytebase_database_role" "find_role" {
+data "bytebase_instance_role" "find_role" {
   name        = "<role name>"
   instance    = "<the instance resource id>"
   environment = "<the environment resource id>"
