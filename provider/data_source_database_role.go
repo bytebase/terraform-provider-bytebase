@@ -11,9 +11,9 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
-func dataSourceDatabaseRole() *schema.Resource {
+func dataSourceInstanceRole() *schema.Resource {
 	return &schema.Resource{
-		Description: "The database role data source.",
+		Description: "The instance role data source.",
 		ReadContext: dataSourceRoleRead,
 		Schema: map[string]*schema.Schema{
 			"name": {

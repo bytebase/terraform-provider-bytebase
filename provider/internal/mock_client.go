@@ -235,15 +235,15 @@ func (c *mockClient) UndeleteInstance(ctx context.Context, environmentID, instan
 
 // CreateRole creates the role in the instance.
 func (c *mockClient) CreateRole(_ context.Context, environmentID, instanceID string, create *api.RoleUpsert) (*api.Role, error) {
-	id := getRoleMapID(environmentID, instanceID, create.Title)
+	id := getRoleMapID(environmentID, instanceID, create.RoleName)
 
 	if _, ok := c.roleMap[id]; ok {
-		return nil, errors.Errorf("Role %s already exists", create.Title)
+		return nil, errors.Errorf("Role %s already exists", create.RoleName)
 	}
 
 	role := &api.Role{
 		Name:            id,
-		Title:           create.Title,
+		RoleName:        create.RoleName,
 		ConnectionLimit: -1,
 		Attribute:       &api.RoleAttribute{},
 	}
@@ -292,8 +292,8 @@ func (c *mockClient) UpdateRole(ctx context.Context, environmentID, instanceID, 
 	}
 
 	newRole := &api.Role{
-		Name:            getRoleMapID(environmentID, instanceID, patch.Title),
-		Title:           patch.Title,
+		Name:            getRoleMapID(environmentID, instanceID, patch.RoleName),
+		RoleName:        patch.RoleName,
 		ConnectionLimit: role.ConnectionLimit,
 		ValidUntil:      role.ValidUntil,
 		Attribute:       role.Attribute,

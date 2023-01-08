@@ -10,10 +10,10 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
-func TestAccDatabaseRoleDataSource(t *testing.T) {
+func TestAccInstanceRoleDataSource(t *testing.T) {
 	roleName := "test_role"
 	instanceName := "test-instance"
-	resourceName := fmt.Sprintf("data.bytebase_database_role.%s", roleName)
+	resourceName := fmt.Sprintf("data.bytebase_instance_role.%s", roleName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -26,7 +26,7 @@ func TestAccDatabaseRoleDataSource(t *testing.T) {
 				Config: fmt.Sprintf(`
 				%s
 
-				resource "bytebase_database_role" "%s" {
+				resource "bytebase_instance_role" "%s" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
 					environment = bytebase_instance.%s.environment
@@ -34,8 +34,8 @@ func TestAccDatabaseRoleDataSource(t *testing.T) {
 					attribute {}
 				}
 
-				data "bytebase_database_role" "%s" {
-					name        = bytebase_database_role.%s.name
+				data "bytebase_instance_role" "%s" {
+					name        = bytebase_instance_role.%s.name
 					instance    = bytebase_instance.%s.resource_id
 					environment = bytebase_instance.%s.environment
 				}
@@ -52,7 +52,7 @@ func TestAccDatabaseRoleDataSource(t *testing.T) {
 	})
 }
 
-func TestAccDatabaseRoleDataSource_RoleNotFound(t *testing.T) {
+func TestAccInstanceRoleDataSource_RoleNotFound(t *testing.T) {
 	roleName := "test_role"
 	instanceName := "test-instance"
 
@@ -67,7 +67,7 @@ func TestAccDatabaseRoleDataSource_RoleNotFound(t *testing.T) {
 				Config: fmt.Sprintf(`
 				%s
 
-				data "bytebase_database_role" "%s" {
+				data "bytebase_instance_role" "%s" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
 					environment = bytebase_instance.%s.environment
@@ -79,7 +79,7 @@ func TestAccDatabaseRoleDataSource_RoleNotFound(t *testing.T) {
 	})
 }
 
-func TestAccDatabaseRoleDataSource_InstanceNotFound(t *testing.T) {
+func TestAccInstanceRoleDataSource_InstanceNotFound(t *testing.T) {
 	roleName := "test_role"
 	instanceID := "test-instance"
 	environmentID := "test-environment"
@@ -93,7 +93,7 @@ func TestAccDatabaseRoleDataSource_InstanceNotFound(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
-				data "bytebase_database_role" "%s" {
+				data "bytebase_instance_role" "%s" {
 					name        = "%s"
 					instance    = "%s"
 					environment = "%s"

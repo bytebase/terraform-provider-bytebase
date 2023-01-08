@@ -30,22 +30,22 @@ data "bytebase_instance" "test" {
 }
 
 # Find the role "role_test_terraform" in the instance "test-instance"
-data "bytebase_database_role" "test" {
+data "bytebase_instance_role" "test" {
   name        = local.role_name
   instance    = data.bytebase_instance.test.resource_id
   environment = data.bytebase_instance.test.environment
 }
 
 output "role" {
-  value = data.bytebase_database_role.test
+  value = data.bytebase_instance_role.test
 }
 
 # List all roles in the instance "test-instance"
-data "bytebase_database_role_list" "all" {
+data "bytebase_instance_role_list" "all" {
   instance    = data.bytebase_instance.test.resource_id
   environment = data.bytebase_instance.test.environment
 }
 
 output "list_role" {
-  value = data.bytebase_database_role_list.all
+  value = data.bytebase_instance_role_list.all
 }

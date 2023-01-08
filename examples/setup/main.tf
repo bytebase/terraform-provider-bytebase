@@ -89,7 +89,7 @@ resource "bytebase_instance" "prod" {
 }
 
 # Create a new role named "role_test_terraform" in the instance "test-instance"
-resource "bytebase_database_role" "test" {
+resource "bytebase_instance_role" "test" {
   name        = local.role_name
   instance    = bytebase_instance.test.resource_id
   environment = bytebase_instance.test.environment

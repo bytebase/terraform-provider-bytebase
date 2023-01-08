@@ -15,7 +15,7 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
-func resourceDatabaseRole() *schema.Resource {
+func resourceInstanceRole() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The role resource.",
 		CreateContext: resourceRoleCreate,
@@ -128,7 +128,7 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface
 	roleName := d.Get("name").(string)
 
 	upsert := &api.RoleUpsert{
-		Title:     roleName,
+		RoleName:  roleName,
 		Attribute: convertRoleAttribute(d),
 	}
 
@@ -195,12 +195,12 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	upsert := &api.RoleUpsert{
-		Title: roleName,
+		RoleName: roleName,
 	}
 
 	if d.HasChange("name") {
 		if v := d.Get("name").(string); v != "" {
-			upsert.Title = v
+			upsert.RoleName = v
 		}
 	}
 	if d.HasChange("password") {
@@ -226,7 +226,7 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	role, err := c.GetRole(ctx, environmentID, instanceID, upsert.Title)
+	role, err := c.GetRole(ctx, environmentID, instanceID, upsert.RoleName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -270,7 +270,7 @@ func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func setRole(d *schema.ResourceData, role *api.Role) diag.Diagnostics {
-	if err := d.Set("name", role.Title); err != nil {
+	if err := d.Set("name", role.RoleName); err != nil {
 		return diag.Errorf("cannot set name for role: %s", err.Error())
 	}
 	if err := d.Set("connection_limit", role.ConnectionLimit); err != nil {
