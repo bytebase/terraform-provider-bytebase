@@ -8,8 +8,6 @@ description: |-
 
 # bytebase_instance_role (Data Source)
 
-> Requires the Bytebase version > 1.9.1 or use the release-ci.
-
 The instance role data source. You can get a single role in a specific instance through the `bytebase_instance_role` data source.
 
 ## Example Usage

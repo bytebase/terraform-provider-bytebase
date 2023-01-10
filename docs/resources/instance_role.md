@@ -8,8 +8,6 @@ description: |-
 
 # bytebase_instance_role (Resource)
 
-> Requires the Bytebase version > 1.9.1 or use the release-ci.
-
 Instance role resource. You can read, create, update or delete a single role in a specific instance through `bytebase_instance_role` resource.
 
 ## Example Usage
