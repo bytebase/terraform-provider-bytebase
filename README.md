@@ -18,7 +18,7 @@ Please follow [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get
 
 - [Go](https://golang.org/doc/install) (1.19 or later)
 - [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform) (1.3.5 or later)
-- [Bytebase](https://github.com/bytebase/bytebase)
+- [Bytebase](https://github.com/bytebase/bytebase) (1.11.0 or later)
 
 ### Prepare Bytebase OpenAPI server
 
