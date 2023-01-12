@@ -359,10 +359,10 @@ func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) d
 		return diag.FromErr(err)
 	}
 	if err := d.Set("resource_id", instanceID); err != nil {
-		return diag.Errorf("cannot set name for instance: %s", err.Error())
+		return diag.Errorf("cannot set resource_id for instance: %s", err.Error())
 	}
 	if err := d.Set("title", instance.Title); err != nil {
-		return diag.Errorf("cannot set name for instance: %s", err.Error())
+		return diag.Errorf("cannot set title for instance: %s", err.Error())
 	}
 	if err := d.Set("environment", envID); err != nil {
 		return diag.Errorf("cannot set environment for instance: %s", err.Error())

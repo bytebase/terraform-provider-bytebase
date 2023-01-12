@@ -55,6 +55,8 @@ func NewProvider() *schema.Provider {
 			"bytebase_environment_list":   dataSourceEnvironmentList(),
 			"bytebase_instance_role":      dataSourceInstanceRole(),
 			"bytebase_instance_role_list": dataSourceInstanceRoleList(),
+			"bytebase_policy":             dataSourcePolicy(),
+			"bytebase_policy_list":        dataSourcePolicyList(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"bytebase_environment":   resourceEnvironment(),

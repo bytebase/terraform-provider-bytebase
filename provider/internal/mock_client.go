@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -12,17 +13,20 @@ import (
 
 var environmentMap map[string]*api.EnvironmentMessage
 var instanceMap map[string]*api.InstanceMessage
+var policyMap map[string]*api.PolicyMessage
 var roleMap map[string]*api.Role
 
 func init() {
 	environmentMap = map[string]*api.EnvironmentMessage{}
 	instanceMap = map[string]*api.InstanceMessage{}
+	policyMap = map[string]*api.PolicyMessage{}
 	roleMap = map[string]*api.Role{}
 }
 
 type mockClient struct {
 	environmentMap map[string]*api.EnvironmentMessage
 	instanceMap    map[string]*api.InstanceMessage
+	policyMap      map[string]*api.PolicyMessage
 	roleMap        map[string]*api.Role
 }
 
@@ -31,6 +35,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 	return &mockClient{
 		environmentMap: environmentMap,
 		instanceMap:    instanceMap,
+		policyMap:      policyMap,
 		roleMap:        roleMap,
 	}, nil
 }
@@ -324,4 +329,58 @@ func (c *mockClient) DeleteRole(_ context.Context, environmentID, instanceID, ro
 
 func getRoleMapID(environmentID, instanceID, roleName string) string {
 	return fmt.Sprintf("environments/%s/instances/%s/roles/%s", environmentID, instanceID, roleName)
+}
+
+// ListPolicies lists policies in a specific resource.
+func (c *mockClient) ListPolicies(_ context.Context, find *api.PolicyFindMessage) (*api.ListPolicyMessage, error) {
+	policies := make([]*api.PolicyMessage, 0)
+	name := getPolicyRequestName(find)
+	for _, policy := range c.policyMap {
+		if policy.State == api.Deleted && !find.ShowDeleted {
+			continue
+		}
+		if policy.Name == name {
+			policies = append(policies, policy)
+		}
+	}
+
+	return &api.ListPolicyMessage{
+		Policies: policies,
+	}, nil
+}
+
+// GetPolicy gets a policy in a specific resource.
+func (c *mockClient) GetPolicy(_ context.Context, find *api.PolicyFindMessage) (*api.PolicyMessage, error) {
+	name := getPolicyRequestName(find)
+	policy, ok := c.policyMap[name]
+	if !ok {
+		return nil, errors.Errorf("Cannot found policy %s", name)
+	}
+
+	return policy, nil
+}
+
+func getPolicyRequestName(find *api.PolicyFindMessage) string {
+	paths := []string{}
+	if v := find.ProjectID; v != nil {
+		paths = append(paths, fmt.Sprintf("projects/%s", *v))
+	}
+	if v := find.EnvironmentID; v != nil {
+		paths = append(paths, fmt.Sprintf("environments/%s", *v))
+	}
+	if v := find.InstanceID; v != nil {
+		paths = append(paths, fmt.Sprintf("instances/%s", *v))
+	}
+	if v := find.DatabaseName; v != nil {
+		paths = append(paths, fmt.Sprintf("databases/%s", *v))
+	}
+
+	paths = append(paths, "policies")
+
+	name := strings.Join(paths, "/")
+	if v := find.Type; v != nil {
+		name = fmt.Sprintf("%s/%s", name, *v)
+	}
+
+	return name
 }

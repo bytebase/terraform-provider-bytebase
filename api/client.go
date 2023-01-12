@@ -47,4 +47,10 @@ type Client interface {
 	UpdateRole(ctx context.Context, environmentID, instanceID, roleName string, patch *RoleUpsert) (*Role, error)
 	// DeleteRole deletes the role in the instance.
 	DeleteRole(ctx context.Context, environmentID, instanceID, roleName string) error
+
+	// Policy
+	// ListPolicies lists policies in a specific resource.
+	ListPolicies(ctx context.Context, find *PolicyFindMessage) (*ListPolicyMessage, error)
+	// GetPolicy gets a policy in a specific resource.
+	GetPolicy(ctx context.Context, find *PolicyFindMessage) (*PolicyMessage, error)
 }
