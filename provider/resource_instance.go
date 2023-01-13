@@ -101,19 +101,19 @@ func resourceInstance() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "The CA certificate. Optional, you can set this if the engine type is CLICKHOUSE.",
+							Description: "The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 						},
 						"ssl_cert": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "The client certificate. Optional, you can set this if the engine type is CLICKHOUSE.",
+							Description: "The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 						},
 						"ssl_key": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "The client key. Optional, you can set this if the engine type is CLICKHOUSE.",
+							Description: "The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 						},
 						"host": {
 							Type:         schema.TypeString,

@@ -141,6 +141,19 @@ type PolicyMessage struct {
 	SQLReviewPolicy          *SQLReviewPolicy          `json:"sqlReviewPolicy"`
 }
 
+// PolicyPatchMessage is the API message to patch the policy.
+type PolicyPatchMessage struct {
+	InheritFromParent *bool      `json:"inheritFromParent"`
+	Type              PolicyType `json:"type"`
+
+	// The policy payload
+	DeploymentApprovalPolicy *DeploymentApprovalPolicy `json:"deploymentApprovalPolicy"`
+	BackupPlanPolicy         *BackupPlanPolicy         `json:"backupPlanPolicy"`
+	SensitiveDataPolicy      *SensitiveDataPolicy      `json:"sensitiveDataPolicy"`
+	AccessControlPolicy      *AccessControlPolicy      `json:"accessControlPolicy"`
+	SQLReviewPolicy          *SQLReviewPolicy          `json:"sqlReviewPolicy"`
+}
+
 // ListPolicyMessage is the API message for list policy response.
 type ListPolicyMessage struct {
 	Policies      []*PolicyMessage `json:"policies"`

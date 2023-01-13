@@ -57,17 +57,21 @@ func GetEnvironmentInstanceRoleID(name string) (string, string, string, error) {
 	return tokens[0], tokens[1], tokens[2], nil
 }
 
-// GetPolicyFindMessage will generate the policy find by the name.
-func GetPolicyFindMessage(name string) (*api.PolicyFindMessage, error) {
+// GetPolicyFindMessageByName will generate the policy find by the name.
+func GetPolicyFindMessageByName(name string) (*api.PolicyFindMessage, error) {
 	tokens := strings.Split(name, policyNamePrefix)
 	if len(tokens) != 2 {
 		return nil, errors.Errorf("invalid policy name %s", name)
 	}
 
 	parent := tokens[0]
-	policyType := api.PolicyType(tokens[1])
+	policyType := api.PolicyType(strings.ToUpper(tokens[1]))
 	find := &api.PolicyFindMessage{
 		Type: &policyType,
+	}
+
+	if strings.HasSuffix(parent, "/") {
+		parent = parent[:(len(parent) - 1)]
 	}
 
 	if parent == "" {

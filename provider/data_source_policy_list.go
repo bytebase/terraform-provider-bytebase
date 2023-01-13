@@ -9,46 +9,19 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
-	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
+// TODO(ed): add test and doc.
 func dataSourcePolicyList() *schema.Resource {
 	return &schema.Resource{
 		Description: "The policy data source list.",
 		ReadContext: dataSourcePolicyListRead,
-		Schema: map[string]*schema.Schema{
+		Schema: getPolicySchema(map[string]*schema.Schema{
 			"show_deleted": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 				Description: "Including removed policy in the response.",
-			},
-			"project": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "",
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The project resource id for the policy.",
-			},
-			"environment": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "",
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The environment resource id for the policy.",
-			},
-			"instance": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "",
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The instance resource id for the policy.",
-			},
-			"database": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "",
-				Description: "The database name for the policy.",
 			},
 			"policies": {
 				Type:     schema.TypeList,
@@ -70,15 +43,15 @@ func dataSourcePolicyList() *schema.Resource {
 							Computed:    true,
 							Description: "Decide if the policy should inherit from the parent.",
 						},
-						"deployment_approval_policy": deploymentApprovalPolicySchema,
-						"backup_plan_policy":         backupPlanPolicySchema,
-						"sensitive_data_policy":      sensitiveDataPolicy,
-						"access_control_policy":      accessControlPolicy,
-						"sql_review_policy":          sqlReviewPolicy,
+						"deployment_approval_policy": getDeploymentApprovalPolicySchema(true),
+						"backup_plan_policy":         getBackupPlanPolicySchema(true),
+						"sensitive_data_policy":      getSensitiveDataPolicy(true),
+						"access_control_policy":      getAccessControlPolicy(true),
+						"sql_review_policy":          getSQLReviewPolicy(true),
 					},
 				},
 			},
-		},
+		}),
 	}
 }
 
@@ -100,12 +73,17 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 	for _, policy := range response.Policies {
 		raw := make(map[string]interface{})
 		raw["name"] = policy.Name
+		raw["type"] = policy.Type
 		raw["inherit_from_parent"] = policy.InheritFromParent
 		if p := policy.DeploymentApprovalPolicy; p != nil {
 			raw["deployment_approval_policy"] = flattenDeploymentApprovalPolicy(p)
 		}
 		if p := policy.BackupPlanPolicy; p != nil {
-			raw["backup_plan_policy"] = flattenBackupPlanPolicy(p)
+			backupPlan, err := flattenBackupPlanPolicy(p)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			raw["backup_plan_policy"] = backupPlan
 		}
 		if p := policy.SensitiveDataPolicy; p != nil {
 			raw["sensitive_data_policy"] = flattenSensitiveDataPolicy(p)

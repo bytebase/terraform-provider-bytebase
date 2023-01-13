@@ -62,6 +62,65 @@ func (c *client) GetPolicy(ctx context.Context, find *api.PolicyFindMessage) (*a
 	return &res, nil
 }
 
+// UpsertPolicy creates or updates the policy.
+func (c *client) UpsertPolicy(ctx context.Context, find *api.PolicyFindMessage, patch *api.PolicyPatchMessage) (*api.PolicyMessage, error) {
+	if find.Type == nil {
+		return nil, errors.Errorf("invalid request, get policy must specific the policy type")
+	}
+
+	payload, err := json.Marshal(patch)
+	if err != nil {
+		return nil, err
+	}
+
+	paths := []string{}
+	if patch.InheritFromParent != nil {
+		paths = append(paths, "policy.inherit_from_parent")
+	}
+	if patch.DeploymentApprovalPolicy != nil ||
+		patch.BackupPlanPolicy != nil ||
+		patch.SensitiveDataPolicy != nil ||
+		patch.AccessControlPolicy != nil ||
+		patch.SQLReviewPolicy != nil {
+		paths = append(paths, "policy.payload")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s?allow_missing=true&update_mask=%s", c.HostURL, getPolicyRequestName(find), strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var res api.PolicyMessage
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+// DeletePolicy deletes the policy.
+func (c *client) DeletePolicy(ctx context.Context, find *api.PolicyFindMessage) error {
+	if find.Type == nil {
+		return errors.Errorf("invalid request, get policy must specific the policy type")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s", c.HostURL, getPolicyRequestName(find)), nil)
+	if err != nil {
+		return err
+	}
+
+	if _, err := c.doRequest(req); err != nil {
+		return err
+	}
+	return nil
+}
+
 func getPolicyRequestName(find *api.PolicyFindMessage) string {
 	paths := []string{}
 	if v := find.ProjectID; v != nil {

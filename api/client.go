@@ -53,4 +53,8 @@ type Client interface {
 	ListPolicies(ctx context.Context, find *PolicyFindMessage) (*ListPolicyMessage, error)
 	// GetPolicy gets a policy in a specific resource.
 	GetPolicy(ctx context.Context, find *PolicyFindMessage) (*PolicyMessage, error)
+	// UpsertPolicy creates or updates the policy.
+	UpsertPolicy(ctx context.Context, find *PolicyFindMessage, patch *PolicyPatchMessage) (*PolicyMessage, error)
+	// DeletePolicy deletes the policy.
+	DeletePolicy(ctx context.Context, find *PolicyFindMessage) error
 }
