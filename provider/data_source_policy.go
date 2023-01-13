@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -12,155 +14,43 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
-var (
-	deploymentApprovalPolicySchema = &schema.Schema{
-		Computed: true,
-		Optional: true,
-		Type:     schema.TypeList,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"default_strategy": {
-					Type:     schema.TypeString,
-					Computed: true,
-				},
-				"deployment_approval_strategies": {
-					Type:     schema.TypeList,
-					Computed: true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"approval_group": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-							"approval_strategy": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-							"deployment_type": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+// policyParentIdentificationMap is the map to identify a policy's parent.
+var policyParentIdentificationMap = map[string]*schema.Schema{
+	"project": {
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "",
+		ValidateFunc: internal.ResourceIDValidation,
+		Description:  "The project resource id for the policy.",
+	},
+	"environment": {
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "",
+		ValidateFunc: internal.ResourceIDValidation,
+		Description:  "The environment resource id for the policy.",
+	},
+	"instance": {
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "",
+		ValidateFunc: internal.ResourceIDValidation,
+		Description:  "The instance resource id for the policy.",
+	},
+	"database": {
+		Type:        schema.TypeString,
+		Optional:    true,
+		Default:     "",
+		Description: "The database name for the policy.",
+	},
+}
 
-	backupPlanPolicySchema = &schema.Schema{
-		Computed: true,
-		Optional: true,
-		Type:     schema.TypeList,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"schedule": {
-					Type:     schema.TypeString,
-					Computed: true,
-				},
-				"retention_duration": {
-					Type:     schema.TypeString,
-					Computed: true,
-				},
-			},
-		},
-	}
-
-	sensitiveDataPolicy = &schema.Schema{
-		Computed: true,
-		Optional: true,
-		Type:     schema.TypeList,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"sensitive_data": {
-					Computed: true,
-					Type:     schema.TypeList,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"schema": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-							"table": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-							"column": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-							"mask_type": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	accessControlPolicy = &schema.Schema{
-		Computed: true,
-		Optional: true,
-		Type:     schema.TypeList,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"disallow_rules": {
-					Computed: true,
-					Type:     schema.TypeList,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"full_database": {
-								Type:     schema.TypeBool,
-								Computed: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	sqlReviewPolicy = &schema.Schema{
-		Computed: true,
-		Optional: true,
-		Type:     schema.TypeList,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"title": {
-					Type:     schema.TypeString,
-					Computed: true,
-				},
-				"rules": {
-					Computed: true,
-					Type:     schema.TypeList,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"type": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-							"level": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-							"payload": {
-								Type:     schema.TypeString,
-								Computed: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-)
-
+// TODO(ed): add test and doc.
 func dataSourcePolicy() *schema.Resource {
 	return &schema.Resource{
 		Description: "The policy data source.",
 		ReadContext: dataSourcePolicyRead,
-		Schema: map[string]*schema.Schema{
+		Schema: getPolicySchema(map[string]*schema.Schema{
 			"type": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -173,33 +63,6 @@ func dataSourcePolicy() *schema.Resource {
 				}, false),
 				Description: "The policy type.",
 			},
-			"project": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "",
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The project resource id for the policy.",
-			},
-			"environment": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "",
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The environment resource id for the policy.",
-			},
-			"instance": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "",
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The instance resource id for the policy.",
-			},
-			"database": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "",
-				Description: "The database name for the policy.",
-			},
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -210,12 +73,12 @@ func dataSourcePolicy() *schema.Resource {
 				Computed:    true,
 				Description: "Decide if the policy should inherit from the parent.",
 			},
-			"deployment_approval_policy": deploymentApprovalPolicySchema,
-			"backup_plan_policy":         backupPlanPolicySchema,
-			"sensitive_data_policy":      sensitiveDataPolicy,
-			"access_control_policy":      accessControlPolicy,
-			"sql_review_policy":          sqlReviewPolicy,
-		},
+			"deployment_approval_policy": getDeploymentApprovalPolicySchema(true),
+			"backup_plan_policy":         getBackupPlanPolicySchema(true),
+			"sensitive_data_policy":      getSensitiveDataPolicy(true),
+			"access_control_policy":      getAccessControlPolicy(true),
+			"sql_review_policy":          getSQLReviewPolicy(true),
+		}),
 	}
 }
 
@@ -226,9 +89,6 @@ func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interfa
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	policyType := api.PolicyType(d.Get("type").(string))
-	find.Type = &policyType
 
 	policy, err := c.GetPolicy(ctx, find)
 	if err != nil {
@@ -247,6 +107,13 @@ func getPolicyFind(d *schema.ResourceData) (*api.PolicyFindMessage, error) {
 	}
 
 	find := &api.PolicyFindMessage{}
+
+	pType, ok := d.Get("type").(string)
+	if ok {
+		policyType := api.PolicyType(pType)
+		find.Type = &policyType
+	}
+
 	if projectID != "" {
 		find.ProjectID = &projectID
 	} else if environmentID != "" {
@@ -265,6 +132,7 @@ func getPolicyFind(d *schema.ResourceData) (*api.PolicyFindMessage, error) {
 			find.DatabaseName = &v
 		}
 	}
+
 	return find, nil
 }
 
@@ -283,7 +151,11 @@ func setPolicyMessage(d *schema.ResourceData, policy *api.PolicyMessage) diag.Di
 	}
 
 	if p := policy.BackupPlanPolicy; p != nil {
-		if err := d.Set("backup_plan_policy", flattenBackupPlanPolicy(p)); err != nil {
+		backupPlan, err := flattenBackupPlanPolicy(p)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("backup_plan_policy", backupPlan); err != nil {
 			return diag.Errorf("cannot set backup_plan_policy: %s", err.Error())
 		}
 	}
@@ -326,12 +198,21 @@ func flattenDeploymentApprovalPolicy(p *api.DeploymentApprovalPolicy) []interfac
 	return []interface{}{policy}
 }
 
-func flattenBackupPlanPolicy(p *api.BackupPlanPolicy) []interface{} {
+func flattenBackupPlanPolicy(p *api.BackupPlanPolicy) ([]interface{}, error) {
+	duration := p.RetentionDuration
+	if strings.HasSuffix(duration, "s") {
+		duration = duration[:(len(duration) - 1)]
+	}
+	d, err := strconv.Atoi(duration)
+	if err != nil {
+		return nil, err
+	}
+
 	policy := map[string]interface{}{
 		"schedule":           p.Schedule,
-		"retention_duration": p.RetentionDuration,
+		"retention_duration": d,
 	}
-	return []interface{}{policy}
+	return []interface{}{policy}, nil
 }
 
 func flattenSensitiveDataPolicy(p *api.SensitiveDataPolicy) []interface{} {
@@ -378,4 +259,223 @@ func flattenSQLReviewPolicy(p *api.SQLReviewPolicy) []interface{} {
 		"rules": rules,
 	}
 	return []interface{}{policy}
+}
+
+func getDeploymentApprovalPolicySchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed: computed,
+		Optional: true,
+		Default:  nil,
+		Type:     schema.TypeList,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"default_strategy": {
+					Type:     schema.TypeString,
+					Computed: computed,
+					Optional: true,
+					ValidateFunc: validation.StringInSlice([]string{
+						string(api.ApprovalStrategyManual),
+						string(api.ApprovalStrategyAutomatic),
+					}, false),
+				},
+				"deployment_approval_strategies": {
+					Type:     schema.TypeList,
+					Computed: computed,
+					Optional: true,
+					MinItems: 1,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"approval_group": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+								ValidateFunc: validation.StringInSlice([]string{
+									string(api.ApprovalGroupDBA),
+									string(api.ApprovalGroupOwner),
+								}, false),
+							},
+							"approval_strategy": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+								ValidateFunc: validation.StringInSlice([]string{
+									string(api.ApprovalStrategyManual),
+									string(api.ApprovalStrategyAutomatic),
+								}, false),
+							},
+							"deployment_type": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+								ValidateFunc: validation.StringInSlice([]string{
+									string(api.DeploymentTypeDatabaseCreate),
+									string(api.DeploymentTypeDatabaseDDL),
+									string(api.DeploymentTypeDatabaseDDLGhost),
+									string(api.DeploymentTypeDatabaseDML),
+									string(api.DeploymentTypeDatabaseRestorePITR),
+									string(api.DeploymentTypeDatabaseDMLRollback),
+								}, false),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getBackupPlanPolicySchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed: computed,
+		Optional: true,
+		Default:  nil,
+		Type:     schema.TypeList,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"schedule": {
+					Type:     schema.TypeString,
+					Computed: computed,
+					Optional: true,
+					ValidateFunc: validation.StringInSlice([]string{
+						string(api.BackupPlanScheduleUnset),
+						string(api.BackupPlanScheduleDaily),
+						string(api.BackupPlanScheduleWeekly),
+					}, false),
+				},
+				"retention_duration": {
+					Type:        schema.TypeInt,
+					Computed:    computed,
+					Optional:    true,
+					Description: "The minimum allowed seconds that backup data is kept for databases in an environment.",
+				},
+			},
+		},
+	}
+}
+
+func getSensitiveDataPolicy(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed: computed,
+		Optional: true,
+		Default:  nil,
+		Type:     schema.TypeList,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"sensitive_data": {
+					Computed: computed,
+					Optional: true,
+					Type:     schema.TypeList,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"schema": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+							},
+							"table": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+							},
+							"column": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+							},
+							"mask_type": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+								ValidateFunc: validation.StringInSlice([]string{
+									string(api.SensitiveDataMaskTypeDefault),
+								}, false),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getAccessControlPolicy(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed: computed,
+		Optional: true,
+		Default:  nil,
+		Type:     schema.TypeList,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"disallow_rules": {
+					Computed: computed,
+					Optional: true,
+					Type:     schema.TypeList,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"full_database": {
+								Type:     schema.TypeBool,
+								Computed: computed,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getSQLReviewPolicy(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed: computed,
+		Optional: true,
+		Default:  nil,
+		Type:     schema.TypeList,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"title": {
+					Type:     schema.TypeString,
+					Computed: computed,
+					Optional: true,
+				},
+				"rules": {
+					Computed: computed,
+					Optional: true,
+					Type:     schema.TypeList,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"type": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+							},
+							"level": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+								ValidateFunc: validation.StringInSlice([]string{
+									string(api.SQLReviewRuleLevelError),
+									string(api.SQLReviewRuleLevelWarning),
+									string(api.SQLReviewRuleLevelDisabled),
+								}, false),
+							},
+							// TODO(ed): support configure the SQL review rule payload in a better way.
+							"payload": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func getPolicySchema(policySchemaMap map[string]*schema.Schema) map[string]*schema.Schema {
+	for key, val := range policyParentIdentificationMap {
+		policySchemaMap[key] = val
+	}
+	return policySchemaMap
 }

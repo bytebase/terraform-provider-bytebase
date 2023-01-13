@@ -108,3 +108,35 @@ resource "bytebase_instance_role" "test" {
     bypass_rls  = true
   }
 }
+
+# Create deployment approval policy for test env.
+resource "bytebase_policy" "deployment_approval" {
+  environment = bytebase_instance.test.environment
+  type        = "DEPLOYMENT_APPROVAL"
+
+  deployment_approval_policy {
+    default_strategy = "AUTOMATIC"
+
+    deployment_approval_strategies {
+      approval_group    = "APPROVAL_GROUP_DBA"
+      approval_strategy = "AUTOMATIC"
+      deployment_type   = "DATABASE_CREATE"
+    }
+    deployment_approval_strategies {
+      approval_group    = "APPROVAL_GROUP_PROJECT_OWNER"
+      approval_strategy = "AUTOMATIC"
+      deployment_type   = "DATABASE_DDL"
+    }
+  }
+}
+
+# Create backup plan policy for test env.
+resource "bytebase_policy" "backup_plan" {
+  environment = bytebase_instance.test.environment
+  type        = "BACKUP_PLAN"
+
+  backup_plan_policy {
+    schedule           = "WEEKLY"
+    retention_duration = 86400
+  }
+}

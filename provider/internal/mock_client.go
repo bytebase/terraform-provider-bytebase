@@ -360,6 +360,19 @@ func (c *mockClient) GetPolicy(_ context.Context, find *api.PolicyFindMessage) (
 	return policy, nil
 }
 
+// TODO(ed): update the mock and tests
+// UpsertPolicy creates or updates the policy.
+func (*mockClient) UpsertPolicy(_ context.Context, _ *api.PolicyFindMessage, _ *api.PolicyPatchMessage) (*api.PolicyMessage, error) {
+	return nil, nil
+}
+
+// DeletePolicy deletes the policy.
+func (c *mockClient) DeletePolicy(_ context.Context, find *api.PolicyFindMessage) error {
+	name := getPolicyRequestName(find)
+	delete(c.roleMap, name)
+	return nil
+}
+
 func getPolicyRequestName(find *api.PolicyFindMessage) string {
 	paths := []string{}
 	if v := find.ProjectID; v != nil {

@@ -62,6 +62,7 @@ func NewProvider() *schema.Provider {
 			"bytebase_environment":   resourceEnvironment(),
 			"bytebase_instance":      resourceInstance(),
 			"bytebase_instance_role": resourceInstanceRole(),
+			"bytebase_policy":        resourcePolicy(),
 		},
 	}
 }
