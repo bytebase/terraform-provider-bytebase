@@ -140,3 +140,35 @@ resource "bytebase_policy" "backup_plan" {
     retention_duration = 86400
   }
 }
+
+# Create SQL review policy for test env.
+resource "bytebase_policy" "sql_review" {
+  environment = bytebase_instance.test.environment
+  type        = "SQL_REVIEW"
+
+  sql_review_policy {
+    title = "SQL Review Policy for Test environment"
+    rules {
+      type  = "naming.table"
+      level = "ERROR"
+      payload {
+        max_length = 99
+        format     = "^[a-z]+$"
+      }
+    }
+    rules {
+      type  = "column.required"
+      level = "WARNING"
+      payload {
+        list = ["id", "created_ts", "updated_ts"]
+      }
+    }
+    rules {
+      type  = "column.auto-increment-initial-value"
+      level = "DISABLED"
+      payload {
+        number = 1
+      }
+    }
+  }
+}

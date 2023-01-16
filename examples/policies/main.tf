@@ -32,6 +32,16 @@ output "deployment_approval_policy" {
   value = data.bytebase_policy.deployment_approval
 }
 
+# Find SQL review policy in test environment.
+data "bytebase_policy" "sql_review" {
+  environment = local.environment_id_test
+  type        = "SQL_REVIEW"
+}
+
+output "sql_review_policy" {
+  value = data.bytebase_policy.sql_review
+}
+
 # List policies in test environment.
 data "bytebase_policy_list" "test_env_policies" {
   environment = local.environment_id_test

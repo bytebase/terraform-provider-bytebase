@@ -12,9 +12,6 @@ type ApprovalGroup string
 // BackupPlanSchedule is schedule for backup plan policy.
 type BackupPlanSchedule string
 
-// SQLReviewRuleLevel is the error level for SQL review rule.
-type SQLReviewRuleLevel string
-
 // SensitiveDataMaskType is the mask type for sensitive data.
 type SensitiveDataMaskType string
 
@@ -50,13 +47,6 @@ const (
 	// SensitiveDataMaskTypeDefault is the sensitive data type to hide data with a default method.
 	// The default method is subject to change.
 	SensitiveDataMaskTypeDefault SensitiveDataMaskType = "DEFAULT"
-
-	// SQLReviewRuleLevelError is the error level for SQL review rule.
-	SQLReviewRuleLevelError SQLReviewRuleLevel = "ERROR"
-	// SQLReviewRuleLevelWarning is the warning level for SQL review rule.
-	SQLReviewRuleLevelWarning SQLReviewRuleLevel = "WARNING"
-	// SQLReviewRuleLevelDisabled is the disabled level for SQL review rule.
-	SQLReviewRuleLevelDisabled SQLReviewRuleLevel = "DISABLED"
 )
 
 // DeploymentApprovalPolicy is the policy configuration for deployment approval.
@@ -104,15 +94,8 @@ type AccessControlRule struct {
 
 // SQLReviewPolicy is the API message for SQL review policy.
 type SQLReviewPolicy struct {
-	Title string           `type:"title"`
-	Rules []*SQLReviewRule `type:"rules"`
-}
-
-// SQLReviewRule is the API message for SQL review rule.
-type SQLReviewRule struct {
-	Type    string             `json:"type"`
-	Level   SQLReviewRuleLevel `json:"level"`
-	Payload string             `json:"payload"`
+	Title string           `json:"title"`
+	Rules []*SQLReviewRule `json:"rules"`
 }
 
 // PolicyFindMessage is the API message for finding policies.
