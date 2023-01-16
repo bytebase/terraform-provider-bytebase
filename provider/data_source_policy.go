@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -173,7 +174,11 @@ func setPolicyMessage(d *schema.ResourceData, policy *api.PolicyMessage) diag.Di
 	}
 
 	if p := policy.SQLReviewPolicy; p != nil {
-		if err := d.Set("sql_review_policy", flattenSQLReviewPolicy(p)); err != nil {
+		sqlReviewPolicy, err := flattenSQLReviewPolicy(p)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("sql_review_policy", sqlReviewPolicy); err != nil {
 			return diag.Errorf("cannot set sql_review_policy: %s", err.Error())
 		}
 	}
@@ -244,13 +249,22 @@ func flattenAccessControlPolicy(p *api.AccessControlPolicy) []interface{} {
 	return []interface{}{policy}
 }
 
-func flattenSQLReviewPolicy(p *api.SQLReviewPolicy) []interface{} {
+func flattenSQLReviewPolicy(p *api.SQLReviewPolicy) ([]interface{}, error) {
 	rules := []interface{}{}
 	for _, rule := range p.Rules {
 		raw := map[string]interface{}{}
 		raw["type"] = rule.Type
 		raw["level"] = rule.Level
-		raw["payload"] = rule.Payload
+
+		payload, err := unamrshalSQLReviewRulePayload(rule.Type, rule.Payload)
+		if err != nil {
+			return nil, err
+		}
+		payloadRaw := map[string]interface{}{}
+		for key, val := range payload {
+			payloadRaw[key] = val
+		}
+		raw["payload"] = []interface{}{payloadRaw}
 		rules = append(rules, raw)
 	}
 
@@ -258,7 +272,7 @@ func flattenSQLReviewPolicy(p *api.SQLReviewPolicy) []interface{} {
 		"title": p.Title,
 		"rules": rules,
 	}
-	return []interface{}{policy}
+	return []interface{}{policy}, nil
 }
 
 func getDeploymentApprovalPolicySchema(computed bool) *schema.Schema {
@@ -439,15 +453,68 @@ func getSQLReviewPolicy(computed bool) *schema.Schema {
 					Optional: true,
 				},
 				"rules": {
-					Computed: computed,
-					Optional: true,
-					Type:     schema.TypeList,
+					Computed:    computed,
+					Optional:    true,
+					Type:        schema.TypeList,
+					Description: "The SQL review rules. Please check the doc for details: https://www.bytebase.com/docs/sql-review/review-rules/supported-rules",
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"type": {
 								Type:     schema.TypeString,
 								Computed: computed,
 								Optional: true,
+								ValidateFunc: validation.StringInSlice([]string{
+									string(api.SchemaRuleTableNaming),
+									string(api.SchemaRuleColumnNaming),
+									string(api.SchemaRulePKNaming),
+									string(api.SchemaRuleUKNaming),
+									string(api.SchemaRuleFKNaming),
+									string(api.SchemaRuleIDXNaming),
+									string(api.SchemaRuleAutoIncrementColumnNaming),
+									string(api.SchemaRuleStatementNoSelectAll),
+									string(api.SchemaRuleStatementRequireWhere),
+									string(api.SchemaRuleStatementNoLeadingWildcardLike),
+									string(api.SchemaRuleStatementDisallowCommit),
+									string(api.SchemaRuleStatementDisallowLimit),
+									string(api.SchemaRuleStatementDisallowOrderBy),
+									string(api.SchemaRuleStatementMergeAlterTable),
+									string(api.SchemaRuleStatementInsertRowLimit),
+									string(api.SchemaRuleStatementInsertMustSpecifyColumn),
+									string(api.SchemaRuleStatementInsertDisallowOrderByRand),
+									string(api.SchemaRuleStatementAffectedRowLimit),
+									string(api.SchemaRuleStatementDMLDryRun),
+									string(api.SchemaRuleTableRequirePK),
+									string(api.SchemaRuleTableNoFK),
+									string(api.SchemaRuleTableDropNamingConvention),
+									string(api.SchemaRuleTableCommentConvention),
+									string(api.SchemaRuleTableDisallowPartition),
+									string(api.SchemaRuleRequiredColumn),
+									string(api.SchemaRuleColumnNotNull),
+									string(api.SchemaRuleColumnDisallowChangeType),
+									string(api.SchemaRuleColumnSetDefaultForNotNull),
+									string(api.SchemaRuleColumnDisallowChange),
+									string(api.SchemaRuleColumnDisallowChangingOrder),
+									string(api.SchemaRuleColumnCommentConvention),
+									string(api.SchemaRuleColumnAutoIncrementMustInteger),
+									string(api.SchemaRuleColumnTypeDisallowList),
+									string(api.SchemaRuleColumnDisallowSetCharset),
+									string(api.SchemaRuleColumnMaximumCharacterLength),
+									string(api.SchemaRuleColumnAutoIncrementInitialValue),
+									string(api.SchemaRuleColumnAutoIncrementMustUnsigned),
+									string(api.SchemaRuleCurrentTimeColumnCountLimit),
+									string(api.SchemaRuleColumnRequireDefault),
+									string(api.SchemaRuleSchemaBackwardCompatibility),
+									string(api.SchemaRuleDropEmptyDatabase),
+									string(api.SchemaRuleIndexNoDuplicateColumn),
+									string(api.SchemaRuleIndexKeyNumberLimit),
+									string(api.SchemaRuleIndexPKTypeLimit),
+									string(api.SchemaRuleIndexTypeNoBlob),
+									string(api.SchemaRuleIndexTotalNumberLimit),
+									string(api.SchemaRuleIndexPrimaryKeyTypeAllowlist),
+									string(api.SchemaRuleCharsetAllowlist),
+									string(api.SchemaRuleCollationAllowlist),
+									string(api.SchemaRuleCommentLength),
+								}, false),
 							},
 							"level": {
 								Type:     schema.TypeString,
@@ -459,11 +526,43 @@ func getSQLReviewPolicy(computed bool) *schema.Schema {
 									string(api.SQLReviewRuleLevelDisabled),
 								}, false),
 							},
-							// TODO(ed): support configure the SQL review rule payload in a better way.
 							"payload": {
-								Type:     schema.TypeString,
 								Computed: computed,
+								Type:     schema.TypeList,
 								Optional: true,
+								MinItems: 0,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"number": {
+											Type:     schema.TypeInt,
+											Computed: computed,
+											Optional: true,
+										},
+										"format": {
+											Type:     schema.TypeString,
+											Computed: computed,
+											Optional: true,
+										},
+										"required": {
+											Type:     schema.TypeBool,
+											Computed: computed,
+											Optional: true,
+										},
+										"max_length": {
+											Type:     schema.TypeInt,
+											Computed: computed,
+											Optional: true,
+										},
+										"list": {
+											Type:     schema.TypeList,
+											Computed: computed,
+											Optional: true,
+											Elem: &schema.Schema{
+												Type: schema.TypeString,
+											},
+										},
+									},
+								},
 							},
 						},
 					},
@@ -478,4 +577,64 @@ func getPolicySchema(policySchemaMap map[string]*schema.Schema) map[string]*sche
 		policySchemaMap[key] = val
 	}
 	return policySchemaMap
+}
+
+func unamrshalSQLReviewRulePayload(ruleType api.SQLReviewRuleType, payload string) (map[string]interface{}, error) {
+	switch ruleType {
+	case
+		api.SchemaRuleTableNaming,
+		api.SchemaRuleColumnNaming,
+		api.SchemaRuleAutoIncrementColumnNaming,
+		api.SchemaRuleFKNaming,
+		api.SchemaRuleIDXNaming,
+		api.SchemaRuleUKNaming:
+		var p api.NamingRulePayload
+		if err := json.Unmarshal([]byte(payload), &p); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{
+			"max_length": p.MaxLength,
+			"format":     p.Format,
+		}, nil
+	case
+		api.SchemaRuleColumnCommentConvention,
+		api.SchemaRuleTableCommentConvention:
+		var p api.CommentConventionRulePayload
+		if err := json.Unmarshal([]byte(payload), &p); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{
+			"max_length": p.MaxLength,
+			"required":   p.Required,
+		}, nil
+	case
+		api.SchemaRuleIndexKeyNumberLimit,
+		api.SchemaRuleStatementInsertRowLimit,
+		api.SchemaRuleIndexTotalNumberLimit,
+		api.SchemaRuleColumnMaximumCharacterLength,
+		api.SchemaRuleColumnAutoIncrementInitialValue,
+		api.SchemaRuleStatementAffectedRowLimit:
+		var p api.NumberTypeRulePayload
+		if err := json.Unmarshal([]byte(payload), &p); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{
+			"number": p.Number,
+		}, nil
+	case
+		api.SchemaRuleRequiredColumn,
+		api.SchemaRuleColumnTypeDisallowList,
+		api.SchemaRuleCharsetAllowlist,
+		api.SchemaRuleCollationAllowlist,
+		api.SchemaRuleIndexPrimaryKeyTypeAllowlist:
+		var p api.StringArrayTypeRulePayload
+		if err := json.Unmarshal([]byte(payload), &p); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{
+			"list": p.List,
+		}, nil
+	}
+
+	return map[string]interface{}{}, nil
 }

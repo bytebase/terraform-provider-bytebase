@@ -92,7 +92,11 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 			raw["access_control_policy"] = flattenAccessControlPolicy(p)
 		}
 		if p := policy.SQLReviewPolicy; p != nil {
-			raw["sql_review_policy"] = flattenSQLReviewPolicy(p)
+			sqlReviewPolicy, err := flattenSQLReviewPolicy(p)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			raw["sql_review_policy"] = sqlReviewPolicy
 		}
 		policies = append(policies, raw)
 	}

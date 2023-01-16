@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -306,16 +307,43 @@ func convertSQLReviewPolicy(d *schema.ResourceData) (*api.SQLReviewPolicy, error
 
 	raw := rawList[0].(map[string]interface{})
 	rules := raw["rules"].([]interface{})
-	policy := &api.SQLReviewPolicy{
-		Title: raw["title"].(string),
+	if len(rules) == 0 {
+		return nil, errors.Errorf("`rules` is required sql_review_policy")
 	}
 
+	title, ok := raw["title"].(string)
+	if !ok || title == "" {
+		return nil, errors.Errorf("`title` is required sql_review_policy")
+	}
+
+	policy := &api.SQLReviewPolicy{
+		Title: title,
+	}
+
+	ruleMap := map[api.SQLReviewRuleType]bool{}
 	for _, rule := range rules {
 		rawRule := rule.(map[string]interface{})
+		ruleType := api.SQLReviewRuleType(rawRule["type"].(string))
+		if ruleMap[ruleType] {
+			return nil, errors.Errorf("duplicate rule %v", ruleType)
+		}
+		ruleMap[ruleType] = true
+
+		payloadRawList, ok := rawRule["payload"].([]interface{})
+		if !ok || len(payloadRawList) != 1 {
+			return nil, errors.Errorf("invalid sql_review_policy payload, only expect one payload for the rule %v", rawRule["type"].(string))
+		}
+
+		payloadRaw := payloadRawList[0].(map[string]interface{})
+		payloadStr, err := mrshalSQLReviewRulePayload(ruleType, payloadRaw)
+		if err != nil {
+			return nil, err
+		}
+
 		policy.Rules = append(policy.Rules, &api.SQLReviewRule{
-			Type:    rawRule["type"].(string),
+			Type:    ruleType,
 			Level:   api.SQLReviewRuleLevel(rawRule["level"].(string)),
-			Payload: rawRule["payload"].(string),
+			Payload: payloadStr,
 		})
 	}
 
@@ -377,4 +405,105 @@ func validatePolicyPatchMessage(patch *api.PolicyPatchMessage) error {
 	}
 
 	return nil
+}
+
+func mrshalSQLReviewRulePayload(ruleType api.SQLReviewRuleType, payload map[string]interface{}) (string, error) {
+	switch ruleType {
+	case
+		api.SchemaRuleTableNaming,
+		api.SchemaRuleColumnNaming,
+		api.SchemaRuleAutoIncrementColumnNaming,
+		api.SchemaRuleFKNaming,
+		api.SchemaRuleIDXNaming,
+		api.SchemaRuleUKNaming:
+		format, ok := payload["format"].(string)
+		if !ok || format == "" {
+			return "", errors.Errorf("`format` is required to set for SQL review rule %v", ruleType)
+		}
+		maxLength, ok := payload["max_length"].(int)
+		if !ok || maxLength == 0 {
+			return "", errors.Errorf("`max_length` is required to set for SQL review rule %v", ruleType)
+		}
+		res, err := json.Marshal(&api.NamingRulePayload{
+			Format:    format,
+			MaxLength: maxLength,
+		})
+		if err != nil {
+			return "", errors.Errorf("failed to marshal payload for SQL review rule %v with error %v", ruleType, err.Error())
+		}
+
+		return string(res), nil
+	case
+		api.SchemaRuleColumnCommentConvention,
+		api.SchemaRuleTableCommentConvention:
+		required, ok := payload["required"].(bool)
+		if !ok {
+			return "", errors.Errorf("`required` is required to set for SQL review rule %v", ruleType)
+		}
+		maxLength, ok := payload["max_length"].(int)
+		if !ok || maxLength == 0 {
+			return "", errors.Errorf("`max_length` is required to set for SQL review rule %v", ruleType)
+		}
+		res, err := json.Marshal(&api.CommentConventionRulePayload{
+			Required:  required,
+			MaxLength: maxLength,
+		})
+		if err != nil {
+			return "", errors.Errorf("failed to marshal payload for SQL review rule %v with error %v", ruleType, err.Error())
+		}
+
+		return string(res), nil
+	case
+		api.SchemaRuleIndexKeyNumberLimit,
+		api.SchemaRuleStatementInsertRowLimit,
+		api.SchemaRuleIndexTotalNumberLimit,
+		api.SchemaRuleColumnMaximumCharacterLength,
+		api.SchemaRuleColumnAutoIncrementInitialValue,
+		api.SchemaRuleStatementAffectedRowLimit:
+		number, ok := payload["number"].(int)
+		if !ok {
+			return "", errors.Errorf("`number` is required to set for SQL review rule %v", ruleType)
+		}
+		res, err := json.Marshal(&api.NumberTypeRulePayload{
+			Number: number,
+		})
+		if err != nil {
+			return "", errors.Errorf("failed to marshal payload for SQL review rule %v with error %v", ruleType, err.Error())
+		}
+
+		return string(res), nil
+	case
+		api.SchemaRuleRequiredColumn,
+		api.SchemaRuleColumnTypeDisallowList,
+		api.SchemaRuleCharsetAllowlist,
+		api.SchemaRuleCollationAllowlist,
+		api.SchemaRuleIndexPrimaryKeyTypeAllowlist:
+		list, ok := payload["list"].([]interface{})
+		if !ok {
+			return "", errors.Errorf("`list` is required to set for SQL review rule %v", ruleType)
+		}
+		if len(list) == 0 {
+			return "", errors.Errorf("`list` atleast contains one element for SQL review rule %v", ruleType)
+		}
+
+		stringArray := make([]string, len(list))
+		for i, v := range list {
+			stringArray[i] = fmt.Sprintf("%v", v)
+		}
+
+		res, err := json.Marshal(&api.StringArrayTypeRulePayload{
+			List: stringArray,
+		})
+		if err != nil {
+			return "", errors.Errorf("failed to marshal payload for SQL review rule %v with error %v", ruleType, err.Error())
+		}
+
+		return string(res), nil
+	}
+
+	if len(payload) > 0 {
+		return "", errors.Errorf("cannot set payload for the SQL review rule %v", ruleType)
+	}
+
+	return "", nil
 }
