@@ -150,20 +150,44 @@ resource "bytebase_policy" "sensitive_data" {
 ##### Access Control Policy
 
 Access Control Policy is the policy configuration for database access control. It is only applicable to database and environment resource type.
-For environment resource type, `disallow_rules` defines the access control rule.
-For database resource type, the access control policy struct itself means allow to access.
+
+- For environment resource type, if the `environment_tier_policy` is set to be `PROTECTED`, the `access_control_policy` is the disallow list for databases in this environment.
+- For database resource type, the access control policy means allow to access in this specific database.
 
 Must set the `access_control_policy` if the policy type if `ACCESS_CONTROL`. It contains following attributes:
 
-- `disallow_rules` (List of Object)
+- `disallow_rules` (List of Object) The object contains following attribute:
   - `full_database` (Boolean) will apply to the full database.
 
 For example:
 
 ```terraform
+# The prod environment is marked as PROTECTED
+resource "bytebase_environment" "prod" {
+  resource_id             = "prod"
+  title                   = "Prod"
+  order                   = 1
+  environment_tier_policy = "PROTECTED"
+}
+
+# Disallow to access in prod
 resource "bytebase_policy" "access_control" {
-  type = "SENSITIVE_DATA"
-  environment = "<environment resource id>"
+  type = "ACCESS_CONTROL"
+  environment = bytebase_environment.prod.resource_id
+
+  access_control_policy {
+    disallow_rules {
+      full_database = true
+    }
+  }
+}
+
+# Allow to access in employee database in prod environment.
+resource "bytebase_policy" "access_control" {
+  type = "ACCESS_CONTROL"
+  environment = bytebase_environment.prod.resource_id
+  instance    = "<instance resource id for the database>"
+  database    = "employee"
 
   access_control_policy {
     disallow_rules {

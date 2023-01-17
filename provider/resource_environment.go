@@ -47,8 +47,7 @@ func resourceEnvironment() *schema.Resource {
 			},
 			"environment_tier_policy": {
 				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "UNPROTECTED",
+				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					"PROTECTED",
 					"UNPROTECTED",
