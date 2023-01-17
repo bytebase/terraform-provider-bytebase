@@ -149,6 +149,30 @@ resource "bytebase_policy" "sql_review" {
   sql_review_policy {
     title = "SQL Review Policy for Test environment"
     rules {
+      type  = "statement.select.no-select-all"
+      level = "ERROR"
+    }
+    rules {
+      type  = "statement.where.no-leading-wildcard-like"
+      level = "DISABLED"
+    }
+    rules {
+      type  = "column.comment"
+      level = "ERROR"
+      payload {
+        max_length = 99
+        required   = true
+      }
+    }
+    rules {
+      type  = "table.comment"
+      level = "WARNING"
+      payload {
+        max_length = 30
+        required   = false
+      }
+    }
+    rules {
       type  = "naming.table"
       level = "ERROR"
       payload {
@@ -165,7 +189,7 @@ resource "bytebase_policy" "sql_review" {
     }
     rules {
       type  = "column.auto-increment-initial-value"
-      level = "DISABLED"
+      level = "WARNING"
       payload {
         number = 1
       }

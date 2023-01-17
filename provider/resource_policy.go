@@ -142,7 +142,7 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.SQLReviewPolicy = policy
 	}
 
-	if err := validatePolicyPatchMessage(patch); err != nil {
+	if err := validatePolicy(find, patch); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -208,7 +208,7 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.SQLReviewPolicy = policy
 	}
 
-	if err := validatePolicyPatchMessage(patch); err != nil {
+	if err := validatePolicy(find, patch); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -350,7 +350,7 @@ func convertSQLReviewPolicy(d *schema.ResourceData) (*api.SQLReviewPolicy, error
 	return policy, nil
 }
 
-func validatePolicyPatchMessage(patch *api.PolicyPatchMessage) error {
+func validatePolicy(find *api.PolicyFindMessage, patch *api.PolicyPatchMessage) error {
 	switch patch.Type {
 	case api.PolicyTypeDeploymentApproval:
 		if patch.DeploymentApprovalPolicy == nil {
@@ -364,9 +364,15 @@ func validatePolicyPatchMessage(patch *api.PolicyPatchMessage) error {
 		if patch.SensitiveDataPolicy == nil {
 			return errors.Errorf("must set sensitive_data_policy for %v policy", patch.Type)
 		}
+		if find.DatabaseName == nil {
+			return errors.Errorf("%v policy only works for the database resource", patch.Type)
+		}
 	case api.PolicyTypeAccessControl:
 		if patch.AccessControlPolicy == nil {
 			return errors.Errorf("must set access_control_policy for %v policy", patch.Type)
+		}
+		if find.ProjectID != nil || (find.InstanceID != nil && find.DatabaseName == nil) {
+			return errors.Errorf("%v policy only works for the environment and database resource", patch.Type)
 		}
 	case api.PolicyTypeSQLReview:
 		if patch.SQLReviewPolicy == nil {
