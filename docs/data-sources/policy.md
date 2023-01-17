@@ -43,12 +43,9 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Optional
 
-#### Locate the policy resource
-
 See [Locate the policy resource](https://registry.terraform.io/providers/bytebase/bytebase/latest/docs/resources/policy#optional) for details.
 
 ### Read-Only
 
-#### The policy payload
-
-See [The policy payload](https://registry.terraform.io/providers/bytebase/bytebase/latest/docs/resources/policy#the-policy-payload) for details.
+- The policy payload. See [The policy payload](https://registry.terraform.io/providers/bytebase/bytebase/latest/docs/resources/policy#the-policy-payload) for details.
+- `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
