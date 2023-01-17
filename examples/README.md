@@ -6,6 +6,7 @@ Examples of using the Terraform Bytebase Provider to manage your resource:
 - [environments](./environments): Use the Bytebase provider to query the environment.
 - [instances](./instances): Use the Bytebase provider to query the instance.
 - [role](./role): Use the  Bytebase provider to manage instance role in your instance.
+- [policies](./policies): Use the Bytebase provider to query the policy.
 
 To run this provider on your local machine:
 

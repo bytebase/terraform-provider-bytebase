@@ -53,20 +53,23 @@ Must set the `deployment_approval_policy` if the policy type is `DEPLOYMENT_APPR
 - `default_strategy` (String) The default strategy, should be one of:
   - `MANUAL`: The pipeline should be manually approved by user to proceed.
   - `AUTOMATIC`: The pipeline will automatically be approved without user intervention.
-- `deployment_approval_strategies` (List of Object) A list contains multiply strategies for different approval groups. The object should contains:
-  - `approval_group` (String) The approval group, should be one of:
-    - `APPROVAL_GROUP_DBA`: Means the assignee can be selected from the workspace owners and DBAs.
-    - `APPROVAL_GROUP_PROJECT_OWNER`: Means the assignee can be selected from the project owners.
-  - `approval_strategy` (String) The approval strategy, should be one of:
-    - `MANUAL`: The pipeline should be manually approved by user to proceed.
-    - `AUTOMATIC`: The pipeline will automatically be approved without user intervention.
-  - `deployment_type` (String) The deployment type, should be one of:
-    - `DATABASE_CREATE`: The deployment type for creating databases.
-    - `DATABASE_DDL`: The deployment type for updating database schemas (DDL).
-    - `DATABASE_DDL_GHOST`: The deployment type for updating database schemas using gh-ost.
-    - `DATABASE_DML`: The deployment type for updating database data (DML).
-    - `DATABASE_RESTORE_PITR`: The deployment type for performing a Point-in-time Recovery.
-    - `DATABASE_DML_ROLLBACK`: The deployment type for a generated rollback issue.
+- `deployment_approval_strategies` (List of Object) A list contains multiply strategies for different approval groups.
+
+The object in `deployment_approval_strategies` should contains:
+
+- `approval_group` (String) The approval group, should be one of:
+  - `APPROVAL_GROUP_DBA`: Means the assignee can be selected from the workspace owners and DBAs.
+  - `APPROVAL_GROUP_PROJECT_OWNER`: Means the assignee can be selected from the project owners.
+- `approval_strategy` (String) The approval strategy, should be one of:
+  - `MANUAL`: The pipeline should be manually approved by user to proceed.
+  - `AUTOMATIC`: The pipeline will automatically be approved without user intervention.
+- `deployment_type` (String) The deployment type, should be one of:
+  - `DATABASE_CREATE`: The deployment type for creating databases.
+  - `DATABASE_DDL`: The deployment type for updating database schemas (DDL).
+  - `DATABASE_DDL_GHOST`: The deployment type for updating database schemas using gh-ost.
+  - `DATABASE_DML`: The deployment type for updating database data (DML).
+  - `DATABASE_RESTORE_PITR`: The deployment type for performing a Point-in-time Recovery.
+  - `DATABASE_DML_ROLLBACK`: The deployment type for a generated rollback issue.
 
 For example:
 
@@ -122,12 +125,15 @@ Sensitive Data Policy is the policy configuration for sensitive data. It is only
 
 Must set the `sensitive_data_policy` if the policy type if `SENSITIVE_DATA`. It contains following attributes:
 
-- `sensitive_data` (List of Object)
-  - `schema`: The database schema.
-  - `table`: The database table.
-  - `column`: The column in table.
-  - `mask_type`: The sensitive data type to hide data with a default method. Should be one of:
-    - `DEFAULT`: The default method is subject to change.
+- `sensitive_data` (List of Object) A list contains sensitive data.
+
+The object in `sensitive_data` should contains:
+
+- `schema`: The database schema.
+- `table`: The database table.
+- `column`: The column in table.
+- `mask_type`: The sensitive data type to hide data with a default method. Should be one of:
+  - `DEFAULT`: The default method is subject to change.
 
 For example:
 
@@ -150,20 +156,44 @@ resource "bytebase_policy" "sensitive_data" {
 ##### Access Control Policy
 
 Access Control Policy is the policy configuration for database access control. It is only applicable to database and environment resource type.
-For environment resource type, `disallow_rules` defines the access control rule.
-For database resource type, the access control policy struct itself means allow to access.
+
+- For environment resource type, if the `environment_tier_policy` is set to be `PROTECTED`, the `access_control_policy` is the disallow list for databases in this environment.
+- For database resource type, the access control policy means allow to access in this specific database.
 
 Must set the `access_control_policy` if the policy type if `ACCESS_CONTROL`. It contains following attributes:
 
-- `disallow_rules` (List of Object)
+- `disallow_rules` (List of Object) The object contains following attribute:
   - `full_database` (Boolean) will apply to the full database.
 
 For example:
 
 ```terraform
+# The prod environment is marked as PROTECTED
+resource "bytebase_environment" "prod" {
+  resource_id             = "prod"
+  title                   = "Prod"
+  order                   = 1
+  environment_tier_policy = "PROTECTED"
+}
+
+# Disallow to access in prod
 resource "bytebase_policy" "access_control" {
-  type = "SENSITIVE_DATA"
-  environment = "<environment resource id>"
+  type = "ACCESS_CONTROL"
+  environment = bytebase_environment.prod.resource_id
+
+  access_control_policy {
+    disallow_rules {
+      full_database = true
+    }
+  }
+}
+
+# Allow to access in employee database in prod environment.
+resource "bytebase_policy" "access_control" {
+  type = "ACCESS_CONTROL"
+  environment = bytebase_environment.prod.resource_id
+  instance    = "<instance resource id for the database>"
+  database    = "employee"
 
   access_control_policy {
     disallow_rules {
@@ -180,13 +210,16 @@ SQL Review Policy is the policy for SQL review.
 Must set the `sql_review_policy` if the policy type if `SQL_REVIEW`. It contains following attributes:
 
 - `title` (String) The title for SQL review.
-- `rules` (List of Object) List of SQL review rules. The rule should a object contains:
-  - `type` (String) The SQL review rule type. You can check the [code](https://github.com/bytebase/terraform-provider-bytebase/blob/main/api/sql_review.go) to find supported rules.
-  - `level` (String) The SQL review rule level. Should be one of:
-    - `ERROR`
-    - `WARNING`
-    - `DISABLED`
-  - `payload` (Object) The payload for SQL review rule.
+- `rules` (List of Object) List of SQL review rules.
+
+The rule should a object contains:
+
+- `type` (String) The SQL review rule type. You can check the [code](https://github.com/bytebase/terraform-provider-bytebase/blob/main/api/sql_review.go) to find supported rules.
+- `level` (String) The SQL review rule level. Should be one of:
+  - `ERROR`
+  - `WARNING`
+  - `DISABLED`
+- `payload` (Object) The payload for SQL review rule.
 
 Please check the doc for details: https://www.bytebase.com/docs/sql-review/review-rules/supported-rules
 
@@ -240,7 +273,12 @@ Rules to limit the naming format:
 - `naming.index.idx`
 - `naming.index.uk`
 
-For naming format rules, we need to set the `payload` with `max_length` and `format` attributes. For example:
+For naming format rules, we need to set the `payload` with `max_length` and `format` attributes.
+
+- `max_length` (Number) Maximum length for the name.
+- `format` (String) Naming format in regex string.
+
+For example:
 
 ```terraform
 resource "bytebase_policy" "sql_review" {
@@ -302,6 +340,8 @@ Rules to limit by a specific number.
 
 For number limit rules, we need to set the `payload` with `number` attribute. For example:
 
+- `number` (Number) The number limit.
+
 ```terraform
 resource "bytebase_policy" "sql_review" {
   type = "SQL_REVIEW"
@@ -331,6 +371,8 @@ Rules define the allow or disallow list.
 - `index.primary-key-type-allowlist`
 
 For list limit rules, we need to set the `payload` with `list` attribute. For example:
+
+- `list` (List of String) The allow or disallow list.
 
 ```terraform
 resource "bytebase_policy" "sql_review" {

@@ -41,9 +41,6 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 - `resource_id` (String) The environment **unique resource id**. For example, `dev`, `dev-env`.
 - `title` (String) The environment **unique name**. For example, `Dev`.
 - `order` (Number) The environment sorting order. Starting with 1. Lower number appears first in the deployment pipeline.
-
-### Optional
-
 - `environment_tier_policy` (String) Check [Environment Tier](https://www.bytebase.com/docs/administration/environment-policy/tier) for details. Should be one of:
   - `PROTECTED`
   - `UNPROTECTED`
