@@ -29,6 +29,26 @@ resource "bytebase_instance" "dev_instance" {
     port     = 5432
   }
 }
+
+# Create another instance with identifier "tidb-instance"
+resource "bytebase_instance" "tidb_instance" {
+  resource_id = "tidb-instance"
+  title       = "tidb instance"
+  engine      = "TIDB"
+  environment = "dev"
+
+  data_source_list {
+    title    = "admin data source"
+    type     = "ADMIN"
+    username = "<The connection user name>"
+    password = "<The connection user password>"
+    host     = "127.0.0.1"
+    port     = 4000
+    ssl_ca   = file("ssl_ca_file_path")
+    ssl_cert = file("ssl_cert_file_path")
+    ssl_key   = file("ssl_key_file_path")
+  }
+}
 ```
 
 You can check [examples](https://github.com/bytebase/terraform-provider-bytebase/blob/main/examples/setup) for more usage examples.
@@ -77,7 +97,7 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
 - `password` (String) The connection user password used by Bytebase to perform DDL and DML operations.
-- `ssl_ca` (String) The CA certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
-- `ssl_cert` (String) The client certificate. Optional, you can set this if the engine type is `CLICKHOUSE`.
-- `ssl_key` (String) The client key. Optional, you can set this if the engine type is `CLICKHOUSE`.
+- `ssl_ca` (String) The CA certificate. Optional, you can set this if the engine type is `MYSQL`, `POSTGRES`, `TIDB` or `CLICKHOUSE`.
+- `ssl_cert` (String) The client certificate. Optional, you can set this if the engine type is `MYSQL`, `POSTGRES`, `TIDB` or `CLICKHOUSE`.
+- `ssl_key` (String) The client key. Optional, you can set this if the engine type is `MYSQL`, `POSTGRES`, `TIDB` or `CLICKHOUSE`.
 - `database` (String) The database for the data source, you can set this if the engine type is `POSTGRES`.
