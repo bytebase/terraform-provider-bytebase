@@ -17,7 +17,7 @@ func (c *client) CreateRole(ctx context.Context, environmentID, instanceID strin
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environments/%s/instances/%s/roles", c.HostURL, environmentID, instanceID), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles", c.url, c.version, environmentID, instanceID), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (c *client) CreateRole(ctx context.Context, environmentID, instanceID strin
 
 // GetRole gets the role by instance id and role name.
 func (c *client) GetRole(ctx context.Context, environmentID, instanceID, roleName string) (*api.Role, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s/instances/%s/roles/%s", c.HostURL, environmentID, instanceID, roleName), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles/%s", c.url, c.version, environmentID, instanceID, roleName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (c *client) GetRole(ctx context.Context, environmentID, instanceID, roleNam
 
 // ListRole lists the role in instance.
 func (c *client) ListRole(ctx context.Context, environmentID, instanceID string) ([]*api.Role, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s/instances/%s/roles", c.HostURL, environmentID, instanceID), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles", c.url, c.version, environmentID, instanceID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (c *client) UpdateRole(ctx context.Context, environmentID, instanceID, role
 		paths = append(paths, "role.attribute")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/environments/%s/instances/%s/roles/%s?update_mask=%s", c.HostURL, environmentID, instanceID, roleName, strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles/%s?update_mask=%s", c.url, c.version, environmentID, instanceID, roleName, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (c *client) UpdateRole(ctx context.Context, environmentID, instanceID, role
 
 // DeleteRole deletes the role in the instance.
 func (c *client) DeleteRole(ctx context.Context, environmentID, instanceID, roleName string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/environments/%s/instances/%s/roles/%s", c.HostURL, environmentID, instanceID, roleName), nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles/%s", c.url, c.version, environmentID, instanceID, roleName), nil)
 	if err != nil {
 		return err
 	}

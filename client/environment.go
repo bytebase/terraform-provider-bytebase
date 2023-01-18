@@ -17,7 +17,7 @@ func (c *client) CreateEnvironment(ctx context.Context, environmentID string, cr
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environments?environmentId=%s", c.HostURL, environmentID), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/environments?environmentId=%s", c.url, c.version, environmentID), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (c *client) CreateEnvironment(ctx context.Context, environmentID string, cr
 
 // GetEnvironment gets the environment by id.
 func (c *client) GetEnvironment(ctx context.Context, environmentID string) (*api.EnvironmentMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s", c.HostURL, environmentID), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/environments/%s", c.url, c.version, environmentID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (c *client) GetEnvironment(ctx context.Context, environmentID string) (*api
 
 // ListEnvironment finds all environments.
 func (c *client) ListEnvironment(ctx context.Context, showDeleted bool) (*api.ListEnvironmentMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments?showDeleted=%v", c.HostURL, showDeleted), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/environments?showDeleted=%v", c.url, c.version, showDeleted), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (c *client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 		paths = append(paths, "environment.tier")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/environments/%s?update_mask=%s", c.HostURL, environmentID, strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/environments/%s?update_mask=%s", c.url, c.version, environmentID, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (c *client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 
 // DeleteEnvironment deletes the environment.
 func (c *client) DeleteEnvironment(ctx context.Context, environmentID string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/environments/%s", c.HostURL, environmentID), nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/environments/%s", c.url, c.version, environmentID), nil)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (c *client) DeleteEnvironment(ctx context.Context, environmentID string) er
 
 // UndeleteEnvironment undeletes the environment.
 func (c *client) UndeleteEnvironment(ctx context.Context, environmentID string) (*api.EnvironmentMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environments/%s:undelete", c.HostURL, environmentID), nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/environments/%s:undelete", c.url, c.version, environmentID), nil)
 	if err != nil {
 		return nil, err
 	}

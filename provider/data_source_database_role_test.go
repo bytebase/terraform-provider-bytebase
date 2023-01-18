@@ -99,7 +99,7 @@ func TestAccInstanceRoleDataSource_InstanceNotFound(t *testing.T) {
 					environment = "%s"
 				}
 				`, roleName, roleName, instanceID, environmentID),
-				ExpectError: regexp.MustCompile("Cannot found role with ID"),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("Cannot found instance environments/%s/instances/%s", environmentID, instanceID)),
 			},
 		},
 	})

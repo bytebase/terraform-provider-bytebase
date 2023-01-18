@@ -95,7 +95,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		return nil, diags
 	}
 
-	c, err := client.NewClient(fmt.Sprintf("%s/%s", bytebaseURL, openAPIVersion), email, key)
+	c, err := client.NewClient(bytebaseURL, openAPIVersion, email, key)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,

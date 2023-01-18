@@ -18,7 +18,7 @@ func (c *client) ListPolicies(ctx context.Context, find *api.PolicyFindMessage) 
 		return nil, errors.Errorf("invalid request, list policies cannot specific the policy type")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s?showDeleted=%v", c.HostURL, getPolicyRequestName(find), find.ShowDeleted), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s?showDeleted=%v", c.url, c.version, getPolicyRequestName(find), find.ShowDeleted), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (c *client) GetPolicy(ctx context.Context, find *api.PolicyFindMessage) (*a
 		return nil, errors.Errorf("invalid request, get policy must specific the policy type")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s", c.HostURL, getPolicyRequestName(find)), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, getPolicyRequestName(find)), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (c *client) UpsertPolicy(ctx context.Context, find *api.PolicyFindMessage, 
 		paths = append(paths, "policy.payload")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s?allow_missing=true&update_mask=%s", c.HostURL, getPolicyRequestName(find), strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?allow_missing=true&update_mask=%s", c.url, c.version, getPolicyRequestName(find), strings.Join(paths, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (c *client) DeletePolicy(ctx context.Context, find *api.PolicyFindMessage) 
 		return errors.Errorf("invalid request, get policy must specific the policy type")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s", c.HostURL, getPolicyRequestName(find)), nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, getPolicyRequestName(find)), nil)
 	if err != nil {
 		return err
 	}
