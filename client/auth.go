@@ -13,15 +13,15 @@ import (
 
 // Login will login the user and get the response.
 func (c *client) Login() (*api.AuthResponse, error) {
-	if c.Auth.Email == "" || c.Auth.Password == "" {
+	if c.auth.Email == "" || c.auth.Password == "" {
 		return nil, errors.Errorf("define username and password")
 	}
-	rb, err := json.Marshal(c.Auth)
+	rb, err := json.Marshal(c.auth)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/auth/login", c.HostURL), strings.NewReader(string(rb)))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s/auth/login", c.url, c.version), strings.NewReader(string(rb)))
 	if err != nil {
 		return nil, err
 	}

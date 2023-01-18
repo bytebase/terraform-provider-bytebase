@@ -95,7 +95,22 @@ func dataSourceInstanceRole() *schema.Resource {
 func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	role, err := c.GetRole(ctx, d.Get("environment").(string), d.Get("instance").(string), d.Get("name").(string))
+	environmentID := d.Get("environment").(string)
+	instanceID := d.Get("instance").(string)
+	roleName := d.Get("name").(string)
+
+	instance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
+		EnvironmentID: environmentID,
+		InstanceID:    instanceID,
+	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if instance.Engine != api.EngineTypePostgres {
+		return diag.Errorf("resource_database_role only supports the instance with POSTGRES type")
+	}
+
+	role, err := c.GetRole(ctx, environmentID, instanceID, roleName)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -12,7 +12,7 @@ import (
 
 // ListInstance will return instances in environment.
 func (c *client) ListInstance(ctx context.Context, find *api.InstanceFindMessage) (*api.ListInstanceMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s/instances?showDeleted=%v", c.HostURL, find.EnvironmentID, find.ShowDeleted), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/environments/%s/instances?showDeleted=%v", c.url, c.version, find.EnvironmentID, find.ShowDeleted), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (c *client) ListInstance(ctx context.Context, find *api.InstanceFindMessage
 
 // GetInstance gets the instance by id.
 func (c *client) GetInstance(ctx context.Context, find *api.InstanceFindMessage) (*api.InstanceMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/environments/%s/instances/%s", c.HostURL, find.EnvironmentID, find.InstanceID), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/environments/%s/instances/%s", c.url, c.version, find.EnvironmentID, find.InstanceID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (c *client) CreateInstance(ctx context.Context, environmentID, instanceID s
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environments/%s/instances?instanceId=%s", c.HostURL, environmentID, instanceID), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/environments/%s/instances?instanceId=%s", c.url, c.version, environmentID, instanceID), strings.NewReader(string(payload)))
 
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func (c *client) UpdateInstance(ctx context.Context, environmentID, instanceID s
 		paths = append(paths, "instance.data_sources")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/environments/%s/instances/%s?update_mask=%s", c.HostURL, environmentID, instanceID, strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/environments/%s/instances/%s?update_mask=%s", c.url, c.version, environmentID, instanceID, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func (c *client) UpdateInstance(ctx context.Context, environmentID, instanceID s
 
 // DeleteInstance deletes the instance.
 func (c *client) DeleteInstance(ctx context.Context, environmentID, instanceID string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/environments/%s/instances/%s", c.HostURL, environmentID, instanceID), nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/environments/%s/instances/%s", c.url, c.version, environmentID, instanceID), nil)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (c *client) DeleteInstance(ctx context.Context, environmentID, instanceID s
 
 // UndeleteInstance undeletes the instance.
 func (c *client) UndeleteInstance(ctx context.Context, environmentID, instanceID string) (*api.InstanceMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/environments/%s/instances/%s:undelete", c.HostURL, environmentID, instanceID), nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/environments/%s/instances/%s:undelete", c.url, c.version, environmentID, instanceID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -149,4 +149,20 @@ func (c *client) UndeleteInstance(ctx context.Context, environmentID, instanceID
 	}
 
 	return &res, nil
+}
+
+// SyncInstanceSchema will trigger the schema sync for an instance.
+func (c *client) SyncInstanceSchema(ctx context.Context, instanceUID string) error {
+	payload := fmt.Sprintf(`{"data":{"type":"sqlSyncSchema","attributes":{"instanceId":%s}}}`, instanceUID)
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/api/sql/sync-schema", c.url), strings.NewReader(string(payload)))
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := c.doRequest(req); err != nil {
+		return err
+	}
+
+	return nil
 }

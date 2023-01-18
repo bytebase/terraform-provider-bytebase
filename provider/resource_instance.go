@@ -47,13 +47,13 @@ func resourceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"MYSQL",
-					"POSTGRES",
-					"TIDB",
-					"SNOWFLAKE",
-					"CLICKHOUSE",
-					"MONGODB",
-					"SQLITE",
+					string(api.EngineTypeMySQL),
+					string(api.EngineTypePostgres),
+					string(api.EngineTypeTiDB),
+					string(api.EngineTypeSnowflake),
+					string(api.EngineTypeClickHouse),
+					string(api.EngineTypeMongoDB),
+					string(api.EngineTypeSQLite),
 				}, false),
 				Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.",
 			},
@@ -170,7 +170,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		})
 
 		engine := d.Get("engine").(string)
-		if existedInstance.Engine != engine {
+		if string(existedInstance.Engine) != engine {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Invalid argument",
@@ -211,17 +211,33 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			return diags
 		}
 
+		if err := c.SyncInstanceSchema(ctx, instance.UID); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Instance schema sync failed",
+				Detail:   fmt.Sprintf("Failed to sync schema for instance %s with error: %v. You can try to trigger the sync manually via Bytebase UI.", instanceName, err.Error()),
+			})
+		}
+
 		d.SetId(instance.Name)
 	} else {
 		instance, err := c.CreateInstance(ctx, environmentID, instanceID, &api.InstanceMessage{
 			Title:        d.Get("title").(string),
-			Engine:       d.Get("engine").(string),
+			Engine:       api.EngineType(d.Get("engine").(string)),
 			ExternalLink: d.Get("external_link").(string),
 			State:        api.Active,
 			DataSources:  dataSourceList,
 		})
 		if err != nil {
 			return diag.FromErr(err)
+		}
+
+		if err := c.SyncInstanceSchema(ctx, instance.UID); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Instance schema sync failed",
+				Detail:   fmt.Sprintf("Failed to sync schema for instance %s with error: %v. You can try to trigger the sync manually via Bytebase UI.", instanceName, err.Error()),
+			})
 		}
 		d.SetId(instance.Name)
 	}
@@ -280,7 +296,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	var diags diag.Diagnostics
-	if existedInstance.Engine != d.Get("engine").(string) {
+	if string(existedInstance.Engine) != d.Get("engine").(string) {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Invalid argument",

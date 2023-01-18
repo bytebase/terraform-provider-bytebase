@@ -108,6 +108,17 @@ func dataSourceRoleListRead(ctx context.Context, d *schema.ResourceData, m inter
 	instanceID := d.Get("instance").(string)
 	environmentID := d.Get("environment").(string)
 
+	instance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
+		EnvironmentID: environmentID,
+		InstanceID:    instanceID,
+	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if instance.Engine != api.EngineTypePostgres {
+		return diag.Errorf("resource_database_role only supports the instance with POSTGRES type")
+	}
+
 	roleList, err := c.ListRole(ctx, environmentID, instanceID)
 	if err != nil {
 		return diag.FromErr(err)

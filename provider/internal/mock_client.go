@@ -238,6 +238,11 @@ func (c *mockClient) UndeleteInstance(ctx context.Context, environmentID, instan
 	return ins, nil
 }
 
+// SyncInstanceSchema will trigger the schema sync for an instance.
+func (*mockClient) SyncInstanceSchema(_ context.Context, _ string) error {
+	return nil
+}
+
 // CreateRole creates the role in the instance.
 func (c *mockClient) CreateRole(_ context.Context, environmentID, instanceID string, create *api.RoleUpsert) (*api.Role, error) {
 	id := getRoleMapID(environmentID, instanceID, create.RoleName)

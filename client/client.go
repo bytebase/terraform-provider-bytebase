@@ -14,20 +14,22 @@ import (
 
 // client is the API message for Bytebase API client.
 type client struct {
-	HostURL    string
-	HTTPClient *http.Client
-	Token      string
-	Auth       *api.Login
+	url     string
+	version string
+	client  *http.Client
+	token   string
+	auth    *api.Login
 }
 
 // NewClient returns the new Bytebase API client.
-func NewClient(url, email, password string) (api.Client, error) {
+func NewClient(url, version, email, password string) (api.Client, error) {
 	c := client{
-		HTTPClient: &http.Client{Timeout: 10 * time.Second},
-		HostURL:    url,
+		client:  &http.Client{Timeout: 10 * time.Second},
+		url:     url,
+		version: version,
 	}
 
-	c.Auth = &api.Login{
+	c.auth = &api.Login{
 		Email:    email,
 		Password: password,
 	}
@@ -37,17 +39,17 @@ func NewClient(url, email, password string) (api.Client, error) {
 		return nil, err
 	}
 
-	c.Token = ar.Token
+	c.token = ar.Token
 
 	return &c, nil
 }
 
 func (c *client) doRequest(req *http.Request) ([]byte, error) {
-	if c.Token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
+	if c.token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
 	}
 
-	res, err := c.HTTPClient.Do(req)
+	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
