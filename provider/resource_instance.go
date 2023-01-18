@@ -337,8 +337,16 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		patch.DataSources = dataSourceList
 	}
 
-	if _, err := c.UpdateInstance(ctx, envID, instanceID, patch); err != nil {
+	instance, err := c.UpdateInstance(ctx, envID, instanceID, patch)
+	if err != nil {
 		return diag.FromErr(err)
+	}
+	if err := c.SyncInstanceSchema(ctx, instance.UID); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Instance schema sync failed",
+			Detail:   fmt.Sprintf("Failed to sync schema for instance %s with error: %v. You can try to trigger the sync manually via Bytebase UI.", instanceName, err.Error()),
+		})
 	}
 
 	diag := resourceInstanceRead(ctx, d, m)
