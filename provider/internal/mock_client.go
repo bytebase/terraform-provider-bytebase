@@ -344,7 +344,7 @@ func (c *mockClient) ListPolicies(_ context.Context, find *api.PolicyFindMessage
 		if policy.State == api.Deleted && !find.ShowDeleted {
 			continue
 		}
-		if policy.Name == name {
+		if name == "policies" || policy.Name == name {
 			policies = append(policies, policy)
 		}
 	}
@@ -365,10 +365,75 @@ func (c *mockClient) GetPolicy(_ context.Context, find *api.PolicyFindMessage) (
 	return policy, nil
 }
 
-// TODO(ed): update the mock and tests
 // UpsertPolicy creates or updates the policy.
-func (*mockClient) UpsertPolicy(_ context.Context, _ *api.PolicyFindMessage, _ *api.PolicyPatchMessage) (*api.PolicyMessage, error) {
-	return nil, nil
+func (c *mockClient) UpsertPolicy(_ context.Context, find *api.PolicyFindMessage, patch *api.PolicyPatchMessage) (*api.PolicyMessage, error) {
+	name := getPolicyRequestName(find)
+	policy, existed := c.policyMap[name]
+
+	if !existed {
+		policy = &api.PolicyMessage{
+			Name:  name,
+			State: api.Active,
+		}
+	}
+
+	switch patch.Type {
+	case api.PolicyTypeAccessControl:
+		if !existed {
+			if patch.AccessControlPolicy == nil {
+				return nil, errors.Errorf("payload is required to create the policy")
+			}
+		}
+		if v := patch.AccessControlPolicy; v != nil {
+			policy.AccessControlPolicy = v
+		}
+	case api.PolicyTypeBackupPlan:
+		if !existed {
+			if patch.BackupPlanPolicy == nil {
+				return nil, errors.Errorf("payload is required to create the policy")
+			}
+		}
+		if v := patch.BackupPlanPolicy; v != nil {
+			policy.BackupPlanPolicy = v
+		}
+	case api.PolicyTypeDeploymentApproval:
+		if !existed {
+			if patch.DeploymentApprovalPolicy == nil {
+				return nil, errors.Errorf("payload is required to create the policy")
+			}
+		}
+		if v := patch.DeploymentApprovalPolicy; v != nil {
+			policy.DeploymentApprovalPolicy = v
+		}
+	case api.PolicyTypeSQLReview:
+		if !existed {
+			if patch.SQLReviewPolicy == nil {
+				return nil, errors.Errorf("payload is required to create the policy")
+			}
+		}
+		if v := patch.SQLReviewPolicy; v != nil {
+			policy.SQLReviewPolicy = v
+		}
+	case api.PolicyTypeSensitiveData:
+		if !existed {
+			if patch.SensitiveDataPolicy == nil {
+				return nil, errors.Errorf("payload is required to create the policy")
+			}
+		}
+		if v := patch.SensitiveDataPolicy; v != nil {
+			policy.SensitiveDataPolicy = v
+		}
+	default:
+		return nil, errors.Errorf("invalid policy type %v", patch.Type)
+	}
+
+	if v := patch.InheritFromParent; v != nil {
+		policy.InheritFromParent = *v
+	}
+
+	c.policyMap[name] = policy
+
+	return policy, nil
 }
 
 // DeletePolicy deletes the policy.

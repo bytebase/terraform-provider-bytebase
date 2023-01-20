@@ -46,7 +46,6 @@ var policyParentIdentificationMap = map[string]*schema.Schema{
 	},
 }
 
-// TODO(ed): add test and doc.
 func dataSourcePolicy() *schema.Resource {
 	return &schema.Resource{
 		Description: "The policy data source.",

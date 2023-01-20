@@ -11,7 +11,6 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
-// TODO(ed): add test and doc.
 func dataSourcePolicyList() *schema.Resource {
 	return &schema.Resource{
 		Description: "The policy data source list.",

@@ -14,7 +14,6 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
-// TODO(ed): add test and doc.
 func resourcePolicy() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The policy resource.",
