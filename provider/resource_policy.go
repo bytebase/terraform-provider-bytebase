@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -105,53 +106,94 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		Type:              *find.Type,
 	}
 
-	if _, ok := d.GetOk("deployment_approval_policy"); ok {
-		policy, err := convertDeploymentApprovalPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
+	switch patch.Type {
+	case api.PolicyTypeDeploymentApproval:
+		if _, ok := d.GetOk("deployment_approval_policy"); ok {
+			policy, err := convertDeploymentApprovalPolicy(d)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			patch.DeploymentApprovalPolicy = policy
 		}
-		patch.DeploymentApprovalPolicy = policy
-	}
-	if _, ok := d.GetOk("backup_plan_policy"); ok {
-		policy, err := convertBackupPlanPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
+	case api.PolicyTypeBackupPlan:
+		if _, ok := d.GetOk("backup_plan_policy"); ok {
+			policy, err := convertBackupPlanPolicy(d)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			patch.BackupPlanPolicy = policy
 		}
-		patch.BackupPlanPolicy = policy
-	}
-	if _, ok := d.GetOk("sensitive_data_policy"); ok {
-		policy, err := convertSensitiveDataPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
+	case api.PolicyTypeSensitiveData:
+		if _, ok := d.GetOk("sensitive_data_policy"); ok {
+			policy, err := convertSensitiveDataPolicy(d)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			patch.SensitiveDataPolicy = policy
 		}
-		patch.SensitiveDataPolicy = policy
-	}
-	if _, ok := d.GetOk("access_control_policy"); ok {
+	case api.PolicyTypeAccessControl:
 		policy, err := convertAccessControlPolicy(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		patch.AccessControlPolicy = policy
-	}
-	if _, ok := d.GetOk("sql_review_policy"); ok {
-		policy, err := convertSQLReviewPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
+	case api.PolicyTypeSQLReview:
+		if _, ok := d.GetOk("sql_review_policy"); ok {
+			policy, err := convertSQLReviewPolicy(d)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			patch.SQLReviewPolicy = policy
 		}
-		patch.SQLReviewPolicy = policy
 	}
 
 	if err := validatePolicy(find, patch); err != nil {
 		return diag.FromErr(err)
 	}
 
+	existedPolicy, err := c.GetPolicy(ctx, find)
+	if err != nil {
+		tflog.Debug(ctx, fmt.Sprintf("get policy %v failed with error: %v", find, err))
+	}
+
+	var diags diag.Diagnostics
+	if existedPolicy != nil && err == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Policy already exists",
+			Detail:   fmt.Sprintf("Policy %s already exists, try to exec the update operation", existedPolicy.Name),
+		})
+
+		if existedPolicy.State == api.Deleted {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Policy is deleted",
+				Detail:   fmt.Sprintf("Policy %s already deleted, try to undelete the instance", existedPolicy.Name),
+			})
+
+			enforce := true
+			patch.Enforce = &enforce
+		}
+	}
+
 	p, err := c.UpsertPolicy(ctx, find, patch)
 	if err != nil {
-		return diag.FromErr(err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to upsert policy",
+			Detail:   fmt.Sprintf("Upsert policy %s failed, error: %v", existedPolicy.Name, err),
+		})
+		return diags
 	}
 
 	d.SetId(p.Name)
-	return resourcePolicyRead(ctx, d, m)
+
+	diag := resourcePolicyRead(ctx, d, m)
+	if diag != nil {
+		diags = append(diags, diag...)
+	}
+
+	return diags
 }
 
 func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -211,11 +253,46 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	if _, err := c.UpsertPolicy(ctx, find, patch); err != nil {
-		return diag.FromErr(err)
+	existedPolicy, err := c.GetPolicy(ctx, find)
+	if err != nil {
+		tflog.Debug(ctx, fmt.Sprintf("get policy %v failed with error: %v", find, err))
 	}
 
-	return resourcePolicyRead(ctx, d, m)
+	var diags diag.Diagnostics
+	if existedPolicy != nil && err == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Policy already exists",
+			Detail:   fmt.Sprintf("Policy %s already exists, try to exec the update operation", existedPolicy.Name),
+		})
+
+		if existedPolicy.State == api.Deleted {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Policy is deleted",
+				Detail:   fmt.Sprintf("Policy %s already deleted, try to undelete the instance", existedPolicy.Name),
+			})
+
+			enforce := true
+			patch.Enforce = &enforce
+		}
+	}
+
+	if _, err := c.UpsertPolicy(ctx, find, patch); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to upsert policy",
+			Detail:   fmt.Sprintf("Upsert policy %s failed, error: %v", existedPolicy.Name, err),
+		})
+		return diags
+	}
+
+	diag := resourcePolicyRead(ctx, d, m)
+	if diag != nil {
+		diags = append(diags, diag...)
+	}
+
+	return diags
 }
 
 func convertDeploymentApprovalPolicy(d *schema.ResourceData) (*api.DeploymentApprovalPolicy, error) {
@@ -280,8 +357,22 @@ func convertSensitiveDataPolicy(d *schema.ResourceData) (*api.SensitiveDataPolic
 
 func convertAccessControlPolicy(d *schema.ResourceData) (*api.AccessControlPolicy, error) {
 	rawList, ok := d.Get("access_control_policy").([]interface{})
-	if !ok || len(rawList) != 1 {
+	if !ok || len(rawList) > 1 {
 		return nil, errors.Errorf("invalid access_control_policy")
+	}
+
+	if len(rawList) == 0 {
+		if _, ok := d.GetOk("database"); !ok {
+			return nil, errors.Errorf("access_control_policy is required")
+		}
+
+		return &api.AccessControlPolicy{
+			DisallowRules: []*api.AccessControlRule{
+				{
+					FullDatabase: false,
+				},
+			},
+		}, nil
 	}
 
 	raw := rawList[0].(map[string]interface{})
@@ -291,7 +382,7 @@ func convertAccessControlPolicy(d *schema.ResourceData) (*api.AccessControlPolic
 	for _, rule := range rules {
 		rawRule := rule.(map[string]interface{})
 		policy.DisallowRules = append(policy.DisallowRules, &api.AccessControlRule{
-			FullDatabase: rawRule["full_database"].(bool),
+			FullDatabase: rawRule["all_databases"].(bool),
 		})
 	}
 
@@ -329,11 +420,14 @@ func convertSQLReviewPolicy(d *schema.ResourceData) (*api.SQLReviewPolicy, error
 		ruleMap[ruleType] = true
 
 		payloadRawList, ok := rawRule["payload"].([]interface{})
-		if !ok || len(payloadRawList) != 1 {
+		if ok && len(payloadRawList) > 1 {
 			return nil, errors.Errorf("invalid sql_review_policy payload, only expect one payload for the rule %v", rawRule["type"].(string))
 		}
 
-		payloadRaw := payloadRawList[0].(map[string]interface{})
+		payloadRaw := map[string]interface{}{}
+		if len(payloadRawList) == 1 {
+			payloadRaw = payloadRawList[0].(map[string]interface{})
+		}
 		payloadStr, err := mrshalSQLReviewRulePayload(ruleType, payloadRaw)
 		if err != nil {
 			return nil, err
@@ -342,6 +436,7 @@ func convertSQLReviewPolicy(d *schema.ResourceData) (*api.SQLReviewPolicy, error
 		policy.Rules = append(policy.Rules, &api.SQLReviewRule{
 			Type:    ruleType,
 			Level:   api.SQLReviewRuleLevel(rawRule["level"].(string)),
+			Engine:  api.EngineType(rawRule["engine"].(string)),
 			Payload: payloadStr,
 		})
 	}
@@ -370,8 +465,14 @@ func validatePolicy(find *api.PolicyFindMessage, patch *api.PolicyPatchMessage) 
 		if patch.AccessControlPolicy == nil {
 			return errors.Errorf("must set access_control_policy for %v policy", patch.Type)
 		}
-		if find.ProjectID != nil || (find.InstanceID != nil && find.DatabaseName == nil) {
-			return errors.Errorf("%v policy only works for the environment and database resource", patch.Type)
+		if find.ProjectID != nil {
+			return errors.Errorf("%v policy cannot works with the project resource", patch.Type)
+		}
+		if find.EnvironmentID == nil {
+			return errors.Errorf("%v policy must set the environment resource", patch.Type)
+		}
+		if find.DatabaseName != nil && find.InstanceID == nil {
+			return errors.Errorf("%v policy for database must set the instance", patch.Type)
 		}
 	case api.PolicyTypeSQLReview:
 		if patch.SQLReviewPolicy == nil {

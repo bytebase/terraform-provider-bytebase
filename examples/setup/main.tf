@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "0.0.7-alpha.6"
+      version = "0.0.7-alpha.7"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -149,47 +149,54 @@ resource "bytebase_policy" "sql_review" {
   sql_review_policy {
     title = "SQL Review Policy for Test environment"
     rules {
-      type  = "statement.select.no-select-all"
-      level = "ERROR"
+      type   = "statement.select.no-select-all"
+      level  = "ERROR"
+      engine = "MYSQL"
     }
     rules {
-      type  = "statement.where.no-leading-wildcard-like"
-      level = "DISABLED"
+      type   = "statement.where.no-leading-wildcard-like"
+      level  = "DISABLED"
+      engine = "MYSQL"
     }
     rules {
-      type  = "column.comment"
-      level = "ERROR"
+      type   = "column.comment"
+      level  = "ERROR"
+      engine = "MYSQL"
       payload {
         max_length = 99
         required   = true
       }
     }
     rules {
-      type  = "table.comment"
-      level = "WARNING"
+      type   = "table.comment"
+      level  = "WARNING"
+      engine = "MYSQL"
       payload {
         max_length = 30
         required   = false
       }
     }
     rules {
-      type  = "naming.table"
-      level = "ERROR"
+      type   = "naming.table"
+      level  = "ERROR"
+      engine = "MYSQL"
       payload {
         max_length = 99
         format     = "^[a-z]+$"
       }
     }
     rules {
-      type  = "column.required"
-      level = "WARNING"
+      type   = "column.required"
+      level  = "WARNING"
+      engine = "MYSQL"
       payload {
         list = ["id", "created_ts", "updated_ts"]
       }
     }
     rules {
-      type  = "column.auto-increment-initial-value"
-      level = "WARNING"
+      type   = "column.auto-increment-initial-value"
+      level  = "WARNING"
+      engine = "MYSQL"
       payload {
         number = 1
       }

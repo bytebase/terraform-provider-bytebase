@@ -128,6 +128,7 @@ type PolicyMessage struct {
 type PolicyPatchMessage struct {
 	InheritFromParent *bool      `json:"inheritFromParent"`
 	Type              PolicyType `json:"type"`
+	Enforce           *bool      `json:"enforce"`
 
 	// The policy payload
 	DeploymentApprovalPolicy *DeploymentApprovalPolicy `json:"deploymentApprovalPolicy"`

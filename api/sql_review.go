@@ -156,5 +156,6 @@ type NumberTypeRulePayload struct {
 type SQLReviewRule struct {
 	Type    SQLReviewRuleType  `json:"type"`
 	Level   SQLReviewRuleLevel `json:"level"`
+	Engine  EngineType         `json:"engine"`
 	Payload string             `json:"payload"`
 }

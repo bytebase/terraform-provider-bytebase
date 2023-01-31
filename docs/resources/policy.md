@@ -163,7 +163,7 @@ Access Control Policy is the policy configuration for database access control. I
 Must set the `access_control_policy` if the policy type if `ACCESS_CONTROL`. It contains following attributes:
 
 - `disallow_rules` (List of Object) The object contains following attribute:
-  - `full_database` (Boolean) will apply to the full database.
+  - `all_databases` (Boolean) will apply to all databases.
 
 For example:
 
@@ -183,7 +183,7 @@ resource "bytebase_policy" "access_control" {
 
   access_control_policy {
     disallow_rules {
-      full_database = true
+      all_databases = true
     }
   }
 }
@@ -194,12 +194,6 @@ resource "bytebase_policy" "access_control" {
   environment = bytebase_environment.prod.resource_id
   instance    = "<instance resource id for the database>"
   database    = "employee"
-
-  access_control_policy {
-    disallow_rules {
-      full_database = true
-    }
-  }
 }
 ```
 
@@ -219,6 +213,10 @@ The rule should a object contains:
   - `ERROR`
   - `WARNING`
   - `DISABLED`
+- `engine` (String) The database engine for the rule. Should be one of:
+  - `MYSQL`
+  - `POSTGRES`
+  - `TIDB`
 - `payload` (Object) The payload for SQL review rule.
 
 Please check the doc for details: https://www.bytebase.com/docs/sql-review/review-rules/supported-rules
@@ -233,27 +231,31 @@ resource "bytebase_policy" "sql_review" {
   sql_review_policy {
     title = "SQL Review Policy for Test environment"
     rules {
-      type  = "statement.select.no-select-all"
-      level = "ERROR"
+      type   = "statement.select.no-select-all"
+      level  = "ERROR"
+      engine = "MYSQL"
     }
     rules {
-      type  = "naming.table"
-      level = "ERROR"
+      type   = "naming.table"
+      level  = "ERROR"
+      engine = "POSTGRES"
       payload {
         max_length = 99
         format     = "^[a-z]+$"
       }
     }
     rules {
-      type  = "column.required"
-      level = "WARNING"
+      type   = "column.required"
+      level  = "WARNING"
+      engine = "TIDB"
       payload {
         list = ["id", "created_ts", "updated_ts"]
       }
     }
     rules {
-      type  = "column.auto-increment-initial-value"
-      level = "DISABLED"
+      type   = "column.auto-increment-initial-value"
+      level  = "DISABLED"
+      engine = "MYSQL"
       payload {
         number = 1
       }
@@ -288,8 +290,9 @@ resource "bytebase_policy" "sql_review" {
   sql_review_policy {
     title = "SQL Review Policy for Test environment"
     rules {
-      type  = "naming.table"
-      level = "ERROR"
+      type   = "naming.table"
+      level  = "ERROR"
+      engine = "MYSQL"
       payload {
         max_length = 99
         format     = "^[a-z]+$"
@@ -316,8 +319,9 @@ resource "bytebase_policy" "sql_review" {
   sql_review_policy {
     title = "SQL Review Policy for Test environment"
     rules {
-      type  = "column.comment"
-      level = "WARNING"
+      type   = "column.comment"
+      level  = "WARNING"
+      engine = "MYSQL"
       payload {
         max_length = 99
         required   = true
@@ -350,8 +354,9 @@ resource "bytebase_policy" "sql_review" {
   sql_review_policy {
     title = "SQL Review Policy for Test environment"
     rules {
-      type  = "column.auto-increment-initial-value"
-      level = "WARNING"
+      type   = "column.auto-increment-initial-value"
+      level  = "WARNING"
+      engine = "MYSQL"
       payload {
         number = 1
       }
@@ -382,8 +387,9 @@ resource "bytebase_policy" "sql_review" {
   sql_review_policy {
     title = "SQL Review Policy for Test environment"
     rules {
-      type  = "column.required"
-      level = "WARNING"
+      type   = "column.required"
+      level  = "WARNING"
+      engine = "MYSQL"
       payload {
         list = ["id", "created_ts", "updated_ts"]
       }
