@@ -239,7 +239,7 @@ func flattenAccessControlPolicy(p *api.AccessControlPolicy) []interface{} {
 	rules := []interface{}{}
 	for _, rule := range p.DisallowRules {
 		raw := map[string]interface{}{}
-		raw["full_database"] = rule.FullDatabase
+		raw["all_databases"] = rule.FullDatabase
 		rules = append(rules, raw)
 	}
 	policy := map[string]interface{}{
@@ -254,6 +254,7 @@ func flattenSQLReviewPolicy(p *api.SQLReviewPolicy) ([]interface{}, error) {
 		raw := map[string]interface{}{}
 		raw["type"] = rule.Type
 		raw["level"] = rule.Level
+		raw["engine"] = rule.Engine
 
 		payload, err := unamrshalSQLReviewRulePayload(rule.Type, rule.Payload)
 		if err != nil {
@@ -425,7 +426,7 @@ func getAccessControlPolicy(computed bool) *schema.Schema {
 					Type:     schema.TypeList,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
-							"full_database": {
+							"all_databases": {
 								Type:     schema.TypeBool,
 								Computed: computed,
 								Optional: true,
@@ -524,6 +525,17 @@ func getSQLReviewPolicy(computed bool) *schema.Schema {
 									string(api.SQLReviewRuleLevelWarning),
 									string(api.SQLReviewRuleLevelDisabled),
 								}, false),
+							},
+							"engine": {
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+								ValidateFunc: validation.StringInSlice([]string{
+									string(api.EngineTypeMySQL),
+									string(api.EngineTypePostgres),
+									string(api.EngineTypeTiDB),
+								}, false),
+								Description: "The engine for this rule.",
 							},
 							"payload": {
 								Computed: computed,
