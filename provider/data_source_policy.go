@@ -85,7 +85,7 @@ func dataSourcePolicy() *schema.Resource {
 func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	find, err := getPolicyFind(d)
+	find, err := getPolicyFind(ctx, d, c)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -99,7 +99,7 @@ func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interfa
 	return setPolicyMessage(d, policy)
 }
 
-func getPolicyFind(d *schema.ResourceData) (*api.PolicyFindMessage, error) {
+func getPolicyFind(ctx context.Context, d *schema.ResourceData, client api.Client) (*api.PolicyFindMessage, error) {
 	projectID := d.Get("project").(string)
 	environmentID := d.Get("environment").(string)
 	if projectID != "" && environmentID != "" {
@@ -130,6 +130,51 @@ func getPolicyFind(d *schema.ResourceData) (*api.PolicyFindMessage, error) {
 				return nil, errors.Errorf("must set both environment, instance and database to find the database policy")
 			}
 			find.DatabaseName = &v
+		}
+	}
+
+	// Make sure the parent for the policy exists
+	if find.DatabaseName != nil {
+		if _, err := client.GetDatabase(ctx, &api.DatabaseFindMessage{
+			EnvironmentID: *find.EnvironmentID,
+			InstanceID:    *find.InstanceID,
+			DatabaseName:  *find.DatabaseName,
+		}); err != nil {
+			return nil, errors.Errorf(
+				"cannot find the database: environments/%s/instances/%s/databases/%s with error %v, please make sure the database synchronization is done",
+				*find.EnvironmentID,
+				*find.InstanceID,
+				*find.DatabaseName,
+				err.Error(),
+			)
+		}
+	} else if find.InstanceID != nil {
+		if _, err := client.GetInstance(ctx, &api.InstanceFindMessage{
+			EnvironmentID: *find.EnvironmentID,
+			InstanceID:    *find.InstanceID,
+		}); err != nil {
+			return nil, errors.Errorf(
+				"cannot find the instance: environments/%s/instances/%s with error %v",
+				*find.EnvironmentID,
+				*find.InstanceID,
+				err.Error(),
+			)
+		}
+	} else if find.EnvironmentID != nil {
+		if _, err := client.GetEnvironment(ctx, *find.EnvironmentID); err != nil {
+			return nil, errors.Errorf(
+				"cannot find the instance: environments/%s with error %v",
+				*find.EnvironmentID,
+				err.Error(),
+			)
+		}
+	} else if find.ProjectID != nil {
+		if _, err := client.GetProject(ctx, *find.ProjectID); err != nil {
+			return nil, errors.Errorf(
+				"cannot find the project: projects/%s with error %v",
+				*find.ProjectID,
+				err.Error(),
+			)
 		}
 	}
 
@@ -456,7 +501,7 @@ func getSQLReviewPolicy(computed bool) *schema.Schema {
 					Computed:    computed,
 					Optional:    true,
 					Type:        schema.TypeList,
-					Description: "The SQL review rules. Please check the doc for details: https://www.bytebase.com/docs/sql-review/review-rules/supported-rules",
+					Description: "The SQL review rules. Please check the doc for details: https://www.bytebase.com/docs/sql-review/review-policy/supported-rules",
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"type": {

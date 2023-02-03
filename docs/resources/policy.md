@@ -219,7 +219,7 @@ The rule should a object contains:
   - `TIDB`
 - `payload` (Object) The payload for SQL review rule.
 
-Please check the doc for details: https://www.bytebase.com/docs/sql-review/review-rules/supported-rules
+Please check the doc for details: https://www.bytebase.com/docs/sql-review/review-policy/supported-rules
 
 For example:
 

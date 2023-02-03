@@ -59,4 +59,12 @@ type Client interface {
 	UpsertPolicy(ctx context.Context, find *PolicyFindMessage, patch *PolicyPatchMessage) (*PolicyMessage, error)
 	// DeletePolicy deletes the policy.
 	DeletePolicy(ctx context.Context, find *PolicyFindMessage) error
+
+	// Database
+	// GetDatabase gets the database by environment resource id, instance resource id and the database name.
+	GetDatabase(ctx context.Context, find *DatabaseFindMessage) (*DatabaseMessage, error)
+
+	// Project
+	// GetProject gets the project by resource id.
+	GetProject(ctx context.Context, projectID string) (*PorjectMessage, error)
 }

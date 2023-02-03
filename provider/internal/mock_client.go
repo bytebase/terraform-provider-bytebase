@@ -467,3 +467,13 @@ func getPolicyRequestName(find *api.PolicyFindMessage) string {
 
 	return name
 }
+
+// GetDatabase gets the database by environment resource id, instance resource id and the database name.
+func (*mockClient) GetDatabase(_ context.Context, _ *api.DatabaseFindMessage) (*api.DatabaseMessage, error) {
+	return nil, errors.Errorf("GetDatabase is not implemented")
+}
+
+// GetProject gets the project by resource id.
+func (*mockClient) GetProject(_ context.Context, _ string) (*api.PorjectMessage, error) {
+	return nil, errors.Errorf("GetProject is not implemented")
+}
