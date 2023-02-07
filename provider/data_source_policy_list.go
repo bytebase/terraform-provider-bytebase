@@ -57,7 +57,7 @@ func dataSourcePolicyList() *schema.Resource {
 func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	find, err := getPolicyFind(d)
+	find, err := getPolicyFind(ctx, d, c)
 	if err != nil {
 		return diag.FromErr(err)
 	}

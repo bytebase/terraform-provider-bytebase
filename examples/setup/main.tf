@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "0.0.7-alpha.7"
+      version = "0.0.7"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -106,100 +106,5 @@ resource "bytebase_instance_role" "test" {
     can_login   = true
     replication = true
     bypass_rls  = true
-  }
-}
-
-# Create deployment approval policy for test env.
-resource "bytebase_policy" "deployment_approval" {
-  environment = bytebase_instance.test.environment
-  type        = "DEPLOYMENT_APPROVAL"
-
-  deployment_approval_policy {
-    default_strategy = "AUTOMATIC"
-
-    deployment_approval_strategies {
-      approval_group    = "APPROVAL_GROUP_DBA"
-      approval_strategy = "AUTOMATIC"
-      deployment_type   = "DATABASE_CREATE"
-    }
-    deployment_approval_strategies {
-      approval_group    = "APPROVAL_GROUP_PROJECT_OWNER"
-      approval_strategy = "AUTOMATIC"
-      deployment_type   = "DATABASE_DDL"
-    }
-  }
-}
-
-# Create backup plan policy for test env.
-resource "bytebase_policy" "backup_plan" {
-  environment = bytebase_instance.test.environment
-  type        = "BACKUP_PLAN"
-
-  backup_plan_policy {
-    schedule           = "WEEKLY"
-    retention_duration = 86400
-  }
-}
-
-# Create SQL review policy for test env.
-resource "bytebase_policy" "sql_review" {
-  environment = bytebase_instance.test.environment
-  type        = "SQL_REVIEW"
-
-  sql_review_policy {
-    title = "SQL Review Policy for Test environment"
-    rules {
-      type   = "statement.select.no-select-all"
-      level  = "ERROR"
-      engine = "MYSQL"
-    }
-    rules {
-      type   = "statement.where.no-leading-wildcard-like"
-      level  = "DISABLED"
-      engine = "MYSQL"
-    }
-    rules {
-      type   = "column.comment"
-      level  = "ERROR"
-      engine = "MYSQL"
-      payload {
-        max_length = 99
-        required   = true
-      }
-    }
-    rules {
-      type   = "table.comment"
-      level  = "WARNING"
-      engine = "MYSQL"
-      payload {
-        max_length = 30
-        required   = false
-      }
-    }
-    rules {
-      type   = "naming.table"
-      level  = "ERROR"
-      engine = "MYSQL"
-      payload {
-        max_length = 99
-        format     = "^[a-z]+$"
-      }
-    }
-    rules {
-      type   = "column.required"
-      level  = "WARNING"
-      engine = "MYSQL"
-      payload {
-        list = ["id", "created_ts", "updated_ts"]
-      }
-    }
-    rules {
-      type   = "column.auto-increment-initial-value"
-      level  = "WARNING"
-      engine = "MYSQL"
-      payload {
-        number = 1
-      }
-    }
   }
 }
