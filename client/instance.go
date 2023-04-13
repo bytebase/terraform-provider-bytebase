@@ -88,13 +88,13 @@ func (c *client) UpdateInstance(ctx context.Context, environmentID, instanceID s
 
 	paths := []string{}
 	if patch.Title != nil {
-		paths = append(paths, "instance.title")
+		paths = append(paths, "title")
 	}
 	if patch.ExternalLink != nil {
-		paths = append(paths, "instance.external_link")
+		paths = append(paths, "external_link")
 	}
 	if patch.DataSources != nil {
-		paths = append(paths, "instance.data_sources")
+		paths = append(paths, "data_sources")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/environments/%s/instances/%s?update_mask=%s", c.url, c.version, environmentID, instanceID, strings.Join(paths, ",")), strings.NewReader(string(payload)))
