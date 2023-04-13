@@ -75,14 +75,14 @@ func (c *client) UpsertPolicy(ctx context.Context, find *api.PolicyFindMessage, 
 
 	paths := []string{}
 	if patch.InheritFromParent != nil {
-		paths = append(paths, "policy.inherit_from_parent")
+		paths = append(paths, "inherit_from_parent")
 	}
 	if patch.DeploymentApprovalPolicy != nil ||
 		patch.BackupPlanPolicy != nil ||
 		patch.SensitiveDataPolicy != nil ||
 		patch.AccessControlPolicy != nil ||
 		patch.SQLReviewPolicy != nil {
-		paths = append(paths, "policy.payload")
+		paths = append(paths, "payload")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?allow_missing=true&update_mask=%s", c.url, c.version, getPolicyRequestName(find), strings.Join(paths, ",")), strings.NewReader(string(payload)))

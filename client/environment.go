@@ -87,13 +87,13 @@ func (c *client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 
 	paths := []string{}
 	if patch.Title != nil {
-		paths = append(paths, "environment.title")
+		paths = append(paths, "title")
 	}
 	if patch.Order != nil {
-		paths = append(paths, "environment.order")
+		paths = append(paths, "order")
 	}
 	if patch.Tier != nil {
-		paths = append(paths, "environment.tier")
+		paths = append(paths, "tier")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/environments/%s?update_mask=%s", c.url, c.version, environmentID, strings.Join(paths, ",")), strings.NewReader(string(payload)))

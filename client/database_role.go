@@ -90,19 +90,19 @@ func (c *client) UpdateRole(ctx context.Context, environmentID, instanceID, role
 
 	paths := []string{}
 	if patch.RoleName != roleName {
-		paths = append(paths, "role.role_name")
+		paths = append(paths, "role_name")
 	}
 	if patch.Password != nil {
-		paths = append(paths, "role.password")
+		paths = append(paths, "password")
 	}
 	if patch.ConnectionLimit != nil {
-		paths = append(paths, "role.connection_limit")
+		paths = append(paths, "connection_limit")
 	}
 	if patch.ValidUntil != nil {
-		paths = append(paths, "role.valid_until")
+		paths = append(paths, "valid_until")
 	}
 	if patch.Attribute != nil {
-		paths = append(paths, "role.attribute")
+		paths = append(paths, "attribute")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles/%s?update_mask=%s", c.url, c.version, environmentID, instanceID, roleName, strings.Join(paths, ",")), strings.NewReader(string(payload)))
