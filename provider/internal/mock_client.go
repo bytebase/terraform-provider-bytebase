@@ -27,7 +27,6 @@ type mockClient struct {
 	environmentMap map[string]*api.EnvironmentMessage
 	instanceMap    map[string]*api.InstanceMessage
 	policyMap      map[string]*api.PolicyMessage
-	projectMap     map[string]*api.ProjectMessage
 	roleMap        map[string]*api.Role
 }
 
