@@ -66,5 +66,15 @@ type Client interface {
 
 	// Project
 	// GetProject gets the project by resource id.
-	GetProject(ctx context.Context, projectID string) (*PorjectMessage, error)
+	GetProject(ctx context.Context, projectID string, showDeleted bool) (*ProjectMessage, error)
+	// ListProject list the projects,
+	ListProject(ctx context.Context, showDeleted bool) (*ListProjectMessage, error)
+	// CreateProject creates the project.
+	CreateProject(ctx context.Context, project *ProjectMessage) (*ProjectMessage, error)
+	// UpdateProject updates the project.
+	UpdateProject(ctx context.Context, projectID string, patch *ProjectPatchMessage) (*ProjectMessage, error)
+	// DeleteProject deletes the project.
+	DeleteProject(ctx context.Context, projectID string) error
+	// UndeleteProject undeletes the project.
+	UndeleteProject(ctx context.Context, projectID string) (*InstanceMessage, error)
 }

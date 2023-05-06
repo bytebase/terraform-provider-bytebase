@@ -27,6 +27,7 @@ type mockClient struct {
 	environmentMap map[string]*api.EnvironmentMessage
 	instanceMap    map[string]*api.InstanceMessage
 	policyMap      map[string]*api.PolicyMessage
+	projectMap     map[string]*api.ProjectMessage
 	roleMap        map[string]*api.Role
 }
 
@@ -473,7 +474,33 @@ func (*mockClient) GetDatabase(_ context.Context, _ *api.DatabaseFindMessage) (*
 	return nil, errors.Errorf("GetDatabase is not implemented")
 }
 
+// TODO: implement the tests
 // GetProject gets the project by resource id.
-func (*mockClient) GetProject(_ context.Context, _ string) (*api.PorjectMessage, error) {
+func (*mockClient) GetProject(_ context.Context, _ string, _ bool) (*api.ProjectMessage, error) {
 	return nil, errors.Errorf("GetProject is not implemented")
+}
+
+// ListProject list the projects,
+func (c *mockClient) ListProject(ctx context.Context, _ bool) (*api.ListProjectMessage, error) {
+	return nil, errors.Errorf("ListProject is not implemented")
+}
+
+// CreateProject creates the project.
+func (c *mockClient) CreateProject(ctx context.Context, _ *api.ProjectMessage) (*api.ProjectMessage, error) {
+	return nil, errors.Errorf("CreateProject is not implemented")
+}
+
+// UpdateProject updates the project.
+func (c *mockClient) UpdateProject(ctx context.Context, _ string, _ *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
+	return nil, errors.Errorf("UpdateProject is not implemented")
+}
+
+// DeleteProject deletes the project.
+func (c *mockClient) DeleteProject(ctx context.Context, _ string) error {
+	return errors.Errorf("DeleteProject is not implemented")
+}
+
+// UndeleteProject undeletes the project.
+func (c *mockClient) UndeleteProject(ctx context.Context, _ string) (*api.InstanceMessage, error) {
+	return nil, errors.Errorf("UndeleteProject is not implemented")
 }

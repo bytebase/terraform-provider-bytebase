@@ -169,7 +169,7 @@ func getPolicyFind(ctx context.Context, d *schema.ResourceData, client api.Clien
 			)
 		}
 	} else if find.ProjectID != nil {
-		if _, err := client.GetProject(ctx, *find.ProjectID); err != nil {
+		if _, err := client.GetProject(ctx, *find.ProjectID, false /* showDeleted */); err != nil {
 			return nil, errors.Errorf(
 				"cannot find the project: projects/%s with error %v",
 				*find.ProjectID,

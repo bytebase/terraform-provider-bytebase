@@ -80,7 +80,7 @@ func GetPolicyFindMessageByName(name string) (*api.PolicyFindMessage, error) {
 
 	if strings.HasPrefix(parent, projectNamePrefix) {
 		// project policy request name should be projects/{project id}
-		projectID, err := getProjectID(parent)
+		projectID, err := GetProjectID(parent)
 		if err != nil {
 			return nil, err
 		}
@@ -128,6 +128,15 @@ func GetPolicyFindMessageByName(name string) (*api.PolicyFindMessage, error) {
 	return nil, errors.Errorf("invalid policy name %s", name)
 }
 
+// GetProjectID will parse the project resource id.
+func GetProjectID(name string) (string, error) {
+	tokens, err := getNameParentTokens(name, projectNamePrefix)
+	if err != nil {
+		return "", err
+	}
+	return tokens[0], nil
+}
+
 func getEnvironmentInstanceDatabaseID(name string) (string, string, string, error) {
 	// the instance request should be environments/{environment-id}/instances/{instance-id}/databases/{database-id}
 	tokens, err := getNameParentTokens(name, environmentNamePrefix, instanceNamePrefix, databaseIDPrefix)
@@ -135,14 +144,6 @@ func getEnvironmentInstanceDatabaseID(name string) (string, string, string, erro
 		return "", "", "", err
 	}
 	return tokens[0], tokens[1], tokens[2], nil
-}
-
-func getProjectID(name string) (string, error) {
-	tokens, err := getNameParentTokens(name, projectNamePrefix)
-	if err != nil {
-		return "", err
-	}
-	return tokens[0], nil
 }
 
 func getNameParentTokens(name string, tokenPrefixes ...string) ([]string, error) {
