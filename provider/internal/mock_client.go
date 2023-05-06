@@ -473,7 +473,33 @@ func (*mockClient) GetDatabase(_ context.Context, _ *api.DatabaseFindMessage) (*
 	return nil, errors.Errorf("GetDatabase is not implemented")
 }
 
+// TODO: implement the tests
 // GetProject gets the project by resource id.
-func (*mockClient) GetProject(_ context.Context, _ string) (*api.PorjectMessage, error) {
+func (*mockClient) GetProject(_ context.Context, _ string, _ bool) (*api.ProjectMessage, error) {
 	return nil, errors.Errorf("GetProject is not implemented")
+}
+
+// ListProject list the projects.
+func (*mockClient) ListProject(_ context.Context, _ bool) (*api.ListProjectMessage, error) {
+	return nil, errors.Errorf("ListProject is not implemented")
+}
+
+// CreateProject creates the project.
+func (*mockClient) CreateProject(_ context.Context, _ *api.ProjectMessage) (*api.ProjectMessage, error) {
+	return nil, errors.Errorf("CreateProject is not implemented")
+}
+
+// UpdateProject updates the project.
+func (*mockClient) UpdateProject(_ context.Context, _ string, _ *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
+	return nil, errors.Errorf("UpdateProject is not implemented")
+}
+
+// DeleteProject deletes the project.
+func (*mockClient) DeleteProject(_ context.Context, _ string) error {
+	return errors.Errorf("DeleteProject is not implemented")
+}
+
+// UndeleteProject undeletes the project.
+func (*mockClient) UndeleteProject(_ context.Context, _ string) (*api.InstanceMessage, error) {
+	return nil, errors.Errorf("UndeleteProject is not implemented")
 }
