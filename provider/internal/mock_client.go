@@ -485,7 +485,7 @@ func (c *mockClient) ListProject(_ context.Context, _ bool) (*api.ListProjectMes
 }
 
 // CreateProject creates the project.
-func (c *mockClient) CreateProject(ctx context.Context, _ *api.ProjectMessage) (*api.ProjectMessage, error) {
+func (c *mockClient) CreateProject(_ context.Context, _ *api.ProjectMessage) (*api.ProjectMessage, error) {
 	return nil, errors.Errorf("CreateProject is not implemented")
 }
 
