@@ -479,7 +479,7 @@ func (*mockClient) GetProject(_ context.Context, _ string, _ bool) (*api.Project
 	return nil, errors.Errorf("GetProject is not implemented")
 }
 
-// ListProject list the projects,
+// ListProject list the projects.
 func (c *mockClient) ListProject(_ context.Context, _ bool) (*api.ListProjectMessage, error) {
 	return nil, errors.Errorf("ListProject is not implemented")
 }
