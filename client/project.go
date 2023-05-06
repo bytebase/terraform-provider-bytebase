@@ -31,7 +31,7 @@ func (c *client) GetProject(ctx context.Context, projectID string, showDeleted b
 	return &res, nil
 }
 
-// ListProject list the projects,
+// ListProject list the projects.
 func (c *client) ListProject(ctx context.Context, showDeleted bool) (*api.ListProjectMessage, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/projects?showDeleted=%v", c.url, c.version, showDeleted), nil)
 	if err != nil {
