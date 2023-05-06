@@ -495,11 +495,11 @@ func (*mockClient) UpdateProject(_ context.Context, _ string, _ *api.ProjectPatc
 }
 
 // DeleteProject deletes the project.
-func (*mockClient) DeleteProject(ctx context.Context, _ string) error {
+func (*mockClient) DeleteProject(_ context.Context, _ string) error {
 	return errors.Errorf("DeleteProject is not implemented")
 }
 
 // UndeleteProject undeletes the project.
-func (*mockClient) UndeleteProject(ctx context.Context, _ string) (*api.InstanceMessage, error) {
+func (*mockClient) UndeleteProject(_ context.Context, _ string) (*api.InstanceMessage, error) {
 	return nil, errors.Errorf("UndeleteProject is not implemented")
 }
