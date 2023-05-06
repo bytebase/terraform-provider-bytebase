@@ -491,7 +491,7 @@ func (c *mockClient) CreateProject(ctx context.Context, _ *api.ProjectMessage) (
 }
 
 // UpdateProject updates the project.
-func (c *mockClient) UpdateProject(ctx context.Context, _ string, _ *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
+func (c *mockClient) UpdateProject(_ context.Context, _ string, _ *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
 	return nil, errors.Errorf("UpdateProject is not implemented")
 }
 
