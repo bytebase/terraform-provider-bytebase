@@ -52,7 +52,7 @@ func TestAccInstanceDataSource_NotFound(t *testing.T) {
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckEnvironmentDestroy,
+		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckInstanceDataSource(

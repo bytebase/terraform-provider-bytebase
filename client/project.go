@@ -53,13 +53,13 @@ func (c *client) ListProject(ctx context.Context, showDeleted bool) (*api.ListPr
 }
 
 // CreateProject creates the project.
-func (c *client) CreateProject(ctx context.Context, project *api.ProjectMessage) (*api.ProjectMessage, error) {
+func (c *client) CreateProject(ctx context.Context, projectID string, project *api.ProjectMessage) (*api.ProjectMessage, error) {
 	payload, err := json.Marshal(project)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/projects", c.url, c.version), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/projects?projectId=%s", c.url, c.version, projectID), strings.NewReader(string(payload)))
 
 	if err != nil {
 		return nil, err
@@ -140,7 +140,7 @@ func (c *client) DeleteProject(ctx context.Context, projectID string) error {
 }
 
 // UndeleteProject undeletes the project.
-func (c *client) UndeleteProject(ctx context.Context, projectID string) (*api.InstanceMessage, error) {
+func (c *client) UndeleteProject(ctx context.Context, projectID string) (*api.ProjectMessage, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/projects/%s:undelete", c.url, c.version, projectID), nil)
 	if err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func (c *client) UndeleteProject(ctx context.Context, projectID string) (*api.In
 		return nil, err
 	}
 
-	var res api.InstanceMessage
+	var res api.ProjectMessage
 	err = json.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err

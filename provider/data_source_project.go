@@ -88,7 +88,7 @@ func setProject(d *schema.ResourceData, project *api.ProjectMessage) diag.Diagno
 	if err := d.Set("title", project.Title); err != nil {
 		return diag.Errorf("cannot set title for project: %s", err.Error())
 	}
-	if err := d.Set("key", project.Title); err != nil {
+	if err := d.Set("key", project.Key); err != nil {
 		return diag.Errorf("cannot set key for project: %s", err.Error())
 	}
 	if err := d.Set("title", project.Title); err != nil {

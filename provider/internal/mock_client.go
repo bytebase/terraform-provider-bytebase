@@ -15,12 +15,14 @@ var environmentMap map[string]*api.EnvironmentMessage
 var instanceMap map[string]*api.InstanceMessage
 var policyMap map[string]*api.PolicyMessage
 var roleMap map[string]*api.Role
+var projectMap map[string]*api.ProjectMessage
 
 func init() {
 	environmentMap = map[string]*api.EnvironmentMessage{}
 	instanceMap = map[string]*api.InstanceMessage{}
 	policyMap = map[string]*api.PolicyMessage{}
 	roleMap = map[string]*api.Role{}
+	projectMap = map[string]*api.ProjectMessage{}
 }
 
 type mockClient struct {
@@ -38,6 +40,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		instanceMap:    instanceMap,
 		policyMap:      policyMap,
 		roleMap:        roleMap,
+		projectMap:     projectMap,
 	}, nil
 }
 
@@ -212,6 +215,7 @@ func (c *mockClient) DeleteInstance(ctx context.Context, environmentID, instance
 	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
 		EnvironmentID: environmentID,
 		InstanceID:    instanceID,
+		ShowDeleted:   false,
 	})
 	if err != nil {
 		return err
@@ -228,6 +232,7 @@ func (c *mockClient) UndeleteInstance(ctx context.Context, environmentID, instan
 	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
 		EnvironmentID: environmentID,
 		InstanceID:    instanceID,
+		ShowDeleted:   true,
 	})
 	if err != nil {
 		return nil, err
@@ -474,33 +479,103 @@ func (*mockClient) GetDatabase(_ context.Context, _ *api.DatabaseFindMessage) (*
 	return nil, errors.Errorf("GetDatabase is not implemented")
 }
 
-// TODO: implement the tests
 // GetProject gets the project by resource id.
-func (*mockClient) GetProject(_ context.Context, _ string, _ bool) (*api.ProjectMessage, error) {
-	return nil, errors.Errorf("GetProject is not implemented")
+func (c *mockClient) GetProject(_ context.Context, projectID string, _ bool) (*api.ProjectMessage, error) {
+	name := fmt.Sprintf("projects/%s", projectID)
+	proj, ok := c.projectMap[name]
+	if !ok {
+		return nil, errors.Errorf("Cannot found project %s", name)
+	}
+
+	return proj, nil
 }
 
 // ListProject list the projects.
-func (*mockClient) ListProject(_ context.Context, _ bool) (*api.ListProjectMessage, error) {
-	return nil, errors.Errorf("ListProject is not implemented")
+func (c *mockClient) ListProject(_ context.Context, showDeleted bool) (*api.ListProjectMessage, error) {
+	projects := make([]*api.ProjectMessage, 0)
+	for _, proj := range c.projectMap {
+		if proj.State == api.Deleted && !showDeleted {
+			continue
+		}
+		projects = append(projects, proj)
+	}
+
+	return &api.ListProjectMessage{
+		Projects: projects,
+	}, nil
 }
 
 // CreateProject creates the project.
-func (*mockClient) CreateProject(_ context.Context, _ *api.ProjectMessage) (*api.ProjectMessage, error) {
-	return nil, errors.Errorf("CreateProject is not implemented")
+func (c *mockClient) CreateProject(_ context.Context, projectID string, project *api.ProjectMessage) (*api.ProjectMessage, error) {
+	proj := &api.ProjectMessage{
+		Name:           fmt.Sprintf("projects/%s", projectID),
+		State:          api.Active,
+		Title:          project.Title,
+		Key:            project.Key,
+		Workflow:       project.Workflow,
+		Visibility:     project.Visibility,
+		TenantMode:     project.TenantMode,
+		DBNameTemplate: project.DBNameTemplate,
+		SchemaVersion:  project.SchemaVersion,
+		SchemaChange:   project.SchemaChange,
+	}
+
+	c.projectMap[proj.Name] = proj
+	return proj, nil
 }
 
 // UpdateProject updates the project.
-func (*mockClient) UpdateProject(_ context.Context, _ string, _ *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
-	return nil, errors.Errorf("UpdateProject is not implemented")
+func (c *mockClient) UpdateProject(ctx context.Context, projectID string, patch *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
+	proj, err := c.GetProject(ctx, projectID, false)
+	if err != nil {
+		return nil, err
+	}
+
+	if v := patch.Title; v != nil {
+		proj.Title = *v
+	}
+	if v := patch.Key; v != nil {
+		proj.Key = *v
+	}
+	if v := patch.Workflow; v != nil {
+		proj.Workflow = *v
+	}
+	if v := patch.TenantMode; v != nil {
+		proj.TenantMode = *v
+	}
+	if v := patch.DBNameTemplate; v != nil {
+		proj.DBNameTemplate = *v
+	}
+	if v := patch.SchemaChange; v != nil {
+		proj.SchemaChange = *v
+	}
+
+	c.projectMap[proj.Name] = proj
+	return proj, nil
 }
 
 // DeleteProject deletes the project.
-func (*mockClient) DeleteProject(_ context.Context, _ string) error {
-	return errors.Errorf("DeleteProject is not implemented")
+func (c *mockClient) DeleteProject(ctx context.Context, projectID string) error {
+	proj, err := c.GetProject(ctx, projectID, false)
+	if err != nil {
+		return err
+	}
+
+	proj.State = api.Deleted
+	c.projectMap[proj.Name] = proj
+
+	return nil
 }
 
 // UndeleteProject undeletes the project.
-func (*mockClient) UndeleteProject(_ context.Context, _ string) (*api.InstanceMessage, error) {
-	return nil, errors.Errorf("UndeleteProject is not implemented")
+func (c *mockClient) UndeleteProject(ctx context.Context, projectID string) (*api.ProjectMessage, error) {
+	proj, err := c.GetProject(ctx, projectID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	proj.State = api.Active
+	c.projectMap[proj.Name] = proj
+
+	return proj, nil
 }
