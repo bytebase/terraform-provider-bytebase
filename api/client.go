@@ -70,11 +70,11 @@ type Client interface {
 	// ListProject list the projects,
 	ListProject(ctx context.Context, showDeleted bool) (*ListProjectMessage, error)
 	// CreateProject creates the project.
-	CreateProject(ctx context.Context, project *ProjectMessage) (*ProjectMessage, error)
+	CreateProject(ctx context.Context, projectID string, project *ProjectMessage) (*ProjectMessage, error)
 	// UpdateProject updates the project.
 	UpdateProject(ctx context.Context, projectID string, patch *ProjectPatchMessage) (*ProjectMessage, error)
 	// DeleteProject deletes the project.
 	DeleteProject(ctx context.Context, projectID string) error
 	// UndeleteProject undeletes the project.
-	UndeleteProject(ctx context.Context, projectID string) (*InstanceMessage, error)
+	UndeleteProject(ctx context.Context, projectID string) (*ProjectMessage, error)
 }

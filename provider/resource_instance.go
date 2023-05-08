@@ -276,6 +276,9 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if d.HasChange("environment") {
 		return diag.Errorf("cannot change the environment in instance")
 	}
+	if d.HasChange("engine") {
+		return diag.Errorf("cannot change the engine in instance")
+	}
 
 	c := m.(api.Client)
 
@@ -296,14 +299,6 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	var diags diag.Diagnostics
-	if string(existedInstance.Engine) != d.Get("engine").(string) {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Invalid argument",
-			Detail:   fmt.Sprintf("cannot update instance %s engine to %s", instanceName, d.Get("engine").(string)),
-		})
-		return diags
-	}
 	if existedInstance.State == api.Deleted {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
