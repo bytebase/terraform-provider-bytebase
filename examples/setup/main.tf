@@ -23,6 +23,7 @@ locals {
   instance_id_test    = "test-instance"
   instance_id_prod    = "prod-instance"
   role_name           = "role_test_terraform"
+  project_id_test     = "project-test"
 }
 
 # Create a new environment named "Test"
@@ -107,4 +108,14 @@ resource "bytebase_instance_role" "test" {
     replication = true
     bypass_rls  = true
   }
+}
+
+# Create a new project
+resource "bytebase_project" "test_project" {
+  resource_id    = local.project_id_test
+  title          = "Test project"
+  key            = "BYT"
+  workflow       = "UI"
+  schema_version = "SEMANTIC"
+  schema_change  = "DDL"
 }

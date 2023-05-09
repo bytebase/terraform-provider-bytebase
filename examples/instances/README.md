@@ -10,10 +10,11 @@ You should replace the provider initial variables with your own and exec the [se
 data "bytebase_instance_list" "all" {}
 ```
 
-## Find instance by name
+## Find instance by id and environment
 
 ```terraform
 data "bytebase_instance" "find_instance" {
-  name = "<target instance name>"
+  resource_id = "<target instance resource id>"
+  environment = "<the instance environment resource id>"
 }
 ```

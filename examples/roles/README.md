@@ -19,6 +19,6 @@ data "bytebase_instance_role_list" "all" {
 ```terraform
 data "bytebase_instance_role" "dev" {
   name     = "<the role name>"
-  instance = "<the instance name>"
+  instance = "<the instance resource id>"
 }
 ```
