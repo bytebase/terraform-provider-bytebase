@@ -19,15 +19,6 @@ data "bytebase_instance_list" "all" {}
 output "all_instances" {
   value = data.bytebase_instance_list.all
 }
-
-# List all instances in the "dev" environment
-data "bytebase_instance_list" "dev_instances" {
-  environment = "dev"
-}
-
-output "dev_instances" {
-  value = data.bytebase_instance_list.dev_instances
-}
 ```
 
 You can check [examples](https://github.com/bytebase/terraform-provider-bytebase/blob/main/examples/instances) for more usage examples.
@@ -38,7 +29,6 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 
 ### Optional
 
-- `environment` (String) The environment **unique resource id**.
 - `show_deleted` (Boolean) If also show the deleted instances.
 
 ### Read-Only

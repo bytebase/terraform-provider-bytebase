@@ -32,12 +32,6 @@ func resourceInstanceRole() *schema.Resource {
 				Description:  "The role unique name.",
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
-			"environment": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The environment resource id.",
-				ValidateFunc: internal.ResourceIDValidation,
-			},
 			"instance": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -123,13 +117,11 @@ func resourceInstanceRole() *schema.Resource {
 func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	environmentID := d.Get("environment").(string)
 	instanceID := d.Get("instance").(string)
 	roleName := d.Get("name").(string)
 
 	instance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		EnvironmentID: environmentID,
-		InstanceID:    instanceID,
+		InstanceID: instanceID,
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -153,7 +145,7 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface
 		upsert.ValidUntil = &v
 	}
 
-	existedRole, err := c.GetRole(ctx, environmentID, instanceID, roleName)
+	existedRole, err := c.GetRole(ctx, instanceID, roleName)
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get role %s failed with error: %v", roleName, err))
 	}
@@ -166,13 +158,13 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface
 			Detail:   fmt.Sprintf("Role %s already exists, try to exec the update operation", roleName),
 		})
 
-		role, err := c.UpdateRole(ctx, environmentID, instanceID, roleName, upsert)
+		role, err := c.UpdateRole(ctx, instanceID, roleName, upsert)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		d.SetId(role.Name)
 	} else {
-		role, err := c.CreateRole(ctx, environmentID, instanceID, upsert)
+		role, err := c.CreateRole(ctx, instanceID, upsert)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -191,17 +183,14 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	if d.HasChange("instance") {
 		return diag.Errorf("cannot change the instance")
 	}
-	if d.HasChange("environment") {
-		return diag.Errorf("cannot change the environment")
-	}
 
 	c := m.(api.Client)
 
-	environmentID, instanceID, roleName, err := internal.GetEnvironmentInstanceRoleID(d.Id())
+	instanceID, roleName, err := internal.GetInstanceRoleID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	if _, err := c.GetRole(ctx, environmentID, instanceID, roleName); err != nil {
+	if _, err := c.GetRole(ctx, instanceID, roleName); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -233,11 +222,11 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface
 		upsert.Attribute = convertRoleAttribute(d)
 	}
 
-	if _, err := c.UpdateRole(ctx, environmentID, instanceID, roleName, upsert); err != nil {
+	if _, err := c.UpdateRole(ctx, instanceID, roleName, upsert); err != nil {
 		return diag.FromErr(err)
 	}
 
-	role, err := c.GetRole(ctx, environmentID, instanceID, upsert.RoleName)
+	role, err := c.GetRole(ctx, instanceID, upsert.RoleName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -249,12 +238,12 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface
 func resourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	environmentID, instanceID, roleName, err := internal.GetEnvironmentInstanceRoleID(d.Id())
+	instanceID, roleName, err := internal.GetInstanceRoleID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	role, err := c.GetRole(ctx, environmentID, instanceID, roleName)
+	role, err := c.GetRole(ctx, instanceID, roleName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -266,12 +255,12 @@ func resourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}
 func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	environmentID, instanceID, roleName, err := internal.GetEnvironmentInstanceRoleID(d.Id())
+	instanceID, roleName, err := internal.GetInstanceRoleID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := c.DeleteRole(ctx, environmentID, instanceID, roleName); err != nil {
+	if err := c.DeleteRole(ctx, instanceID, roleName); err != nil {
 		return diag.FromErr(err)
 	}
 

@@ -19,10 +19,8 @@ provider "bytebase" {
 }
 
 locals {
-  environment_id_test = "test"
-  environment_id_prod = "prod"
-  instance_id_test    = "test-instance"
-  instance_id_prod    = "prod-instance"
+  instance_id_test = "test-instance"
+  instance_id_prod = "prod-instance"
 }
 
 # List all instances in all environments
@@ -32,21 +30,10 @@ output "all_instances" {
   value = data.bytebase_instance_list.all
 }
 
-# List all instances in dev environment
-data "bytebase_instance_list" "test" {
-  environment = local.environment_id_test
-}
-
-output "test_instances" {
-  value = data.bytebase_instance_list.test
-}
-
 # Find a specific instance by name
 data "bytebase_instance" "test" {
   resource_id = local.instance_id_test
-  environment = local.environment_id_test
 }
-
 
 output "test_instance" {
   value = data.bytebase_instance.test
@@ -54,7 +41,6 @@ output "test_instance" {
 
 data "bytebase_instance" "prod" {
   resource_id = local.instance_id_prod
-  environment = local.environment_id_prod
 }
 
 output "prod_instance" {

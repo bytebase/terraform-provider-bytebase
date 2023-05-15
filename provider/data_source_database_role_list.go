@@ -18,12 +18,6 @@ func dataSourceInstanceRoleList() *schema.Resource {
 		Description: "The instance role data source list.",
 		ReadContext: dataSourceRoleListRead,
 		Schema: map[string]*schema.Schema{
-			"environment": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The environment resource id.",
-				ValidateFunc: internal.ResourceIDValidation,
-			},
 			"instance": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -106,11 +100,8 @@ func dataSourceRoleListRead(ctx context.Context, d *schema.ResourceData, m inter
 	c := m.(api.Client)
 
 	instanceID := d.Get("instance").(string)
-	environmentID := d.Get("environment").(string)
-
 	instance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		EnvironmentID: environmentID,
-		InstanceID:    instanceID,
+		InstanceID: instanceID,
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -119,14 +110,14 @@ func dataSourceRoleListRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.Errorf("resource_database_role only supports the instance with POSTGRES type")
 	}
 
-	roleList, err := c.ListRole(ctx, environmentID, instanceID)
+	roleList, err := c.ListRole(ctx, instanceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	roles := []map[string]interface{}{}
 	for _, raw := range roleList {
-		_, _, roleName, err := internal.GetEnvironmentInstanceRoleID(raw.Name)
+		_, roleName, err := internal.GetInstanceRoleID(raw.Name)
 		if err != nil {
 			return diag.FromErr(err)
 		}

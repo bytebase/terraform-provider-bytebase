@@ -16,7 +16,6 @@ The instance role data source. You can get a single role in a specific instance 
 data "bytebase_instance_role" "find_role" {
   name        = "<role name>"
   instance    = "<the instance resource id>"
-  environment = "<the environment resource id>"
 }
 ```
 
@@ -25,7 +24,6 @@ data "bytebase_instance_role" "find_role" {
 ### Required
 
 - `name` (String) The role **unique name**.
-- `environment` (String) The environment **unique resource id**.
 - `instance` (String) The instance **unique resource id**.
 
 ### Read-Only

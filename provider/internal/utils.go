@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	environmentNamePrefix  = "environments/"
+	// EnvironmentNamePrefix is the prefix for environment unique name.
+	EnvironmentNamePrefix  = "environments/"
 	instanceNamePrefix     = "instances/"
 	instanceRoleNamePrefix = "roles/"
 	projectNamePrefix      = "projects/"
@@ -30,31 +31,31 @@ var ResourceIDValidation = validation.StringMatch(resourceIDRegex, fmt.Sprintf("
 // GetEnvironmentID will parse the environment resource id.
 func GetEnvironmentID(name string) (string, error) {
 	// the environment request should be environments/{environment-id}
-	tokens, err := getNameParentTokens(name, environmentNamePrefix)
+	tokens, err := getNameParentTokens(name, EnvironmentNamePrefix)
 	if err != nil {
 		return "", err
 	}
 	return tokens[0], nil
 }
 
-// GetEnvironmentInstanceID will parse the environment resource id and instance resource id.
-func GetEnvironmentInstanceID(name string) (string, string, error) {
-	// the instance request should be environments/{environment-id}/instances/{instance-id}
-	tokens, err := getNameParentTokens(name, environmentNamePrefix, instanceNamePrefix)
+// GetInstanceID will parse the environment resource id and instance resource id.
+func GetInstanceID(name string) (string, error) {
+	// the instance request should be instances/{instance-id}
+	tokens, err := getNameParentTokens(name, instanceNamePrefix)
+	if err != nil {
+		return "", err
+	}
+	return tokens[0], nil
+}
+
+// GetInstanceRoleID will parse the instance resource id and the role name.
+func GetInstanceRoleID(name string) (string, string, error) {
+	// the instance request should be instances/{instance-id}/roles/{role-name}
+	tokens, err := getNameParentTokens(name, instanceNamePrefix, instanceRoleNamePrefix)
 	if err != nil {
 		return "", "", err
 	}
 	return tokens[0], tokens[1], nil
-}
-
-// GetEnvironmentInstanceRoleID will parse the environment resource id, instance resource id and the role name.
-func GetEnvironmentInstanceRoleID(name string) (string, string, string, error) {
-	// the instance request should be environments/{environment-id}/instances/{instance-id}/roles/{role-name}
-	tokens, err := getNameParentTokens(name, environmentNamePrefix, instanceNamePrefix, instanceRoleNamePrefix)
-	if err != nil {
-		return "", "", "", err
-	}
-	return tokens[0], tokens[1], tokens[2], nil
 }
 
 // GetPolicyFindMessageByName will generate the policy find by the name.
@@ -88,37 +89,32 @@ func GetPolicyFindMessageByName(name string) (*api.PolicyFindMessage, error) {
 		return find, nil
 	}
 
-	if strings.HasPrefix(parent, environmentNamePrefix) {
-		sections := strings.Split(parent, "/")
-
+	if strings.HasPrefix(parent, EnvironmentNamePrefix) {
 		// environment policy request name should be environments/{environment id}
-		if len(sections) == 2 {
-			environmentID, err := GetEnvironmentID(parent)
-			if err != nil {
-				return nil, err
-			}
-			find.EnvironmentID = &environmentID
-			return find, nil
+		environmentID, err := GetEnvironmentID(parent)
+		if err != nil {
+			return nil, err
 		}
+		find.EnvironmentID = &environmentID
+		return find, nil
+	}
 
-		// instance policy request name should be environments/{environment id}/instances/{instance id}
-		if len(sections) == 4 {
-			environmentID, instanceID, err := GetEnvironmentInstanceID(parent)
+	if strings.HasPrefix(parent, instanceNamePrefix) {
+		sections := strings.Split(parent, "/")
+		if len(sections) == 2 {
+			// instance policy request name should be instances/{instance id}
+			instanceID, err := GetInstanceID(parent)
 			if err != nil {
 				return nil, err
 			}
-			find.EnvironmentID = &environmentID
 			find.InstanceID = &instanceID
 			return find, nil
-		}
-
-		// database policy request name should be environments/{environment id}/instances/{instance id}/databases/{db name}
-		if len(sections) == 6 {
-			environmentID, instanceID, databaseName, err := getEnvironmentInstanceDatabaseID(parent)
+		} else if len(sections) == 4 {
+			// database policy request name should be instances/{instance id}/databases/{db name}
+			instanceID, databaseName, err := getInstanceDatabaseID(parent)
 			if err != nil {
 				return nil, err
 			}
-			find.EnvironmentID = &environmentID
 			find.InstanceID = &instanceID
 			find.DatabaseName = &databaseName
 			return find, nil
@@ -137,13 +133,13 @@ func GetProjectID(name string) (string, error) {
 	return tokens[0], nil
 }
 
-func getEnvironmentInstanceDatabaseID(name string) (string, string, string, error) {
-	// the instance request should be environments/{environment-id}/instances/{instance-id}/databases/{database-id}
-	tokens, err := getNameParentTokens(name, environmentNamePrefix, instanceNamePrefix, databaseIDPrefix)
+func getInstanceDatabaseID(name string) (string, string, error) {
+	// the instance request should be instances/{instance-id}/databases/{database-id}
+	tokens, err := getNameParentTokens(name, instanceNamePrefix, databaseIDPrefix)
 	if err != nil {
-		return "", "", "", err
+		return "", "", err
 	}
-	return tokens[0], tokens[1], tokens[2], nil
+	return tokens[0], tokens[1], nil
 }
 
 func getNameParentTokens(name string, tokenPrefixes ...string) ([]string, error) {

@@ -33,7 +33,6 @@ func TestAccInstanceDataSource(t *testing.T) {
 					resourceName,
 					identifier,
 					resourceID,
-					environment,
 				),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(fmt.Sprintf("data.%s", resourceName)),
@@ -60,7 +59,6 @@ func TestAccInstanceDataSource_NotFound(t *testing.T) {
 					"",
 					"dev_instance",
 					"mock-id",
-					"env",
 				),
 				ExpectError: regexp.MustCompile("Cannot found instance"),
 			},
@@ -72,17 +70,15 @@ func testAccCheckInstanceDataSource(
 	resource,
 	dependsOn,
 	identifier,
-	resourceID,
-	environment string) string {
+	resourceID string) string {
 	return fmt.Sprintf(`
 	%s
 
 	data "bytebase_instance" "%s" {
 		resource_id = "%s"
-		environment = "%s"
 		depends_on = [
     		%s
   		]
 	}
-	`, resource, identifier, resourceID, environment, dependsOn)
+	`, resource, identifier, resourceID, dependsOn)
 }

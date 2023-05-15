@@ -9,6 +9,8 @@ type InstanceMessage struct {
 	Engine       EngineType           `json:"engine"`
 	ExternalLink string               `json:"externalLink"`
 	DataSources  []*DataSourceMessage `json:"dataSources"`
+	// Environment is the environment id with format environments/{resource id}
+	Environment string `json:"environment"`
 }
 
 // InstancePatchMessage is the API message to patch the instance.
@@ -20,9 +22,8 @@ type InstancePatchMessage struct {
 
 // InstanceFindMessage is the API message for finding instance.
 type InstanceFindMessage struct {
-	EnvironmentID string
-	InstanceID    string
-	ShowDeleted   bool
+	InstanceID  string
+	ShowDeleted bool
 }
 
 // ListInstanceMessage is the API message for list instance response.

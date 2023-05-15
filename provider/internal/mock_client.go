@@ -142,17 +142,11 @@ func (c *mockClient) UndeleteEnvironment(ctx context.Context, environmentID stri
 // ListInstance will return instances in environment.
 func (c *mockClient) ListInstance(_ context.Context, find *api.InstanceFindMessage) (*api.ListInstanceMessage, error) {
 	instances := make([]*api.InstanceMessage, 0)
-	for _, instance := range c.instanceMap {
-		envID, _, err := GetEnvironmentInstanceID(instance.Name)
-		if err != nil {
-			return nil, err
-		}
-		if instance.State == api.Deleted && !find.ShowDeleted {
+	for _, ins := range c.instanceMap {
+		if ins.State == api.Deleted && !find.ShowDeleted {
 			continue
 		}
-		if find.EnvironmentID == "-" || find.EnvironmentID == envID {
-			instances = append(instances, instance)
-		}
+		instances = append(instances, ins)
 	}
 
 	return &api.ListInstanceMessage{
@@ -162,7 +156,7 @@ func (c *mockClient) ListInstance(_ context.Context, find *api.InstanceFindMessa
 
 // GetInstance gets the instance by id.
 func (c *mockClient) GetInstance(_ context.Context, find *api.InstanceFindMessage) (*api.InstanceMessage, error) {
-	name := fmt.Sprintf("environments/%s/instances/%s", find.EnvironmentID, find.InstanceID)
+	name := fmt.Sprintf("instances/%s", find.InstanceID)
 	ins, ok := c.instanceMap[name]
 	if !ok {
 		return nil, errors.Errorf("Cannot found instance %s", name)
@@ -172,14 +166,15 @@ func (c *mockClient) GetInstance(_ context.Context, find *api.InstanceFindMessag
 }
 
 // CreateInstance creates the instance.
-func (c *mockClient) CreateInstance(_ context.Context, environmentID, instanceID string, instance *api.InstanceMessage) (*api.InstanceMessage, error) {
+func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instance *api.InstanceMessage) (*api.InstanceMessage, error) {
 	ins := &api.InstanceMessage{
-		Name:         fmt.Sprintf("environments/%s/instances/%s", environmentID, instanceID),
+		Name:         fmt.Sprintf("instances/%s", instanceID),
 		State:        api.Active,
 		Title:        instance.Title,
 		Engine:       instance.Engine,
 		ExternalLink: instance.ExternalLink,
 		DataSources:  instance.DataSources,
+		Environment:  instance.Environment,
 	}
 
 	c.instanceMap[ins.Name] = ins
@@ -187,10 +182,9 @@ func (c *mockClient) CreateInstance(_ context.Context, environmentID, instanceID
 }
 
 // UpdateInstance updates the instance.
-func (c *mockClient) UpdateInstance(ctx context.Context, environmentID, instanceID string, patch *api.InstancePatchMessage) (*api.InstanceMessage, error) {
+func (c *mockClient) UpdateInstance(ctx context.Context, instanceID string, patch *api.InstancePatchMessage) (*api.InstanceMessage, error) {
 	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		InstanceID:    instanceID,
-		EnvironmentID: environmentID,
+		InstanceID: instanceID,
 	})
 	if err != nil {
 		return nil, err
@@ -211,11 +205,10 @@ func (c *mockClient) UpdateInstance(ctx context.Context, environmentID, instance
 }
 
 // DeleteInstance deletes the instance.
-func (c *mockClient) DeleteInstance(ctx context.Context, environmentID, instanceID string) error {
+func (c *mockClient) DeleteInstance(ctx context.Context, instanceID string) error {
 	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		EnvironmentID: environmentID,
-		InstanceID:    instanceID,
-		ShowDeleted:   false,
+		InstanceID:  instanceID,
+		ShowDeleted: false,
 	})
 	if err != nil {
 		return err
@@ -228,11 +221,10 @@ func (c *mockClient) DeleteInstance(ctx context.Context, environmentID, instance
 }
 
 // UndeleteInstance undeletes the instance.
-func (c *mockClient) UndeleteInstance(ctx context.Context, environmentID, instanceID string) (*api.InstanceMessage, error) {
+func (c *mockClient) UndeleteInstance(ctx context.Context, instanceID string) (*api.InstanceMessage, error) {
 	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		EnvironmentID: environmentID,
-		InstanceID:    instanceID,
-		ShowDeleted:   true,
+		InstanceID:  instanceID,
+		ShowDeleted: true,
 	})
 	if err != nil {
 		return nil, err
@@ -250,8 +242,8 @@ func (*mockClient) SyncInstanceSchema(_ context.Context, _ string) error {
 }
 
 // CreateRole creates the role in the instance.
-func (c *mockClient) CreateRole(_ context.Context, environmentID, instanceID string, create *api.RoleUpsert) (*api.Role, error) {
-	id := getRoleMapID(environmentID, instanceID, create.RoleName)
+func (c *mockClient) CreateRole(_ context.Context, instanceID string, create *api.RoleUpsert) (*api.Role, error) {
+	id := getRoleMapID(instanceID, create.RoleName)
 
 	if _, ok := c.roleMap[id]; ok {
 		return nil, errors.Errorf("Role %s already exists", create.RoleName)
@@ -278,8 +270,8 @@ func (c *mockClient) CreateRole(_ context.Context, environmentID, instanceID str
 }
 
 // GetRole gets the role by instance id and role name.
-func (c *mockClient) GetRole(_ context.Context, environmentID, instanceID, roleName string) (*api.Role, error) {
-	id := getRoleMapID(environmentID, instanceID, roleName)
+func (c *mockClient) GetRole(_ context.Context, instanceID, roleName string) (*api.Role, error) {
+	id := getRoleMapID(instanceID, roleName)
 	role, ok := c.roleMap[id]
 	if !ok {
 		return nil, errors.Errorf("Cannot found role with ID %s", id)
@@ -288,9 +280,9 @@ func (c *mockClient) GetRole(_ context.Context, environmentID, instanceID, roleN
 	return role, nil
 }
 
-func (c *mockClient) ListRole(_ context.Context, environmentID, instanceID string) ([]*api.Role, error) {
+func (c *mockClient) ListRole(_ context.Context, instanceID string) ([]*api.Role, error) {
 	res := []*api.Role{}
-	regex := regexp.MustCompile(fmt.Sprintf("^environments/%s/instances/%s/roles/", environmentID, instanceID))
+	regex := regexp.MustCompile(fmt.Sprintf("^instances/%s/roles/", instanceID))
 	for key, role := range c.roleMap {
 		if regex.MatchString(key) {
 			res = append(res, role)
@@ -301,20 +293,20 @@ func (c *mockClient) ListRole(_ context.Context, environmentID, instanceID strin
 }
 
 // UpdateRole updates the role in instance.
-func (c *mockClient) UpdateRole(ctx context.Context, environmentID, instanceID, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
-	role, err := c.GetRole(ctx, environmentID, instanceID, roleName)
+func (c *mockClient) UpdateRole(ctx context.Context, instanceID, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
+	role, err := c.GetRole(ctx, instanceID, roleName)
 	if err != nil {
 		return nil, err
 	}
 
 	newRole := &api.Role{
-		Name:            getRoleMapID(environmentID, instanceID, patch.RoleName),
+		Name:            getRoleMapID(instanceID, patch.RoleName),
 		RoleName:        patch.RoleName,
 		ConnectionLimit: role.ConnectionLimit,
 		ValidUntil:      role.ValidUntil,
 		Attribute:       role.Attribute,
 	}
-	if err := c.DeleteRole(ctx, environmentID, instanceID, roleName); err != nil {
+	if err := c.DeleteRole(ctx, instanceID, roleName); err != nil {
 		return nil, err
 	}
 
@@ -333,13 +325,13 @@ func (c *mockClient) UpdateRole(ctx context.Context, environmentID, instanceID, 
 }
 
 // DeleteRole deletes the role in the instance.
-func (c *mockClient) DeleteRole(_ context.Context, environmentID, instanceID, roleName string) error {
-	delete(c.roleMap, getRoleMapID(environmentID, instanceID, roleName))
+func (c *mockClient) DeleteRole(_ context.Context, instanceID, roleName string) error {
+	delete(c.roleMap, getRoleMapID(instanceID, roleName))
 	return nil
 }
 
-func getRoleMapID(environmentID, instanceID, roleName string) string {
-	return fmt.Sprintf("environments/%s/instances/%s/roles/%s", environmentID, instanceID, roleName)
+func getRoleMapID(instanceID, roleName string) string {
+	return fmt.Sprintf("instances/%s/roles/%s", instanceID, roleName)
 }
 
 // ListPolicies lists policies in a specific resource.
