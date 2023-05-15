@@ -11,8 +11,6 @@ import (
 
 func TestAccEnvironmentListDataSource(t *testing.T) {
 	identifier := "new-environment"
-	title := "dev"
-	order := 1
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -30,7 +28,7 @@ func TestAccEnvironmentListDataSource(t *testing.T) {
 				0,
 			),
 			internal.GetTestStepForDataSourceList(
-				testAccCheckEnvironmentResource(identifier, title, order),
+				testAccCheckEnvironmentResource(identifier, "dev", 1),
 				fmt.Sprintf("bytebase_environment.%s", identifier),
 				"bytebase_environment_list",
 				"after",

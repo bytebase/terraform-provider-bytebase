@@ -29,11 +29,10 @@ func TestAccRole(t *testing.T) {
 				resource "bytebase_instance_role" "test_role_1" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
-					environment = bytebase_instance.%s.environment
 
 					attribute {}
 				}
-				`, mockInstanceResource("instance-1"), roleName, "instance-1", "instance-1"),
+				`, mockInstanceResource("instance-1"), roleName, "instance-1"),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists("bytebase_instance_role.test_role_1"),
 					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_1", "name", roleName),
@@ -50,13 +49,12 @@ func TestAccRole(t *testing.T) {
 				resource "bytebase_instance_role" "test_role_2" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
-					environment = bytebase_instance.%s.environment
 
 					connection_limit = 99
 					valid_until = "2022-12-31T15:04:05+08:00"
 					attribute {}
 				}
-				`, mockInstanceResource("instance-2"), roleName, "instance-2", "instance-2"),
+				`, mockInstanceResource("instance-2"), roleName, "instance-2"),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists("bytebase_instance_role.test_role_2"),
 					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_2", "name", roleName),
@@ -73,7 +71,6 @@ func TestAccRole(t *testing.T) {
 				resource "bytebase_instance_role" "test_role_3" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
-					environment = bytebase_instance.%s.environment
 
 					attribute {
 						super_user  = true
@@ -81,7 +78,7 @@ func TestAccRole(t *testing.T) {
 						create_role = false
 					}
 				}
-				`, mockInstanceResource("instance-3"), roleName, "instance-3", "instance-3"),
+				`, mockInstanceResource("instance-3"), roleName, "instance-3"),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists("bytebase_instance_role.test_role_3"),
 					resource.TestCheckResourceAttr("bytebase_instance_role.test_role_3", "name", roleName),
@@ -104,12 +101,12 @@ func testAccCheckRoleDestroy(s *terraform.State) error {
 			continue
 		}
 
-		environmentID, instanceID, roleName, err := internal.GetEnvironmentInstanceRoleID(rs.Primary.ID)
+		instanceID, roleName, err := internal.GetInstanceRoleID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		if err := c.DeleteRole(context.Background(), environmentID, instanceID, roleName); err != nil {
+		if err := c.DeleteRole(context.Background(), instanceID, roleName); err != nil {
 			return err
 		}
 	}

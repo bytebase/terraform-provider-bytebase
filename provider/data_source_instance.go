@@ -22,10 +22,9 @@ func dataSourceInstance() *schema.Resource {
 				Description:  "The instance unique resource id.",
 			},
 			"environment": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The environment resource id for your instance.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: `The environment name for your instance in "environments/{resource id}" format.`,
 			},
 			"title": {
 				Type:        schema.TypeString,
@@ -88,8 +87,7 @@ func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 	c := m.(api.Client)
 
 	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		InstanceID:    d.Get("resource_id").(string),
-		EnvironmentID: d.Get("environment").(string),
+		InstanceID: d.Get("resource_id").(string),
 	})
 	if err != nil {
 		return diag.FromErr(err)

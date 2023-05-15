@@ -22,12 +22,6 @@ func dataSourceInstanceRole() *schema.Resource {
 				Description:  "The role unique name.",
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
-			"environment": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "The environment resource id.",
-				ValidateFunc: internal.ResourceIDValidation,
-			},
 			"instance": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -95,13 +89,11 @@ func dataSourceInstanceRole() *schema.Resource {
 func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	environmentID := d.Get("environment").(string)
 	instanceID := d.Get("instance").(string)
 	roleName := d.Get("name").(string)
 
 	instance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		EnvironmentID: environmentID,
-		InstanceID:    instanceID,
+		InstanceID: instanceID,
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -110,7 +102,7 @@ func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.Errorf("resource_database_role only supports the instance with POSTGRES type")
 	}
 
-	role, err := c.GetRole(ctx, environmentID, instanceID, roleName)
+	role, err := c.GetRole(ctx, instanceID, roleName)
 	if err != nil {
 		return diag.FromErr(err)
 	}

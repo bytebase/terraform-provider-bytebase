@@ -102,8 +102,9 @@ func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interfa
 func getPolicyFind(ctx context.Context, d *schema.ResourceData, client api.Client) (*api.PolicyFindMessage, error) {
 	projectID := d.Get("project").(string)
 	environmentID := d.Get("environment").(string)
-	if projectID != "" && environmentID != "" {
-		return nil, errors.Errorf("cannot set both project and environment")
+	instanceID := d.Get("instance").(string)
+	if projectID != "" && environmentID != "" && instanceID != "" {
+		return nil, errors.Errorf("cannot set both project, environment and instance")
 	}
 
 	find := &api.PolicyFindMessage{}
@@ -119,16 +120,22 @@ func getPolicyFind(ctx context.Context, d *schema.ResourceData, client api.Clien
 	} else if environmentID != "" {
 		find.EnvironmentID = &environmentID
 
-		if v := d.Get("instance").(string); v != "" {
-			if find.EnvironmentID == nil {
-				return nil, errors.Errorf("must set both environment and instance to find the instance policy")
-			}
-			find.InstanceID = &v
-		}
+		// if v := d.Get("instance").(string); v != "" {
+		// 	if find.EnvironmentID == nil {
+		// 		return nil, errors.Errorf("must set both environment and instance to find the instance policy")
+		// 	}
+		// 	find.InstanceID = &v
+		// }
+		// if v := d.Get("database").(string); v != "" {
+		// 	if find.EnvironmentID == nil || find.InstanceID == nil {
+		// 		return nil, errors.Errorf("must set both environment, instance and database to find the database policy")
+		// 	}
+		// 	find.DatabaseName = &v
+		// }
+	} else if instanceID != "" {
+		find.InstanceID = &instanceID
+
 		if v := d.Get("database").(string); v != "" {
-			if find.EnvironmentID == nil || find.InstanceID == nil {
-				return nil, errors.Errorf("must set both environment, instance and database to find the database policy")
-			}
 			find.DatabaseName = &v
 		}
 	}
@@ -136,13 +143,11 @@ func getPolicyFind(ctx context.Context, d *schema.ResourceData, client api.Clien
 	// Make sure the parent for the policy exists
 	if find.DatabaseName != nil {
 		if _, err := client.GetDatabase(ctx, &api.DatabaseFindMessage{
-			EnvironmentID: *find.EnvironmentID,
-			InstanceID:    *find.InstanceID,
-			DatabaseName:  *find.DatabaseName,
+			InstanceID:   *find.InstanceID,
+			DatabaseName: *find.DatabaseName,
 		}); err != nil {
 			return nil, errors.Errorf(
-				"cannot find the database: environments/%s/instances/%s/databases/%s with error %v, please make sure the database synchronization is done",
-				*find.EnvironmentID,
+				"cannot find the database: instances/%s/databases/%s with error %v, please make sure the database synchronization is done",
 				*find.InstanceID,
 				*find.DatabaseName,
 				err.Error(),
@@ -150,12 +155,10 @@ func getPolicyFind(ctx context.Context, d *schema.ResourceData, client api.Clien
 		}
 	} else if find.InstanceID != nil {
 		if _, err := client.GetInstance(ctx, &api.InstanceFindMessage{
-			EnvironmentID: *find.EnvironmentID,
-			InstanceID:    *find.InstanceID,
+			InstanceID: *find.InstanceID,
 		}); err != nil {
 			return nil, errors.Errorf(
-				"cannot find the instance: environments/%s/instances/%s with error %v",
-				*find.EnvironmentID,
+				"cannot find the instance: instances/%s with error %v",
 				*find.InstanceID,
 				err.Error(),
 			)
@@ -163,7 +166,7 @@ func getPolicyFind(ctx context.Context, d *schema.ResourceData, client api.Clien
 	} else if find.EnvironmentID != nil {
 		if _, err := client.GetEnvironment(ctx, *find.EnvironmentID); err != nil {
 			return nil, errors.Errorf(
-				"cannot find the instance: environments/%s with error %v",
+				"cannot find the environment: environments/%s with error %v",
 				*find.EnvironmentID,
 				err.Error(),
 			)

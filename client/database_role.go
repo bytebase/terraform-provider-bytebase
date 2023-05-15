@@ -11,13 +11,13 @@ import (
 )
 
 // CreateRole creates the role in the instance.
-func (c *client) CreateRole(ctx context.Context, environmentID, instanceID string, create *api.RoleUpsert) (*api.Role, error) {
+func (c *client) CreateRole(ctx context.Context, instanceID string, create *api.RoleUpsert) (*api.Role, error) {
 	payload, err := json.Marshal(create)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles", c.url, c.version, environmentID, instanceID), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/instances/%s/roles", c.url, c.version, instanceID), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +37,8 @@ func (c *client) CreateRole(ctx context.Context, environmentID, instanceID strin
 }
 
 // GetRole gets the role by instance id and role name.
-func (c *client) GetRole(ctx context.Context, environmentID, instanceID, roleName string) (*api.Role, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles/%s", c.url, c.version, environmentID, instanceID, roleName), nil)
+func (c *client) GetRole(ctx context.Context, instanceID, roleName string) (*api.Role, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/instances/%s/roles/%s", c.url, c.version, instanceID, roleName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func (c *client) GetRole(ctx context.Context, environmentID, instanceID, roleNam
 }
 
 // ListRole lists the role in instance.
-func (c *client) ListRole(ctx context.Context, environmentID, instanceID string) ([]*api.Role, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles", c.url, c.version, environmentID, instanceID), nil)
+func (c *client) ListRole(ctx context.Context, instanceID string) ([]*api.Role, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/instances/%s/roles", c.url, c.version, instanceID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (c *client) ListRole(ctx context.Context, environmentID, instanceID string)
 }
 
 // UpdateRole updates the role in instance.
-func (c *client) UpdateRole(ctx context.Context, environmentID, instanceID, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
+func (c *client) UpdateRole(ctx context.Context, instanceID, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (c *client) UpdateRole(ctx context.Context, environmentID, instanceID, role
 		paths = append(paths, "attribute")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles/%s?update_mask=%s", c.url, c.version, environmentID, instanceID, roleName, strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/instances/%s/roles/%s?update_mask=%s", c.url, c.version, instanceID, roleName, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +125,8 @@ func (c *client) UpdateRole(ctx context.Context, environmentID, instanceID, role
 }
 
 // DeleteRole deletes the role in the instance.
-func (c *client) DeleteRole(ctx context.Context, environmentID, instanceID, roleName string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/environments/%s/instances/%s/roles/%s", c.url, c.version, environmentID, instanceID, roleName), nil)
+func (c *client) DeleteRole(ctx context.Context, instanceID, roleName string) error {
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/instances/%s/roles/%s", c.url, c.version, instanceID, roleName), nil)
 	if err != nil {
 		return err
 	}

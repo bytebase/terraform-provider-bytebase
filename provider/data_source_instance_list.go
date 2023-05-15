@@ -17,13 +17,6 @@ func dataSourceInstanceList() *schema.Resource {
 		Description: "The instance data source list.",
 		ReadContext: dataSourceInstanceListRead,
 		Schema: map[string]*schema.Schema{
-			"environment": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "-",
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The environment resource id.",
-			},
 			"show_deleted": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -43,7 +36,7 @@ func dataSourceInstanceList() *schema.Resource {
 						"environment": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The environment resource id for the instance.",
+							Description: `The environment name for your instance in "environments/{resource id}" format.`,
 						},
 						"title": {
 							Type:        schema.TypeString,
@@ -112,8 +105,7 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 	var diags diag.Diagnostics
 
 	response, err := c.ListInstance(ctx, &api.InstanceFindMessage{
-		EnvironmentID: d.Get("environment").(string),
-		ShowDeleted:   d.Get("show_deleted").(bool),
+		ShowDeleted: d.Get("show_deleted").(bool),
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -121,18 +113,23 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 
 	instances := make([]map[string]interface{}, 0)
 	for _, instance := range response.Instances {
-		envID, instanceID, err := internal.GetEnvironmentInstanceID(instance.Name)
+		instanceID, err := internal.GetInstanceID(instance.Name)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
 		ins := make(map[string]interface{})
 		ins["resource_id"] = instanceID
-		ins["environment"] = envID
 		ins["title"] = instance.Title
 		ins["engine"] = instance.Engine
 		ins["external_link"] = instance.ExternalLink
 		ins["data_sources"] = flattenDataSourceList(instance.DataSources)
+
+		envID, err := internal.GetEnvironmentID(instance.Environment)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		ins["environment"] = envID
 
 		instances = append(instances, ins)
 	}

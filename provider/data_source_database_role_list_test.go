@@ -28,9 +28,8 @@ func TestAccInstanceRoleListDataSource(t *testing.T) {
 
 				data "bytebase_instance_role_list" "%s" {
 					instance    = bytebase_instance.%s.resource_id
-					environment = bytebase_instance.%s.environment
 				}
-				`, mockInstanceResource(instanceName), outputName, instanceName, instanceName),
+				`, mockInstanceResource(instanceName), outputName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "roles.#", "0"),
@@ -43,20 +42,18 @@ func TestAccInstanceRoleListDataSource(t *testing.T) {
 				resource "bytebase_instance_role" "%s" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
-					environment = bytebase_instance.%s.environment
 
 					attribute {}
 				}
 
 				data "bytebase_instance_role_list" "%s" {
 					instance = bytebase_instance.%s.resource_id
-					environment = bytebase_instance.%s.environment
 
 					depends_on = [
     					bytebase_instance_role.%s
   					]
 				}
-				`, mockInstanceResource(instanceName), roleName, roleName, instanceName, instanceName, outputName, instanceName, instanceName, roleName),
+				`, mockInstanceResource(instanceName), roleName, roleName, instanceName, outputName, instanceName, roleName),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "roles.#", "1"),

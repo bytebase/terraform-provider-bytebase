@@ -150,12 +150,11 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	environmentID := d.Get("environment").(string)
 	instanceID := d.Get("resource_id").(string)
-	instanceName := fmt.Sprintf("environments/%s/instances/%s", environmentID, instanceID)
+	instanceName := fmt.Sprintf("instances/%s", instanceID)
 
 	existedInstance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		EnvironmentID: environmentID,
-		InstanceID:    instanceID,
-		ShowDeleted:   true,
+		InstanceID:  instanceID,
+		ShowDeleted: true,
 	})
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get instance %s failed with error: %v", instanceName, err))
@@ -185,7 +184,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 				Summary:  "Instance is deleted",
 				Detail:   fmt.Sprintf("Instance %s already deleted, try to undelete the instance", instanceName),
 			})
-			if _, err := c.UndeleteInstance(ctx, environmentID, instanceID); err != nil {
+			if _, err := c.UndeleteInstance(ctx, instanceID); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to undelete instance",
@@ -197,7 +196,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 		title := d.Get("title").(string)
 		externalLink := d.Get("external_link").(string)
-		instance, err := c.UpdateInstance(ctx, environmentID, instanceID, &api.InstancePatchMessage{
+		instance, err := c.UpdateInstance(ctx, instanceID, &api.InstancePatchMessage{
 			Title:        &title,
 			ExternalLink: &externalLink,
 			DataSources:  dataSourceList,
@@ -221,12 +220,13 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 		d.SetId(instance.Name)
 	} else {
-		instance, err := c.CreateInstance(ctx, environmentID, instanceID, &api.InstanceMessage{
+		instance, err := c.CreateInstance(ctx, instanceID, &api.InstanceMessage{
 			Title:        d.Get("title").(string),
 			Engine:       api.EngineType(d.Get("engine").(string)),
 			ExternalLink: d.Get("external_link").(string),
 			State:        api.Active,
 			DataSources:  dataSourceList,
+			Environment:  fmt.Sprintf("%s%s", internal.EnvironmentNamePrefix, environmentID),
 		})
 		if err != nil {
 			return diag.FromErr(err)
@@ -253,14 +253,13 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	envID, instanceID, err := internal.GetEnvironmentInstanceID(d.Id())
+	instanceID, err := internal.GetInstanceID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	instance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		EnvironmentID: envID,
-		InstanceID:    instanceID,
+		InstanceID: instanceID,
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -282,17 +281,16 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	c := m.(api.Client)
 
-	envID, instanceID, err := internal.GetEnvironmentInstanceID(d.Id())
+	instanceID, err := internal.GetInstanceID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	instanceName := fmt.Sprintf("environments/%s/instances/%s", envID, instanceID)
+	instanceName := fmt.Sprintf("instances/%s", instanceID)
 
 	existedInstance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		EnvironmentID: envID,
-		InstanceID:    instanceID,
-		ShowDeleted:   true,
+		InstanceID:  instanceID,
+		ShowDeleted: true,
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -305,7 +303,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			Summary:  "Instance is deleted",
 			Detail:   fmt.Sprintf("Instance %s already deleted, try to undelete the instance", instanceName),
 		})
-		if _, err := c.UndeleteInstance(ctx, envID, instanceID); err != nil {
+		if _, err := c.UndeleteInstance(ctx, instanceID); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to undelete instance",
@@ -332,7 +330,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		patch.DataSources = dataSourceList
 	}
 
-	instance, err := c.UpdateInstance(ctx, envID, instanceID, patch)
+	instance, err := c.UpdateInstance(ctx, instanceID, patch)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -358,12 +356,12 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	envID, instanceID, err := internal.GetEnvironmentInstanceID(d.Id())
+	instanceID, err := internal.GetInstanceID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := c.DeleteInstance(ctx, envID, instanceID); err != nil {
+	if err := c.DeleteInstance(ctx, instanceID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -373,7 +371,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) diag.Diagnostics {
-	envID, instanceID, err := internal.GetEnvironmentInstanceID(d.Id())
+	instanceID, err := internal.GetInstanceID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -382,6 +380,10 @@ func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) d
 	}
 	if err := d.Set("title", instance.Title); err != nil {
 		return diag.Errorf("cannot set title for instance: %s", err.Error())
+	}
+	envID, err := internal.GetEnvironmentID(instance.Environment)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 	if err := d.Set("environment", envID); err != nil {
 		return diag.Errorf("cannot set environment for instance: %s", err.Error())

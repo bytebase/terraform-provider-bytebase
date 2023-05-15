@@ -16,7 +16,6 @@ The instance data source. You can get a single instance through `bytebase_instan
 # Find a instance by resource id "dev-instance" in the "dev" environment.
 data "bytebase_instance" "dev" {
   resource_id = "dev-instance"
-  environment = "dev"
 }
 
 output "instance" {
@@ -49,6 +48,7 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
   - `MONGODB`
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
 - `data_sources` (List of Object) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_sources))
+- `environment` (String) The environment **unique resource id** for the instance.
 
 <a id="nestedblock--data_sources"></a>
 
