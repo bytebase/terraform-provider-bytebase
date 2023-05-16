@@ -32,7 +32,6 @@ You can check [examples](https://github.com/bytebase/terraform-provider-bytebase
 ### Required
 
 - `resource_id` (String) The instance **unique resource id**.
-- `environment` (String) The environment **unique resource id** for the instance.
 
 ### Read-Only
 

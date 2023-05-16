@@ -20,6 +20,8 @@ Please follow [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get
 - [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform) (1.3.5 or later)
 - [Bytebase](https://github.com/bytebase/bytebase) (1.11.0 or later)
 
+> If you have problems running `terraform` in MacOS with Apple Silicon, you can following https://stackoverflow.com/questions/66281882/how-can-i-get-terraform-init-to-run-on-my-apple-silicon-macbook-pro-for-the-go and use the `tfenv`.
+
 ### Prepare Bytebase OpenAPI server
 
 ```bash
