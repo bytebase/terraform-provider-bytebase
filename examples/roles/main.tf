@@ -18,22 +18,19 @@ provider "bytebase" {
 }
 
 locals {
-  role_name           = "role_test_terraform"
-  instance_id_test    = "test-instance"
-  environment_id_test = "test"
+  role_name        = "role_test_terraform"
+  instance_id_test = "test-instance"
 }
 
 # Find the instance
 data "bytebase_instance" "test" {
   resource_id = local.instance_id_test
-  environment = local.environment_id_test
 }
 
 # Find the role "role_test_terraform" in the instance "test-instance"
 data "bytebase_instance_role" "test" {
-  name        = local.role_name
-  instance    = data.bytebase_instance.test.resource_id
-  environment = data.bytebase_instance.test.environment
+  name     = local.role_name
+  instance = data.bytebase_instance.test.resource_id
 }
 
 output "role" {
@@ -42,8 +39,7 @@ output "role" {
 
 # List all roles in the instance "test-instance"
 data "bytebase_instance_role_list" "all" {
-  instance    = data.bytebase_instance.test.resource_id
-  environment = data.bytebase_instance.test.environment
+  instance = data.bytebase_instance.test.resource_id
 }
 
 output "list_role" {

@@ -15,7 +15,6 @@ The instance role list data source. You can list roles in a specific instance th
 ```terraform
 data "bytebase_instance_role_list" "list_role" {
   instance    = "<the instance resource id>"
-  environment = "<the environment resource id>"
 }
 ```
 
@@ -23,7 +22,6 @@ data "bytebase_instance_role_list" "list_role" {
 
 ### Required
 
-- `environment` (String) The environment **unique resource id**.
 - `instance` (String) The instance **unique resource id**.
 
 ### Read-Only

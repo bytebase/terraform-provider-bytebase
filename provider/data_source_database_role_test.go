@@ -12,7 +12,7 @@ import (
 
 func TestAccInstanceRoleDataSource(t *testing.T) {
 	roleName := "test_role"
-	instanceName := "test-instance"
+	instanceName := "mock-instance"
 	resourceName := fmt.Sprintf("data.bytebase_instance_role.%s", roleName)
 
 	resource.Test(t, resource.TestCase{
@@ -29,7 +29,6 @@ func TestAccInstanceRoleDataSource(t *testing.T) {
 				resource "bytebase_instance_role" "%s" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
-					environment = bytebase_instance.%s.environment
 
 					attribute {}
 				}
@@ -37,9 +36,8 @@ func TestAccInstanceRoleDataSource(t *testing.T) {
 				data "bytebase_instance_role" "%s" {
 					name        = bytebase_instance_role.%s.name
 					instance    = bytebase_instance.%s.resource_id
-					environment = bytebase_instance.%s.environment
 				}
-				`, mockInstanceResource(instanceName), roleName, roleName, instanceName, instanceName, roleName, roleName, instanceName, instanceName),
+				`, mockInstanceResource(instanceName), roleName, roleName, instanceName, roleName, roleName, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", roleName),
@@ -70,9 +68,8 @@ func TestAccInstanceRoleDataSource_RoleNotFound(t *testing.T) {
 				data "bytebase_instance_role" "%s" {
 					name        = "%s"
 					instance    = bytebase_instance.%s.resource_id
-					environment = bytebase_instance.%s.environment
 				}
-				`, mockInstanceResource(instanceName), roleName, roleName, instanceName, instanceName),
+				`, mockInstanceResource(instanceName), roleName, roleName, instanceName),
 				ExpectError: regexp.MustCompile("Cannot found role with ID"),
 			},
 		},
@@ -81,8 +78,7 @@ func TestAccInstanceRoleDataSource_RoleNotFound(t *testing.T) {
 
 func TestAccInstanceRoleDataSource_InstanceNotFound(t *testing.T) {
 	roleName := "test_role"
-	instanceID := "test-instance"
-	environmentID := "test-environment"
+	instanceID := "the-missing-instance"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -96,10 +92,9 @@ func TestAccInstanceRoleDataSource_InstanceNotFound(t *testing.T) {
 				data "bytebase_instance_role" "%s" {
 					name        = "%s"
 					instance    = "%s"
-					environment = "%s"
 				}
-				`, roleName, roleName, instanceID, environmentID),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("Cannot found instance environments/%s/instances/%s", environmentID, instanceID)),
+				`, roleName, roleName, instanceID),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("Cannot found instance instances/%s", instanceID)),
 			},
 		},
 	})

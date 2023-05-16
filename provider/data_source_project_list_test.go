@@ -12,9 +12,6 @@ import (
 
 func TestAccProjectListDataSource(t *testing.T) {
 	identifier := "new_project"
-	resourceID := "dev-project"
-	title := "dev project"
-	key := "BYT"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -32,7 +29,7 @@ func TestAccProjectListDataSource(t *testing.T) {
 				0,
 			),
 			internal.GetTestStepForDataSourceList(
-				testAccCheckProjectResource(identifier, resourceID, title, key, api.ProjectWorkflowUI, api.ProjectSchemaVersionSemantic, api.ProjectSchemaChangeDDL),
+				testAccCheckProjectResource(identifier, "dev-project", "dev project", "BYT", api.ProjectWorkflowUI, api.ProjectSchemaVersionSemantic, api.ProjectSchemaChangeDDL),
 				fmt.Sprintf("bytebase_project.%s", identifier),
 				"bytebase_project_list",
 				"after",

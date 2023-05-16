@@ -16,7 +16,6 @@ Instance role resource. You can read, create, update or delete a single role in 
 resource "bytebase_instance_role" "admin" {
   name             = "admin"
   instance         = "<the instance resource id>"
-  environment      = "<the environment resource id>"
   password         = "123456"
   connection_limit = 99
   valid_until      = "2022-12-31T00:00:00+08:00"
@@ -40,7 +39,6 @@ resource "bytebase_instance_role" "admin" {
 ### Required
 
 - `name` (String) The role **unique name**.
-- `environment` (String) The environment **unique resource id**.
 - `instance` (String) The instance **unique resource id**.
 - `attribute` (Object) The attribute for the role. (see [below for nested schema](#nestedblock--attribute))
 

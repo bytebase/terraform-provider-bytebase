@@ -59,7 +59,6 @@ func TestAccInstance(t *testing.T) {
 func TestAccInstance_InvalidInput(t *testing.T) {
 	identifier := "another_instance"
 	engine := "POSTGRES"
-	environment := "dev"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -70,12 +69,12 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Invalid instance name
 			{
-				Config:      testAccCheckInstanceResource(identifier, "dev-instance", "", engine, environment),
+				Config:      testAccCheckInstanceResource(identifier, "dev-instance", "", engine, "dev"),
 				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
 			},
 			// Invalid engine
 			{
-				Config:      testAccCheckInstanceResource(identifier, "dev-instance", "dev instance", "engine", environment),
+				Config:      testAccCheckInstanceResource(identifier, "dev-instance", "dev instance", "engine", "dev"),
 				ExpectError: regexp.MustCompile("expected engine to be one of"),
 			},
 			// Invalid data source
@@ -150,12 +149,12 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 			continue
 		}
 
-		envID, instanceID, err := internal.GetEnvironmentInstanceID(rs.Primary.ID)
+		instanceID, err := internal.GetInstanceID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		if err := c.DeleteInstance(context.Background(), envID, instanceID); err != nil {
+		if err := c.DeleteInstance(context.Background(), instanceID); err != nil {
 			return err
 		}
 	}
