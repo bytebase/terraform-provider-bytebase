@@ -23,7 +23,7 @@ type Client interface {
 	UndeleteEnvironment(ctx context.Context, environmentID string) (*EnvironmentMessage, error)
 
 	// Instance
-	// ListInstance will return instances in environment.
+	// ListInstance will return instances.
 	ListInstance(ctx context.Context, find *InstanceFindMessage) (*ListInstanceMessage, error)
 	// GetInstance gets the instance by id.
 	GetInstance(ctx context.Context, find *InstanceFindMessage) (*InstanceMessage, error)
@@ -61,8 +61,10 @@ type Client interface {
 	DeletePolicy(ctx context.Context, find *PolicyFindMessage) error
 
 	// Database
-	// GetDatabase gets the database by environment resource id, instance resource id and the database name.
+	// GetDatabase gets the database by instance resource id and the database name.
 	GetDatabase(ctx context.Context, find *DatabaseFindMessage) (*DatabaseMessage, error)
+	// ListDatabase list the databases.
+	ListDatabase(ctx context.Context, find *DatabaseFindMessage) (*ListDatabaseMessage, error)
 
 	// Project
 	// GetProject gets the project by resource id.

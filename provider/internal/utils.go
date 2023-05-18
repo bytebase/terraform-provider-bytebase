@@ -111,7 +111,7 @@ func GetPolicyFindMessageByName(name string) (*api.PolicyFindMessage, error) {
 			return find, nil
 		} else if len(sections) == 4 {
 			// database policy request name should be instances/{instance id}/databases/{db name}
-			instanceID, databaseName, err := getInstanceDatabaseID(parent)
+			instanceID, databaseName, err := GetInstanceDatabaseID(parent)
 			if err != nil {
 				return nil, err
 			}
@@ -133,7 +133,7 @@ func GetProjectID(name string) (string, error) {
 	return tokens[0], nil
 }
 
-func getInstanceDatabaseID(name string) (string, string, error) {
+func GetInstanceDatabaseID(name string) (string, string, error) {
 	// the instance request should be instances/{instance-id}/databases/{database-id}
 	tokens, err := getNameParentTokens(name, instanceNamePrefix, databaseIDPrefix)
 	if err != nil {
@@ -145,7 +145,7 @@ func getInstanceDatabaseID(name string) (string, string, error) {
 func getNameParentTokens(name string, tokenPrefixes ...string) ([]string, error) {
 	parts := strings.Split(name, "/")
 	if len(parts) != 2*len(tokenPrefixes) {
-		return nil, errors.Errorf("invalid request %q", name)
+		return nil, errors.Errorf("invalid name %q", name)
 	}
 
 	var tokens []string
@@ -154,7 +154,7 @@ func getNameParentTokens(name string, tokenPrefixes ...string) ([]string, error)
 			return nil, errors.Errorf("invalid prefix %q in request %q", tokenPrefix, name)
 		}
 		if parts[2*i+1] == "" {
-			return nil, errors.Errorf("invalid request %q with empty prefix %q", name, tokenPrefix)
+			return nil, errors.Errorf("invalid name %q with empty prefix %q", name, tokenPrefix)
 		}
 		tokens = append(tokens, parts[2*i+1])
 	}
