@@ -110,7 +110,7 @@ func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m i
 		if project != "" {
 			projectID, err := internal.GetProjectID(project)
 			if err != nil {
-				return diag.Errorf("failed to parse project id %s with error", database.Project, err.Error())
+				return diag.Errorf("failed to parse project id %s with error: %v", database.Project, err.Error())
 			}
 			project = projectID
 		}

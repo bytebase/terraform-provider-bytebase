@@ -90,7 +90,7 @@ func setDatabaseMessage(d *schema.ResourceData, database *api.DatabaseMessage) d
 	if project != "" {
 		projectID, err := internal.GetProjectID(project)
 		if err != nil {
-			return diag.Errorf("failed to parse project id %s with error", database.Project, err.Error())
+			return diag.Errorf("failed to parse project id %s with error: %v", database.Project, err.Error())
 		}
 		project = projectID
 	}

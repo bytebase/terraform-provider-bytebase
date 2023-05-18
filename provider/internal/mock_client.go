@@ -482,7 +482,7 @@ func (c *mockClient) GetDatabase(_ context.Context, find *api.DatabaseFindMessag
 }
 
 // ListDatabase list the databases.
-func (c *mockClient) ListDatabase(ctx context.Context, find *api.DatabaseFindMessage) (*api.ListDatabaseMessage, error) {
+func (c *mockClient) ListDatabase(_ context.Context, find *api.DatabaseFindMessage) (*api.ListDatabaseMessage, error) {
 	projectID := "-"
 	if v := find.Filter; v != nil && strings.HasPrefix(*v, "project = ") {
 		projectID = strings.Split(*v, "project = ")[1]

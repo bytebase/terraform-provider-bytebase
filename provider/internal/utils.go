@@ -133,6 +133,7 @@ func GetProjectID(name string) (string, error) {
 	return tokens[0], nil
 }
 
+// GetInstanceDatabaseID will parse the instance resource id and database name.
 func GetInstanceDatabaseID(name string) (string, string, error) {
 	// the instance request should be instances/{instance-id}/databases/{database-id}
 	tokens, err := getNameParentTokens(name, instanceNamePrefix, databaseIDPrefix)
