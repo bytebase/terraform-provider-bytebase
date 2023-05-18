@@ -16,6 +16,7 @@ var instanceMap map[string]*api.InstanceMessage
 var policyMap map[string]*api.PolicyMessage
 var roleMap map[string]*api.Role
 var projectMap map[string]*api.ProjectMessage
+var databaseMap map[string]*api.DatabaseMessage
 
 func init() {
 	environmentMap = map[string]*api.EnvironmentMessage{}
@@ -23,6 +24,7 @@ func init() {
 	policyMap = map[string]*api.PolicyMessage{}
 	roleMap = map[string]*api.Role{}
 	projectMap = map[string]*api.ProjectMessage{}
+	databaseMap = map[string]*api.DatabaseMessage{}
 }
 
 type mockClient struct {
@@ -31,6 +33,7 @@ type mockClient struct {
 	policyMap      map[string]*api.PolicyMessage
 	projectMap     map[string]*api.ProjectMessage
 	roleMap        map[string]*api.Role
+	databaseMap    map[string]*api.DatabaseMessage
 }
 
 // newMockClient returns the new Bytebase API mock client.
@@ -41,6 +44,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		policyMap:      policyMap,
 		roleMap:        roleMap,
 		projectMap:     projectMap,
+		databaseMap:    databaseMap,
 	}, nil
 }
 
@@ -466,9 +470,37 @@ func getPolicyRequestName(find *api.PolicyFindMessage) string {
 	return name
 }
 
-// GetDatabase gets the database by environment resource id, instance resource id and the database name.
-func (*mockClient) GetDatabase(_ context.Context, _ *api.DatabaseFindMessage) (*api.DatabaseMessage, error) {
-	return nil, errors.Errorf("GetDatabase is not implemented")
+// GetDatabase gets the database by instance resource id and the database name.
+func (c *mockClient) GetDatabase(_ context.Context, find *api.DatabaseFindMessage) (*api.DatabaseMessage, error) {
+	name := fmt.Sprintf("instances/%s/databases/%s", find.InstanceID, find.DatabaseName)
+	db, ok := c.databaseMap[name]
+	if !ok {
+		return nil, errors.Errorf("Cannot found project %s", name)
+	}
+
+	return db, nil
+}
+
+// ListDatabase list the databases.
+func (c *mockClient) ListDatabase(_ context.Context, find *api.DatabaseFindMessage) (*api.ListDatabaseMessage, error) {
+	projectID := "-"
+	if v := find.Filter; v != nil && strings.HasPrefix(*v, "project = ") {
+		projectID = strings.Split(*v, "project = ")[1]
+	}
+	databases := make([]*api.DatabaseMessage, 0)
+	for _, db := range c.databaseMap {
+		if projectID != "-" && fmt.Sprintf(`"%s".`, db.Project) != projectID {
+			continue
+		}
+		if find.InstanceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("instances/%s", find.InstanceID)) {
+			continue
+		}
+		databases = append(databases, db)
+	}
+
+	return &api.ListDatabaseMessage{
+		Databases: databases,
+	}, nil
 }
 
 // GetProject gets the project by resource id.

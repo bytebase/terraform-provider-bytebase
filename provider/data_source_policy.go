@@ -119,19 +119,6 @@ func getPolicyFind(ctx context.Context, d *schema.ResourceData, client api.Clien
 		find.ProjectID = &projectID
 	} else if environmentID != "" {
 		find.EnvironmentID = &environmentID
-
-		// if v := d.Get("instance").(string); v != "" {
-		// 	if find.EnvironmentID == nil {
-		// 		return nil, errors.Errorf("must set both environment and instance to find the instance policy")
-		// 	}
-		// 	find.InstanceID = &v
-		// }
-		// if v := d.Get("database").(string); v != "" {
-		// 	if find.EnvironmentID == nil || find.InstanceID == nil {
-		// 		return nil, errors.Errorf("must set both environment, instance and database to find the database policy")
-		// 	}
-		// 	find.DatabaseName = &v
-		// }
 	} else if instanceID != "" {
 		find.InstanceID = &instanceID
 
