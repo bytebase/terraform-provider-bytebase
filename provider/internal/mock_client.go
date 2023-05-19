@@ -484,12 +484,12 @@ func (c *mockClient) GetDatabase(_ context.Context, find *api.DatabaseFindMessag
 // ListDatabase list the databases.
 func (c *mockClient) ListDatabase(_ context.Context, find *api.DatabaseFindMessage) (*api.ListDatabaseMessage, error) {
 	projectID := "-"
-	if v := find.Filter; v != nil && strings.HasPrefix(*v, "project = ") {
-		projectID = strings.Split(*v, "project = ")[1]
+	if v := find.Filter; v != nil && strings.HasPrefix(*v, "project == ") {
+		projectID = strings.Split(*v, "project == ")[1]
 	}
 	databases := make([]*api.DatabaseMessage, 0)
 	for _, db := range c.databaseMap {
-		if projectID != "-" && fmt.Sprintf(`"%s".`, db.Project) != projectID {
+		if projectID != "-" && fmt.Sprintf(`"%s"`, db.Project) != projectID {
 			continue
 		}
 		if find.InstanceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("instances/%s", find.InstanceID)) {
@@ -501,6 +501,25 @@ func (c *mockClient) ListDatabase(_ context.Context, find *api.DatabaseFindMessa
 	return &api.ListDatabaseMessage{
 		Databases: databases,
 	}, nil
+}
+
+// UpdateDatabase patches the database.
+func (c *mockClient) UpdateDatabase(ctx context.Context, instanceID, databaseName string, patch *api.DatabasePatchMessage) (*api.DatabaseMessage, error) {
+	db, err := c.GetDatabase(ctx, &api.DatabaseFindMessage{
+		InstanceID:   instanceID,
+		DatabaseName: databaseName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if v := patch.Project; v != nil {
+		db.Project = *v
+	}
+	if v := patch.Labels; v != nil {
+		db.Labels = *v
+	}
+	c.databaseMap[db.Name] = db
+	return db, nil
 }
 
 // GetProject gets the project by resource id.

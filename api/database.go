@@ -22,3 +22,10 @@ type ListDatabaseMessage struct {
 	Databases     []*DatabaseMessage `json:"databases"`
 	NextPageToken string             `json:"nextPageToken"`
 }
+
+// DatabasePatchMessage is the API message to patch the database.
+type DatabasePatchMessage struct {
+	Name    string             `json:"name"`
+	Project *string            `json:"project"`
+	Labels  *map[string]string `json:"labels"`
+}

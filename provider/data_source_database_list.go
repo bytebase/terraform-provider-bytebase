@@ -87,7 +87,7 @@ func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m i
 		InstanceID: d.Get("instance").(string),
 	}
 	if project != "" && project != "-" {
-		filter := fmt.Sprintf(`project = "projects/%s".`, project)
+		filter := fmt.Sprintf(`project == "projects/%s"`, project)
 		find.Filter = &filter
 	}
 	response, err := c.ListDatabase(ctx, find)
