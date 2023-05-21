@@ -28,18 +28,18 @@ const (
 	EngineTypeMongoDB EngineType = "MONGODB"
 	// EngineTypeSQLite is the database type for SQLite.
 	EngineTypeSQLite EngineType = "SQLITE"
-	// EngineTypeSQLite is the database type for SQLite.
+	// EngineTypeRedis is the database type for REDIS.
 	EngineTypeRedis EngineType = "REDIS"
-	// EngineTypeSQLite is the database type for SQLite.
+	// EngineTypeOracle is the database type for ORACLE.
 	EngineTypeOracle EngineType = "ORACLE"
-	// EngineTypeSQLite is the database type for SQLite.
+	// EngineTypeSpanner is the database type for SPANNER.
 	EngineTypeSpanner EngineType = "SPANNER"
-	// EngineTypeSQLite is the database type for SQLite.
+	// EngineTypeMSSQL is the database type for MSSQL.
 	EngineTypeMSSQL EngineType = "MSSQL"
-	// EngineTypeSQLite is the database type for SQLite.
+	// EngineTypeRedshift is the database type for REDSHIFT.
 	EngineTypeRedshift EngineType = "REDSHIFT"
-	// EngineTypeSQLite is the database type for SQLite.
+	// EngineTypeMariaDB is the database type for MARIADB.
 	EngineTypeMariaDB EngineType = "MARIADB"
-	// EngineTypeSQLite is the database type for SQLite.
+	// EngineTypeOceanbase is the database type for OCEANBASE.
 	EngineTypeOceanbase EngineType = "OCEANBASE"
 )
