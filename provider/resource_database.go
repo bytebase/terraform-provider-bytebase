@@ -151,7 +151,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	return dataSourceDatabaseRead(ctx, d, m)
 }
 
-func resourceDatabaseDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceDatabaseDelete(_ context.Context, d *schema.ResourceData, —— interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 	diags = append(diags, diag.Diagnostic{
 		Severity: diag.Warning,
