@@ -66,7 +66,7 @@ type Client interface {
 	// ListDatabase list the databases.
 	ListDatabase(ctx context.Context, find *DatabaseFindMessage) (*ListDatabaseMessage, error)
 	// UpdateDatabase patches the database.
-	UpdateDatabase(ctx context.Context, instanceID, databaseName string, patch *DatabasePatchMessage) (*DatabaseMessage, error)
+	UpdateDatabase(ctx context.Context, patch *DatabasePatchMessage) (*DatabaseMessage, error)
 
 	// Project
 	// GetProject gets the project by resource id.

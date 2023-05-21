@@ -181,7 +181,21 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 		Environment:  instance.Environment,
 	}
 
+	envID, err := GetEnvironmentID(ins.Environment)
+	if err != nil {
+		return nil, err
+	}
+
+	database := &api.DatabaseMessage{
+		Name:      fmt.Sprintf("%s/databases/default", ins.Name),
+		SyncState: api.Active,
+		Labels: map[string]string{
+			"bb.environment": envID,
+		},
+	}
+
 	c.instanceMap[ins.Name] = ins
+	c.databaseMap[database.Name] = database
 	return ins, nil
 }
 
@@ -504,7 +518,12 @@ func (c *mockClient) ListDatabase(_ context.Context, find *api.DatabaseFindMessa
 }
 
 // UpdateDatabase patches the database.
-func (c *mockClient) UpdateDatabase(ctx context.Context, instanceID, databaseName string, patch *api.DatabasePatchMessage) (*api.DatabaseMessage, error) {
+func (c *mockClient) UpdateDatabase(ctx context.Context, patch *api.DatabasePatchMessage) (*api.DatabaseMessage, error) {
+	instanceID, databaseName, err := GetInstanceDatabaseID(patch.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	db, err := c.GetDatabase(ctx, &api.DatabaseFindMessage{
 		InstanceID:   instanceID,
 		DatabaseName: databaseName,

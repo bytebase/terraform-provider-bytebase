@@ -59,8 +59,7 @@ func (c *client) ListDatabase(ctx context.Context, find *api.DatabaseFindMessage
 }
 
 // UpdateDatabase patches the database.
-func (c *client) UpdateDatabase(ctx context.Context, instanceID, databaseName string, patch *api.DatabasePatchMessage) (*api.DatabaseMessage, error) {
-	patch.Name = fmt.Sprintf("instances/%s/databases/%s", instanceID, databaseName)
+func (c *client) UpdateDatabase(ctx context.Context, patch *api.DatabasePatchMessage) (*api.DatabaseMessage, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
@@ -74,7 +73,7 @@ func (c *client) UpdateDatabase(ctx context.Context, instanceID, databaseName st
 		updateMask = append(updateMask, "labels")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/instances/%s/databases/%s?update_mask=%s", c.url, c.version, instanceID, databaseName, strings.Join(updateMask, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(updateMask, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}

@@ -96,7 +96,8 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, m inter
 		labels[key] = val.(string)
 	}
 
-	database, err := c.UpdateDatabase(ctx, instanceID, databaseName, &api.DatabasePatchMessage{
+	database, err := c.UpdateDatabase(ctx, &api.DatabasePatchMessage{
+		Name:    fmt.Sprintf("instances/%s/databases/%s", instanceID, databaseName),
 		Project: &project,
 		Labels:  &labels,
 	})
@@ -129,14 +130,11 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.Errorf("cannot change the schema_version")
 	}
 
-	instanceID, databaseName, err := internal.GetInstanceDatabaseID(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	c := m.(api.Client)
 
-	patch := &api.DatabasePatchMessage{}
+	patch := &api.DatabasePatchMessage{
+		Name: d.Id(),
+	}
 	if d.HasChange("project") {
 		projectName := fmt.Sprintf("projects/%s", d.Get("project").(string))
 		patch.Project = &projectName
@@ -146,7 +144,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		patch.Labels = &labels
 	}
 
-	if _, err := c.UpdateDatabase(ctx, instanceID, databaseName, patch); err != nil {
+	if _, err := c.UpdateDatabase(ctx, patch); err != nil {
 		return diag.FromErr(err)
 	}
 
