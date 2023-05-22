@@ -403,7 +403,7 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 		Filter:     &filter,
 	})
 	if err != nil {
-		return diag.Errorf("failed to list database %s with error: %v", err)
+		return diag.Errorf("failed to list database with error: %v", err)
 	}
 	existedDBMap := map[string]*api.DatabaseMessage{}
 	for _, db := range listDB.Databases {
