@@ -27,13 +27,13 @@ jobs:
       - name: Get Version
         id: get-version
         run: |
-          verion=`cat VERSION`
+          version=`cat VERSION`
           echo "version=${version}" >> $GITHUB_OUTPUT
       - name: Create Tag
         uses: rickstaa/action-create-tag@v1
         with:
-          tag: ${{ steps.get-version.outputs.version }}
-          message: "Release ${{ steps.get-version.outputs.version }}"
+          tag: "v${{ steps.get-version.outputs.version }}"
+          message: "Release v${{ steps.get-version.outputs.version }}"
   goreleaser:
     needs: create-tag
     runs-on: ubuntu-latest
