@@ -46,7 +46,7 @@ func dataSourceInstanceList() *schema.Resource {
 						"engine": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE.",
+							Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.",
 						},
 						"external_link": {
 							Type:        schema.TypeString,
