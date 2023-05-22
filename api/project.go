@@ -34,10 +34,12 @@ const (
 type ProjectSchemaVersion string
 
 const (
-	// ProjectSchemaVersionTimestamp the timestamp schema version type in the project.
+	// ProjectSchemaVersionTimestamp is the timestamp schema version type in the project.
 	ProjectSchemaVersionTimestamp ProjectSchemaVersion = "TIMESTAMP"
-	// ProjectSchemaVersionSemantic the semantic schema version type in the project.
+	// ProjectSchemaVersionSemantic is the semantic schema version type in the project.
 	ProjectSchemaVersionSemantic ProjectSchemaVersion = "SEMANTIC"
+	// ProjectSchemaVersionUnspecified is the unspecified schema version type in the project.
+	ProjectSchemaVersionUnspecified ProjectSchemaVersion = "SCHEMA_VERSION_UNSPECIFIED"
 )
 
 // ProjectSchemaChange is the schema change type for project.

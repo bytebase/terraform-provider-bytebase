@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -61,6 +62,46 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "The project schema change type.",
 			},
+			"databases": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "The databases in the project.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The database name.",
+						},
+						"instance": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The instance resource id for the database.",
+						},
+						"sync_state": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The existence of a database on latest sync.",
+						},
+						"successful_sync_time": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The latest synchronization time.",
+						},
+						"schema_version": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The version of database schema.",
+						},
+						"labels": {
+							Type:        schema.TypeMap,
+							Computed:    true,
+							Description: "The  deployment and policy control labels.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -73,11 +114,20 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
+	filter := fmt.Sprintf(`project == "%s"`, project.Name)
+	response, err := c.ListDatabase(ctx, &api.DatabaseFindMessage{
+		InstanceID: "-",
+		Filter:     &filter,
+	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	d.SetId(project.Name)
-	return setProject(d, project)
+	return setProjectWithDatabases(d, project, response.Databases)
 }
 
-func setProject(d *schema.ResourceData, project *api.ProjectMessage) diag.Diagnostics {
+func setProjectWithDatabases(d *schema.ResourceData, project *api.ProjectMessage, databases []*api.DatabaseMessage) diag.Diagnostics {
 	projectID, err := internal.GetProjectID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -111,6 +161,26 @@ func setProject(d *schema.ResourceData, project *api.ProjectMessage) diag.Diagno
 	}
 	if err := d.Set("schema_change", project.SchemaChange); err != nil {
 		return diag.Errorf("cannot set schema_change for project: %s", err.Error())
+	}
+
+	dbList := []interface{}{}
+	for _, database := range databases {
+		instanceID, databaseName, err := internal.GetInstanceDatabaseID(database.Name)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		db := map[string]interface{}{}
+		db["name"] = databaseName
+		db["instance"] = instanceID
+		db["sync_state"] = database.SyncState
+		db["successful_sync_time"] = database.SuccessfulSyncTime
+		db["schema_version"] = database.SchemaVersion
+		db["labels"] = database.Labels
+		dbList = append(dbList, db)
+	}
+	if err := d.Set("databases", dbList); err != nil {
+		return diag.Errorf("cannot set databases for project: %s", err.Error())
 	}
 
 	return nil
