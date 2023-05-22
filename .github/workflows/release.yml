@@ -30,11 +30,10 @@ jobs:
           verion=`cat VERSION`
           echo "version=${version}" >> $GITHUB_OUTPUT
       - name: Create Tag
-        uses: negz/create-tag@v1
+        uses: rickstaa/action-create-tag@v1
         with:
-          version: v${{ steps.get-version.outputs.version }}
+          tag: v${{ steps.get-version.outputs.version }}
           message: "Release v${{ steps.get-version.outputs.version }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
   goreleaser:
     needs: create-tag
     runs-on: ubuntu-latest
