@@ -13,6 +13,9 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
+// defaultProj is the default project name.
+var defaultProj = "projects/default"
+
 func resourceProjct() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The project resource.",
@@ -78,10 +81,11 @@ func resourceProjct() *schema.Resource {
 			},
 			"schema_version": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.ProjectSchemaVersionTimestamp),
 					string(api.ProjectSchemaVersionSemantic),
+					string(api.ProjectSchemaVersionUnspecified),
 				}, false),
 				Description: "The project schema version type. Cannot change this after created.",
 			},
@@ -93,6 +97,49 @@ func resourceProjct() *schema.Resource {
 					string(api.ProjectSchemaChangeSDL),
 				}, false),
 				Description: "The project schema change type.",
+			},
+			"databases": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "The databases in the project.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
+							Description:  "The database name.",
+						},
+						"instance": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: internal.ResourceIDValidation,
+							Description:  "The instance resource id for the database.",
+						},
+						"sync_state": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The existence of a database on latest sync.",
+						},
+						"successful_sync_time": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The latest synchronization time.",
+						},
+						"schema_version": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The version of database schema.",
+						},
+						"labels": {
+							Type:        schema.TypeMap,
+							Optional:    true,
+							Computed:    true,
+							Description: "The  deployment and policy control labels.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -200,6 +247,11 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		d.SetId(project.Name)
 	}
 
+	if diag := updateDatabasesInProject(ctx, d, c, d.Id()); diag != nil {
+		diags = append(diags, diag...)
+		return diags
+	}
+
 	diag := resourceProjectRead(ctx, d, m)
 	if diag != nil {
 		diags = append(diags, diag...)
@@ -280,7 +332,15 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	if _, err := c.UpdateProject(ctx, projectID, patch); err != nil {
-		return diag.FromErr(err)
+		diags = append(diags, diag.FromErr(err)...)
+		return diags
+	}
+
+	if d.HasChange("databases") {
+		if diag := updateDatabasesInProject(ctx, d, c, d.Id()); diag != nil {
+			diags = append(diags, diag...)
+			return diags
+		}
 	}
 
 	diag := resourceProjectRead(ctx, d, m)
@@ -304,7 +364,16 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
-	return setProject(d, project)
+	filter := fmt.Sprintf(`project == "%s"`, project.Name)
+	response, err := c.ListDatabase(ctx, &api.DatabaseFindMessage{
+		InstanceID: "-",
+		Filter:     &filter,
+	})
+	if err != nil {
+		return diag.Errorf("failed to list database with error: %v", err)
+	}
+
+	return setProjectWithDatabases(d, project, response.Databases)
 }
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -325,4 +394,60 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 	d.SetId("")
 
 	return diags
+}
+
+func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
+	filter := fmt.Sprintf(`project == "%s"`, projectName)
+	listDB, err := client.ListDatabase(ctx, &api.DatabaseFindMessage{
+		InstanceID: "-",
+		Filter:     &filter,
+	})
+	if err != nil {
+		return diag.Errorf("failed to list database with error: %v", err)
+	}
+	existedDBMap := map[string]*api.DatabaseMessage{}
+	for _, db := range listDB.Databases {
+		existedDBMap[db.Name] = db
+	}
+
+	rawList, ok := d.Get("databases").([]interface{})
+	if !ok {
+		return nil
+	}
+	updatedDBMap := map[string]*api.DatabasePatchMessage{}
+	for _, raw := range rawList {
+		obj := raw.(map[string]interface{})
+		dbName := obj["name"].(string)
+		instance := obj["instance"].(string)
+
+		labels := map[string]string{}
+		for key, val := range obj["labels"].(map[string]interface{}) {
+			labels[key] = val.(string)
+		}
+
+		name := fmt.Sprintf("instances/%s/databases/%s", instance, dbName)
+		patch := &api.DatabasePatchMessage{
+			Name:    name,
+			Project: &projectName,
+			Labels:  &labels,
+		}
+		updatedDBMap[name] = patch
+		if _, err := client.UpdateDatabase(ctx, patch); err != nil {
+			return diag.Errorf("failed to update database %s with error: %v", patch.Name, err)
+		}
+	}
+
+	for _, db := range existedDBMap {
+		if _, ok := updatedDBMap[db.Name]; !ok {
+			// move db to default project
+			if _, err := client.UpdateDatabase(ctx, &api.DatabasePatchMessage{
+				Name:    db.Name,
+				Project: &defaultProj,
+			}); err != nil {
+				return diag.Errorf("failed to move database %s to project %s with error: %v", db.Name, defaultProj, err)
+			}
+		}
+	}
+
+	return nil
 }

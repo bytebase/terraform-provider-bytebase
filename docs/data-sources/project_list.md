@@ -38,5 +38,16 @@ Read-Only:
 - `title` (String)
 - `visibility` (String)
 - `workflow` (String)
+- `databases` (Block List) The databases in the project. (see [below for nested schema](#nestedblock--databases))
 
+<a id="nestedblock--databases"></a>
+### Nested Schema for `databases`
 
+#### Read-Only
+
+- `instance` (String) The instance resource id for the database.
+- `name` (String) The database name.
+- `labels` (Map of String) The  deployment and policy control labels.
+- `schema_version` (String) The version of database schema.
+- `successful_sync_time` (String) The latest synchronization time.
+- `sync_state` (String) The existence of a database on latest sync.
