@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccInstanceRoleListDataSource(t *testing.T) {
-	instanceName := "test-instance"
+	instanceName := "test-sample-instance"
 	roleName := "test_role"
 	outputName := "role_list"
 	resourceName := fmt.Sprintf("data.bytebase_instance_role_list.%s", outputName)

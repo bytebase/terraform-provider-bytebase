@@ -19,7 +19,7 @@ provider "bytebase" {
 }
 
 locals {
-  project_id_test = "project-test"
+  project_id = "project-sample"
 }
 
 # List all projects
@@ -30,10 +30,10 @@ output "all_projects" {
 }
 
 # Find a specific project by name
-data "bytebase_project" "test_project" {
-  resource_id = local.project_id_test
+data "bytebase_project" "sample_project" {
+  resource_id = local.project_id
 }
 
-output "test_project" {
-  value = data.bytebase_project.test_project
+output "sample_project" {
+  value = data.bytebase_project.sample_project
 }
