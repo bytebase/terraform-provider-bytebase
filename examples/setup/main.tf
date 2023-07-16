@@ -17,13 +17,14 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
+# Correspond to the sample data Bytebase generates during onboarding.
 locals {
   environment_id_test = "test"
   environment_id_prod = "prod"
-  instance_id_test    = "test-instance"
-  instance_id_prod    = "prod-instance"
+  instance_id_test    = "test-sample-instance"
+  instance_id_prod    = "prod-sample-instance"
   role_name           = "role_test_terraform"
-  project_id_test     = "project-test"
+  project_id          = "project-sample"
 }
 
 # Create a new environment named "Test"
@@ -89,10 +90,10 @@ resource "bytebase_instance" "prod" {
   }
 }
 
-# Create a new role named "role_test_terraform" in the instance "test-instance"
+# Create a new role named "role_test_terraform" in the instance "test-sample-instance"
 resource "bytebase_instance_role" "test" {
   name     = local.role_name
-  instance = bytebase_instance.test.resource_id
+  instance = bytebase_instance.sample.resource_id
 
   password         = "123456"
   connection_limit = 10
@@ -110,10 +111,10 @@ resource "bytebase_instance_role" "test" {
 }
 
 # Create a new project
-resource "bytebase_project" "test_project" {
-  resource_id    = local.project_id_test
-  title          = "Test project"
-  key            = "BYT"
+resource "bytebase_project" "sample_project" {
+  resource_id    = local.project_id
+  title          = "Sample project"
+  key            = "SAM"
   workflow       = "UI"
   schema_version = "SEMANTIC"
   schema_change  = "DDL"

@@ -52,7 +52,7 @@ func TestAccInstanceRoleDataSource(t *testing.T) {
 
 func TestAccInstanceRoleDataSource_RoleNotFound(t *testing.T) {
 	roleName := "test_role"
-	instanceName := "test-instance"
+	instanceName := "test-sample-instance"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {

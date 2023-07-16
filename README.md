@@ -46,7 +46,7 @@ cd terraform-provider-bytebase && make install
 
 # initialize the terraform for your example
 # you need to set the service_account and service_key to your own
-cd examples && terraform init
+cd examples/setup && terraform init
 
 # check the changes
 terraform plan
@@ -77,5 +77,5 @@ Follow [this doc](https://developer.hashicorp.com/terraform/registry/providers/p
 > We need to publish a new tag for a new version, the tag must be a valid [Semantic Version](https://semver.org/) **preceded with a v (for example, v1.2.3)**. There must not be a branch name with the same name as the tag.
 
 1. Develop and merge the feature code.
-2. Create a new PR to update the version in [`./VERSION`](./VERSION)
-3. After the version is updated, the action [`./.github/workflows/release.yml`](./.github/workflows/release.yml) will use the newest version `x.y.z` to create a new tag `vx.y.z`, then use the tag to create the release.
+1. Create a new PR to update the version in [`./VERSION`](./VERSION)
+1. After the version is updated, the action [`./.github/workflows/release.yml`](./.github/workflows/release.yml) will use the newest version `x.y.z` to create a new tag `vx.y.z`, then use the tag to create the release.

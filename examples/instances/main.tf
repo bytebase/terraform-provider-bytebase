@@ -19,8 +19,8 @@ provider "bytebase" {
 }
 
 locals {
-  instance_id_test = "test-instance"
-  instance_id_prod = "prod-instance"
+  instance_id_test = "test-sample-instance"
+  instance_id_prod = "prod-sample-instance"
 }
 
 # List all instances in all environments
