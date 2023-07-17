@@ -120,7 +120,7 @@ func mockInstanceResource(resourceID string) string {
 		resource_id = "%s"
 		title       = "%s"
 		engine = "POSTGRES"
-		environment = "dev"
+		environment = "test"
 
 		data_sources {
 			title     = "admin data source"

@@ -14,10 +14,10 @@ func TestAccInstanceDataSource(t *testing.T) {
 	identifier := "new_instance"
 	resourceName := fmt.Sprintf("bytebase_instance.%s", identifier)
 
-	resourceID := "dev-instance"
-	title := "dev instance"
+	resourceID := "test-instance"
+	title := "test instance"
 	engine := "POSTGRES"
-	environment := "dev"
+	environment := "test"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -57,7 +57,7 @@ func TestAccInstanceDataSource_NotFound(t *testing.T) {
 				Config: testAccCheckInstanceDataSource(
 					"",
 					"",
-					"dev_instance",
+					"test_instance",
 					"mock-id",
 				),
 				ExpectError: regexp.MustCompile("Cannot found instance"),

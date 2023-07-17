@@ -17,10 +17,10 @@ func TestAccInstance(t *testing.T) {
 	identifier := "new_instance"
 	resourceName := fmt.Sprintf("bytebase_instance.%s", identifier)
 
-	resourceID := "dev-instance"
-	title := "dev instance"
+	resourceID := "test-instance"
+	title := "test instance"
 	engine := "POSTGRES"
-	environment := "dev"
+	environment := "test"
 	titleUpdated := fmt.Sprintf("%s-updated", title)
 
 	resource.Test(t, resource.TestCase{
@@ -69,22 +69,22 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Invalid instance name
 			{
-				Config:      testAccCheckInstanceResource(identifier, "dev-instance", "", engine, "dev"),
+				Config:      testAccCheckInstanceResource(identifier, "test-instance", "", engine, "test"),
 				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
 			},
 			// Invalid engine
 			{
-				Config:      testAccCheckInstanceResource(identifier, "dev-instance", "dev instance", "engine", "dev"),
+				Config:      testAccCheckInstanceResource(identifier, "test-instance", "test instance", "engine", "test"),
 				ExpectError: regexp.MustCompile("expected engine to be one of"),
 			},
 			// Invalid data source
 			{
 				Config: `
-				resource "bytebase_instance" "dev_instance" {
-					resource_id = "dev-instance"
+				resource "bytebase_instance" "test_instance" {
+					resource_id = "test-instance"
 					engine      = "POSTGRES"
-					title       = "dev instance"
-					environment = "dev"
+					title       = "test instance"
+					environment = "test"
 					data_sources {
 						title = "read-only data source"
 						type  = "READ_ONLY"
@@ -98,11 +98,11 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 			// Invalid data source
 			{
 				Config: `
-				resource "bytebase_instance" "dev_instance" {
-					resource_id = "dev-instance"
+				resource "bytebase_instance" "test_instance" {
+					resource_id = "test-instance"
 					engine      = "POSTGRES"
-					title       = "dev instance"
-					environment = "dev"
+					title       = "test instance"
+					environment = "test"
 					data_sources {
 						title = "unknown data source"
 						type  = "UNKNOWN"
@@ -116,11 +116,11 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 			// Invalid data source
 			{
 				Config: `
-				resource "bytebase_instance" "dev_instance" {
-					resource_id = "dev-instance"
+				resource "bytebase_instance" "test_instance" {
+					resource_id = "test-instance"
 					engine      = "POSTGRES"
-					title       = "dev instance"
-					environment = "dev"
+					title       = "test instance"
+					environment = "test"
 					data_sources {
 						title = "admin data source"
 						type  = "ADMIN"

@@ -28,7 +28,7 @@ func TestAccEnvironmentListDataSource(t *testing.T) {
 				0,
 			),
 			internal.GetTestStepForDataSourceList(
-				testAccCheckEnvironmentResource(identifier, "dev", 1),
+				testAccCheckEnvironmentResource(identifier, "test", 1),
 				fmt.Sprintf("bytebase_environment.%s", identifier),
 				"bytebase_environment_list",
 				"after",

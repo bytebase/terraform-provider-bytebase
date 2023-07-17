@@ -17,7 +17,7 @@ func TestAccEnvironment(t *testing.T) {
 	identifier := "new-environment"
 	resourceName := fmt.Sprintf("bytebase_environment.%s", identifier)
 
-	title := "dev"
+	title := "test"
 	order := 1
 	titleUpdated := fmt.Sprintf("%supdated", title)
 
@@ -62,8 +62,8 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 			{
 				Config: `
 					resource "bytebase_environment" "new_env" {
-						resource_id              = "dev"
-						title                    = "Dev"
+						resource_id              = "test"
+						title                    = "Test"
 						environment_tier_policy  = "PROTECTED"
 					}
 				`,
@@ -73,7 +73,7 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 			{
 				Config: `
 					resource "bytebase_environment" "new_env" {
-						resource_id              = "dev"
+						resource_id              = "test"
 						title                    = ""
 						order                    = 1
 						environment_tier_policy  = "PROTECTED"
@@ -85,8 +85,8 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 			{
 				Config: `
 					resource "bytebase_environment" "new_env" {
-						resource_id             = "dev"
-						title                   = "Dev"
+						resource_id             = "test"
+						title                   = "Test"
 						order                   = 1
 						environment_tier_policy = "UNKNOWN"
 					}

@@ -11,9 +11,9 @@ import (
 )
 
 func TestAccEnvironmentDataSource(t *testing.T) {
-	identifier := "dev"
+	identifier := "test"
 	resourceName := fmt.Sprintf("bytebase_environment.%s", identifier)
-	title := "dev"
+	title := "test"
 	order := 1
 
 	resource.Test(t, resource.TestCase{
