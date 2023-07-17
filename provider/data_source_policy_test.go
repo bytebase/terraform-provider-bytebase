@@ -60,7 +60,7 @@ func TestAccPolicyDataSource_NotFound(t *testing.T) {
 					"",
 					api.PolicyTypeDeploymentApproval,
 				),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("Cannot found policy environments/dev/policies/%s", api.PolicyTypeDeploymentApproval)),
+				ExpectError: regexp.MustCompile("Cannot found policy environments/test/policies/DEPLOYMENT_APPROVAL"),
 			},
 		},
 	})
