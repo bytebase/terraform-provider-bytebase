@@ -116,6 +116,6 @@ resource "bytebase_project" "sample_project" {
   title          = "Sample project"
   key            = "SAM"
   workflow       = "UI"
-  schema_version = "SEMANTIC"
+  schema_version = "SCHEMA_VERSION_UNSPECIFIED"
   schema_change  = "DDL"
 }
