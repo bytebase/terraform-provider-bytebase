@@ -1,5 +1,7 @@
 # Setup examples
 
+_For a real world example, see https://github.com/bytebase/terraform-example._
+
 This is the setup for examples.
 We will create two environments named `test` and `prod`. Each environment contains one instance.
 

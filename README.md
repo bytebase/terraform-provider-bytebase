@@ -6,6 +6,10 @@ using Terraform Bytebase Provider to prepare those instances ready for applicati
 
 ![Overview](https://raw.githubusercontent.com/bytebase/terraform-provider-bytebase/main/docs/assets/overview.webp)
 
+# Real world example
+
+https://github.com/bytebase/terraform-example and https://tf.bytebase.com.
+
 ## Usage
 
 You can download this provider at [registry.terraform.io](https://registry.terraform.io/providers/bytebase/bytebase).
