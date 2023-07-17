@@ -30,18 +30,6 @@ const (
 	ProjectTenantModeEnabled ProjectTenantMode = "TENANT_MODE_ENABLED"
 )
 
-// ProjectSchemaVersion is the schema version type for project.
-type ProjectSchemaVersion string
-
-const (
-	// ProjectSchemaVersionTimestamp is the timestamp schema version type in the project.
-	ProjectSchemaVersionTimestamp ProjectSchemaVersion = "TIMESTAMP"
-	// ProjectSchemaVersionSemantic is the semantic schema version type in the project.
-	ProjectSchemaVersionSemantic ProjectSchemaVersion = "SEMANTIC"
-	// ProjectSchemaVersionUnspecified is the unspecified schema version type in the project.
-	ProjectSchemaVersionUnspecified ProjectSchemaVersion = "SCHEMA_VERSION_UNSPECIFIED"
-)
-
 // ProjectSchemaChange is the schema change type for project.
 type ProjectSchemaChange string
 
@@ -54,16 +42,15 @@ const (
 
 // ProjectMessage is the API message for project.
 type ProjectMessage struct {
-	Name           string               `json:"name"`
-	Title          string               `json:"title"`
-	Key            string               `json:"key"`
-	Workflow       ProjectWorkflow      `json:"workflow"`
-	Visibility     ProjectVisibility    `json:"visibility"`
-	TenantMode     ProjectTenantMode    `json:"tenantMode"`
-	DBNameTemplate string               `json:"dbNameTemplate"`
-	SchemaVersion  ProjectSchemaVersion `json:"schemaVersion"`
-	SchemaChange   ProjectSchemaChange  `json:"schemaChange"`
-	State          State                `json:"state,omitempty"`
+	Name           string              `json:"name"`
+	Title          string              `json:"title"`
+	Key            string              `json:"key"`
+	Workflow       ProjectWorkflow     `json:"workflow"`
+	Visibility     ProjectVisibility   `json:"visibility"`
+	TenantMode     ProjectTenantMode   `json:"tenantMode"`
+	DBNameTemplate string              `json:"dbNameTemplate"`
+	SchemaChange   ProjectSchemaChange `json:"schemaChange"`
+	State          State               `json:"state,omitempty"`
 }
 
 // ListProjectMessage is the API message for list project response.

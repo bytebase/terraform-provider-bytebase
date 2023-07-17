@@ -578,7 +578,6 @@ func (c *mockClient) CreateProject(_ context.Context, projectID string, project 
 		Visibility:     project.Visibility,
 		TenantMode:     project.TenantMode,
 		DBNameTemplate: project.DBNameTemplate,
-		SchemaVersion:  project.SchemaVersion,
 		SchemaChange:   project.SchemaChange,
 	}
 

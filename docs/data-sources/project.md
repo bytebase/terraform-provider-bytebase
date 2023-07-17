@@ -21,6 +21,7 @@ The project data source.
 
 ### Read-Only
 
+- `databases` (List of Object) The databases in the project. (see [below for nested schema](#nestedatt--databases))
 - `db_name_template` (String) The project db name template.
 - `id` (String) The ID of this resource.
 - `key` (String) The project key.
@@ -30,16 +31,17 @@ The project data source.
 - `title` (String) The project title.
 - `visibility` (String) The project visibility.
 - `workflow` (String) The project workflow.
-- `databases` (Block List) The databases in the project. (see [below for nested schema](#nestedblock--databases))
 
-<a id="nestedblock--databases"></a>
+<a id="nestedatt--databases"></a>
 ### Nested Schema for `databases`
 
-#### Read-Only
+Read-Only:
 
-- `instance` (String) The instance resource id for the database.
-- `name` (String) The database name.
-- `labels` (Map of String) The  deployment and policy control labels.
-- `schema_version` (String) The version of database schema.
-- `successful_sync_time` (String) The latest synchronization time.
-- `sync_state` (String) The existence of a database on latest sync.
+- `instance` (String)
+- `labels` (Map of String)
+- `name` (String)
+- `schema_version` (String)
+- `successful_sync_time` (String)
+- `sync_state` (String)
+
+

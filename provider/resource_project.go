@@ -79,16 +79,6 @@ func resourceProjct() *schema.Resource {
 				Optional:    true,
 				Description: "The project db name template.",
 			},
-			"schema_version": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					string(api.ProjectSchemaVersionTimestamp),
-					string(api.ProjectSchemaVersionSemantic),
-					string(api.ProjectSchemaVersionUnspecified),
-				}, false),
-				Description: "The project schema version type. Cannot change this after created.",
-			},
 			"schema_change": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -158,7 +148,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	dbNameTemplate := d.Get("db_name_template").(string)
 	schemaChange := api.ProjectSchemaChange(d.Get("schema_change").(string))
 	visibility := api.ProjectVisibility(d.Get("visibility").(string))
-	schemaVersion := api.ProjectSchemaVersion(d.Get("schema_version").(string))
 
 	existedProject, err := c.GetProject(ctx, projectID, true /* showDeleted */)
 	if err != nil {
@@ -178,14 +167,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 				Severity: diag.Error,
 				Summary:  "Invalid argument",
 				Detail:   fmt.Sprintf("cannot update project %s visibility to %s", projectName, visibility),
-			})
-			return diags
-		}
-		if existedProject.SchemaVersion != schemaVersion {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Invalid argument",
-				Detail:   fmt.Sprintf("cannot update project %s schema_version to %s", projectName, schemaVersion),
 			})
 			return diags
 		}
@@ -237,7 +218,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 			Visibility:     visibility,
 			TenantMode:     tenantMode,
 			DBNameTemplate: dbNameTemplate,
-			SchemaVersion:  schemaVersion,
 			SchemaChange:   schemaChange,
 		})
 		if err != nil {

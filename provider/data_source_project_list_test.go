@@ -29,7 +29,7 @@ func TestAccProjectListDataSource(t *testing.T) {
 				0,
 			),
 			internal.GetTestStepForDataSourceList(
-				testAccCheckProjectResource(identifier, "dev-project", "dev project", "BYT", api.ProjectWorkflowUI, api.ProjectSchemaVersionSemantic, api.ProjectSchemaChangeDDL),
+				testAccCheckProjectResource(identifier, "dev-project", "dev project", "BYT", api.ProjectWorkflowUI, api.ProjectSchemaChangeDDL),
 				fmt.Sprintf("bytebase_project.%s", identifier),
 				"bytebase_project_list",
 				"after",
