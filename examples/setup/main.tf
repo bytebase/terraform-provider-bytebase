@@ -93,7 +93,7 @@ resource "bytebase_instance" "prod" {
 # Create a new role named "role_test_terraform" in the instance "test-sample-instance"
 resource "bytebase_instance_role" "test" {
   name     = local.role_name
-  instance = bytebase_instance.sample.resource_id
+  instance = bytebase_instance.test.resource_id
 
   password         = "123456"
   connection_limit = 10
