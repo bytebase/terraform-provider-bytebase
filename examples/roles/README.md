@@ -17,7 +17,7 @@ data "bytebase_instance_role_list" "all" {
 ## Find role by name
 
 ```terraform
-data "bytebase_instance_role" "dev" {
+data "bytebase_instance_role" "test" {
   name     = "<the role name>"
   instance = "<the instance resource id>"
 }

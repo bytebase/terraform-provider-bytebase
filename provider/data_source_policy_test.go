@@ -23,12 +23,12 @@ func TestAccPolicyDataSource(t *testing.T) {
 				Config: testAccCheckPolicyDataSource(
 					testAccCheckPolicyResource(
 						"backup_plan",
-						"dev",
+						"test",
 						getBackupPlanPolicy(string(api.BackupPlanScheduleDaily), 999),
 						api.PolicyTypeBackupPlan,
 					),
 					"backup_plan",
-					"dev",
+					"test",
 					"bytebase_policy.backup_plan",
 					api.PolicyTypeBackupPlan,
 				),
@@ -56,11 +56,11 @@ func TestAccPolicyDataSource_NotFound(t *testing.T) {
 				Config: testAccCheckPolicyDataSource(
 					"",
 					"policy",
-					"dev",
+					"test",
 					"",
 					api.PolicyTypeDeploymentApproval,
 				),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("Cannot found policy environments/dev/policies/%s", api.PolicyTypeDeploymentApproval)),
+				ExpectError: regexp.MustCompile("Cannot found policy environments/test/policies/DEPLOYMENT_APPROVAL"),
 			},
 		},
 	})

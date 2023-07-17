@@ -44,6 +44,10 @@ air -c scripts/.air.toml
 # install the provider in your local machine
 cd terraform-provider-bytebase && make install
 
+# test
+# Any BYTEBASE_SERVICE_ACCOUNT/BYTEBASE_SERVICE_KEY/BYTEBASE_URL value should work since the service is mocked
+TF_ACC=1 BYTEBASE_SERVICE_ACCOUNT=test@service.bytebase.com BYTEBASE_SERVICE_KEY=test_secret BYTEBASE_URL=https://bytebase.example.com go test -v ./...
+
 # initialize the terraform for your example
 # you need to set the service_account and service_key to your own
 cd examples/setup && terraform init

@@ -25,7 +25,7 @@ func TestAccPolicy(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"backup_plan",
-					"dev",
+					"test",
 					getBackupPlanPolicy(string(api.BackupPlanScheduleDaily), 999),
 					api.PolicyTypeBackupPlan,
 				),
@@ -40,7 +40,7 @@ func TestAccPolicy(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"backup_plan",
-					"dev",
+					"test",
 					getBackupPlanPolicy(string(api.BackupPlanScheduleWeekly), 99),
 					api.PolicyTypeBackupPlan,
 				),
@@ -55,7 +55,7 @@ func TestAccPolicy(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"deployment_approval",
-					"dev",
+					"test",
 					getDeploymentApprovalPolicy(string(api.ApprovalStrategyAutomatic), []*api.DeploymentApprovalStrategy{
 						{
 							ApprovalGroup:    api.ApprovalGroupDBA,
@@ -95,7 +95,7 @@ func TestAccPolicy_InvalidInput(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"backup_plan",
-					"dev",
+					"test",
 					getBackupPlanPolicy("daily", 999),
 					api.PolicyTypeBackupPlan,
 				),
@@ -104,7 +104,7 @@ func TestAccPolicy_InvalidInput(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"deployment_approval",
-					"dev",
+					"test",
 					getDeploymentApprovalPolicy("unknown", []*api.DeploymentApprovalStrategy{
 						{
 							ApprovalGroup:    api.ApprovalGroupDBA,
