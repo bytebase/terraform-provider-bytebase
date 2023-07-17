@@ -29,7 +29,7 @@ func TestAccProjectDataSource(t *testing.T) {
 			// get single project test
 			{
 				Config: testAccCheckProjectDataSource(
-					testAccCheckProjectResource(identifier, resourceID, title, key, api.ProjectWorkflowUI, api.ProjectSchemaVersionSemantic, api.ProjectSchemaChangeDDL),
+					testAccCheckProjectResource(identifier, resourceID, title, key, api.ProjectWorkflowUI, api.ProjectSchemaChangeDDL),
 					resourceName,
 					identifier,
 					resourceID,
@@ -39,7 +39,6 @@ func TestAccProjectDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "title", title),
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					resource.TestCheckResourceAttr(resourceName, "workflow", string(api.ProjectWorkflowUI)),
-					resource.TestCheckResourceAttr(resourceName, "schema_version", string(api.ProjectSchemaVersionSemantic)),
 					resource.TestCheckResourceAttr(resourceName, "schema_change", string(api.ProjectSchemaChangeDDL)),
 				),
 			},

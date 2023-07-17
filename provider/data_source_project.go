@@ -156,9 +156,6 @@ func setProjectWithDatabases(d *schema.ResourceData, project *api.ProjectMessage
 	if err := d.Set("db_name_template", project.DBNameTemplate); err != nil {
 		return diag.Errorf("cannot set db_name_template for project: %s", err.Error())
 	}
-	if err := d.Set("schema_version", project.SchemaVersion); err != nil {
-		return diag.Errorf("cannot set schema_version for project: %s", err.Error())
-	}
 	if err := d.Set("schema_change", project.SchemaChange); err != nil {
 		return diag.Errorf("cannot set schema_change for project: %s", err.Error())
 	}

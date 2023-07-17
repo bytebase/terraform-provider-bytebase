@@ -147,7 +147,6 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["visibility"] = project.Visibility
 		proj["tenant_mode"] = project.TenantMode
 		proj["db_name_template"] = project.DBNameTemplate
-		proj["schema_version"] = project.SchemaVersion
 		proj["schema_change"] = project.SchemaChange
 
 		filter := fmt.Sprintf(`project == "%s"`, project.Name)
