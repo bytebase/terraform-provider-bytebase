@@ -273,10 +273,6 @@ func (c *mockClient) CreateRole(_ context.Context, instanceID string, create *ap
 		ConnectionLimit: -1,
 		Attribute:       create.Attribute,
 	}
-	if v := create.Attribute; v != nil {
-		fmt.Printf("create.Attribute: %v\n", *v)
-
-	}
 	if v := create.ConnectionLimit; v != nil {
 		role.ConnectionLimit = *v
 	}
