@@ -36,7 +36,7 @@ type Client interface {
 	// UndeleteInstance undeletes the instance.
 	UndeleteInstance(ctx context.Context, instanceID string) (*InstanceMessage, error)
 	// SyncInstanceSchema will trigger the schema sync for an instance.
-	SyncInstanceSchema(ctx context.Context, instanceUID string) error
+	SyncInstanceSchema(ctx context.Context, instanceID string) error
 
 	// Role
 	// CreateRole creates the role in the instance.

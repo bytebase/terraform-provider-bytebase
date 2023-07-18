@@ -152,9 +152,8 @@ func (c *client) UndeleteInstance(ctx context.Context, instanceID string) (*api.
 }
 
 // SyncInstanceSchema will trigger the schema sync for an instance.
-func (c *client) SyncInstanceSchema(ctx context.Context, instanceUID string) error {
-	payload := fmt.Sprintf(`{"data":{"type":"sqlSyncSchema","attributes":{"instanceId":%s}}}`, instanceUID)
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/api/sql/sync-schema", c.url), strings.NewReader(string(payload)))
+func (c *client) SyncInstanceSchema(ctx context.Context, instanceID string) error {
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/instances/%s:sync", c.url, c.version, instanceID), nil)
 
 	if err != nil {
 		return err

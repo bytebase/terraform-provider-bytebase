@@ -217,7 +217,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			return diags
 		}
 
-		if err := c.SyncInstanceSchema(ctx, instance.UID); err != nil {
+		if err := c.SyncInstanceSchema(ctx, instanceID); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
 				Summary:  "Instance schema sync failed",
@@ -239,7 +239,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			return diag.FromErr(err)
 		}
 
-		if err := c.SyncInstanceSchema(ctx, instance.UID); err != nil {
+		if err := c.SyncInstanceSchema(ctx, instanceID); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
 				Summary:  "Instance schema sync failed",
@@ -337,11 +337,10 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		patch.DataSources = dataSourceList
 	}
 
-	instance, err := c.UpdateInstance(ctx, instanceID, patch)
-	if err != nil {
+	if _, err := c.UpdateInstance(ctx, instanceID, patch); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := c.SyncInstanceSchema(ctx, instance.UID); err != nil {
+	if err := c.SyncInstanceSchema(ctx, instanceID); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Instance schema sync failed",

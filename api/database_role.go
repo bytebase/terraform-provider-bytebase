@@ -13,18 +13,18 @@ type RoleAttribute struct {
 
 // Role is the API message for role.
 type Role struct {
-	Name            string         `json:"name"`
-	RoleName        string         `json:"roleName"`
-	ConnectionLimit int            `json:"connectionLimit"`
-	ValidUntil      *string        `json:"validUntil"`
-	Attribute       *RoleAttribute `json:"attribute"`
+	Name            string  `json:"name"`
+	RoleName        string  `json:"roleName"`
+	ConnectionLimit int     `json:"connectionLimit"`
+	ValidUntil      *string `json:"validUntil"`
+	Attribute       *string `json:"attribute"`
 }
 
 // RoleUpsert is the API message for upserting a new role.
 type RoleUpsert struct {
-	RoleName        string         `json:"roleName"`
-	Password        *string        `json:"password"`
-	ConnectionLimit *int           `json:"connectionLimit"`
-	ValidUntil      *string        `json:"validUntil"`
-	Attribute       *RoleAttribute `json:"attribute"`
+	RoleName        string  `json:"roleName"`
+	Password        *string `json:"password"`
+	ConnectionLimit *int    `json:"connectionLimit"`
+	ValidUntil      *string `json:"validUntil"`
+	Attribute       *string `json:"attribute"`
 }

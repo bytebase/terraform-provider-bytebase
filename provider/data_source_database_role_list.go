@@ -126,17 +126,7 @@ func dataSourceRoleListRead(ctx context.Context, d *schema.ResourceData, m inter
 		role["name"] = roleName
 		role["connection_limit"] = raw.ConnectionLimit
 		role["valid_until"] = raw.ValidUntil
-
-		attribute := map[string]interface{}{
-			"super_user":  raw.Attribute.SuperUser,
-			"no_inherit":  raw.Attribute.NoInherit,
-			"create_role": raw.Attribute.CreateRole,
-			"create_db":   raw.Attribute.CreateDB,
-			"can_login":   raw.Attribute.CanLogin,
-			"replication": raw.Attribute.Replication,
-			"bypass_rls":  raw.Attribute.ByPassRLS,
-		}
-		role["attribute"] = []interface{}{attribute}
+		role["attribute"] = []interface{}{convertStringToRoleAttribute(raw.Attribute)}
 
 		roles = append(roles, role)
 	}
