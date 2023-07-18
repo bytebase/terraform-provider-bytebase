@@ -271,16 +271,13 @@ func (c *mockClient) CreateRole(_ context.Context, instanceID string, create *ap
 		Name:            id,
 		RoleName:        create.RoleName,
 		ConnectionLimit: -1,
-		Attribute:       &api.RoleAttribute{},
+		Attribute:       create.Attribute,
 	}
 	if v := create.ConnectionLimit; v != nil {
 		role.ConnectionLimit = *v
 	}
 	if v := create.ValidUntil; v != nil {
 		role.ValidUntil = v
-	}
-	if v := create.Attribute; v != nil {
-		role.Attribute = v
 	}
 
 	c.roleMap[id] = role

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -132,7 +133,7 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface
 
 	upsert := &api.RoleUpsert{
 		RoleName:  roleName,
-		Attribute: convertRoleAttribute(d),
+		Attribute: convertRoleAttributeToString(d),
 	}
 
 	if v := d.Get("password").(string); v != "" {
@@ -219,7 +220,7 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface
 		}
 	}
 	if d.HasChange("attribute") {
-		upsert.Attribute = convertRoleAttribute(d)
+		upsert.Attribute = convertRoleAttributeToString(d)
 	}
 
 	if _, err := c.UpdateRole(ctx, instanceID, roleName, upsert); err != nil {
@@ -280,23 +281,14 @@ func setRole(d *schema.ResourceData, role *api.Role) diag.Diagnostics {
 		return diag.Errorf("cannot set valid_until for role: %s", err.Error())
 	}
 
-	attribute := map[string]interface{}{
-		"super_user":  role.Attribute.SuperUser,
-		"no_inherit":  role.Attribute.NoInherit,
-		"create_role": role.Attribute.CreateRole,
-		"create_db":   role.Attribute.CreateDB,
-		"can_login":   role.Attribute.CanLogin,
-		"replication": role.Attribute.Replication,
-		"bypass_rls":  role.Attribute.ByPassRLS,
-	}
-	if err := d.Set("attribute", []interface{}{attribute}); err != nil {
+	if err := d.Set("attribute", []interface{}{convertStringToRoleAttribute(role.Attribute)}); err != nil {
 		return diag.Errorf("cannot set attribute for role: %s", err.Error())
 	}
 
 	return nil
 }
 
-func convertRoleAttribute(d *schema.ResourceData) *api.RoleAttribute {
+func convertRoleAttributeToString(d *schema.ResourceData) *string {
 	rawList := d.Get("attribute").([]interface{})
 	if len(rawList) < 1 {
 		return nil
@@ -307,15 +299,70 @@ func convertRoleAttribute(d *schema.ResourceData) *api.RoleAttribute {
 		return nil
 	}
 
-	return &api.RoleAttribute{
-		SuperUser:   raw["super_user"].(bool),
-		NoInherit:   raw["no_inherit"].(bool),
-		CreateRole:  raw["create_role"].(bool),
-		CreateDB:    raw["create_db"].(bool),
-		CanLogin:    raw["can_login"].(bool),
-		Replication: raw["replication"].(bool),
-		ByPassRLS:   raw["bypass_rls"].(bool),
+	attributes := []string{}
+	if raw["super_user"].(bool) {
+		attributes = append(attributes, "SUPERUSER")
+	} else {
+		attributes = append(attributes, "NOSUPERUSER")
 	}
+	if raw["no_inherit"].(bool) {
+		attributes = append(attributes, "NOINHERIT")
+	} else {
+		attributes = append(attributes, "INHERIT")
+	}
+	if raw["create_role"].(bool) {
+		attributes = append(attributes, "CREATEROLE")
+	} else {
+		attributes = append(attributes, "NOCREATEROLE")
+	}
+	if raw["create_db"].(bool) {
+		attributes = append(attributes, "CREATEDB")
+	} else {
+		attributes = append(attributes, "NOCREATEDB")
+	}
+	if raw["can_login"].(bool) {
+		attributes = append(attributes, "LOGIN")
+	} else {
+		attributes = append(attributes, "NOLOGIN")
+	}
+	if raw["replication"].(bool) {
+		attributes = append(attributes, "REPLICATION")
+	} else {
+		attributes = append(attributes, "NOREPLICATION")
+	}
+	if raw["bypass_rls"].(bool) {
+		attributes = append(attributes, "BYPASSRLS")
+	} else {
+		attributes = append(attributes, "NOBYPASSRLS")
+	}
+
+	resp := strings.Join(attributes, " ")
+	return &resp
+}
+
+func convertStringToRoleAttribute(attribute *string) map[string]interface{} {
+	attr := []string{}
+	if attribute != nil {
+		attr = strings.Split(*attribute, " ")
+	}
+	return map[string]interface{}{
+		"super_user":  containsAttribute(attr, "SUPERUSER"),
+		"no_inherit":  containsAttribute(attr, "NOINHERIT"),
+		"create_role": containsAttribute(attr, "CREATEROLE"),
+		"create_db":   containsAttribute(attr, "CREATEDB"),
+		"can_login":   containsAttribute(attr, "LOGIN"),
+		"replication": containsAttribute(attr, "REPLICATION"),
+		"bypass_rls":  containsAttribute(attr, "BYPASSRLS"),
+	}
+}
+
+func containsAttribute(attributes []string, target string) bool {
+	for _, attr := range attributes {
+		if attr == target {
+			return true
+		}
+	}
+	return false
 }
 
 func validateDatetime(val interface{}, _ string) (ws []string, es []error) {
