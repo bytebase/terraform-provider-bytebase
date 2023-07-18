@@ -11,10 +11,10 @@ terraform {
 provider "bytebase" {
   # You need to replace the account and key with your Bytebase service account.
   service_account = "terraform@service.bytebase.com"
-  service_key     = "bbs_sqab4ONUq9bapSzfvuvM"
+  service_key     = "bbs_BxVIp7uQsARl8nR92ZZV"
   # The Bytebase service URL. You can use the external URL in production.
   # Check the docs about external URL: https://www.bytebase.com/docs/get-started/install/external-url
-  url = "http://localhost:8080"
+  url = "https://bytebase.example.com"
 }
 
 # Correspond to the sample data Bytebase generates during onboarding.
