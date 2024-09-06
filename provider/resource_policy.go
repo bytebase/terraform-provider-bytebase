@@ -29,7 +29,7 @@ func resourcePolicy() *schema.Resource {
 			"parent": {
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: internal.ResourceNameValidation(
+				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
 					regexp.MustCompile("^$"),
 					// environment policy

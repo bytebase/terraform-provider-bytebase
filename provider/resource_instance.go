@@ -33,10 +33,10 @@ func resourceInstance() *schema.Resource {
 				Description:  "The instance unique resource id.",
 			},
 			"environment": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern))),
-				Description:  "The environment full name for the instance in environments/{environment id} format.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern))),
+				Description:      "The environment full name for the instance in environments/{environment id} format.",
 			},
 			"title": {
 				Type:         schema.TypeString,

@@ -23,7 +23,7 @@ func dataSourcePolicyList() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
-				ValidateFunc: internal.ResourceNameValidation(
+				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
 					regexp.MustCompile("^$"),
 					// environment policy
