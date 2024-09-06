@@ -15,11 +15,16 @@ import (
 const (
 	// EnvironmentNamePrefix is the prefix for environment unique name.
 	EnvironmentNamePrefix = "environments/"
-	InstanceNamePrefix    = "instances/"
-	ProjectNamePrefix     = "projects/"
-	DatabaseIDPrefix      = "databases/"
-	PolicyNamePrefix      = "policies/"
-	ResourceIDPattern     = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
+	// InstanceNamePrefix is the prefix for instance unique name.
+	InstanceNamePrefix = "instances/"
+	// ProjectNamePrefix is the prefix for project unique name.
+	ProjectNamePrefix = "projects/"
+	// DatabaseIDPrefix is the prefix for database unique name.
+	DatabaseIDPrefix = "databases/"
+	// PolicyNamePrefix is the prefix for policy unique name.
+	PolicyNamePrefix = "policies/"
+	// ResourceIDPattern is the pattern for resource id.
+	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
 )
 
 var (
@@ -29,21 +34,23 @@ var (
 // ResourceIDValidation is the resource id regexp validation.
 var ResourceIDValidation = validation.StringMatch(resourceIDRegex, fmt.Sprintf("resource id must matches %v", resourceIDRegex))
 
+// ResourceNameValidation validate the resource name with prefix.
 func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateFunc {
 	return func(i interface{}, k string) ([]string, []error) {
 		v, ok := i.(string)
 		if !ok {
-			return nil, []error{fmt.Errorf("expected type of %s to be string", k)}
+			return nil, []error{errors.Errorf("expected type of %s to be string", k)}
 		}
 		for _, regex := range regexs {
 			if ok := regex.MatchString(v); ok {
 				return nil, nil
 			}
 		}
-		return nil, []error{fmt.Errorf("resource id must matches %s pattern", ResourceIDPattern)}
+		return nil, []error{errors.Errorf("resource id must matches %s pattern", ResourceIDPattern)}
 	}
 }
 
+// GetPolicyParentAndType returns the policy parent and type by the name.
 func GetPolicyParentAndType(name string) (string, api.PolicyType, error) {
 	names := strings.Split(name, PolicyNamePrefix)
 	if len(names) != 2 {

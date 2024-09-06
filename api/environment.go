@@ -1,9 +1,12 @@
 package api
 
+// EnvironmentTier is the protection info for environment.
 type EnvironmentTier string
 
 const (
-	EnvironmentTierProtected   EnvironmentTier = "PROTECTED"
+	// EnvironmentTierProtected is the PROTECTED tier.
+	EnvironmentTierProtected EnvironmentTier = "PROTECTED"
+	// EnvironmentTierUnProtected is the UNPROTECTED tier.
 	EnvironmentTierUnProtected EnvironmentTier = "UNPROTECTED"
 )
 
