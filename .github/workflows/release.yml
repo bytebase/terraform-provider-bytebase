@@ -16,6 +16,8 @@ on:
       - main
     paths:
       - "VERSION"
+  workflow_dispatch:
+
 permissions:
   contents: write
 jobs:
