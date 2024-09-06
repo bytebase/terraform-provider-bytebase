@@ -57,7 +57,7 @@ func TestAccEnvironmentDataSource_NotFound(t *testing.T) {
 					"",
 					identifier,
 				),
-				ExpectError: regexp.MustCompile("Cannot found environment with ID"),
+				ExpectError: regexp.MustCompile("Cannot found environment"),
 			},
 		},
 	})
@@ -73,7 +73,7 @@ func testAccCheckEnvironmentDataSource(
 
 	data "bytebase_environment" "%s" {
 		resource_id = "%s"
-		depends_on = [
+		depends_on  = [
     		%s
   		]
 	}

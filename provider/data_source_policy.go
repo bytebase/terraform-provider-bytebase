@@ -2,62 +2,48 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
-// policyParentIdentificationMap is the map to identify a policy's parent.
-var policyParentIdentificationMap = map[string]*schema.Schema{
-	"project": {
-		Type:         schema.TypeString,
-		Optional:     true,
-		Default:      "",
-		ValidateFunc: internal.ResourceIDValidation,
-		Description:  "The project resource id for the policy.",
-	},
-	"environment": {
-		Type:         schema.TypeString,
-		Optional:     true,
-		Default:      "",
-		ValidateFunc: internal.ResourceIDValidation,
-		Description:  "The environment resource id for the policy.",
-	},
-	"instance": {
-		Type:         schema.TypeString,
-		Optional:     true,
-		Default:      "",
-		ValidateFunc: internal.ResourceIDValidation,
-		Description:  "The instance resource id for the policy.",
-	},
-	"database": {
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     "",
-		Description: "The database name for the policy.",
-	},
-}
-
 func dataSourcePolicy() *schema.Resource {
 	return &schema.Resource{
 		Description: "The policy data source.",
 		ReadContext: dataSourcePolicyRead,
-		Schema: getPolicySchema(map[string]*schema.Schema{
+		Schema: map[string]*schema.Schema{
+			"parent": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					// workspace policy
+					regexp.MustCompile("^$"),
+					// environment policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern)),
+					// instance policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern)),
+					// project policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern)),
+					// database policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern)),
+				),
+				Description: "The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}",
+			},
 			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.PolicyTypeDeploymentApproval),
 					string(api.PolicyTypeBackupPlan),
-					string(api.PolicyTypeSQLReview),
 					string(api.PolicyTypeSensitiveData),
 					string(api.PolicyTypeAccessControl),
 				}, false),
@@ -66,31 +52,31 @@ func dataSourcePolicy() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The policy name",
+				Description: "The policy full name",
 			},
 			"inherit_from_parent": {
 				Type:        schema.TypeBool,
 				Computed:    true,
 				Description: "Decide if the policy should inherit from the parent.",
 			},
+			"enforce": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Decide if the policy is enforced.",
+			},
 			"deployment_approval_policy": getDeploymentApprovalPolicySchema(true),
 			"backup_plan_policy":         getBackupPlanPolicySchema(true),
 			"sensitive_data_policy":      getSensitiveDataPolicy(true),
 			"access_control_policy":      getAccessControlPolicy(true),
-			"sql_review_policy":          getSQLReviewPolicy(true),
-		}),
+		},
 	}
 }
 
 func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	find, err := getPolicyFind(ctx, d, c)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	policy, err := c.GetPolicy(ctx, find)
+	policyName := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
+	policy, err := c.GetPolicy(ctx, policyName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -99,84 +85,22 @@ func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interfa
 	return setPolicyMessage(d, policy)
 }
 
-func getPolicyFind(ctx context.Context, d *schema.ResourceData, client api.Client) (*api.PolicyFindMessage, error) {
-	projectID := d.Get("project").(string)
-	environmentID := d.Get("environment").(string)
-	instanceID := d.Get("instance").(string)
-	if projectID != "" && environmentID != "" && instanceID != "" {
-		return nil, errors.Errorf("cannot set both project, environment and instance")
-	}
-
-	find := &api.PolicyFindMessage{}
-
-	pType, ok := d.Get("type").(string)
-	if ok {
-		policyType := api.PolicyType(pType)
-		find.Type = &policyType
-	}
-
-	if projectID != "" {
-		find.ProjectID = &projectID
-	} else if environmentID != "" {
-		find.EnvironmentID = &environmentID
-	} else if instanceID != "" {
-		find.InstanceID = &instanceID
-
-		if v := d.Get("database").(string); v != "" {
-			find.DatabaseName = &v
-		}
-	}
-
-	// Make sure the parent for the policy exists
-	if find.DatabaseName != nil {
-		if _, err := client.GetDatabase(ctx, &api.DatabaseFindMessage{
-			InstanceID:   *find.InstanceID,
-			DatabaseName: *find.DatabaseName,
-		}); err != nil {
-			return nil, errors.Errorf(
-				"cannot find the database: instances/%s/databases/%s with error %v, please make sure the database synchronization is done",
-				*find.InstanceID,
-				*find.DatabaseName,
-				err.Error(),
-			)
-		}
-	} else if find.InstanceID != nil {
-		if _, err := client.GetInstance(ctx, &api.InstanceFindMessage{
-			InstanceID: *find.InstanceID,
-		}); err != nil {
-			return nil, errors.Errorf(
-				"cannot find the instance: instances/%s with error %v",
-				*find.InstanceID,
-				err.Error(),
-			)
-		}
-	} else if find.EnvironmentID != nil {
-		if _, err := client.GetEnvironment(ctx, *find.EnvironmentID); err != nil {
-			return nil, errors.Errorf(
-				"cannot find the environment: environments/%s with error %v",
-				*find.EnvironmentID,
-				err.Error(),
-			)
-		}
-	} else if find.ProjectID != nil {
-		if _, err := client.GetProject(ctx, *find.ProjectID, false /* showDeleted */); err != nil {
-			return nil, errors.Errorf(
-				"cannot find the project: projects/%s with error %v",
-				*find.ProjectID,
-				err.Error(),
-			)
-		}
-	}
-
-	return find, nil
-}
-
 func setPolicyMessage(d *schema.ResourceData, policy *api.PolicyMessage) diag.Diagnostics {
+	parent, _, err := internal.GetPolicyParentAndType(policy.Name)
+	if err != nil {
+		return diag.Errorf("cannot parse name for policy: %s", err.Error())
+	}
 	if err := d.Set("name", policy.Name); err != nil {
 		return diag.Errorf("cannot set name for policy: %s", err.Error())
 	}
+	if err := d.Set("parent", parent); err != nil {
+		return diag.Errorf("cannot set parent for policy: %s", err.Error())
+	}
 	if err := d.Set("inherit_from_parent", policy.InheritFromParent); err != nil {
 		return diag.Errorf("cannot set inherit_from_parent for policy: %s", err.Error())
+	}
+	if err := d.Set("enforce", policy.Enforce); err != nil {
+		return diag.Errorf("cannot set enforce for policy: %s", err.Error())
 	}
 
 	if p := policy.DeploymentApprovalPolicy; p != nil {
@@ -204,16 +128,6 @@ func setPolicyMessage(d *schema.ResourceData, policy *api.PolicyMessage) diag.Di
 	if p := policy.AccessControlPolicy; p != nil {
 		if err := d.Set("access_control_policy", flattenAccessControlPolicy(p)); err != nil {
 			return diag.Errorf("cannot set access_control_policy: %s", err.Error())
-		}
-	}
-
-	if p := policy.SQLReviewPolicy; p != nil {
-		sqlReviewPolicy, err := flattenSQLReviewPolicy(p)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		if err := d.Set("sql_review_policy", sqlReviewPolicy); err != nil {
-			return diag.Errorf("cannot set sql_review_policy: %s", err.Error())
 		}
 	}
 
@@ -281,33 +195,6 @@ func flattenAccessControlPolicy(p *api.AccessControlPolicy) []interface{} {
 		"disallow_rules": rules,
 	}
 	return []interface{}{policy}
-}
-
-func flattenSQLReviewPolicy(p *api.SQLReviewPolicy) ([]interface{}, error) {
-	rules := []interface{}{}
-	for _, rule := range p.Rules {
-		raw := map[string]interface{}{}
-		raw["type"] = rule.Type
-		raw["level"] = rule.Level
-		raw["engine"] = rule.Engine
-
-		payload, err := unamrshalSQLReviewRulePayload(rule.Type, rule.Payload)
-		if err != nil {
-			return nil, err
-		}
-		payloadRaw := map[string]interface{}{}
-		for key, val := range payload {
-			payloadRaw[key] = val
-		}
-		raw["payload"] = []interface{}{payloadRaw}
-		rules = append(rules, raw)
-	}
-
-	policy := map[string]interface{}{
-		"title": p.Title,
-		"rules": rules,
-	}
-	return []interface{}{policy}, nil
 }
 
 func getDeploymentApprovalPolicySchema(computed bool) *schema.Schema {
@@ -472,215 +359,4 @@ func getAccessControlPolicy(computed bool) *schema.Schema {
 			},
 		},
 	}
-}
-
-func getSQLReviewPolicy(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Computed: computed,
-		Optional: true,
-		Default:  nil,
-		Type:     schema.TypeList,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"title": {
-					Type:     schema.TypeString,
-					Computed: computed,
-					Optional: true,
-				},
-				"rules": {
-					Computed:    computed,
-					Optional:    true,
-					Type:        schema.TypeList,
-					Description: "The SQL review rules. Please check the doc for details: https://www.bytebase.com/docs/sql-review/review-policy/supported-rules",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"type": {
-								Type:     schema.TypeString,
-								Computed: computed,
-								Optional: true,
-								ValidateFunc: validation.StringInSlice([]string{
-									string(api.SchemaRuleTableNaming),
-									string(api.SchemaRuleColumnNaming),
-									string(api.SchemaRulePKNaming),
-									string(api.SchemaRuleUKNaming),
-									string(api.SchemaRuleFKNaming),
-									string(api.SchemaRuleIDXNaming),
-									string(api.SchemaRuleAutoIncrementColumnNaming),
-									string(api.SchemaRuleStatementNoSelectAll),
-									string(api.SchemaRuleStatementRequireWhere),
-									string(api.SchemaRuleStatementNoLeadingWildcardLike),
-									string(api.SchemaRuleStatementDisallowCommit),
-									string(api.SchemaRuleStatementDisallowLimit),
-									string(api.SchemaRuleStatementDisallowOrderBy),
-									string(api.SchemaRuleStatementMergeAlterTable),
-									string(api.SchemaRuleStatementInsertRowLimit),
-									string(api.SchemaRuleStatementInsertMustSpecifyColumn),
-									string(api.SchemaRuleStatementInsertDisallowOrderByRand),
-									string(api.SchemaRuleStatementAffectedRowLimit),
-									string(api.SchemaRuleStatementDMLDryRun),
-									string(api.SchemaRuleTableRequirePK),
-									string(api.SchemaRuleTableNoFK),
-									string(api.SchemaRuleTableDropNamingConvention),
-									string(api.SchemaRuleTableCommentConvention),
-									string(api.SchemaRuleTableDisallowPartition),
-									string(api.SchemaRuleRequiredColumn),
-									string(api.SchemaRuleColumnNotNull),
-									string(api.SchemaRuleColumnDisallowChangeType),
-									string(api.SchemaRuleColumnSetDefaultForNotNull),
-									string(api.SchemaRuleColumnDisallowChange),
-									string(api.SchemaRuleColumnDisallowChangingOrder),
-									string(api.SchemaRuleColumnCommentConvention),
-									string(api.SchemaRuleColumnAutoIncrementMustInteger),
-									string(api.SchemaRuleColumnTypeDisallowList),
-									string(api.SchemaRuleColumnDisallowSetCharset),
-									string(api.SchemaRuleColumnMaximumCharacterLength),
-									string(api.SchemaRuleColumnAutoIncrementInitialValue),
-									string(api.SchemaRuleColumnAutoIncrementMustUnsigned),
-									string(api.SchemaRuleCurrentTimeColumnCountLimit),
-									string(api.SchemaRuleColumnRequireDefault),
-									string(api.SchemaRuleSchemaBackwardCompatibility),
-									string(api.SchemaRuleDropEmptyDatabase),
-									string(api.SchemaRuleIndexNoDuplicateColumn),
-									string(api.SchemaRuleIndexKeyNumberLimit),
-									string(api.SchemaRuleIndexPKTypeLimit),
-									string(api.SchemaRuleIndexTypeNoBlob),
-									string(api.SchemaRuleIndexTotalNumberLimit),
-									string(api.SchemaRuleIndexPrimaryKeyTypeAllowlist),
-									string(api.SchemaRuleCharsetAllowlist),
-									string(api.SchemaRuleCollationAllowlist),
-									string(api.SchemaRuleCommentLength),
-								}, false),
-							},
-							"level": {
-								Type:     schema.TypeString,
-								Computed: computed,
-								Optional: true,
-								ValidateFunc: validation.StringInSlice([]string{
-									string(api.SQLReviewRuleLevelError),
-									string(api.SQLReviewRuleLevelWarning),
-									string(api.SQLReviewRuleLevelDisabled),
-								}, false),
-							},
-							"engine": {
-								Type:     schema.TypeString,
-								Computed: computed,
-								Optional: true,
-								ValidateFunc: validation.StringInSlice([]string{
-									string(api.EngineTypeMySQL),
-									string(api.EngineTypePostgres),
-									string(api.EngineTypeTiDB),
-								}, false),
-								Description: "The engine for this rule.",
-							},
-							"payload": {
-								Computed: computed,
-								Type:     schema.TypeList,
-								Optional: true,
-								MinItems: 0,
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"number": {
-											Type:     schema.TypeInt,
-											Computed: computed,
-											Optional: true,
-										},
-										"format": {
-											Type:     schema.TypeString,
-											Computed: computed,
-											Optional: true,
-										},
-										"required": {
-											Type:     schema.TypeBool,
-											Computed: computed,
-											Optional: true,
-										},
-										"max_length": {
-											Type:     schema.TypeInt,
-											Computed: computed,
-											Optional: true,
-										},
-										"list": {
-											Type:     schema.TypeList,
-											Computed: computed,
-											Optional: true,
-											Elem: &schema.Schema{
-												Type: schema.TypeString,
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func getPolicySchema(policySchemaMap map[string]*schema.Schema) map[string]*schema.Schema {
-	for key, val := range policyParentIdentificationMap {
-		policySchemaMap[key] = val
-	}
-	return policySchemaMap
-}
-
-func unamrshalSQLReviewRulePayload(ruleType api.SQLReviewRuleType, payload string) (map[string]interface{}, error) {
-	switch ruleType {
-	case
-		api.SchemaRuleTableNaming,
-		api.SchemaRuleColumnNaming,
-		api.SchemaRuleAutoIncrementColumnNaming,
-		api.SchemaRuleFKNaming,
-		api.SchemaRuleIDXNaming,
-		api.SchemaRuleUKNaming:
-		var p api.NamingRulePayload
-		if err := json.Unmarshal([]byte(payload), &p); err != nil {
-			return nil, err
-		}
-		return map[string]interface{}{
-			"max_length": p.MaxLength,
-			"format":     p.Format,
-		}, nil
-	case
-		api.SchemaRuleColumnCommentConvention,
-		api.SchemaRuleTableCommentConvention:
-		var p api.CommentConventionRulePayload
-		if err := json.Unmarshal([]byte(payload), &p); err != nil {
-			return nil, err
-		}
-		return map[string]interface{}{
-			"max_length": p.MaxLength,
-			"required":   p.Required,
-		}, nil
-	case
-		api.SchemaRuleIndexKeyNumberLimit,
-		api.SchemaRuleStatementInsertRowLimit,
-		api.SchemaRuleIndexTotalNumberLimit,
-		api.SchemaRuleColumnMaximumCharacterLength,
-		api.SchemaRuleColumnAutoIncrementInitialValue,
-		api.SchemaRuleStatementAffectedRowLimit:
-		var p api.NumberTypeRulePayload
-		if err := json.Unmarshal([]byte(payload), &p); err != nil {
-			return nil, err
-		}
-		return map[string]interface{}{
-			"number": p.Number,
-		}, nil
-	case
-		api.SchemaRuleRequiredColumn,
-		api.SchemaRuleColumnTypeDisallowList,
-		api.SchemaRuleCharsetAllowlist,
-		api.SchemaRuleCollationAllowlist,
-		api.SchemaRuleIndexPrimaryKeyTypeAllowlist:
-		var p api.StringArrayTypeRulePayload
-		if err := json.Unmarshal([]byte(payload), &p); err != nil {
-			return nil, err
-		}
-		return map[string]interface{}{
-			"list": p.List,
-		}, nil
-	}
-
-	return map[string]interface{}{}, nil
 }

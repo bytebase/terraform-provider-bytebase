@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
@@ -29,7 +28,7 @@ func TestAccProjectDataSource(t *testing.T) {
 			// get single project test
 			{
 				Config: testAccCheckProjectDataSource(
-					testAccCheckProjectResource(identifier, resourceID, title, key, api.ProjectWorkflowUI, api.ProjectSchemaChangeDDL),
+					testAccCheckProjectResource(identifier, resourceID, title, key),
 					resourceName,
 					identifier,
 					resourceID,
@@ -38,8 +37,6 @@ func TestAccProjectDataSource(t *testing.T) {
 					internal.TestCheckResourceExists(fmt.Sprintf("data.%s", resourceName)),
 					resource.TestCheckResourceAttr(resourceName, "title", title),
 					resource.TestCheckResourceAttr(resourceName, "key", key),
-					resource.TestCheckResourceAttr(resourceName, "workflow", string(api.ProjectWorkflowUI)),
-					resource.TestCheckResourceAttr(resourceName, "schema_change", string(api.ProjectSchemaChangeDDL)),
 				),
 			},
 		},

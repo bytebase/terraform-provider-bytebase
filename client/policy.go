@@ -18,7 +18,13 @@ func (c *client) ListPolicies(ctx context.Context, find *api.PolicyFindMessage) 
 		return nil, errors.Errorf("invalid request, list policies cannot specific the policy type")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s?showDeleted=%v", c.url, c.version, getPolicyRequestName(find), find.ShowDeleted), nil)
+	var url string
+	if find.Parent == "" {
+		url = fmt.Sprintf("%s/%s/policies", c.url, c.version)
+	} else {
+		url = fmt.Sprintf("%s/%s/%s/policies", c.url, c.version, find.Parent)
+	}
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -38,12 +44,8 @@ func (c *client) ListPolicies(ctx context.Context, find *api.PolicyFindMessage) 
 }
 
 // GetPolicy gets a policy in a specific resource.
-func (c *client) GetPolicy(ctx context.Context, find *api.PolicyFindMessage) (*api.PolicyMessage, error) {
-	if find.Type == nil {
-		return nil, errors.Errorf("invalid request, get policy must specific the policy type")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, getPolicyRequestName(find)), nil)
+func (c *client) GetPolicy(ctx context.Context, policyName string) (*api.PolicyMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, policyName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +65,7 @@ func (c *client) GetPolicy(ctx context.Context, find *api.PolicyFindMessage) (*a
 }
 
 // UpsertPolicy creates or updates the policy.
-func (c *client) UpsertPolicy(ctx context.Context, find *api.PolicyFindMessage, patch *api.PolicyPatchMessage) (*api.PolicyMessage, error) {
-	if find.Type == nil {
-		return nil, errors.Errorf("invalid request, get policy must specific the policy type")
-	}
-
+func (c *client) UpsertPolicy(ctx context.Context, patch *api.PolicyPatchMessage) (*api.PolicyMessage, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
@@ -80,12 +78,11 @@ func (c *client) UpsertPolicy(ctx context.Context, find *api.PolicyFindMessage, 
 	if patch.DeploymentApprovalPolicy != nil ||
 		patch.BackupPlanPolicy != nil ||
 		patch.SensitiveDataPolicy != nil ||
-		patch.AccessControlPolicy != nil ||
-		patch.SQLReviewPolicy != nil {
+		patch.AccessControlPolicy != nil {
 		paths = append(paths, "payload")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?allow_missing=true&update_mask=%s", c.url, c.version, getPolicyRequestName(find), strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?allow_missing=true&update_mask=%s", c.url, c.version, patch.Name, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -105,12 +102,8 @@ func (c *client) UpsertPolicy(ctx context.Context, find *api.PolicyFindMessage, 
 }
 
 // DeletePolicy deletes the policy.
-func (c *client) DeletePolicy(ctx context.Context, find *api.PolicyFindMessage) error {
-	if find.Type == nil {
-		return errors.Errorf("invalid request, get policy must specific the policy type")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, getPolicyRequestName(find)), nil)
+func (c *client) DeletePolicy(ctx context.Context, policyName string) error {
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, policyName), nil)
 	if err != nil {
 		return err
 	}
@@ -119,29 +112,4 @@ func (c *client) DeletePolicy(ctx context.Context, find *api.PolicyFindMessage) 
 		return err
 	}
 	return nil
-}
-
-func getPolicyRequestName(find *api.PolicyFindMessage) string {
-	paths := []string{}
-	if v := find.ProjectID; v != nil {
-		paths = append(paths, fmt.Sprintf("projects/%s", *v))
-	}
-	if v := find.EnvironmentID; v != nil {
-		paths = append(paths, fmt.Sprintf("environments/%s", *v))
-	}
-	if v := find.InstanceID; v != nil {
-		paths = append(paths, fmt.Sprintf("instances/%s", *v))
-	}
-	if v := find.DatabaseName; v != nil {
-		paths = append(paths, fmt.Sprintf("databases/%s", *v))
-	}
-
-	paths = append(paths, "policies")
-
-	name := strings.Join(paths, "/")
-	if v := find.Type; v != nil {
-		name = fmt.Sprintf("%s/%s", name, *v)
-	}
-
-	return name
 }

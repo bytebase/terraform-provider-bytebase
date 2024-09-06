@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "0.0.9"
+      version = "1.0.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -23,7 +23,6 @@ locals {
   environment_id_prod = "prod"
   instance_id_test    = "test-sample-instance"
   instance_id_prod    = "prod-sample-instance"
-  role_name           = "role_test_terraform"
   project_id          = "project-sample"
 }
 
@@ -47,75 +46,52 @@ resource "bytebase_environment" "prod" {
 # You can replace the parameters with your real instance
 resource "bytebase_instance" "test" {
   resource_id = local.instance_id_test
-  environment = bytebase_environment.test.resource_id
+  environment = bytebase_environment.test.name
   title       = "test instance"
-  engine      = "POSTGRES"
+  engine      = "MYSQL"
 
   # You need to specific the data source
   data_sources {
-    title    = "admin data source"
+    id       = "admin data source"
     type     = "ADMIN"
-    username = "<The admin role name>"
-    password = "<The admin password name>"
+    username = "<The connection user name>"
+    password = "<The connection user password>"
     host     = "127.0.0.1"
-    port     = "5432"
+    port     = "3366"
   }
 
   # And you can add another data_sources with RO type
   data_sources {
-    title    = "read-only data source"
+    id       = "read-only data source"
     type     = "READ_ONLY"
-    username = "<The read-only user name>"
-    password = "<The read-only user password>"
-    host     = "192.168.0.1"
-    port     = "1234"
+    username = "<The connection user name>"
+    password = "<The connection user password>"
+    host     = "127.0.0.1"
+    port     = "3366"
   }
 }
 
 # Create a new instance named "prod instance"
 resource "bytebase_instance" "prod" {
   resource_id = local.instance_id_prod
-  environment = bytebase_environment.prod.resource_id
+  environment = bytebase_environment.prod.name
   title       = "prod instance"
   engine      = "POSTGRES"
 
   # You need to specific the data source
   data_sources {
-    title    = "admin data source"
+    id       = "admin data source"
     type     = "ADMIN"
     username = "<The connection user name>"
     password = "<The connection user password>"
     host     = "127.0.0.1"
-    port     = "5432"
-  }
-}
-
-# Create a new role named "role_test_terraform" in the instance "test-sample-instance"
-resource "bytebase_instance_role" "test" {
-  name     = local.role_name
-  instance = bytebase_instance.test.resource_id
-
-  password         = "123456"
-  connection_limit = 10
-  valid_until      = "2022-12-31T00:00:00+08:00"
-
-  attribute {
-    super_user  = true
-    no_inherit  = true
-    create_role = true
-    create_db   = false
-    can_login   = true
-    replication = true
-    bypass_rls  = true
+    port     = "54321"
   }
 }
 
 # Create a new project
 resource "bytebase_project" "sample_project" {
-  resource_id    = local.project_id
-  title          = "Sample project"
-  key            = "SAM"
-  workflow       = "UI"
-  schema_version = "SCHEMA_VERSION_UNSPECIFIED"
-  schema_change  = "DDL"
+  resource_id = local.project_id
+  title       = "Sample project"
+  key         = "SAMM"
 }

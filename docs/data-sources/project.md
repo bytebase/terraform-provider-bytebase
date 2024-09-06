@@ -22,14 +22,10 @@ The project data source.
 ### Read-Only
 
 - `databases` (List of Object) The databases in the project. (see [below for nested schema](#nestedatt--databases))
-- `db_name_template` (String) The project db name template.
 - `id` (String) The ID of this resource.
 - `key` (String) The project key.
-- `schema_change` (String) The project schema change type.
-- `schema_version` (String) The project schema version.
-- `tenant_mode` (String) The project tenant mode.
+- `name` (String) The project full name in projects/{resource id} format.
 - `title` (String) The project title.
-- `visibility` (String) The project visibility.
 - `workflow` (String) The project workflow.
 
 <a id="nestedatt--databases"></a>
@@ -37,7 +33,7 @@ The project data source.
 
 Read-Only:
 
-- `instance` (String)
+- `environment` (String)
 - `labels` (Map of String)
 - `name` (String)
 - `schema_version` (String)

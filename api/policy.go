@@ -20,8 +20,6 @@ const (
 	PolicyTypeDeploymentApproval PolicyType = "DEPLOYMENT_APPROVAL"
 	// PolicyTypeBackupPlan is the policy type for backup plan policy.
 	PolicyTypeBackupPlan PolicyType = "BACKUP_PLAN"
-	// PolicyTypeSQLReview is the policy type for SQL review policy.
-	PolicyTypeSQLReview PolicyType = "SQL_REVIEW"
 	// PolicyTypeSensitiveData is the policy type for sensitive data policy.
 	PolicyTypeSensitiveData PolicyType = "SENSITIVE_DATA"
 	// PolicyTypeAccessControl is the policy type for access control policy.
@@ -92,50 +90,37 @@ type AccessControlRule struct {
 	FullDatabase bool `json:"fullDatabase"`
 }
 
-// SQLReviewPolicy is the API message for SQL review policy.
-type SQLReviewPolicy struct {
-	Title string           `json:"title"`
-	Rules []*SQLReviewRule `json:"rules"`
-}
-
 // PolicyFindMessage is the API message for finding policies.
 type PolicyFindMessage struct {
-	ProjectID     *string
-	EnvironmentID *string
-	InstanceID    *string
-	DatabaseName  *string
-	Type          *PolicyType
-	ShowDeleted   bool
+	Parent string
+	Type   *PolicyType
 }
 
 // PolicyMessage is the API message for policy.
 type PolicyMessage struct {
-	UID               string     `json:"uid"`
 	Name              string     `json:"name"`
-	State             State      `json:"state,omitempty"`
 	InheritFromParent bool       `json:"inheritFromParent"`
 	Type              PolicyType `json:"type"`
+	Enforce           bool       `json:"enforce"`
 
 	// The policy payload
 	DeploymentApprovalPolicy *DeploymentApprovalPolicy `json:"deploymentApprovalPolicy"`
 	BackupPlanPolicy         *BackupPlanPolicy         `json:"backupPlanPolicy"`
 	SensitiveDataPolicy      *SensitiveDataPolicy      `json:"sensitiveDataPolicy"`
 	AccessControlPolicy      *AccessControlPolicy      `json:"accessControlPolicy"`
-	SQLReviewPolicy          *SQLReviewPolicy          `json:"sqlReviewPolicy"`
 }
 
 // PolicyPatchMessage is the API message to patch the policy.
 type PolicyPatchMessage struct {
-	InheritFromParent *bool      `json:"inheritFromParent"`
-	Type              PolicyType `json:"type"`
-	Enforce           *bool      `json:"enforce"`
+	Name              string `json:"name"`
+	InheritFromParent *bool  `json:"inheritFromParent"`
+	Enforce           *bool  `json:"enforce"`
 
 	// The policy payload
 	DeploymentApprovalPolicy *DeploymentApprovalPolicy `json:"deploymentApprovalPolicy"`
 	BackupPlanPolicy         *BackupPlanPolicy         `json:"backupPlanPolicy"`
 	SensitiveDataPolicy      *SensitiveDataPolicy      `json:"sensitiveDataPolicy"`
 	AccessControlPolicy      *AccessControlPolicy      `json:"accessControlPolicy"`
-	SQLReviewPolicy          *SQLReviewPolicy          `json:"sqlReviewPolicy"`
 }
 
 // ListPolicyMessage is the API message for list policy response.

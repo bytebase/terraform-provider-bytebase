@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
@@ -29,7 +28,7 @@ func TestAccProjectListDataSource(t *testing.T) {
 				0,
 			),
 			internal.GetTestStepForDataSourceList(
-				testAccCheckProjectResource(identifier, "dev-project", "dev project", "BYT", api.ProjectWorkflowUI, api.ProjectSchemaChangeDDL),
+				testAccCheckProjectResource(identifier, "dev-project", "dev project", "BYT"),
 				fmt.Sprintf("bytebase_project.%s", identifier),
 				"bytebase_project_list",
 				"after",

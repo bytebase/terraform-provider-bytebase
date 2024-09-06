@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -26,6 +27,11 @@ func dataSourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: `The environment name for your instance in "environments/{resource id}" format.`,
 			},
+			"name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The instance full name in instances/{resource id} format.",
+			},
 			"title": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -46,10 +52,10 @@ func dataSourceInstance() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"title": {
+						"id": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The unique data source name in this instance.",
+							Description: "The unique data source id in this instance.",
 						},
 						"type": {
 							Type:        schema.TypeString,
@@ -85,10 +91,9 @@ func dataSourceInstance() *schema.Resource {
 
 func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	instanceName := fmt.Sprintf("%s%s", internal.InstanceNamePrefix, d.Get("resource_id").(string))
 
-	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		InstanceID: d.Get("resource_id").(string),
-	})
+	ins, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -5,6 +5,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 
@@ -13,20 +16,66 @@ import (
 
 const (
 	// EnvironmentNamePrefix is the prefix for environment unique name.
-	EnvironmentNamePrefix  = "environments/"
-	instanceNamePrefix     = "instances/"
-	instanceRoleNamePrefix = "roles/"
-	projectNamePrefix      = "projects/"
-	databaseIDPrefix       = "databases/"
-	policyNamePrefix       = "policies/"
+	EnvironmentNamePrefix = "environments/"
+	// InstanceNamePrefix is the prefix for instance unique name.
+	InstanceNamePrefix = "instances/"
+	// ProjectNamePrefix is the prefix for project unique name.
+	ProjectNamePrefix = "projects/"
+	// DatabaseIDPrefix is the prefix for database unique name.
+	DatabaseIDPrefix = "databases/"
+	// PolicyNamePrefix is the prefix for policy unique name.
+	PolicyNamePrefix = "policies/"
+	// ResourceIDPattern is the pattern for resource id.
+	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
 )
 
 var (
-	resourceIDRegex = regexp.MustCompile("^([0-9a-z]+-?)+[0-9a-z]+$")
+	resourceIDRegex = regexp.MustCompile(fmt.Sprintf("^%s$", ResourceIDPattern))
 )
 
 // ResourceIDValidation is the resource id regexp validation.
 var ResourceIDValidation = validation.StringMatch(resourceIDRegex, fmt.Sprintf("resource id must matches %v", resourceIDRegex))
+
+// ResourceNameValidation validate the resource name with prefix.
+func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateDiagFunc {
+	return func(i interface{}, path cty.Path) diag.Diagnostics {
+		var diags diag.Diagnostics
+
+		v, ok := i.(string)
+		if !ok {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Bad data type",
+				Detail:        "expected type to be string",
+				AttributePath: path,
+			})
+			return diags
+		}
+		for _, regex := range regexs {
+			if ok := regex.MatchString(v); ok {
+				return diags
+			}
+		}
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       "Resource id not match",
+			Detail:        fmt.Sprintf("resource id must matches %s pattern", ResourceIDPattern),
+			AttributePath: path,
+		})
+		return diags
+	}
+}
+
+// GetPolicyParentAndType returns the policy parent and type by the name.
+func GetPolicyParentAndType(name string) (string, api.PolicyType, error) {
+	names := strings.Split(name, PolicyNamePrefix)
+	if len(names) != 2 {
+		return "", "", errors.Errorf("invalid policy name %s", name)
+	}
+	policyType := api.PolicyType(strings.ToUpper(names[1]))
+
+	return strings.TrimSuffix(names[0], "/"), policyType, nil
+}
 
 // GetEnvironmentID will parse the environment resource id.
 func GetEnvironmentID(name string) (string, error) {
@@ -41,92 +90,16 @@ func GetEnvironmentID(name string) (string, error) {
 // GetInstanceID will parse the environment resource id and instance resource id.
 func GetInstanceID(name string) (string, error) {
 	// the instance request should be instances/{instance-id}
-	tokens, err := getNameParentTokens(name, instanceNamePrefix)
+	tokens, err := getNameParentTokens(name, InstanceNamePrefix)
 	if err != nil {
 		return "", err
 	}
 	return tokens[0], nil
 }
 
-// GetInstanceRoleID will parse the instance resource id and the role name.
-func GetInstanceRoleID(name string) (string, string, error) {
-	// the instance request should be instances/{instance-id}/roles/{role-name}
-	tokens, err := getNameParentTokens(name, instanceNamePrefix, instanceRoleNamePrefix)
-	if err != nil {
-		return "", "", err
-	}
-	return tokens[0], tokens[1], nil
-}
-
-// GetPolicyFindMessageByName will generate the policy find by the name.
-func GetPolicyFindMessageByName(name string) (*api.PolicyFindMessage, error) {
-	tokens := strings.Split(name, policyNamePrefix)
-	if len(tokens) != 2 {
-		return nil, errors.Errorf("invalid policy name %s", name)
-	}
-
-	parent := tokens[0]
-	policyType := api.PolicyType(strings.ToUpper(tokens[1]))
-	find := &api.PolicyFindMessage{
-		Type: &policyType,
-	}
-
-	if strings.HasSuffix(parent, "/") {
-		parent = parent[:(len(parent) - 1)]
-	}
-
-	if parent == "" {
-		return find, nil
-	}
-
-	if strings.HasPrefix(parent, projectNamePrefix) {
-		// project policy request name should be projects/{project id}
-		projectID, err := GetProjectID(parent)
-		if err != nil {
-			return nil, err
-		}
-		find.ProjectID = &projectID
-		return find, nil
-	}
-
-	if strings.HasPrefix(parent, EnvironmentNamePrefix) {
-		// environment policy request name should be environments/{environment id}
-		environmentID, err := GetEnvironmentID(parent)
-		if err != nil {
-			return nil, err
-		}
-		find.EnvironmentID = &environmentID
-		return find, nil
-	}
-
-	if strings.HasPrefix(parent, instanceNamePrefix) {
-		sections := strings.Split(parent, "/")
-		if len(sections) == 2 {
-			// instance policy request name should be instances/{instance id}
-			instanceID, err := GetInstanceID(parent)
-			if err != nil {
-				return nil, err
-			}
-			find.InstanceID = &instanceID
-			return find, nil
-		} else if len(sections) == 4 {
-			// database policy request name should be instances/{instance id}/databases/{db name}
-			instanceID, databaseName, err := GetInstanceDatabaseID(parent)
-			if err != nil {
-				return nil, err
-			}
-			find.InstanceID = &instanceID
-			find.DatabaseName = &databaseName
-			return find, nil
-		}
-	}
-
-	return nil, errors.Errorf("invalid policy name %s", name)
-}
-
 // GetProjectID will parse the project resource id.
 func GetProjectID(name string) (string, error) {
-	tokens, err := getNameParentTokens(name, projectNamePrefix)
+	tokens, err := getNameParentTokens(name, ProjectNamePrefix)
 	if err != nil {
 		return "", err
 	}
@@ -136,7 +109,7 @@ func GetProjectID(name string) (string, error) {
 // GetInstanceDatabaseID will parse the instance resource id and database name.
 func GetInstanceDatabaseID(name string) (string, string, error) {
 	// the instance request should be instances/{instance-id}/databases/{database-id}
-	tokens, err := getNameParentTokens(name, instanceNamePrefix, databaseIDPrefix)
+	tokens, err := getNameParentTokens(name, InstanceNamePrefix, DatabaseIDPrefix)
 	if err != nil {
 		return "", "", err
 	}

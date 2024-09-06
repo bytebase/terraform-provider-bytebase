@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -9,18 +11,31 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func dataSourcePolicyList() *schema.Resource {
 	return &schema.Resource{
 		Description: "The policy data source list.",
 		ReadContext: dataSourcePolicyListRead,
-		Schema: getPolicySchema(map[string]*schema.Schema{
-			"show_deleted": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Including removed policy in the response.",
+		Schema: map[string]*schema.Schema{
+			"parent": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					// workspace policy
+					regexp.MustCompile("^$"),
+					// environment policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern)),
+					// instance policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern)),
+					// project policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern)),
+					// database policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern)),
+				),
+				Description: "The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}",
 			},
 			"policies": {
 				Type:     schema.TypeList,
@@ -35,33 +50,35 @@ func dataSourcePolicyList() *schema.Resource {
 						"name": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The policy name",
+							Description: "The policy full name",
 						},
 						"inherit_from_parent": {
 							Type:        schema.TypeBool,
 							Computed:    true,
 							Description: "Decide if the policy should inherit from the parent.",
 						},
+						"enforce": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Decide if the policy is enforced.",
+						},
 						"deployment_approval_policy": getDeploymentApprovalPolicySchema(true),
 						"backup_plan_policy":         getBackupPlanPolicySchema(true),
 						"sensitive_data_policy":      getSensitiveDataPolicy(true),
 						"access_control_policy":      getAccessControlPolicy(true),
-						"sql_review_policy":          getSQLReviewPolicy(true),
 					},
 				},
 			},
-		}),
+		},
 	}
 }
 
 func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	find, err := getPolicyFind(ctx, d, c)
-	if err != nil {
-		return diag.FromErr(err)
+	find := &api.PolicyFindMessage{
+		Parent: d.Get("parent").(string),
 	}
-	find.ShowDeleted = d.Get("show_deleted").(bool)
 
 	response, err := c.ListPolicies(ctx, find)
 	if err != nil {
@@ -74,6 +91,7 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 		raw["name"] = policy.Name
 		raw["type"] = policy.Type
 		raw["inherit_from_parent"] = policy.InheritFromParent
+		raw["enforce"] = policy.Enforce
 		if p := policy.DeploymentApprovalPolicy; p != nil {
 			raw["deployment_approval_policy"] = flattenDeploymentApprovalPolicy(p)
 		}
@@ -89,13 +107,6 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 		}
 		if p := policy.AccessControlPolicy; p != nil {
 			raw["access_control_policy"] = flattenAccessControlPolicy(p)
-		}
-		if p := policy.SQLReviewPolicy; p != nil {
-			sqlReviewPolicy, err := flattenSQLReviewPolicy(p)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			raw["sql_review_policy"] = sqlReviewPolicy
 		}
 		policies = append(policies, raw)
 	}

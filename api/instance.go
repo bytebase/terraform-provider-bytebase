@@ -2,7 +2,7 @@ package api
 
 // InstanceMessage is the API message for an instance.
 type InstanceMessage struct {
-	UID          string               `json:"uid"`
+	// Format: instances/{unique resource id}
 	Name         string               `json:"name"`
 	State        State                `json:"state,omitempty"`
 	Title        string               `json:"title"`
@@ -15,6 +15,7 @@ type InstanceMessage struct {
 
 // InstancePatchMessage is the API message to patch the instance.
 type InstancePatchMessage struct {
+	Name         string               `json:"name"`
 	Title        *string              `json:"title,omitempty"`
 	ExternalLink *string              `json:"externalLink,omitempty"`
 	DataSources  []*DataSourceMessage `json:"dataSources,omitempty"`

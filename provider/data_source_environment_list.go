@@ -33,6 +33,11 @@ func dataSourceEnvironmentList() *schema.Resource {
 							Computed:    true,
 							Description: "The environment unique resource id.",
 						},
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The environment full name in environments/{resource id} format.",
+						},
 						"title": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -76,8 +81,9 @@ func dataSourceEnvironmentListRead(ctx context.Context, d *schema.ResourceData, 
 		env := make(map[string]interface{})
 		env["resource_id"] = envID
 		env["title"] = environment.Title
+		env["name"] = environment.Name
 		env["order"] = environment.Order
-		env["environment_tier_policy"] = environment.Tier
+		env["environment_tier_policy"] = string(environment.Tier)
 
 		environments = append(environments, env)
 	}

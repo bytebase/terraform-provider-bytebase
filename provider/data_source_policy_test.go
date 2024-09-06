@@ -23,12 +23,12 @@ func TestAccPolicyDataSource(t *testing.T) {
 				Config: testAccCheckPolicyDataSource(
 					testAccCheckPolicyResource(
 						"backup_plan",
-						"test",
+						"environments/test",
 						getBackupPlanPolicy(string(api.BackupPlanScheduleDaily), 999),
 						api.PolicyTypeBackupPlan,
 					),
 					"backup_plan",
-					"test",
+					"environments/test",
 					"bytebase_policy.backup_plan",
 					api.PolicyTypeBackupPlan,
 				),
@@ -56,7 +56,7 @@ func TestAccPolicyDataSource_NotFound(t *testing.T) {
 				Config: testAccCheckPolicyDataSource(
 					"",
 					"policy",
-					"test",
+					"environments/test",
 					"",
 					api.PolicyTypeDeploymentApproval,
 				),
@@ -69,18 +69,18 @@ func TestAccPolicyDataSource_NotFound(t *testing.T) {
 func testAccCheckPolicyDataSource(
 	resource,
 	identifier,
-	environment,
+	parent,
 	dependsOn string,
 	pType api.PolicyType) string {
 	return fmt.Sprintf(`
 	%s
 
 	data "bytebase_policy" "%s" {
-		environment = "%s"
-		type        = "%s"
-		depends_on  = [
+		parent     = "%s"
+		type       = "%s"
+		depends_on = [
     		%s
   		]
 	}
-	`, resource, identifier, environment, pType, dependsOn)
+	`, resource, identifier, parent, pType, dependsOn)
 }

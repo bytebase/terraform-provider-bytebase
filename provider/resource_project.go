@@ -14,7 +14,7 @@ import (
 )
 
 // defaultProj is the default project name.
-var defaultProj = "projects/default"
+var defaultProj = fmt.Sprintf("%sdefault", internal.ProjectNamePrefix)
 
 func resourceProjct() *schema.Resource {
 	return &schema.Resource{
@@ -45,48 +45,15 @@ func resourceProjct() *schema.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The project unique key.",
 			},
-			"workflow": {
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					string(api.ProjectWorkflowUI),
-					string(api.ProjectWorkflowVCS),
-				}, false),
-				Description: "The project workflow.",
-			},
-			"visibility": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  string(api.ProjectVisibilityPublic),
-				ValidateFunc: validation.StringInSlice([]string{
-					string(api.ProjectVisibilityPublic),
-					string(api.ProjectVisibilityPrivate),
-				}, false),
-				Description: "The project visibility. Cannot change this after created",
-			},
-			"tenant_mode": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  string(api.ProjectTenantModeDisabled),
-				ValidateFunc: validation.StringInSlice([]string{
-					string(api.ProjectTenantModeDisabled),
-					string(api.ProjectTenantModeEnabled),
-				}, false),
-				Description: "The project tenant mode.",
-			},
-			"db_name_template": {
+			"name": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The project db name template.",
+				Computed:    true,
+				Description: "The project full name in projects/{resource id} format.",
 			},
-			"schema_change": {
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					string(api.ProjectSchemaChangeDDL),
-					string(api.ProjectSchemaChangeSDL),
-				}, false),
-				Description: "The project schema change type.",
+			"workflow": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The project workflow.",
 			},
 			"databases": {
 				Type:        schema.TypeList,
@@ -98,13 +65,12 @@ func resourceProjct() *schema.Resource {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validation.StringIsNotEmpty,
-							Description:  "The database name.",
+							Description:  "The database full name in instances/{instance id}/databases/{db name} format.",
 						},
-						"instance": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: internal.ResourceIDValidation,
-							Description:  "The instance resource id for the database.",
+						"environment": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The database environment.",
 						},
 						"sync_state": {
 							Type:        schema.TypeString,
@@ -139,17 +105,12 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	c := m.(api.Client)
 
 	projectID := d.Get("resource_id").(string)
-	projectName := fmt.Sprintf("projects/%s", projectID)
+	projectName := fmt.Sprintf("%s%s", internal.ProjectNamePrefix, projectID)
 
 	title := d.Get("title").(string)
 	key := d.Get("key").(string)
-	workflow := api.ProjectWorkflow(d.Get("workflow").(string))
-	tenantMode := api.ProjectTenantMode(d.Get("tenant_mode").(string))
-	dbNameTemplate := d.Get("db_name_template").(string)
-	schemaChange := api.ProjectSchemaChange(d.Get("schema_change").(string))
-	visibility := api.ProjectVisibility(d.Get("visibility").(string))
 
-	existedProject, err := c.GetProject(ctx, projectID, true /* showDeleted */)
+	existedProject, err := c.GetProject(ctx, projectName)
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get project %s failed with error: %v", projectName, err))
 	}
@@ -162,22 +123,13 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 			Detail:   fmt.Sprintf("Project %s already exists, try to exec the update operation", projectName),
 		})
 
-		if existedProject.Visibility != visibility {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Invalid argument",
-				Detail:   fmt.Sprintf("cannot update project %s visibility to %s", projectName, visibility),
-			})
-			return diags
-		}
-
 		if existedProject.State == api.Deleted {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
 				Summary:  "Project is deleted",
 				Detail:   fmt.Sprintf("Project %s already deleted, try to undelete the project", projectName),
 			})
-			if _, err := c.UndeleteProject(ctx, projectID); err != nil {
+			if _, err := c.UndeleteProject(ctx, projectName); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to undelete project",
@@ -187,13 +139,10 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 			}
 		}
 
-		project, err := c.UpdateProject(ctx, projectID, &api.ProjectPatchMessage{
-			Title:          &title,
-			Key:            &key,
-			Workflow:       &workflow,
-			TenantMode:     &tenantMode,
-			DBNameTemplate: &dbNameTemplate,
-			SchemaChange:   &schemaChange,
+		project, err := c.UpdateProject(ctx, &api.ProjectPatchMessage{
+			Name:  projectName,
+			Title: &title,
+			Key:   &key,
 		})
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -206,19 +155,10 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 		d.SetId(project.Name)
 	} else {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Project not exists",
-			Detail:   fmt.Sprintf("Project %s not exists, try to exec the create operation", projectName),
-		})
 		project, err := c.CreateProject(ctx, projectID, &api.ProjectMessage{
-			Title:          title,
-			Key:            key,
-			Workflow:       workflow,
-			Visibility:     visibility,
-			TenantMode:     tenantMode,
-			DBNameTemplate: dbNameTemplate,
-			SchemaChange:   schemaChange,
+			Name:  projectName,
+			Title: title,
+			Key:   key,
 		})
 		if err != nil {
 			return diag.FromErr(err)
@@ -244,27 +184,13 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("resource_id") {
 		return diag.Errorf("cannot change the resource id")
 	}
-	if d.HasChange("visibility") {
-		return diag.Errorf("cannot change the visibility in project")
-	}
-	if d.HasChange("schema_version") {
-		return diag.Errorf("cannot change the schema_version in project")
-	}
 
 	c := m.(api.Client)
+	projectName := d.Id()
 
-	projectID, err := internal.GetProjectID(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	projectName := fmt.Sprintf("projects/%s", projectID)
-
-	existedProject, err := c.GetProject(ctx, projectID, true /* showDeleted */)
+	existedProject, err := c.GetProject(ctx, projectName)
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get project %s failed with error: %v", projectName, err))
-	}
-	if err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -275,7 +201,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			Summary:  "Project is deleted",
 			Detail:   fmt.Sprintf("Project %s already deleted, try to undelete the project", projectName),
 		})
-		if _, err := c.UndeleteProject(ctx, projectID); err != nil {
+		if _, err := c.UndeleteProject(ctx, projectName); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to undelete project",
@@ -285,7 +211,9 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		}
 	}
 
-	patch := &api.ProjectPatchMessage{}
+	patch := &api.ProjectPatchMessage{
+		Name: projectName,
+	}
 	if d.HasChange("title") {
 		v := d.Get("title").(string)
 		patch.Title = &v
@@ -294,24 +222,8 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		v := d.Get("key").(string)
 		patch.Key = &v
 	}
-	if d.HasChange("db_name_template") {
-		v := d.Get("db_name_template").(string)
-		patch.DBNameTemplate = &v
-	}
-	if d.HasChange("workflow") {
-		v := api.ProjectWorkflow(d.Get("workflow").(string))
-		patch.Workflow = &v
-	}
-	if d.HasChange("schema_change") {
-		v := api.ProjectSchemaChange(d.Get("schema_change").(string))
-		patch.SchemaChange = &v
-	}
-	if d.HasChange("tenant_mode") {
-		v := api.ProjectTenantMode(d.Get("tenant_mode").(string))
-		patch.TenantMode = &v
-	}
 
-	if _, err := c.UpdateProject(ctx, projectID, patch); err != nil {
+	if _, err := c.UpdateProject(ctx, patch); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
@@ -333,13 +245,9 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	projectName := d.Id()
 
-	projectID, err := internal.GetProjectID(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	project, err := c.GetProject(ctx, projectID, false /* showDeleted */)
+	project, err := c.GetProject(ctx, projectName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -358,16 +266,12 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 
 func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	projectName := d.Id()
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	projectID, err := internal.GetProjectID(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := c.DeleteProject(ctx, projectID); err != nil {
+	if err := c.DeleteProject(ctx, projectName); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -398,20 +302,19 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 	for _, raw := range rawList {
 		obj := raw.(map[string]interface{})
 		dbName := obj["name"].(string)
-		instance := obj["instance"].(string)
 
 		labels := map[string]string{}
 		for key, val := range obj["labels"].(map[string]interface{}) {
 			labels[key] = val.(string)
 		}
 
-		name := fmt.Sprintf("instances/%s/databases/%s", instance, dbName)
+		// TODO(ed):
 		patch := &api.DatabasePatchMessage{
-			Name:    name,
+			Name:    dbName,
 			Project: &projectName,
 			Labels:  &labels,
 		}
-		updatedDBMap[name] = patch
+		updatedDBMap[dbName] = patch
 		if _, err := client.UpdateDatabase(ctx, patch); err != nil {
 			return diag.Errorf("failed to update database %s with error: %v", patch.Name, err)
 		}

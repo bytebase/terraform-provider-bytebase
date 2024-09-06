@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -32,16 +33,21 @@ func resourceInstance() *schema.Resource {
 				Description:  "The instance unique resource id.",
 			},
 			"environment": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The environment resource id for your instance.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern))),
+				Description:      "The environment full name for the instance in environments/{environment id} format.",
 			},
 			"title": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The instance title.",
+			},
+			"name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The instance full name in instances/{resource id} format.",
 			},
 			"engine": {
 				Type:     schema.TypeString,
@@ -73,15 +79,14 @@ func resourceInstance() *schema.Resource {
 			"data_sources": {
 				Type:        schema.TypeList,
 				Required:    true,
-				MaxItems:    2,
 				MinItems:    1,
 				Description: "The connection for the instance. You can configure read-only or admin connection account here.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"title": {
+						"id": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "The unique data source name in this instance.",
+							Description: "The unique data source id in this instance.",
 						},
 						"type": {
 							Type:     schema.TypeString,
@@ -155,14 +160,10 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	environmentID := d.Get("environment").(string)
 	instanceID := d.Get("resource_id").(string)
-	instanceName := fmt.Sprintf("instances/%s", instanceID)
+	instanceName := fmt.Sprintf("%s%s", internal.InstanceNamePrefix, instanceID)
 
-	existedInstance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		InstanceID:  instanceID,
-		ShowDeleted: true,
-	})
+	existedInstance, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get instance %s failed with error: %v", instanceName, err))
 	}
@@ -191,7 +192,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 				Summary:  "Instance is deleted",
 				Detail:   fmt.Sprintf("Instance %s already deleted, try to undelete the instance", instanceName),
 			})
-			if _, err := c.UndeleteInstance(ctx, instanceID); err != nil {
+			if _, err := c.UndeleteInstance(ctx, instanceName); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to undelete instance",
@@ -203,12 +204,12 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 		title := d.Get("title").(string)
 		externalLink := d.Get("external_link").(string)
-		instance, err := c.UpdateInstance(ctx, instanceID, &api.InstancePatchMessage{
+		if _, err := c.UpdateInstance(ctx, &api.InstancePatchMessage{
+			Name:         instanceName,
 			Title:        &title,
 			ExternalLink: &externalLink,
 			DataSources:  dataSourceList,
-		})
-		if err != nil {
+		}); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update instance",
@@ -216,38 +217,28 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			})
 			return diags
 		}
-
-		if err := c.SyncInstanceSchema(ctx, instanceID); err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  "Instance schema sync failed",
-				Detail:   fmt.Sprintf("Failed to sync schema for instance %s with error: %v. You can try to trigger the sync manually via Bytebase UI.", instanceName, err.Error()),
-			})
-		}
-
-		d.SetId(instance.Name)
 	} else {
-		instance, err := c.CreateInstance(ctx, instanceID, &api.InstanceMessage{
+		if _, err := c.CreateInstance(ctx, instanceID, &api.InstanceMessage{
+			Name:         instanceName,
 			Title:        d.Get("title").(string),
 			Engine:       api.EngineType(d.Get("engine").(string)),
 			ExternalLink: d.Get("external_link").(string),
 			State:        api.Active,
 			DataSources:  dataSourceList,
-			Environment:  fmt.Sprintf("%s%s", internal.EnvironmentNamePrefix, environmentID),
-		})
-		if err != nil {
+			Environment:  d.Get("environment").(string),
+		}); err != nil {
 			return diag.FromErr(err)
 		}
-
-		if err := c.SyncInstanceSchema(ctx, instanceID); err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  "Instance schema sync failed",
-				Detail:   fmt.Sprintf("Failed to sync schema for instance %s with error: %v. You can try to trigger the sync manually via Bytebase UI.", instanceName, err.Error()),
-			})
-		}
-		d.SetId(instance.Name)
 	}
+
+	if err := c.SyncInstanceSchema(ctx, instanceName); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Instance schema sync failed",
+			Detail:   fmt.Sprintf("Failed to sync schema for instance %s with error: %v. You can try to trigger the sync manually via Bytebase UI.", instanceName, err.Error()),
+		})
+	}
+	d.SetId(instanceName)
 
 	diag := resourceInstanceRead(ctx, d, m)
 	if diag != nil {
@@ -259,15 +250,9 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	instanceName := d.Id()
 
-	instanceID, err := internal.GetInstanceID(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	instance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		InstanceID: instanceID,
-	})
+	instance, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -287,19 +272,11 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	c := m.(api.Client)
+	instanceName := d.Id()
 
-	instanceID, err := internal.GetInstanceID(d.Id())
+	existedInstance, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	instanceName := fmt.Sprintf("instances/%s", instanceID)
-
-	existedInstance, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		InstanceID:  instanceID,
-		ShowDeleted: true,
-	})
-	if err != nil {
+		tflog.Debug(ctx, fmt.Sprintf("get instance %s failed with error: %v", instanceName, err))
 		return diag.FromErr(err)
 	}
 
@@ -310,7 +287,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			Summary:  "Instance is deleted",
 			Detail:   fmt.Sprintf("Instance %s already deleted, try to undelete the instance", instanceName),
 		})
-		if _, err := c.UndeleteInstance(ctx, instanceID); err != nil {
+		if _, err := c.UndeleteInstance(ctx, instanceName); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to undelete instance",
@@ -320,7 +297,9 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 	}
 
-	patch := &api.InstancePatchMessage{}
+	patch := &api.InstancePatchMessage{
+		Name: instanceName,
+	}
 	if d.HasChange("title") {
 		v := d.Get("title").(string)
 		patch.Title = &v
@@ -337,10 +316,10 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		patch.DataSources = dataSourceList
 	}
 
-	if _, err := c.UpdateInstance(ctx, instanceID, patch); err != nil {
+	if _, err := c.UpdateInstance(ctx, patch); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := c.SyncInstanceSchema(ctx, instanceID); err != nil {
+	if err := c.SyncInstanceSchema(ctx, instanceName); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Instance schema sync failed",
@@ -361,13 +340,9 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
+	instanceName := d.Id()
 
-	instanceID, err := internal.GetInstanceID(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := c.DeleteInstance(ctx, instanceID); err != nil {
+	if err := c.DeleteInstance(ctx, instanceName); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -377,7 +352,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) diag.Diagnostics {
-	instanceID, err := internal.GetInstanceID(d.Id())
+	instanceID, err := internal.GetInstanceID(instance.Name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -387,11 +362,10 @@ func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) d
 	if err := d.Set("title", instance.Title); err != nil {
 		return diag.Errorf("cannot set title for instance: %s", err.Error())
 	}
-	envID, err := internal.GetEnvironmentID(instance.Environment)
-	if err != nil {
-		return diag.FromErr(err)
+	if err := d.Set("name", instance.Name); err != nil {
+		return diag.Errorf("cannot set name for instance: %s", err.Error())
 	}
-	if err := d.Set("environment", envID); err != nil {
+	if err := d.Set("environment", instance.Environment); err != nil {
 		return diag.Errorf("cannot set environment for instance: %s", err.Error())
 	}
 	if err := d.Set("engine", instance.Engine); err != nil {
@@ -411,7 +385,7 @@ func flattenDataSourceList(dataSourceList []*api.DataSourceMessage) []interface{
 	res := []interface{}{}
 	for _, dataSource := range dataSourceList {
 		raw := map[string]interface{}{}
-		raw["title"] = dataSource.Title
+		raw["id"] = dataSource.ID
 		raw["type"] = dataSource.Type
 		raw["username"] = dataSource.Username
 		raw["host"] = dataSource.Host
@@ -428,8 +402,8 @@ func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceMessa
 		for _, raw := range rawList {
 			obj := raw.(map[string]interface{})
 			dataSource := &api.DataSourceMessage{
-				Title: obj["title"].(string),
-				Type:  api.DataSourceType(obj["type"].(string)),
+				ID:   obj["id"].(string),
+				Type: api.DataSourceType(obj["type"].(string)),
 			}
 
 			if dataSourceTypeMap[dataSource.Type] {

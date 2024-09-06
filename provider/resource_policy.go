@@ -2,10 +2,10 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
 
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -25,14 +25,30 @@ func resourcePolicy() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Schema: getPolicySchema(map[string]*schema.Schema{
+		Schema: map[string]*schema.Schema{
+			"parent": {
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					// workspace policy
+					regexp.MustCompile("^$"),
+					// environment policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern)),
+					// instance policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern)),
+					// project policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern)),
+					// database policy
+					regexp.MustCompile(fmt.Sprintf("^%s%s%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern)),
+				),
+				Description: "The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}",
+			},
 			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.PolicyTypeDeploymentApproval),
 					string(api.PolicyTypeBackupPlan),
-					string(api.PolicyTypeSQLReview),
 					string(api.PolicyTypeSensitiveData),
 					string(api.PolicyTypeAccessControl),
 				}, false),
@@ -41,7 +57,13 @@ func resourcePolicy() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The policy name",
+				Description: "The policy full name",
+			},
+			"enforce": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Decide if the policy is enforced.",
 			},
 			"inherit_from_parent": {
 				Type:        schema.TypeBool,
@@ -53,36 +75,28 @@ func resourcePolicy() *schema.Resource {
 			"backup_plan_policy":         getBackupPlanPolicySchema(false),
 			"sensitive_data_policy":      getSensitiveDataPolicy(false),
 			"access_control_policy":      getAccessControlPolicy(false),
-			"sql_review_policy":          getSQLReviewPolicy(false),
-		}),
+		},
 	}
 }
 
 func resourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	find, err := internal.GetPolicyFindMessageByName(d.Id())
+	parent := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
+	policy, err := c.GetPolicy(ctx, parent)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	policy, err := c.GetPolicy(ctx, find)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
+	d.SetId(policy.Name)
 	return setPolicyMessage(d, policy)
 }
 
 func resourcePolicyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	find, err := internal.GetPolicyFindMessageByName(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := c.DeletePolicy(ctx, find); err != nil {
+	policyName := d.Id()
+	if err := c.DeletePolicy(ctx, policyName); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -94,19 +108,19 @@ func resourcePolicyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	find, err := getPolicyFind(ctx, d, c)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	policyName := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
 
 	inheritFromParent := d.Get("inherit_from_parent").(bool)
+	enforce := d.Get("enforce").(bool)
 
 	patch := &api.PolicyPatchMessage{
+		Name:              policyName,
 		InheritFromParent: &inheritFromParent,
-		Type:              *find.Type,
+		Enforce:           &enforce,
 	}
 
-	switch patch.Type {
+	policyType := api.PolicyType(strings.ToUpper(d.Get("type").(string)))
+	switch policyType {
 	case api.PolicyTypeDeploymentApproval:
 		if _, ok := d.GetOk("deployment_approval_policy"); ok {
 			policy, err := convertDeploymentApprovalPolicy(d)
@@ -137,51 +151,19 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			return diag.FromErr(err)
 		}
 		patch.AccessControlPolicy = policy
-	case api.PolicyTypeSQLReview:
-		if _, ok := d.GetOk("sql_review_policy"); ok {
-			policy, err := convertSQLReviewPolicy(d)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			patch.SQLReviewPolicy = policy
-		}
 	}
 
-	if err := validatePolicy(find, patch); err != nil {
+	if err := validatePolicy(policyType, patch); err != nil {
 		return diag.FromErr(err)
 	}
 
-	existedPolicy, err := c.GetPolicy(ctx, find)
-	if err != nil {
-		tflog.Debug(ctx, fmt.Sprintf("get policy %v failed with error: %v", find, err))
-	}
-
 	var diags diag.Diagnostics
-	if existedPolicy != nil && err == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Policy already exists",
-			Detail:   fmt.Sprintf("Policy %s already exists, try to exec the update operation", existedPolicy.Name),
-		})
-
-		if existedPolicy.State == api.Deleted {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  "Policy is deleted",
-				Detail:   fmt.Sprintf("Policy %s already deleted, try to undelete the instance", existedPolicy.Name),
-			})
-
-			enforce := true
-			patch.Enforce = &enforce
-		}
-	}
-
-	p, err := c.UpsertPolicy(ctx, find, patch)
+	p, err := c.UpsertPolicy(ctx, patch)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to upsert policy",
-			Detail:   fmt.Sprintf("Upsert policy %s failed, error: %v", existedPolicy.Name, err),
+			Detail:   fmt.Sprintf("Upsert policy %s failed, error: %v", policyName, err),
 		})
 		return diags
 	}
@@ -198,19 +180,19 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-
-	find, err := getPolicyFind(ctx, d, c)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	policyName := d.Id()
 
 	patch := &api.PolicyPatchMessage{
-		Type: *find.Type,
+		Name: policyName,
 	}
 
 	if d.HasChange("inherit_from_parent") {
 		v := d.Get("inherit_from_parent").(bool)
 		patch.InheritFromParent = &v
+	}
+	if d.HasChange("enforce") {
+		v := d.Get("enforce").(bool)
+		patch.Enforce = &v
 	}
 
 	if d.HasChange("deployment_approval_policy") {
@@ -241,48 +223,18 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		patch.AccessControlPolicy = policy
 	}
-	if d.HasChange("sql_review_policy") {
-		policy, err := convertSQLReviewPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.SQLReviewPolicy = policy
-	}
 
-	if err := validatePolicy(find, patch); err != nil {
+	policyType := api.PolicyType(strings.ToUpper(d.Get("type").(string)))
+	if err := validatePolicy(policyType, patch); err != nil {
 		return diag.FromErr(err)
 	}
 
-	existedPolicy, err := c.GetPolicy(ctx, find)
-	if err != nil {
-		tflog.Debug(ctx, fmt.Sprintf("get policy %v failed with error: %v", find, err))
-	}
-
 	var diags diag.Diagnostics
-	if existedPolicy != nil && err == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Policy already exists",
-			Detail:   fmt.Sprintf("Policy %s already exists, try to exec the update operation", existedPolicy.Name),
-		})
-
-		if existedPolicy.State == api.Deleted {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  "Policy is deleted",
-				Detail:   fmt.Sprintf("Policy %s already deleted, try to undelete the instance", existedPolicy.Name),
-			})
-
-			enforce := true
-			patch.Enforce = &enforce
-		}
-	}
-
-	if _, err := c.UpsertPolicy(ctx, find, patch); err != nil {
+	if _, err := c.UpsertPolicy(ctx, patch); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to upsert policy",
-			Detail:   fmt.Sprintf("Upsert policy %s failed, error: %v", existedPolicy.Name, err),
+			Detail:   fmt.Sprintf("Upsert policy %s failed, error: %v", policyName, err),
 		})
 		return diags
 	}
@@ -389,227 +341,25 @@ func convertAccessControlPolicy(d *schema.ResourceData) (*api.AccessControlPolic
 	return policy, nil
 }
 
-func convertSQLReviewPolicy(d *schema.ResourceData) (*api.SQLReviewPolicy, error) {
-	rawList, ok := d.Get("sql_review_policy").([]interface{})
-	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid sql_review_policy")
-	}
-
-	raw := rawList[0].(map[string]interface{})
-	rules := raw["rules"].([]interface{})
-	if len(rules) == 0 {
-		return nil, errors.Errorf("`rules` is required sql_review_policy")
-	}
-
-	title, ok := raw["title"].(string)
-	if !ok || title == "" {
-		return nil, errors.Errorf("`title` is required sql_review_policy")
-	}
-
-	policy := &api.SQLReviewPolicy{
-		Title: title,
-	}
-
-	ruleMap := map[api.SQLReviewRuleType]bool{}
-	for _, rule := range rules {
-		rawRule := rule.(map[string]interface{})
-		ruleType := api.SQLReviewRuleType(rawRule["type"].(string))
-		if ruleMap[ruleType] {
-			return nil, errors.Errorf("duplicate rule %v", ruleType)
-		}
-		ruleMap[ruleType] = true
-
-		payloadRawList, ok := rawRule["payload"].([]interface{})
-		if ok && len(payloadRawList) > 1 {
-			return nil, errors.Errorf("invalid sql_review_policy payload, only expect one payload for the rule %v", rawRule["type"].(string))
-		}
-
-		payloadRaw := map[string]interface{}{}
-		if len(payloadRawList) == 1 {
-			payloadRaw = payloadRawList[0].(map[string]interface{})
-		}
-		payloadStr, err := mrshalSQLReviewRulePayload(ruleType, payloadRaw)
-		if err != nil {
-			return nil, err
-		}
-
-		policy.Rules = append(policy.Rules, &api.SQLReviewRule{
-			Type:    ruleType,
-			Level:   api.SQLReviewRuleLevel(rawRule["level"].(string)),
-			Engine:  api.EngineType(rawRule["engine"].(string)),
-			Payload: payloadStr,
-		})
-	}
-
-	return policy, nil
-}
-
-func validatePolicy(find *api.PolicyFindMessage, patch *api.PolicyPatchMessage) error {
-	switch patch.Type {
+func validatePolicy(policyType api.PolicyType, patch *api.PolicyPatchMessage) error {
+	switch policyType {
 	case api.PolicyTypeDeploymentApproval:
 		if patch.DeploymentApprovalPolicy == nil {
-			return errors.Errorf("must set deployment_approval_policy for %v policy", patch.Type)
+			return errors.Errorf("must set deployment_approval_policy for %v policy", policyType)
 		}
 	case api.PolicyTypeBackupPlan:
 		if patch.BackupPlanPolicy == nil {
-			return errors.Errorf("must set backup_plan_policy for %v policy", patch.Type)
+			return errors.Errorf("must set backup_plan_policy for %v policy", policyType)
 		}
 	case api.PolicyTypeSensitiveData:
 		if patch.SensitiveDataPolicy == nil {
-			return errors.Errorf("must set sensitive_data_policy for %v policy", patch.Type)
-		}
-		if find.DatabaseName == nil {
-			return errors.Errorf("%v policy only works for the database resource", patch.Type)
+			return errors.Errorf("must set sensitive_data_policy for %v policy", policyType)
 		}
 	case api.PolicyTypeAccessControl:
 		if patch.AccessControlPolicy == nil {
-			return errors.Errorf("must set access_control_policy for %v policy", patch.Type)
-		}
-		if find.ProjectID != nil {
-			return errors.Errorf("%v policy cannot works with the project resource", patch.Type)
-		}
-		if find.EnvironmentID == nil {
-			return errors.Errorf("%v policy must set the environment resource", patch.Type)
-		}
-		if find.DatabaseName != nil && find.InstanceID == nil {
-			return errors.Errorf("%v policy for database must set the instance", patch.Type)
-		}
-	case api.PolicyTypeSQLReview:
-		if patch.SQLReviewPolicy == nil {
-			return errors.Errorf("must set sql_review_policy for %v policy", patch.Type)
-		}
-	}
-
-	if patch.DeploymentApprovalPolicy != nil {
-		if patch.Type != api.PolicyTypeDeploymentApproval {
-			return errors.Errorf("the policy payload deployment_approval_policy not matchs the policy type %v", patch.Type)
-		}
-	}
-
-	if patch.BackupPlanPolicy != nil {
-		if patch.Type != api.PolicyTypeBackupPlan {
-			return errors.Errorf("the policy payload backup_plan_policy not matchs the policy type %v", patch.Type)
-		}
-	}
-
-	if patch.SensitiveDataPolicy != nil {
-		if patch.Type != api.PolicyTypeSensitiveData {
-			return errors.Errorf("the policy payload sensitive_data_policy not matchs the policy type %v", patch.Type)
-		}
-	}
-
-	if patch.AccessControlPolicy != nil {
-		if patch.Type != api.PolicyTypeAccessControl {
-			return errors.Errorf("the policy payload access_control_policy not matchs the policy type %v", patch.Type)
-		}
-	}
-
-	if patch.SQLReviewPolicy != nil {
-		if patch.Type != api.PolicyTypeSQLReview {
-			return errors.Errorf("the policy payload sql_review_policy not matchs the policy type %v", patch.Type)
+			return errors.Errorf("must set access_control_policy for %v policy", policyType)
 		}
 	}
 
 	return nil
-}
-
-func mrshalSQLReviewRulePayload(ruleType api.SQLReviewRuleType, payload map[string]interface{}) (string, error) {
-	switch ruleType {
-	case
-		api.SchemaRuleTableNaming,
-		api.SchemaRuleColumnNaming,
-		api.SchemaRuleAutoIncrementColumnNaming,
-		api.SchemaRuleFKNaming,
-		api.SchemaRuleIDXNaming,
-		api.SchemaRuleUKNaming:
-		format, ok := payload["format"].(string)
-		if !ok || format == "" {
-			return "", errors.Errorf("`format` is required to set for SQL review rule %v", ruleType)
-		}
-		maxLength, ok := payload["max_length"].(int)
-		if !ok || maxLength == 0 {
-			return "", errors.Errorf("`max_length` is required to set for SQL review rule %v", ruleType)
-		}
-		res, err := json.Marshal(&api.NamingRulePayload{
-			Format:    format,
-			MaxLength: maxLength,
-		})
-		if err != nil {
-			return "", errors.Errorf("failed to marshal payload for SQL review rule %v with error %v", ruleType, err.Error())
-		}
-
-		return string(res), nil
-	case
-		api.SchemaRuleColumnCommentConvention,
-		api.SchemaRuleTableCommentConvention:
-		required, ok := payload["required"].(bool)
-		if !ok {
-			return "", errors.Errorf("`required` is required to set for SQL review rule %v", ruleType)
-		}
-		maxLength, ok := payload["max_length"].(int)
-		if !ok || maxLength == 0 {
-			return "", errors.Errorf("`max_length` is required to set for SQL review rule %v", ruleType)
-		}
-		res, err := json.Marshal(&api.CommentConventionRulePayload{
-			Required:  required,
-			MaxLength: maxLength,
-		})
-		if err != nil {
-			return "", errors.Errorf("failed to marshal payload for SQL review rule %v with error %v", ruleType, err.Error())
-		}
-
-		return string(res), nil
-	case
-		api.SchemaRuleIndexKeyNumberLimit,
-		api.SchemaRuleStatementInsertRowLimit,
-		api.SchemaRuleIndexTotalNumberLimit,
-		api.SchemaRuleColumnMaximumCharacterLength,
-		api.SchemaRuleColumnAutoIncrementInitialValue,
-		api.SchemaRuleStatementAffectedRowLimit:
-		number, ok := payload["number"].(int)
-		if !ok {
-			return "", errors.Errorf("`number` is required to set for SQL review rule %v", ruleType)
-		}
-		res, err := json.Marshal(&api.NumberTypeRulePayload{
-			Number: number,
-		})
-		if err != nil {
-			return "", errors.Errorf("failed to marshal payload for SQL review rule %v with error %v", ruleType, err.Error())
-		}
-
-		return string(res), nil
-	case
-		api.SchemaRuleRequiredColumn,
-		api.SchemaRuleColumnTypeDisallowList,
-		api.SchemaRuleCharsetAllowlist,
-		api.SchemaRuleCollationAllowlist,
-		api.SchemaRuleIndexPrimaryKeyTypeAllowlist:
-		list, ok := payload["list"].([]interface{})
-		if !ok {
-			return "", errors.Errorf("`list` is required to set for SQL review rule %v", ruleType)
-		}
-		if len(list) == 0 {
-			return "", errors.Errorf("`list` atleast contains one element for SQL review rule %v", ruleType)
-		}
-
-		stringArray := make([]string, len(list))
-		for i, v := range list {
-			stringArray[i] = fmt.Sprintf("%v", v)
-		}
-
-		res, err := json.Marshal(&api.StringArrayTypeRulePayload{
-			List: stringArray,
-		})
-		if err != nil {
-			return "", errors.Errorf("failed to marshal payload for SQL review rule %v with error %v", ruleType, err.Error())
-		}
-
-		return string(res), nil
-	}
-
-	if len(payload) > 0 {
-		return "", errors.Errorf("cannot set payload for the SQL review rule %v", ruleType)
-	}
-
-	return "", nil
 }

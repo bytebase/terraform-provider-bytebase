@@ -26,6 +26,7 @@ The instance data source.
 - `environment` (String) The environment name for your instance in "environments/{resource id}" format.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
 - `id` (String) The ID of this resource.
+- `name` (String) The instance full name in instances/{resource id} format.
 - `title` (String) The instance title.
 
 <a id="nestedatt--data_sources"></a>
@@ -35,8 +36,8 @@ Read-Only:
 
 - `database` (String)
 - `host` (String)
+- `id` (String)
 - `port` (String)
-- `title` (String)
 - `type` (String)
 - `username` (String)
 

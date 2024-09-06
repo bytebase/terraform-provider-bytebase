@@ -105,12 +105,7 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 			continue
 		}
 
-		envID, err := internal.GetEnvironmentID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-
-		if err := c.DeleteEnvironment(context.Background(), envID); err != nil {
+		if err := c.DeleteEnvironment(context.Background(), rs.Primary.ID); err != nil {
 			return err
 		}
 	}

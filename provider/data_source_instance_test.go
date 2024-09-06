@@ -17,7 +17,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 	resourceID := "test-instance"
 	title := "test instance"
 	engine := "POSTGRES"
-	environment := "test"
+	environment := "environments/test"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -76,7 +76,7 @@ func testAccCheckInstanceDataSource(
 
 	data "bytebase_instance" "%s" {
 		resource_id = "%s"
-		depends_on = [
+		depends_on  = [
     		%s
   		]
 	}

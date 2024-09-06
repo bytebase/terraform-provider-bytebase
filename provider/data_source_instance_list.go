@@ -33,6 +33,11 @@ func dataSourceInstanceList() *schema.Resource {
 							Computed:    true,
 							Description: "The instance unique resource id.",
 						},
+						"name": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The instance full name in instances/{resource id} format.",
+						},
 						"environment": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -58,10 +63,10 @@ func dataSourceInstanceList() *schema.Resource {
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"title": {
+									"id": {
 										Type:        schema.TypeString,
 										Computed:    true,
-										Description: "The unique data source name in this instance.",
+										Description: "The unique data source id in this instance.",
 									},
 									"type": {
 										Type:        schema.TypeString,
@@ -121,15 +126,11 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		ins := make(map[string]interface{})
 		ins["resource_id"] = instanceID
 		ins["title"] = instance.Title
+		ins["name"] = instance.Name
 		ins["engine"] = instance.Engine
 		ins["external_link"] = instance.ExternalLink
 		ins["data_sources"] = flattenDataSourceList(instance.DataSources)
-
-		envID, err := internal.GetEnvironmentID(instance.Environment)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		ins["environment"] = envID
+		ins["environment"] = instance.Environment
 
 		instances = append(instances, ins)
 	}

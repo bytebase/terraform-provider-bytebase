@@ -30,14 +30,10 @@ The project data source list.
 Read-Only:
 
 - `databases` (List of Object) (see [below for nested schema](#nestedobjatt--projects--databases))
-- `db_name_template` (String)
 - `key` (String)
+- `name` (String)
 - `resource_id` (String)
-- `schema_change` (String)
-- `schema_version` (String)
-- `tenant_mode` (String)
 - `title` (String)
-- `visibility` (String)
 - `workflow` (String)
 
 <a id="nestedobjatt--projects--databases"></a>
@@ -45,7 +41,7 @@ Read-Only:
 
 Read-Only:
 
-- `instance` (String)
+- `environment` (String)
 - `labels` (Map of String)
 - `name` (String)
 - `schema_version` (String)

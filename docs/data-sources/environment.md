@@ -23,6 +23,7 @@ The environment data source.
 
 - `environment_tier_policy` (String) If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default.
 - `id` (String) The ID of this resource.
+- `name` (String) The environment full name in environments/{resource id} format.
 - `order` (Number) The environment sorting order.
 - `title` (String) The environment unique name.
 

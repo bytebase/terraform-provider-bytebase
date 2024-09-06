@@ -27,6 +27,11 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "The project title.",
 			},
+			"name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The project full name in projects/{resource id} format.",
+			},
 			"key": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -37,31 +42,6 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "The project workflow.",
 			},
-			"visibility": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The project visibility.",
-			},
-			"tenant_mode": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The project tenant mode.",
-			},
-			"db_name_template": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The project db name template.",
-			},
-			"schema_version": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The project schema version.",
-			},
-			"schema_change": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The project schema change type.",
-			},
 			"databases": {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -71,12 +51,12 @@ func dataSourceProject() *schema.Resource {
 						"name": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The database name.",
+							Description: "The database full name in instances/{instance id}/databases/{db name} format.",
 						},
-						"instance": {
+						"environment": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The instance resource id for the database.",
+							Description: "The database environment.",
 						},
 						"sync_state": {
 							Type:        schema.TypeString,
@@ -108,8 +88,8 @@ func dataSourceProject() *schema.Resource {
 
 func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-
-	project, err := c.GetProject(ctx, d.Get("resource_id").(string), false /* showDeleted */)
+	projectName := fmt.Sprintf("%s%s", internal.ProjectNamePrefix, d.Get("resource_id").(string))
+	project, err := c.GetProject(ctx, projectName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -128,7 +108,9 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func setProjectWithDatabases(d *schema.ResourceData, project *api.ProjectMessage, databases []*api.DatabaseMessage) diag.Diagnostics {
-	projectID, err := internal.GetProjectID(d.Id())
+	d.SetId(project.Name)
+
+	projectID, err := internal.GetProjectID(project.Name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -137,6 +119,9 @@ func setProjectWithDatabases(d *schema.ResourceData, project *api.ProjectMessage
 	}
 	if err := d.Set("title", project.Title); err != nil {
 		return diag.Errorf("cannot set title for project: %s", err.Error())
+	}
+	if err := d.Set("name", project.Name); err != nil {
+		return diag.Errorf("cannot set name for project: %s", err.Error())
 	}
 	if err := d.Set("key", project.Key); err != nil {
 		return diag.Errorf("cannot set key for project: %s", err.Error())
@@ -147,29 +132,12 @@ func setProjectWithDatabases(d *schema.ResourceData, project *api.ProjectMessage
 	if err := d.Set("workflow", project.Workflow); err != nil {
 		return diag.Errorf("cannot set workflow for project: %s", err.Error())
 	}
-	if err := d.Set("visibility", project.Visibility); err != nil {
-		return diag.Errorf("cannot set visibility for project: %s", err.Error())
-	}
-	if err := d.Set("tenant_mode", project.TenantMode); err != nil {
-		return diag.Errorf("cannot set tenant_mode for project: %s", err.Error())
-	}
-	if err := d.Set("db_name_template", project.DBNameTemplate); err != nil {
-		return diag.Errorf("cannot set db_name_template for project: %s", err.Error())
-	}
-	if err := d.Set("schema_change", project.SchemaChange); err != nil {
-		return diag.Errorf("cannot set schema_change for project: %s", err.Error())
-	}
 
 	dbList := []interface{}{}
 	for _, database := range databases {
-		instanceID, databaseName, err := internal.GetInstanceDatabaseID(database.Name)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
 		db := map[string]interface{}{}
-		db["name"] = databaseName
-		db["instance"] = instanceID
+		db["name"] = database.Name
+		db["environment"] = database.Environment
 		db["sync_state"] = database.SyncState
 		db["successful_sync_time"] = database.SuccessfulSyncTime
 		db["schema_version"] = database.SchemaVersion

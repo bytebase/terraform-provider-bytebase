@@ -30,24 +30,20 @@ func TestAccProject(t *testing.T) {
 		Steps: []resource.TestStep{
 			// resource create
 			{
-				Config: testAccCheckProjectResource(identifier, resourceID, title, key, api.ProjectWorkflowUI, api.ProjectSchemaChangeDDL),
+				Config: testAccCheckProjectResource(identifier, resourceID, title, key),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", title),
 					resource.TestCheckResourceAttr(resourceName, "key", key),
-					resource.TestCheckResourceAttr(resourceName, "workflow", string(api.ProjectWorkflowUI)),
-					resource.TestCheckResourceAttr(resourceName, "schema_change", string(api.ProjectSchemaChangeDDL)),
 				),
 			},
 			// resource updated
 			{
-				Config: testAccCheckProjectResource(identifier, resourceID, titleUpdated, key, api.ProjectWorkflowVCS, api.ProjectSchemaChangeSDL),
+				Config: testAccCheckProjectResource(identifier, resourceID, titleUpdated, key),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", titleUpdated),
 					resource.TestCheckResourceAttr(resourceName, "key", key),
-					resource.TestCheckResourceAttr(resourceName, "workflow", string(api.ProjectWorkflowVCS)),
-					resource.TestCheckResourceAttr(resourceName, "schema_change", string(api.ProjectSchemaChangeSDL)),
 				),
 			},
 		},
@@ -62,12 +58,7 @@ func testAccCheckProjectDestroy(s *terraform.State) error {
 			continue
 		}
 
-		projectID, err := internal.GetProjectID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-
-		if err := c.DeleteProject(context.Background(), projectID); err != nil {
+		if err := c.DeleteProject(context.Background(), rs.Primary.ID); err != nil {
 			return err
 		}
 	}
@@ -75,16 +66,12 @@ func testAccCheckProjectDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckProjectResource(identifier, resourceID, title, key string, workflow api.ProjectWorkflow, schemaChange api.ProjectSchemaChange) string {
+func testAccCheckProjectResource(identifier, resourceID, title, key string) string {
 	return fmt.Sprintf(`
 	resource "bytebase_project" "%s" {
 		resource_id    = "%s"
 		title          = "%s"
 		key            = "%s"
-		workflow       = "%s"
-		schema_change  = "%s"
-		tenant_mode    = "TENANT_MODE_DISABLED"
-		visibility     = "VISIBILITY_PUBLIC"
 	}
-	`, identifier, resourceID, title, key, workflow, schemaChange)
+	`, identifier, resourceID, title, key)
 }

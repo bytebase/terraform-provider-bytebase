@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -14,7 +13,6 @@ import (
 var environmentMap map[string]*api.EnvironmentMessage
 var instanceMap map[string]*api.InstanceMessage
 var policyMap map[string]*api.PolicyMessage
-var roleMap map[string]*api.Role
 var projectMap map[string]*api.ProjectMessage
 var databaseMap map[string]*api.DatabaseMessage
 
@@ -22,7 +20,6 @@ func init() {
 	environmentMap = map[string]*api.EnvironmentMessage{}
 	instanceMap = map[string]*api.InstanceMessage{}
 	policyMap = map[string]*api.PolicyMessage{}
-	roleMap = map[string]*api.Role{}
 	projectMap = map[string]*api.ProjectMessage{}
 	databaseMap = map[string]*api.DatabaseMessage{}
 }
@@ -32,7 +29,6 @@ type mockClient struct {
 	instanceMap    map[string]*api.InstanceMessage
 	policyMap      map[string]*api.PolicyMessage
 	projectMap     map[string]*api.ProjectMessage
-	roleMap        map[string]*api.Role
 	databaseMap    map[string]*api.DatabaseMessage
 }
 
@@ -42,7 +38,6 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		environmentMap: environmentMap,
 		instanceMap:    instanceMap,
 		policyMap:      policyMap,
-		roleMap:        roleMap,
 		projectMap:     projectMap,
 		databaseMap:    databaseMap,
 	}, nil
@@ -56,7 +51,7 @@ func (*mockClient) Login() (*api.AuthResponse, error) {
 // CreateEnvironment creates the environment.
 func (c *mockClient) CreateEnvironment(_ context.Context, environmentID string, create *api.EnvironmentMessage) (*api.EnvironmentMessage, error) {
 	env := &api.EnvironmentMessage{
-		Name:  fmt.Sprintf("environments/%s", environmentID),
+		Name:  fmt.Sprintf("%s%s", EnvironmentNamePrefix, environmentID),
 		Order: create.Order,
 		Title: create.Title,
 		State: api.Active,
@@ -73,10 +68,10 @@ func (c *mockClient) CreateEnvironment(_ context.Context, environmentID string, 
 }
 
 // GetEnvironment gets the environment by id.
-func (c *mockClient) GetEnvironment(_ context.Context, environmentID string) (*api.EnvironmentMessage, error) {
-	env, ok := c.environmentMap[fmt.Sprintf("environments/%s", environmentID)]
+func (c *mockClient) GetEnvironment(_ context.Context, environmentName string) (*api.EnvironmentMessage, error) {
+	env, ok := c.environmentMap[environmentName]
 	if !ok {
-		return nil, errors.Errorf("Cannot found environment with ID %s", environmentID)
+		return nil, errors.Errorf("Cannot found environment %s", environmentName)
 	}
 
 	return env, nil
@@ -98,8 +93,8 @@ func (c *mockClient) ListEnvironment(_ context.Context, showDeleted bool) (*api.
 }
 
 // UpdateEnvironment updates the environment.
-func (c *mockClient) UpdateEnvironment(ctx context.Context, environmentID string, patch *api.EnvironmentPatchMessage) (*api.EnvironmentMessage, error) {
-	env, err := c.GetEnvironment(ctx, environmentID)
+func (c *mockClient) UpdateEnvironment(ctx context.Context, patch *api.EnvironmentPatchMessage) (*api.EnvironmentMessage, error) {
+	env, err := c.GetEnvironment(ctx, patch.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -120,8 +115,8 @@ func (c *mockClient) UpdateEnvironment(ctx context.Context, environmentID string
 }
 
 // DeleteEnvironment deletes the environment.
-func (c *mockClient) DeleteEnvironment(ctx context.Context, environmentID string) error {
-	env, err := c.GetEnvironment(ctx, environmentID)
+func (c *mockClient) DeleteEnvironment(ctx context.Context, environmentName string) error {
+	env, err := c.GetEnvironment(ctx, environmentName)
 	if err != nil {
 		return err
 	}
@@ -132,8 +127,8 @@ func (c *mockClient) DeleteEnvironment(ctx context.Context, environmentID string
 }
 
 // UndeleteEnvironment undeletes the environment.
-func (c *mockClient) UndeleteEnvironment(ctx context.Context, environmentID string) (*api.EnvironmentMessage, error) {
-	env, err := c.GetEnvironment(ctx, environmentID)
+func (c *mockClient) UndeleteEnvironment(ctx context.Context, environmentName string) (*api.EnvironmentMessage, error) {
+	env, err := c.GetEnvironment(ctx, environmentName)
 	if err != nil {
 		return nil, err
 	}
@@ -159,11 +154,10 @@ func (c *mockClient) ListInstance(_ context.Context, find *api.InstanceFindMessa
 }
 
 // GetInstance gets the instance by id.
-func (c *mockClient) GetInstance(_ context.Context, find *api.InstanceFindMessage) (*api.InstanceMessage, error) {
-	name := fmt.Sprintf("instances/%s", find.InstanceID)
-	ins, ok := c.instanceMap[name]
+func (c *mockClient) GetInstance(_ context.Context, instanceName string) (*api.InstanceMessage, error) {
+	ins, ok := c.instanceMap[instanceName]
 	if !ok {
-		return nil, errors.Errorf("Cannot found instance %s", name)
+		return nil, errors.Errorf("Cannot found instance %s", instanceName)
 	}
 
 	return ins, nil
@@ -172,7 +166,7 @@ func (c *mockClient) GetInstance(_ context.Context, find *api.InstanceFindMessag
 // CreateInstance creates the instance.
 func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instance *api.InstanceMessage) (*api.InstanceMessage, error) {
 	ins := &api.InstanceMessage{
-		Name:         fmt.Sprintf("instances/%s", instanceID),
+		Name:         fmt.Sprintf("%s%s", InstanceNamePrefix, instanceID),
 		State:        api.Active,
 		Title:        instance.Title,
 		Engine:       instance.Engine,
@@ -187,7 +181,7 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 	}
 
 	database := &api.DatabaseMessage{
-		Name:      fmt.Sprintf("%s/databases/default", ins.Name),
+		Name:      fmt.Sprintf("%s/%sdefault", ins.Name, DatabaseIDPrefix),
 		SyncState: api.Active,
 		Labels: map[string]string{
 			"bb.environment": envID,
@@ -200,10 +194,8 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 }
 
 // UpdateInstance updates the instance.
-func (c *mockClient) UpdateInstance(ctx context.Context, instanceID string, patch *api.InstancePatchMessage) (*api.InstanceMessage, error) {
-	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		InstanceID: instanceID,
-	})
+func (c *mockClient) UpdateInstance(ctx context.Context, patch *api.InstancePatchMessage) (*api.InstanceMessage, error) {
+	ins, err := c.GetInstance(ctx, patch.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -223,11 +215,8 @@ func (c *mockClient) UpdateInstance(ctx context.Context, instanceID string, patc
 }
 
 // DeleteInstance deletes the instance.
-func (c *mockClient) DeleteInstance(ctx context.Context, instanceID string) error {
-	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		InstanceID:  instanceID,
-		ShowDeleted: false,
-	})
+func (c *mockClient) DeleteInstance(ctx context.Context, instanceName string) error {
+	ins, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
 		return err
 	}
@@ -239,11 +228,8 @@ func (c *mockClient) DeleteInstance(ctx context.Context, instanceID string) erro
 }
 
 // UndeleteInstance undeletes the instance.
-func (c *mockClient) UndeleteInstance(ctx context.Context, instanceID string) (*api.InstanceMessage, error) {
-	ins, err := c.GetInstance(ctx, &api.InstanceFindMessage{
-		InstanceID:  instanceID,
-		ShowDeleted: true,
-	})
+func (c *mockClient) UndeleteInstance(ctx context.Context, instanceName string) (*api.InstanceMessage, error) {
+	ins, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
 		return nil, err
 	}
@@ -259,105 +245,11 @@ func (*mockClient) SyncInstanceSchema(_ context.Context, _ string) error {
 	return nil
 }
 
-// CreateRole creates the role in the instance.
-func (c *mockClient) CreateRole(_ context.Context, instanceID string, create *api.RoleUpsert) (*api.Role, error) {
-	id := getRoleMapID(instanceID, create.RoleName)
-
-	if _, ok := c.roleMap[id]; ok {
-		return nil, errors.Errorf("Role %s already exists", create.RoleName)
-	}
-
-	role := &api.Role{
-		Name:            id,
-		RoleName:        create.RoleName,
-		ConnectionLimit: -1,
-		Attribute:       create.Attribute,
-	}
-	if v := create.ConnectionLimit; v != nil {
-		role.ConnectionLimit = *v
-	}
-	if v := create.ValidUntil; v != nil {
-		role.ValidUntil = v
-	}
-
-	c.roleMap[id] = role
-	return role, nil
-}
-
-// GetRole gets the role by instance id and role name.
-func (c *mockClient) GetRole(_ context.Context, instanceID, roleName string) (*api.Role, error) {
-	id := getRoleMapID(instanceID, roleName)
-	role, ok := c.roleMap[id]
-	if !ok {
-		return nil, errors.Errorf("Cannot found role with ID %s", id)
-	}
-
-	return role, nil
-}
-
-func (c *mockClient) ListRole(_ context.Context, instanceID string) ([]*api.Role, error) {
-	res := []*api.Role{}
-	regex := regexp.MustCompile(fmt.Sprintf("^instances/%s/roles/", instanceID))
-	for key, role := range c.roleMap {
-		if regex.MatchString(key) {
-			res = append(res, role)
-		}
-	}
-
-	return res, nil
-}
-
-// UpdateRole updates the role in instance.
-func (c *mockClient) UpdateRole(ctx context.Context, instanceID, roleName string, patch *api.RoleUpsert) (*api.Role, error) {
-	role, err := c.GetRole(ctx, instanceID, roleName)
-	if err != nil {
-		return nil, err
-	}
-
-	newRole := &api.Role{
-		Name:            getRoleMapID(instanceID, patch.RoleName),
-		RoleName:        patch.RoleName,
-		ConnectionLimit: role.ConnectionLimit,
-		ValidUntil:      role.ValidUntil,
-		Attribute:       role.Attribute,
-	}
-	if err := c.DeleteRole(ctx, instanceID, roleName); err != nil {
-		return nil, err
-	}
-
-	if v := patch.ConnectionLimit; v != nil {
-		newRole.ConnectionLimit = *v
-	}
-	if v := patch.ValidUntil; v != nil {
-		newRole.ValidUntil = v
-	}
-	if v := patch.Attribute; v != nil {
-		newRole.Attribute = v
-	}
-
-	c.roleMap[newRole.Name] = newRole
-	return role, nil
-}
-
-// DeleteRole deletes the role in the instance.
-func (c *mockClient) DeleteRole(_ context.Context, instanceID, roleName string) error {
-	delete(c.roleMap, getRoleMapID(instanceID, roleName))
-	return nil
-}
-
-func getRoleMapID(instanceID, roleName string) string {
-	return fmt.Sprintf("instances/%s/roles/%s", instanceID, roleName)
-}
-
 // ListPolicies lists policies in a specific resource.
 func (c *mockClient) ListPolicies(_ context.Context, find *api.PolicyFindMessage) (*api.ListPolicyMessage, error) {
 	policies := make([]*api.PolicyMessage, 0)
-	name := getPolicyRequestName(find)
 	for _, policy := range c.policyMap {
-		if policy.State == api.Deleted && !find.ShowDeleted {
-			continue
-		}
-		if name == "policies" || policy.Name == name {
+		if find.Parent == "" || strings.HasPrefix(policy.Name, find.Parent) {
 			policies = append(policies, policy)
 		}
 	}
@@ -368,29 +260,33 @@ func (c *mockClient) ListPolicies(_ context.Context, find *api.PolicyFindMessage
 }
 
 // GetPolicy gets a policy in a specific resource.
-func (c *mockClient) GetPolicy(_ context.Context, find *api.PolicyFindMessage) (*api.PolicyMessage, error) {
-	name := getPolicyRequestName(find)
-	policy, ok := c.policyMap[name]
+func (c *mockClient) GetPolicy(_ context.Context, policyName string) (*api.PolicyMessage, error) {
+	policy, ok := c.policyMap[policyName]
 	if !ok {
-		return nil, errors.Errorf("Cannot found policy %s", name)
+		return nil, errors.Errorf("Cannot found policy %s", policyName)
 	}
 
 	return policy, nil
 }
 
 // UpsertPolicy creates or updates the policy.
-func (c *mockClient) UpsertPolicy(_ context.Context, find *api.PolicyFindMessage, patch *api.PolicyPatchMessage) (*api.PolicyMessage, error) {
-	name := getPolicyRequestName(find)
-	policy, existed := c.policyMap[name]
+func (c *mockClient) UpsertPolicy(_ context.Context, patch *api.PolicyPatchMessage) (*api.PolicyMessage, error) {
+	_, policyType, err := GetPolicyParentAndType(patch.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	policy, existed := c.policyMap[patch.Name]
 
 	if !existed {
 		policy = &api.PolicyMessage{
-			Name:  name,
-			State: api.Active,
+			Name:    patch.Name,
+			Type:    policyType,
+			Enforce: true,
 		}
 	}
 
-	switch patch.Type {
+	switch policyType {
 	case api.PolicyTypeAccessControl:
 		if !existed {
 			if patch.AccessControlPolicy == nil {
@@ -418,15 +314,6 @@ func (c *mockClient) UpsertPolicy(_ context.Context, find *api.PolicyFindMessage
 		if v := patch.DeploymentApprovalPolicy; v != nil {
 			policy.DeploymentApprovalPolicy = v
 		}
-	case api.PolicyTypeSQLReview:
-		if !existed {
-			if patch.SQLReviewPolicy == nil {
-				return nil, errors.Errorf("payload is required to create the policy")
-			}
-		}
-		if v := patch.SQLReviewPolicy; v != nil {
-			policy.SQLReviewPolicy = v
-		}
 	case api.PolicyTypeSensitiveData:
 		if !existed {
 			if patch.SensitiveDataPolicy == nil {
@@ -437,56 +324,29 @@ func (c *mockClient) UpsertPolicy(_ context.Context, find *api.PolicyFindMessage
 			policy.SensitiveDataPolicy = v
 		}
 	default:
-		return nil, errors.Errorf("invalid policy type %v", patch.Type)
+		return nil, errors.Errorf("invalid policy type %v", policyType)
 	}
 
 	if v := patch.InheritFromParent; v != nil {
 		policy.InheritFromParent = *v
 	}
 
-	c.policyMap[name] = policy
+	c.policyMap[policy.Name] = policy
 
 	return policy, nil
 }
 
 // DeletePolicy deletes the policy.
-func (c *mockClient) DeletePolicy(_ context.Context, find *api.PolicyFindMessage) error {
-	name := getPolicyRequestName(find)
-	delete(c.roleMap, name)
+func (c *mockClient) DeletePolicy(_ context.Context, policyName string) error {
+	delete(c.policyMap, policyName)
 	return nil
 }
 
-func getPolicyRequestName(find *api.PolicyFindMessage) string {
-	paths := []string{}
-	if v := find.ProjectID; v != nil {
-		paths = append(paths, fmt.Sprintf("projects/%s", *v))
-	}
-	if v := find.EnvironmentID; v != nil {
-		paths = append(paths, fmt.Sprintf("environments/%s", *v))
-	}
-	if v := find.InstanceID; v != nil {
-		paths = append(paths, fmt.Sprintf("instances/%s", *v))
-	}
-	if v := find.DatabaseName; v != nil {
-		paths = append(paths, fmt.Sprintf("databases/%s", *v))
-	}
-
-	paths = append(paths, "policies")
-
-	name := strings.Join(paths, "/")
-	if v := find.Type; v != nil {
-		name = fmt.Sprintf("%s/%s", name, *v)
-	}
-
-	return name
-}
-
 // GetDatabase gets the database by instance resource id and the database name.
-func (c *mockClient) GetDatabase(_ context.Context, find *api.DatabaseFindMessage) (*api.DatabaseMessage, error) {
-	name := fmt.Sprintf("instances/%s/databases/%s", find.InstanceID, find.DatabaseName)
-	db, ok := c.databaseMap[name]
+func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*api.DatabaseMessage, error) {
+	db, ok := c.databaseMap[databaseName]
 	if !ok {
-		return nil, errors.Errorf("Cannot found project %s", name)
+		return nil, errors.Errorf("Cannot found database %s", databaseName)
 	}
 
 	return db, nil
@@ -503,7 +363,7 @@ func (c *mockClient) ListDatabase(_ context.Context, find *api.DatabaseFindMessa
 		if projectID != "-" && fmt.Sprintf(`"%s"`, db.Project) != projectID {
 			continue
 		}
-		if find.InstanceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("instances/%s", find.InstanceID)) {
+		if find.InstanceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("%s%s", InstanceNamePrefix, find.InstanceID)) {
 			continue
 		}
 		databases = append(databases, db)
@@ -516,15 +376,7 @@ func (c *mockClient) ListDatabase(_ context.Context, find *api.DatabaseFindMessa
 
 // UpdateDatabase patches the database.
 func (c *mockClient) UpdateDatabase(ctx context.Context, patch *api.DatabasePatchMessage) (*api.DatabaseMessage, error) {
-	instanceID, databaseName, err := GetInstanceDatabaseID(patch.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	db, err := c.GetDatabase(ctx, &api.DatabaseFindMessage{
-		InstanceID:   instanceID,
-		DatabaseName: databaseName,
-	})
+	db, err := c.GetDatabase(ctx, patch.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -539,11 +391,10 @@ func (c *mockClient) UpdateDatabase(ctx context.Context, patch *api.DatabasePatc
 }
 
 // GetProject gets the project by resource id.
-func (c *mockClient) GetProject(_ context.Context, projectID string, _ bool) (*api.ProjectMessage, error) {
-	name := fmt.Sprintf("projects/%s", projectID)
-	proj, ok := c.projectMap[name]
+func (c *mockClient) GetProject(_ context.Context, projectName string) (*api.ProjectMessage, error) {
+	proj, ok := c.projectMap[projectName]
 	if !ok {
-		return nil, errors.Errorf("Cannot found project %s", name)
+		return nil, errors.Errorf("Cannot found project %s", projectName)
 	}
 
 	return proj, nil
@@ -567,15 +418,11 @@ func (c *mockClient) ListProject(_ context.Context, showDeleted bool) (*api.List
 // CreateProject creates the project.
 func (c *mockClient) CreateProject(_ context.Context, projectID string, project *api.ProjectMessage) (*api.ProjectMessage, error) {
 	proj := &api.ProjectMessage{
-		Name:           fmt.Sprintf("projects/%s", projectID),
-		State:          api.Active,
-		Title:          project.Title,
-		Key:            project.Key,
-		Workflow:       project.Workflow,
-		Visibility:     project.Visibility,
-		TenantMode:     project.TenantMode,
-		DBNameTemplate: project.DBNameTemplate,
-		SchemaChange:   project.SchemaChange,
+		Name:     fmt.Sprintf("%s%s", ProjectNamePrefix, projectID),
+		State:    api.Active,
+		Title:    project.Title,
+		Key:      project.Key,
+		Workflow: api.ProjectWorkflowUI,
 	}
 
 	c.projectMap[proj.Name] = proj
@@ -583,8 +430,8 @@ func (c *mockClient) CreateProject(_ context.Context, projectID string, project 
 }
 
 // UpdateProject updates the project.
-func (c *mockClient) UpdateProject(ctx context.Context, projectID string, patch *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
-	proj, err := c.GetProject(ctx, projectID, false)
+func (c *mockClient) UpdateProject(ctx context.Context, patch *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
+	proj, err := c.GetProject(ctx, patch.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -595,26 +442,14 @@ func (c *mockClient) UpdateProject(ctx context.Context, projectID string, patch 
 	if v := patch.Key; v != nil {
 		proj.Key = *v
 	}
-	if v := patch.Workflow; v != nil {
-		proj.Workflow = *v
-	}
-	if v := patch.TenantMode; v != nil {
-		proj.TenantMode = *v
-	}
-	if v := patch.DBNameTemplate; v != nil {
-		proj.DBNameTemplate = *v
-	}
-	if v := patch.SchemaChange; v != nil {
-		proj.SchemaChange = *v
-	}
 
 	c.projectMap[proj.Name] = proj
 	return proj, nil
 }
 
 // DeleteProject deletes the project.
-func (c *mockClient) DeleteProject(ctx context.Context, projectID string) error {
-	proj, err := c.GetProject(ctx, projectID, false)
+func (c *mockClient) DeleteProject(ctx context.Context, projectName string) error {
+	proj, err := c.GetProject(ctx, projectName)
 	if err != nil {
 		return err
 	}
@@ -626,8 +461,8 @@ func (c *mockClient) DeleteProject(ctx context.Context, projectID string) error 
 }
 
 // UndeleteProject undeletes the project.
-func (c *mockClient) UndeleteProject(ctx context.Context, projectID string) (*api.ProjectMessage, error) {
-	proj, err := c.GetProject(ctx, projectID, true)
+func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*api.ProjectMessage, error) {
+	proj, err := c.GetProject(ctx, projectName)
 	if err != nil {
 		return nil, err
 	}

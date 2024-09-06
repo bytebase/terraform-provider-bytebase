@@ -32,8 +32,8 @@ func (c *client) ListInstance(ctx context.Context, find *api.InstanceFindMessage
 }
 
 // GetInstance gets the instance by id.
-func (c *client) GetInstance(ctx context.Context, find *api.InstanceFindMessage) (*api.InstanceMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/instances/%s", c.url, c.version, find.InstanceID), nil)
+func (c *client) GetInstance(ctx context.Context, instanceName string) (*api.InstanceMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, instanceName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *client) CreateInstance(ctx context.Context, instanceID string, instance
 }
 
 // UpdateInstance updates the instance.
-func (c *client) UpdateInstance(ctx context.Context, instanceID string, patch *api.InstancePatchMessage) (*api.InstanceMessage, error) {
+func (c *client) UpdateInstance(ctx context.Context, patch *api.InstancePatchMessage) (*api.InstanceMessage, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func (c *client) UpdateInstance(ctx context.Context, instanceID string, patch *a
 		paths = append(paths, "data_sources")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/instances/%s?update_mask=%s", c.url, c.version, instanceID, strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 
 	if err != nil {
 		return nil, err
@@ -118,8 +118,8 @@ func (c *client) UpdateInstance(ctx context.Context, instanceID string, patch *a
 }
 
 // DeleteInstance deletes the instance.
-func (c *client) DeleteInstance(ctx context.Context, instanceID string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/instances/%s", c.url, c.version, instanceID), nil)
+func (c *client) DeleteInstance(ctx context.Context, instanceName string) error {
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, instanceName), nil)
 	if err != nil {
 		return err
 	}
@@ -131,8 +131,8 @@ func (c *client) DeleteInstance(ctx context.Context, instanceID string) error {
 }
 
 // UndeleteInstance undeletes the instance.
-func (c *client) UndeleteInstance(ctx context.Context, instanceID string) (*api.InstanceMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/instances/%s:undelete", c.url, c.version, instanceID), nil)
+func (c *client) UndeleteInstance(ctx context.Context, instanceName string) (*api.InstanceMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:undelete", c.url, c.version, instanceName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +152,8 @@ func (c *client) UndeleteInstance(ctx context.Context, instanceID string) (*api.
 }
 
 // SyncInstanceSchema will trigger the schema sync for an instance.
-func (c *client) SyncInstanceSchema(ctx context.Context, instanceID string) error {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/instances/%s:sync", c.url, c.version, instanceID), nil)
+func (c *client) SyncInstanceSchema(ctx context.Context, instanceName string) error {
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:sync", c.url, c.version, instanceName), nil)
 
 	if err != nil {
 		return err
