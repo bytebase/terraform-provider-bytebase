@@ -32,9 +32,10 @@ jobs:
           version=`cat VERSION`
           echo "version=${version}" >> $GITHUB_OUTPUT
       - name: Create Tag
-        uses: rickstaa/action-create-tag@v1
+        uses: rickstaa/action-create-tag@v1.7.2
         with:
           tag: "v${{ steps.get-version.outputs.version }}"
+          force_push_tag: true
           tag_exists_error: false
           message: "Release v${{ steps.get-version.outputs.version }}"
   goreleaser:
