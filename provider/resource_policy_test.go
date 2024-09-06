@@ -25,7 +25,7 @@ func TestAccPolicy(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"backup_plan",
-					"test",
+					"environments/test",
 					getBackupPlanPolicy(string(api.BackupPlanScheduleDaily), 999),
 					api.PolicyTypeBackupPlan,
 				),
@@ -40,7 +40,7 @@ func TestAccPolicy(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"backup_plan",
-					"test",
+					"environments/test",
 					getBackupPlanPolicy(string(api.BackupPlanScheduleWeekly), 99),
 					api.PolicyTypeBackupPlan,
 				),
@@ -55,7 +55,7 @@ func TestAccPolicy(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"deployment_approval",
-					"test",
+					"environments/test",
 					getDeploymentApprovalPolicy(string(api.ApprovalStrategyAutomatic), []*api.DeploymentApprovalStrategy{
 						{
 							ApprovalGroup:    api.ApprovalGroupDBA,
@@ -95,7 +95,7 @@ func TestAccPolicy_InvalidInput(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"backup_plan",
-					"test",
+					"environments/test",
 					getBackupPlanPolicy("daily", 999),
 					api.PolicyTypeBackupPlan,
 				),
@@ -104,7 +104,7 @@ func TestAccPolicy_InvalidInput(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"deployment_approval",
-					"test",
+					"environments/test",
 					getDeploymentApprovalPolicy("unknown", []*api.DeploymentApprovalStrategy{
 						{
 							ApprovalGroup:    api.ApprovalGroupDBA,
@@ -125,15 +125,15 @@ func TestAccPolicy_InvalidInput(t *testing.T) {
 	})
 }
 
-func testAccCheckPolicyResource(identifier, environment, payload string, pType api.PolicyType) string {
+func testAccCheckPolicyResource(identifier, parent, payload string, pType api.PolicyType) string {
 	return fmt.Sprintf(`
 	resource "bytebase_policy" "%s" {
-		environment = "%s"
-		type        = "%s"
+		parent = "%s"
+		type   = "%s"
 
 		%s
 	}
-	`, identifier, environment, pType, payload)
+	`, identifier, parent, pType, payload)
 }
 
 func getBackupPlanPolicy(schedule string, duration int) string {
@@ -159,7 +159,7 @@ func getDeploymentApprovalPolicy(defaultStrategy string, strategies []*api.Deplo
 
 	return fmt.Sprintf(`
 	deployment_approval_policy {
-		default_strategy           = "%s"
+		default_strategy = "%s"
 		%s
 	}
 	`, defaultStrategy, strings.Join(approvalStrategies, "\n"))
@@ -173,12 +173,7 @@ func testAccCheckPolicyDestroy(s *terraform.State) error {
 			continue
 		}
 
-		find, err := internal.GetPolicyFindMessageByName(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-
-		if err := c.DeletePolicy(context.Background(), find); err != nil {
+		if err := c.DeletePolicy(context.Background(), rs.Primary.ID); err != nil {
 			return err
 		}
 	}

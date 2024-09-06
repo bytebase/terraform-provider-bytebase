@@ -20,7 +20,7 @@ func TestAccInstance(t *testing.T) {
 	resourceID := "test-instance"
 	title := "test instance"
 	engine := "POSTGRES"
-	environment := "test"
+	environment := "environments/test"
 	titleUpdated := fmt.Sprintf("%s-updated", title)
 
 	resource.Test(t, resource.TestCase{
@@ -69,12 +69,12 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Invalid instance name
 			{
-				Config:      testAccCheckInstanceResource(identifier, "test-instance", "", engine, "test"),
+				Config:      testAccCheckInstanceResource(identifier, "test-instance", "", engine, "environments/test"),
 				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
 			},
 			// Invalid engine
 			{
-				Config:      testAccCheckInstanceResource(identifier, "test-instance", "test instance", "engine", "test"),
+				Config:      testAccCheckInstanceResource(identifier, "test-instance", "test instance", "engine", "environments/test"),
 				ExpectError: regexp.MustCompile("expected engine to be one of"),
 			},
 			// Invalid data source
@@ -84,9 +84,9 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 					resource_id = "test-instance"
 					engine      = "POSTGRES"
 					title       = "test instance"
-					environment = "test"
+					environment = "environments/test"
 					data_sources {
-						title = "read-only data source"
+						id = "read-only data source"
 						type  = "READ_ONLY"
 						host  = "127.0.0.1"
 						port  = "3306"
@@ -102,9 +102,9 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 					resource_id = "test-instance"
 					engine      = "POSTGRES"
 					title       = "test instance"
-					environment = "test"
+					environment = "environments/test"
 					data_sources {
-						title = "unknown data source"
+						id = "unknown data source"
 						type  = "UNKNOWN"
 						host  = "127.0.0.1"
 						port  = 5432
@@ -120,15 +120,15 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 					resource_id = "test-instance"
 					engine      = "POSTGRES"
 					title       = "test instance"
-					environment = "test"
+					environment = "environments/test"
 					data_sources {
-						title = "admin data source"
+						id = "admin data source"
 						type  = "ADMIN"
 						host  = "127.0.0.1"
 						port  = 5432
 					}
 					data_sources {
-						title = "admin data source 2"
+						id = "admin data source 2"
 						type  = "ADMIN"
 						host  = "127.0.0.1"
 						port  = 5432
@@ -149,12 +149,7 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 			continue
 		}
 
-		instanceID, err := internal.GetInstanceID(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-
-		if err := c.DeleteInstance(context.Background(), instanceID); err != nil {
+		if err := c.DeleteInstance(context.Background(), rs.Primary.ID); err != nil {
 			return err
 		}
 	}
@@ -171,7 +166,7 @@ func testAccCheckInstanceResource(identifier, id, name, engine, env string) stri
 		environment = "%s"
 
 		data_sources {
-			title    = "admin data source"
+			id       = "admin data source"
 			type     = "ADMIN"
 			username = "bytebase"
 			host     = "127.0.0.1"

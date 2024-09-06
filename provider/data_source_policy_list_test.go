@@ -28,7 +28,7 @@ func TestAccPolicyListDataSource(t *testing.T) {
 			internal.GetTestStepForDataSourceList(
 				testAccCheckPolicyResource(
 					"backup_plan",
-					"test",
+					"environments/test",
 					getBackupPlanPolicy(string(api.BackupPlanScheduleDaily), 999),
 					api.PolicyTypeBackupPlan,
 				),

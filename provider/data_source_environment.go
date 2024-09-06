@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -20,6 +21,11 @@ func dataSourceEnvironment() *schema.Resource {
 				Required:     true,
 				ValidateFunc: internal.ResourceIDValidation,
 				Description:  "The environment unique resource id.",
+			},
+			"name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The environment full name in environments/{resource id} format.",
 			},
 			"title": {
 				Type:        schema.TypeString,
@@ -42,8 +48,9 @@ func dataSourceEnvironment() *schema.Resource {
 
 func dataSourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	environmentName := fmt.Sprintf("%s%s", internal.EnvironmentNamePrefix, d.Get("resource_id").(string))
 
-	environment, err := c.GetEnvironment(ctx, d.Get("resource_id").(string))
+	environment, err := c.GetEnvironment(ctx, environmentName)
 	if err != nil {
 		return diag.FromErr(err)
 	}

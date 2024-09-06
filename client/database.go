@@ -12,8 +12,8 @@ import (
 )
 
 // GetDatabase gets the database by environment resource id, instance resource id and the database name.
-func (c *client) GetDatabase(ctx context.Context, find *api.DatabaseFindMessage) (*api.DatabaseMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/instances/%s/databases/%s", c.url, c.version, find.InstanceID, find.DatabaseName), nil)
+func (c *client) GetDatabase(ctx context.Context, databaseName string) (*api.DatabaseMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, databaseName), nil)
 	if err != nil {
 		return nil, err
 	}

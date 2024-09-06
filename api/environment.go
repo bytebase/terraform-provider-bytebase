@@ -1,15 +1,21 @@
 package api
 
+type EnvironmentTier string
+
+const (
+	EnvironmentTierProtected   EnvironmentTier = "PROTECTED"
+	EnvironmentTierUnProtected EnvironmentTier = "UNPROTECTED"
+)
+
 // EnvironmentMessage is the API message for an environment.
 type EnvironmentMessage struct {
-	UID string `json:"uid"`
-
 	// Domain specific fields
-	Name  string `json:"name"`
-	Title string `json:"title"`
-	Order int    `json:"order"`
-	State State  `json:"state,omitempty"`
-	Tier  string `json:"tier"`
+	// Format: environments/{unique resource id}
+	Name  string          `json:"name"`
+	Title string          `json:"title"`
+	Order int             `json:"order"`
+	State State           `json:"state,omitempty"`
+	Tier  EnvironmentTier `json:"tier"`
 }
 
 // ListEnvironmentMessage is the API message for list environment response.
@@ -20,7 +26,8 @@ type ListEnvironmentMessage struct {
 
 // EnvironmentPatchMessage is the API message to patch the environment.
 type EnvironmentPatchMessage struct {
-	Title *string `json:"title,omitempty"`
-	Order *int    `json:"order,omitempty"`
-	Tier  *string `json:"tier,omitempty"`
+	Name  string           `json:"name"`
+	Title *string          `json:"title,omitempty"`
+	Order *int             `json:"order,omitempty"`
+	Tier  *EnvironmentTier `json:"tier,omitempty"`
 }

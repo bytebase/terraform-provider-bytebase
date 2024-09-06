@@ -12,7 +12,7 @@ const (
 
 // DataSourceMessage is the API message for a data source.
 type DataSourceMessage struct {
-	Title    string         `json:"title"`
+	ID       string         `json:"id"`
 	Type     DataSourceType `json:"type"`
 	Username string         `json:"username"`
 	Password string         `json:"password"`

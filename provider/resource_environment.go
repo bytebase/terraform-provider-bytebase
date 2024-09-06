@@ -39,6 +39,11 @@ func resourceEnvironment() *schema.Resource {
 				Description:  "The environment unique name.",
 				ValidateFunc: validation.StringMatch(environmentTitleRegex, fmt.Sprintf("environment title must matches %v", environmentTitleRegex)),
 			},
+			"name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The environment full name in environments/{resource id} format.",
+			},
 			"order": {
 				Type:         schema.TypeInt,
 				Required:     true,
@@ -49,8 +54,8 @@ func resourceEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"PROTECTED",
-					"UNPROTECTED",
+					string(api.EnvironmentTierProtected),
+					string(api.EnvironmentTierUnProtected),
 				}, false),
 				Description: "If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default.",
 			},
@@ -62,10 +67,16 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 	c := m.(api.Client)
 
 	environmentID := d.Get("resource_id").(string)
-	existedEnv, err := c.GetEnvironment(ctx, environmentID)
+	environmentName := fmt.Sprintf("%s%s", internal.EnvironmentNamePrefix, environmentID)
+
+	existedEnv, err := c.GetEnvironment(ctx, environmentName)
 	if err != nil {
-		tflog.Debug(ctx, fmt.Sprintf("get environment %s failed with error: %v", environmentID, err))
+		tflog.Debug(ctx, fmt.Sprintf("get environment %s failed with error: %v", environmentName, err))
 	}
+
+	title := d.Get("title").(string)
+	order := d.Get("order").(int)
+	tier := api.EnvironmentTier(d.Get("environment_tier_policy").(string))
 
 	var diags diag.Diagnostics
 	if existedEnv != nil && err == nil {
@@ -81,20 +92,18 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 				Summary:  "Environment is deleted",
 				Detail:   fmt.Sprintf("Environment %s already deleted, try to undelete the environment", environmentID),
 			})
-			if _, err := c.UndeleteEnvironment(ctx, environmentID); err != nil {
+			if _, err := c.UndeleteEnvironment(ctx, environmentName); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to undelete environment",
-					Detail:   fmt.Sprintf("Undelete environment %s failed, error: %v", environmentID, err),
+					Detail:   fmt.Sprintf("Undelete environment %s failed, error: %v", environmentName, err),
 				})
 				return diags
 			}
 		}
 
-		title := d.Get("title").(string)
-		order := d.Get("order").(int)
-		tier := d.Get("environment_tier_policy").(string)
-		env, err := c.UpdateEnvironment(ctx, environmentID, &api.EnvironmentPatchMessage{
+		env, err := c.UpdateEnvironment(ctx, &api.EnvironmentPatchMessage{
+			Name:  environmentName,
 			Title: &title,
 			Order: &order,
 			Tier:  &tier,
@@ -103,7 +112,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update environment",
-				Detail:   fmt.Sprintf("Update environment %s failed, error: %v", environmentID, err),
+				Detail:   fmt.Sprintf("Update environment %s failed, error: %v", environmentName, err),
 			})
 			return diags
 		}
@@ -111,9 +120,10 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 		d.SetId(env.Name)
 	} else {
 		env, err := c.CreateEnvironment(ctx, environmentID, &api.EnvironmentMessage{
-			Title: d.Get("title").(string),
-			Order: d.Get("order").(int),
-			Tier:  d.Get("environment_tier_policy").(string),
+			Name:  environmentName,
+			Title: title,
+			Order: order,
+			Tier:  tier,
 		})
 		if err != nil {
 			return diag.FromErr(err)
@@ -132,13 +142,9 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 
 func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	environmentName := d.Id()
 
-	envID, err := internal.GetEnvironmentID(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	env, err := c.GetEnvironment(ctx, envID)
+	env, err := c.GetEnvironment(ctx, environmentName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -152,13 +158,9 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	c := m.(api.Client)
+	environmentName := d.Id()
 
-	envID, err := internal.GetEnvironmentID(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	existedEnv, err := c.GetEnvironment(ctx, envID)
+	existedEnv, err := c.GetEnvironment(ctx, environmentName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -168,19 +170,21 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Environment is deleted",
-			Detail:   fmt.Sprintf("Environment %s already deleted, try to undelete the environment", envID),
+			Detail:   fmt.Sprintf("Environment %s already deleted, try to undelete the environment", environmentName),
 		})
-		if _, err := c.UndeleteEnvironment(ctx, envID); err != nil {
+		if _, err := c.UndeleteEnvironment(ctx, environmentName); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to undelete environment",
-				Detail:   fmt.Sprintf("Undelete environment %s failed, error: %v", envID, err),
+				Detail:   fmt.Sprintf("Undelete environment %s failed, error: %v", environmentName, err),
 			})
 			return diags
 		}
 	}
 
-	patch := &api.EnvironmentPatchMessage{}
+	patch := &api.EnvironmentPatchMessage{
+		Name: environmentName,
+	}
 	if d.HasChange("title") {
 		title, ok := d.Get("title").(string)
 		if ok {
@@ -196,13 +200,11 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	if d.HasChange("environment_tier_policy") {
-		tier, ok := d.Get("environment_tier_policy").(string)
-		if ok {
-			patch.Tier = &tier
-		}
+		tier := api.EnvironmentTier(d.Get("environment_tier_policy").(string))
+		patch.Tier = &tier
 	}
 
-	if _, err := c.UpdateEnvironment(ctx, envID, patch); err != nil {
+	if _, err := c.UpdateEnvironment(ctx, patch); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -219,13 +221,9 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m in
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
+	environmentName := d.Id()
 
-	envID, err := internal.GetEnvironmentID(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := c.DeleteEnvironment(ctx, envID); err != nil {
+	if err := c.DeleteEnvironment(ctx, environmentName); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -235,13 +233,24 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func setEnvironment(d *schema.ResourceData, env *api.EnvironmentMessage) diag.Diagnostics {
+	environmentID, err := internal.GetEnvironmentID(env.Name)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("resource_id", environmentID); err != nil {
+		return diag.Errorf("cannot set resource_id for environment: %s", err.Error())
+	}
 	if err := d.Set("title", env.Title); err != nil {
+		return diag.Errorf("cannot set title for environment: %s", err.Error())
+	}
+	if err := d.Set("name", env.Name); err != nil {
 		return diag.Errorf("cannot set name for environment: %s", err.Error())
 	}
 	if err := d.Set("order", env.Order); err != nil {
 		return diag.Errorf("cannot set order for environment: %s", err.Error())
 	}
-	if err := d.Set("environment_tier_policy", env.Tier); err != nil {
+	if err := d.Set("environment_tier_policy", string(env.Tier)); err != nil {
 		return diag.Errorf("cannot set environment_tier_policy for environment: %s", err.Error())
 	}
 

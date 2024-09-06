@@ -11,8 +11,8 @@ import (
 )
 
 // GetProject gets the project by resource id.
-func (c *client) GetProject(ctx context.Context, projectID string, showDeleted bool) (*api.ProjectMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/projects/%s?showDeleted=%v", c.url, c.version, projectID, showDeleted), nil)
+func (c *client) GetProject(ctx context.Context, projectName string) (*api.ProjectMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, projectName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *client) CreateProject(ctx context.Context, projectID string, project *a
 }
 
 // UpdateProject updates the project.
-func (c *client) UpdateProject(ctx context.Context, projectID string, patch *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
+func (c *client) UpdateProject(ctx context.Context, patch *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
 	payload, err := json.Marshal(patch)
 	if err != nil {
 		return nil, err
@@ -93,20 +93,8 @@ func (c *client) UpdateProject(ctx context.Context, projectID string, patch *api
 	if patch.Key != nil {
 		paths = append(paths, "key")
 	}
-	if patch.Workflow != nil {
-		paths = append(paths, "workflow")
-	}
-	if patch.TenantMode != nil {
-		paths = append(paths, "tenant_mode")
-	}
-	if patch.DBNameTemplate != nil {
-		paths = append(paths, "db_name_template")
-	}
-	if patch.SchemaChange != nil {
-		paths = append(paths, "schema_change")
-	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/projects/%s?update_mask=%s", c.url, c.version, projectID, strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(paths, ",")), strings.NewReader(string(payload)))
 
 	if err != nil {
 		return nil, err
@@ -127,8 +115,8 @@ func (c *client) UpdateProject(ctx context.Context, projectID string, patch *api
 }
 
 // DeleteProject deletes the project.
-func (c *client) DeleteProject(ctx context.Context, projectID string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/projects/%s", c.url, c.version, projectID), nil)
+func (c *client) DeleteProject(ctx context.Context, projectName string) error {
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, projectName), nil)
 	if err != nil {
 		return err
 	}
@@ -140,8 +128,8 @@ func (c *client) DeleteProject(ctx context.Context, projectID string) error {
 }
 
 // UndeleteProject undeletes the project.
-func (c *client) UndeleteProject(ctx context.Context, projectID string) (*api.ProjectMessage, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/projects/%s:undelete", c.url, c.version, projectID), nil)
+func (c *client) UndeleteProject(ctx context.Context, projectName string) (*api.ProjectMessage, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:undelete", c.url, c.version, projectName), nil)
 	if err != nil {
 		return nil, err
 	}

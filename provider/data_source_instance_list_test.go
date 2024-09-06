@@ -28,7 +28,7 @@ func TestAccInstanceListDataSource(t *testing.T) {
 				0,
 			),
 			internal.GetTestStepForDataSourceList(
-				testAccCheckInstanceResource(identifier, "staging-instance", "staging instance", "POSTGRES", "staging"),
+				testAccCheckInstanceResource(identifier, "staging-instance", "staging instance", "POSTGRES", "environments/staging"),
 				fmt.Sprintf("bytebase_instance.%s", identifier),
 				"bytebase_instance_list",
 				"after",
