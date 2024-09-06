@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
@@ -35,18 +37,32 @@ var (
 var ResourceIDValidation = validation.StringMatch(resourceIDRegex, fmt.Sprintf("resource id must matches %v", resourceIDRegex))
 
 // ResourceNameValidation validate the resource name with prefix.
-func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateFunc {
-	return func(i interface{}, k string) ([]string, []error) {
+func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateDiagFunc {
+	return func(i interface{}, path cty.Path) diag.Diagnostics {
+		var diags diag.Diagnostics
+
 		v, ok := i.(string)
 		if !ok {
-			return nil, []error{errors.Errorf("expected type of %s to be string", k)}
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Bad data type",
+				Detail:        "expected type to be string",
+				AttributePath: path,
+			})
+			return diags
 		}
 		for _, regex := range regexs {
 			if ok := regex.MatchString(v); ok {
-				return nil, nil
+				return diags
 			}
 		}
-		return nil, []error{errors.Errorf("resource id must matches %s pattern", ResourceIDPattern)}
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       "Resource id not match",
+			Detail:        fmt.Sprintf("resource id must matches %s pattern", ResourceIDPattern),
+			AttributePath: path,
+		})
+		return diags
 	}
 }
 
