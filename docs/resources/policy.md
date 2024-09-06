@@ -17,25 +17,22 @@ The policy resource.
 
 ### Required
 
+- `parent` (String) The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}
 - `type` (String) The policy type.
 
 ### Optional
 
 - `access_control_policy` (Block List) (see [below for nested schema](#nestedblock--access_control_policy))
 - `backup_plan_policy` (Block List) (see [below for nested schema](#nestedblock--backup_plan_policy))
-- `database` (String) The database name for the policy.
 - `deployment_approval_policy` (Block List) (see [below for nested schema](#nestedblock--deployment_approval_policy))
-- `environment` (String) The environment resource id for the policy.
+- `enforce` (Boolean) Decide if the policy is enforced.
 - `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
-- `instance` (String) The instance resource id for the policy.
-- `project` (String) The project resource id for the policy.
 - `sensitive_data_policy` (Block List) (see [below for nested schema](#nestedblock--sensitive_data_policy))
-- `sql_review_policy` (Block List) (see [below for nested schema](#nestedblock--sql_review_policy))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `name` (String) The policy name
+- `name` (String) The policy full name
 
 <a id="nestedblock--access_control_policy"></a>
 ### Nested Schema for `access_control_policy`
@@ -97,36 +94,5 @@ Optional:
 - `mask_type` (String)
 - `schema` (String)
 - `table` (String)
-
-
-
-<a id="nestedblock--sql_review_policy"></a>
-### Nested Schema for `sql_review_policy`
-
-Optional:
-
-- `rules` (Block List) The SQL review rules. Please check the doc for details: https://www.bytebase.com/docs/sql-review/review-policy/supported-rules (see [below for nested schema](#nestedblock--sql_review_policy--rules))
-- `title` (String)
-
-<a id="nestedblock--sql_review_policy--rules"></a>
-### Nested Schema for `sql_review_policy.rules`
-
-Optional:
-
-- `engine` (String) The engine for this rule.
-- `level` (String)
-- `payload` (Block List) (see [below for nested schema](#nestedblock--sql_review_policy--rules--payload))
-- `type` (String)
-
-<a id="nestedblock--sql_review_policy--rules--payload"></a>
-### Nested Schema for `sql_review_policy.rules.payload`
-
-Optional:
-
-- `format` (String)
-- `list` (List of String)
-- `max_length` (Number)
-- `number` (Number)
-- `required` (Boolean)
 
 

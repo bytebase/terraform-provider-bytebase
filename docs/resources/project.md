@@ -19,28 +19,24 @@ The project resource.
 
 - `key` (String) The project unique key.
 - `resource_id` (String) The project unique resource id. Cannot change this after created.
-- `schema_change` (String) The project schema change type.
 - `title` (String) The project title.
-- `workflow` (String) The project workflow.
 
 ### Optional
 
 - `databases` (Block List) The databases in the project. (see [below for nested schema](#nestedblock--databases))
-- `db_name_template` (String) The project db name template.
-- `tenant_mode` (String) The project tenant mode.
-- `visibility` (String) The project visibility. Cannot change this after created
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `name` (String) The project full name in projects/{resource id} format.
+- `workflow` (String) The project workflow.
 
 <a id="nestedblock--databases"></a>
 ### Nested Schema for `databases`
 
 Required:
 
-- `instance` (String) The instance resource id for the database.
-- `name` (String) The database name.
+- `name` (String) The database full name in instances/{instance id}/databases/{db name} format.
 
 Optional:
 
@@ -48,6 +44,7 @@ Optional:
 
 Read-Only:
 
+- `environment` (String) The database environment.
 - `schema_version` (String) The version of database schema.
 - `successful_sync_time` (String) The latest synchronization time.
 - `sync_state` (String) The existence of a database on latest sync.

@@ -30,6 +30,7 @@ The environment data source list.
 Read-Only:
 
 - `environment_tier_policy` (String)
+- `name` (String)
 - `order` (Number)
 - `resource_id` (String)
 - `title` (String)

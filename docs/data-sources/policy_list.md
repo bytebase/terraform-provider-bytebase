@@ -17,11 +17,7 @@ The policy data source list.
 
 ### Optional
 
-- `database` (String) The database name for the policy.
-- `environment` (String) The environment resource id for the policy.
-- `instance` (String) The instance resource id for the policy.
-- `project` (String) The project resource id for the policy.
-- `show_deleted` (Boolean) Including removed policy in the response.
+- `parent` (String) The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}
 
 ### Read-Only
 
@@ -36,10 +32,10 @@ Read-Only:
 - `access_control_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--access_control_policy))
 - `backup_plan_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--backup_plan_policy))
 - `deployment_approval_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--deployment_approval_policy))
+- `enforce` (Boolean)
 - `inherit_from_parent` (Boolean)
 - `name` (String)
 - `sensitive_data_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--sensitive_data_policy))
-- `sql_review_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--sql_review_policy))
 - `type` (String)
 
 <a id="nestedobjatt--policies--access_control_policy"></a>
@@ -102,36 +98,5 @@ Read-Only:
 - `mask_type` (String)
 - `schema` (String)
 - `table` (String)
-
-
-
-<a id="nestedobjatt--policies--sql_review_policy"></a>
-### Nested Schema for `policies.sql_review_policy`
-
-Read-Only:
-
-- `rules` (List of Object) (see [below for nested schema](#nestedobjatt--policies--sql_review_policy--rules))
-- `title` (String)
-
-<a id="nestedobjatt--policies--sql_review_policy--rules"></a>
-### Nested Schema for `policies.sql_review_policy.rules`
-
-Read-Only:
-
-- `engine` (String)
-- `level` (String)
-- `payload` (List of Object) (see [below for nested schema](#nestedobjatt--policies--sql_review_policy--rules--payload))
-- `type` (String)
-
-<a id="nestedobjatt--policies--sql_review_policy--rules--payload"></a>
-### Nested Schema for `policies.sql_review_policy.rules.type`
-
-Read-Only:
-
-- `format` (String)
-- `list` (List of String)
-- `max_length` (Number)
-- `number` (Number)
-- `required` (Boolean)
 
 

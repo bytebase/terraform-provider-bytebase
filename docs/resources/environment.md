@@ -25,5 +25,6 @@ The environment resource.
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `name` (String) The environment full name in environments/{resource id} format.
 
 

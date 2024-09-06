@@ -33,6 +33,7 @@ Read-Only:
 - `engine` (String)
 - `environment` (String)
 - `external_link` (String)
+- `name` (String)
 - `resource_id` (String)
 - `title` (String)
 
@@ -43,8 +44,8 @@ Read-Only:
 
 - `database` (String)
 - `host` (String)
+- `id` (String)
 - `port` (String)
-- `title` (String)
 - `type` (String)
 - `username` (String)
 
