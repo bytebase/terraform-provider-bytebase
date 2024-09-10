@@ -106,6 +106,7 @@ func resourceInstance() *schema.Resource {
 						"password": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Sensitive:   true,
 							Default:     "",
 							Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
 						},
@@ -113,18 +114,21 @@ func resourceInstance() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
+							Sensitive:   true,
 							Description: "The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 						},
 						"ssl_cert": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
+							Sensitive:   true,
 							Description: "The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 						},
 						"ssl_key": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
+							Sensitive:   true,
 							Description: "The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 						},
 						"host": {
@@ -155,7 +159,7 @@ func resourceInstance() *schema.Resource {
 func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	dataSourceList, err := convertDataSourceCreateList(d)
+	dataSourceList, err := convertDataSourceCreateList(d, true /* validate */)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -309,7 +313,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		patch.ExternalLink = &v
 	}
 	if d.HasChange("data_sources") {
-		dataSourceList, err := convertDataSourceCreateList(d)
+		dataSourceList, err := convertDataSourceCreateList(d, true /* validate */)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -374,14 +378,28 @@ func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) d
 	if err := d.Set("external_link", instance.ExternalLink); err != nil {
 		return diag.Errorf("cannot set external_link for instance: %s", err.Error())
 	}
-	if err := d.Set("data_sources", flattenDataSourceList(instance.DataSources)); err != nil {
+
+	dataSources, err := flattenDataSourceList(d, instance.DataSources)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("data_sources", dataSources); err != nil {
 		return diag.Errorf("cannot set data_sources for instance: %s", err.Error())
 	}
 
 	return nil
 }
 
-func flattenDataSourceList(dataSourceList []*api.DataSourceMessage) []interface{} {
+func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*api.DataSourceMessage) ([]interface{}, error) {
+	oldDataSourceList, err := convertDataSourceCreateList(d, false)
+	if err != nil {
+		return nil, err
+	}
+	oldDataSourceMap := make(map[string]*api.DataSourceMessage)
+	for _, ds := range oldDataSourceList {
+		oldDataSourceMap[ds.ID] = ds
+	}
+
 	res := []interface{}{}
 	for _, dataSource := range dataSourceList {
 		raw := map[string]interface{}{}
@@ -390,17 +408,21 @@ func flattenDataSourceList(dataSourceList []*api.DataSourceMessage) []interface{
 		raw["username"] = dataSource.Username
 		raw["host"] = dataSource.Host
 		raw["port"] = dataSource.Port
-		raw["password"] = dataSource.Password
-		raw["ssl_ca"] = dataSource.SslCa
-		raw["ssl_cert"] = dataSource.SslCert
-		raw["ssl_key"] = dataSource.SslKey
 		raw["database"] = dataSource.Database
+
+		// These sensitive fields won't returned in the API. Propagate state value.
+		if ds, ok := oldDataSourceMap[dataSource.ID]; ok {
+			raw["password"] = ds.Password
+			raw["ssl_ca"] = ds.SslCa
+			raw["ssl_cert"] = ds.SslCert
+			raw["ssl_key"] = ds.SslKey
+		}
 		res = append(res, raw)
 	}
-	return res
+	return res, nil
 }
 
-func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceMessage, error) {
+func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*api.DataSourceMessage, error) {
 	var dataSourceList []*api.DataSourceMessage
 	if rawList, ok := d.Get("data_sources").([]interface{}); ok {
 		dataSourceTypeMap := map[api.DataSourceType]bool{}
@@ -410,9 +432,8 @@ func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceMessa
 				ID:   obj["id"].(string),
 				Type: api.DataSourceType(obj["type"].(string)),
 			}
-
-			if dataSourceTypeMap[dataSource.Type] {
-				return nil, errors.Errorf("duplicate data source type %s", dataSource.Type)
+			if dataSourceTypeMap[dataSource.Type] && dataSource.Type == api.DataSourceAdmin {
+				return nil, errors.Errorf("duplicate data source type ADMIN")
 			}
 			dataSourceTypeMap[dataSource.Type] = true
 
@@ -443,7 +464,7 @@ func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceMessa
 			dataSourceList = append(dataSourceList, dataSource)
 		}
 
-		if !dataSourceTypeMap[api.DataSourceAdmin] {
+		if !dataSourceTypeMap[api.DataSourceAdmin] && validate {
 			return nil, errors.Errorf("data source \"%v\" is required", api.DataSourceAdmin)
 		}
 	}

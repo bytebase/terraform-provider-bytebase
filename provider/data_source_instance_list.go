@@ -96,21 +96,25 @@ func dataSourceInstanceList() *schema.Resource {
 									"password": {
 										Type:        schema.TypeString,
 										Computed:    true,
+										Sensitive:   true,
 										Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
 									},
 									"ssl_ca": {
 										Type:        schema.TypeString,
 										Computed:    true,
+										Sensitive:   true,
 										Description: "The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 									},
 									"ssl_cert": {
 										Type:        schema.TypeString,
 										Computed:    true,
+										Sensitive:   true,
 										Description: "The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 									},
 									"ssl_key": {
 										Type:        schema.TypeString,
 										Computed:    true,
+										Sensitive:   true,
 										Description: "The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 									},
 								},
@@ -149,8 +153,13 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		ins["name"] = instance.Name
 		ins["engine"] = instance.Engine
 		ins["external_link"] = instance.ExternalLink
-		ins["data_sources"] = flattenDataSourceList(instance.DataSources)
 		ins["environment"] = instance.Environment
+
+		dataSources, err := flattenDataSourceList(d, instance.DataSources)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		ins["data_sources"] = dataSources
 
 		instances = append(instances, ins)
 	}
