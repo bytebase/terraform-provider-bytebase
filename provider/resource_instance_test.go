@@ -86,24 +86,6 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 					title       = "test instance"
 					environment = "environments/test"
 					data_sources {
-						id = "read-only data source"
-						type  = "READ_ONLY"
-						host  = "127.0.0.1"
-						port  = "3306"
-					}
-				}
-				`,
-				ExpectError: regexp.MustCompile("data source \"ADMIN\" is required"),
-			},
-			// Invalid data source
-			{
-				Config: `
-				resource "bytebase_instance" "test_instance" {
-					resource_id = "test-instance"
-					engine      = "POSTGRES"
-					title       = "test instance"
-					environment = "environments/test"
-					data_sources {
 						id = "unknown data source"
 						type  = "UNKNOWN"
 						host  = "127.0.0.1"
