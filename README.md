@@ -71,7 +71,9 @@ terraform destory
 
 ### Generate docs
 
-This will generate the doc template in the `docs` folder
+> This will generate the doc template in the `docs` folder
+>
+> Check https://github.com/hashicorp/terraform-plugin-docs for details.
 
 ```bash
 go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs --provider-name=terraform-provider-bytebase

@@ -390,6 +390,11 @@ func flattenDataSourceList(dataSourceList []*api.DataSourceMessage) []interface{
 		raw["username"] = dataSource.Username
 		raw["host"] = dataSource.Host
 		raw["port"] = dataSource.Port
+		raw["password"] = dataSource.Password
+		raw["ssl_ca"] = dataSource.SslCa
+		raw["ssl_cert"] = dataSource.SslCert
+		raw["ssl_key"] = dataSource.SslKey
+		raw["database"] = dataSource.Database
 		res = append(res, raw)
 	}
 	return res
