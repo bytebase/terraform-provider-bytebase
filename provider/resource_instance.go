@@ -432,6 +432,9 @@ func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*api.
 				ID:   obj["id"].(string),
 				Type: api.DataSourceType(obj["type"].(string)),
 			}
+			if dataSourceTypeMap[dataSource.Type] && dataSource.Type == api.DataSourceAdmin {
+				return nil, errors.Errorf("duplicate data source type ADMIN")
+			}
 			dataSourceTypeMap[dataSource.Type] = true
 
 			if v, ok := obj["username"].(string); ok {
