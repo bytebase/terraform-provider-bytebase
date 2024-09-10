@@ -159,7 +159,7 @@ func resourceInstance() *schema.Resource {
 func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	dataSourceList, err := convertDataSourceCreateList(d)
+	dataSourceList, err := convertDataSourceCreateList(d, true /* validate */)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -313,7 +313,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		patch.ExternalLink = &v
 	}
 	if d.HasChange("data_sources") {
-		dataSourceList, err := convertDataSourceCreateList(d)
+		dataSourceList, err := convertDataSourceCreateList(d, true /* validate */)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -391,7 +391,7 @@ func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) d
 }
 
 func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*api.DataSourceMessage) ([]interface{}, error) {
-	oldDataSourceList, err := convertDataSourceCreateList(d)
+	oldDataSourceList, err := convertDataSourceCreateList(d, false)
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +422,7 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*api.DataSou
 	return res, nil
 }
 
-func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceMessage, error) {
+func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*api.DataSourceMessage, error) {
 	var dataSourceList []*api.DataSourceMessage
 	if rawList, ok := d.Get("data_sources").([]interface{}); ok {
 		dataSourceTypeMap := map[api.DataSourceType]bool{}
@@ -431,10 +431,6 @@ func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceMessa
 			dataSource := &api.DataSourceMessage{
 				ID:   obj["id"].(string),
 				Type: api.DataSourceType(obj["type"].(string)),
-			}
-
-			if dataSourceTypeMap[dataSource.Type] {
-				return nil, errors.Errorf("duplicate data source type %s", dataSource.Type)
 			}
 			dataSourceTypeMap[dataSource.Type] = true
 
@@ -463,6 +459,10 @@ func convertDataSourceCreateList(d *schema.ResourceData) ([]*api.DataSourceMessa
 				dataSource.Database = v
 			}
 			dataSourceList = append(dataSourceList, dataSource)
+		}
+
+		if !dataSourceTypeMap[api.DataSourceAdmin] && validate {
+			return nil, errors.Errorf("data source \"%v\" is required", api.DataSourceAdmin)
 		}
 	}
 
