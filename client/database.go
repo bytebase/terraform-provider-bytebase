@@ -2,17 +2,17 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // GetDatabase gets the database by environment resource id, instance resource id and the database name.
-func (c *client) GetDatabase(ctx context.Context, databaseName string) (*api.DatabaseMessage, error) {
+func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Database, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, databaseName), nil)
 	if err != nil {
 		return nil, err
@@ -23,8 +23,8 @@ func (c *client) GetDatabase(ctx context.Context, databaseName string) (*api.Dat
 		return nil, err
 	}
 
-	var res api.DatabaseMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.Database
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -33,10 +33,10 @@ func (c *client) GetDatabase(ctx context.Context, databaseName string) (*api.Dat
 }
 
 // ListDatabase list the databases.
-func (c *client) ListDatabase(ctx context.Context, find *api.DatabaseFindMessage) (*api.ListDatabaseMessage, error) {
-	requestURL := fmt.Sprintf("%s/%s/instances/%s/databases", c.url, c.version, find.InstanceID)
-	if v := find.Filter; v != nil {
-		requestURL = fmt.Sprintf("%s?filter=%s", requestURL, url.QueryEscape(*v))
+func (c *client) ListDatabase(ctx context.Context, instanceID, filter string) (*v1pb.ListDatabasesResponse, error) {
+	requestURL := fmt.Sprintf("%s/%s/instances/%s/databases", c.url, c.version, instanceID)
+	if filter != "" {
+		requestURL = fmt.Sprintf("%s?filter=%s", requestURL, url.QueryEscape(filter))
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
@@ -49,8 +49,8 @@ func (c *client) ListDatabase(ctx context.Context, find *api.DatabaseFindMessage
 		return nil, err
 	}
 
-	var res api.ListDatabaseMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.ListDatabasesResponse
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -59,21 +59,21 @@ func (c *client) ListDatabase(ctx context.Context, find *api.DatabaseFindMessage
 }
 
 // UpdateDatabase patches the database.
-func (c *client) UpdateDatabase(ctx context.Context, patch *api.DatabasePatchMessage) (*api.DatabaseMessage, error) {
-	payload, err := json.Marshal(patch)
+func (c *client) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updateMasks []string) (*v1pb.Database, error) {
+	payload, err := protojson.Marshal(patch)
 	if err != nil {
 		return nil, err
 	}
 
-	updateMask := []string{}
-	if patch.Project != nil {
-		updateMask = append(updateMask, "project")
-	}
-	if patch.Labels != nil {
-		updateMask = append(updateMask, "labels")
-	}
+	// updateMask := []string{}
+	// if patch.Project != nil {
+	// 	updateMask = append(updateMask, "project")
+	// }
+	// if patch.Labels != nil {
+	// 	updateMask = append(updateMask, "labels")
+	// }
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(updateMask, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(updateMasks, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -83,8 +83,8 @@ func (c *client) UpdateDatabase(ctx context.Context, patch *api.DatabasePatchMes
 		return nil, err
 	}
 
-	var res api.DatabaseMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.Database
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}

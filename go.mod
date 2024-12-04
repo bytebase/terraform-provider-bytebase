@@ -1,13 +1,15 @@
 module github.com/bytebase/terraform-provider-bytebase
 
-go 1.19
+go 1.23.2
 
 require (
+	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.35.2-20240417031025-3a5c93e22bec.1
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
 	github.com/hashicorp/terraform-plugin-log v0.7.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.0
 	github.com/pkg/errors v0.9.1
+	google.golang.org/protobuf v1.35.2
 )
 
 require (
@@ -66,5 +68,4 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	google.golang.org/grpc v1.53.0 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
 )

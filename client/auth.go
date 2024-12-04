@@ -1,22 +1,22 @@
 package client
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 )
 
 // Login will login the user and get the response.
-func (c *client) Login() (*api.AuthResponse, error) {
+func (c *client) Login() (*v1pb.LoginResponse, error) {
 	if c.auth.Email == "" || c.auth.Password == "" {
 		return nil, errors.Errorf("define username and password")
 	}
-	rb, err := json.Marshal(c.auth)
+	rb, err := protojson.Marshal(c.auth)
 	if err != nil {
 		return nil, err
 	}
@@ -31,9 +31,8 @@ func (c *client) Login() (*api.AuthResponse, error) {
 		return nil, err
 	}
 
-	ar := api.AuthResponse{}
-	err = json.Unmarshal(body, &ar)
-	if err != nil {
+	ar := v1pb.LoginResponse{}
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &ar); err != nil {
 		return nil, err
 	}
 

@@ -83,7 +83,7 @@ func dataSourceEnvironmentListRead(ctx context.Context, d *schema.ResourceData, 
 		env["title"] = environment.Title
 		env["name"] = environment.Name
 		env["order"] = environment.Order
-		env["environment_tier_policy"] = string(environment.Tier)
+		env["environment_tier_policy"] = environment.Tier.String()
 
 		environments = append(environments, env)
 	}

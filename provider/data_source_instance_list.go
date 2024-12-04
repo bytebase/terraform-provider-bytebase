@@ -133,9 +133,7 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	response, err := c.ListInstance(ctx, &api.InstanceFindMessage{
-		ShowDeleted: d.Get("show_deleted").(bool),
-	})
+	response, err := c.ListInstance(ctx, d.Get("show_deleted").(bool))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -151,7 +149,7 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		ins["resource_id"] = instanceID
 		ins["title"] = instance.Title
 		ins["name"] = instance.Name
-		ins["engine"] = instance.Engine
+		ins["engine"] = instance.Engine.String()
 		ins["external_link"] = instance.ExternalLink
 		ins["environment"] = instance.Environment
 

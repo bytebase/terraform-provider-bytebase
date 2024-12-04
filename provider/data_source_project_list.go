@@ -124,13 +124,10 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["name"] = project.Name
 		proj["title"] = project.Title
 		proj["key"] = project.Key
-		proj["workflow"] = project.Workflow
+		proj["workflow"] = project.Workflow.String()
 
 		filter := fmt.Sprintf(`project == "%s"`, project.Name)
-		response, err := c.ListDatabase(ctx, &api.DatabaseFindMessage{
-			InstanceID: "-",
-			Filter:     &filter,
-		})
+		response, err := c.ListDatabase(ctx, "-", filter)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -140,7 +137,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 			db := map[string]interface{}{}
 			db["name"] = database.Name
 			db["environment"] = database.Environment
-			db["sync_state"] = database.SyncState
+			db["sync_state"] = database.SyncState.String()
 			db["successful_sync_time"] = database.SuccessfulSyncTime
 			db["schema_version"] = database.SchemaVersion
 			db["labels"] = database.Labels

@@ -9,6 +9,8 @@ import (
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
+
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 )
 
 func dataSourceProject() *schema.Resource {
@@ -95,10 +97,7 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	filter := fmt.Sprintf(`project == "%s"`, project.Name)
-	response, err := c.ListDatabase(ctx, &api.DatabaseFindMessage{
-		InstanceID: "-",
-		Filter:     &filter,
-	})
+	response, err := c.ListDatabase(ctx, "-", filter)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -107,7 +106,7 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 	return setProjectWithDatabases(d, project, response.Databases)
 }
 
-func setProjectWithDatabases(d *schema.ResourceData, project *api.ProjectMessage, databases []*api.DatabaseMessage) diag.Diagnostics {
+func setProjectWithDatabases(d *schema.ResourceData, project *v1pb.Project, databases []*v1pb.Database) diag.Diagnostics {
 	d.SetId(project.Name)
 
 	projectID, err := internal.GetProjectID(project.Name)
@@ -129,7 +128,7 @@ func setProjectWithDatabases(d *schema.ResourceData, project *api.ProjectMessage
 	if err := d.Set("title", project.Title); err != nil {
 		return diag.Errorf("cannot set title for project: %s", err.Error())
 	}
-	if err := d.Set("workflow", project.Workflow); err != nil {
+	if err := d.Set("workflow", project.Workflow.String()); err != nil {
 		return diag.Errorf("cannot set workflow for project: %s", err.Error())
 	}
 
@@ -138,7 +137,7 @@ func setProjectWithDatabases(d *schema.ResourceData, project *api.ProjectMessage
 		db := map[string]interface{}{}
 		db["name"] = database.Name
 		db["environment"] = database.Environment
-		db["sync_state"] = database.SyncState
+		db["sync_state"] = database.SyncState.String()
 		db["successful_sync_time"] = database.SuccessfulSyncTime
 		db["schema_version"] = database.SchemaVersion
 		db["labels"] = database.Labels
