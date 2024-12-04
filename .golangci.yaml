@@ -75,6 +75,8 @@ linters-settings:
         disabled: true
       - name: use-any
         disabled: true
+      - name: unchecked-type-assertion
+        disabled: true
   gocritic:
     disabled-checks:
       - ifElseChain
