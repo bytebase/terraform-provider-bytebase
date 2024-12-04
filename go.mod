@@ -1,6 +1,6 @@
 module github.com/bytebase/terraform-provider-bytebase
 
-go 1.21.12
+go 1.23.2
 
 require (
 	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.35.2-20240417031025-3a5c93e22bec.1
