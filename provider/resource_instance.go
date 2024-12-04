@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
@@ -53,20 +55,27 @@ func resourceInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					string(api.EngineTypeMySQL),
-					string(api.EngineTypePostgres),
-					string(api.EngineTypeTiDB),
-					string(api.EngineTypeSnowflake),
-					string(api.EngineTypeClickHouse),
-					string(api.EngineTypeMongoDB),
-					string(api.EngineTypeSQLite),
-					string(api.EngineTypeRedis),
-					string(api.EngineTypeOracle),
-					string(api.EngineTypeSpanner),
-					string(api.EngineTypeMSSQL),
-					string(api.EngineTypeRedshift),
-					string(api.EngineTypeMariaDB),
-					string(api.EngineTypeOceanbase),
+					v1pb.Engine_CLICKHOUSE.String(),
+					v1pb.Engine_MYSQL.String(),
+					v1pb.Engine_POSTGRES.String(),
+					v1pb.Engine_SNOWFLAKE.String(),
+					v1pb.Engine_SQLITE.String(),
+					v1pb.Engine_TIDB.String(),
+					v1pb.Engine_MONGODB.String(),
+					v1pb.Engine_REDIS.String(),
+					v1pb.Engine_ORACLE.String(),
+					v1pb.Engine_SPANNER.String(),
+					v1pb.Engine_MSSQL.String(),
+					v1pb.Engine_REDSHIFT.String(),
+					v1pb.Engine_MARIADB.String(),
+					v1pb.Engine_OCEANBASE.String(),
+					v1pb.Engine_DM.String(),
+					v1pb.Engine_RISINGWAVE.String(),
+					v1pb.Engine_OCEANBASE_ORACLE.String(),
+					v1pb.Engine_STARROCKS.String(),
+					v1pb.Engine_DORIS.String(),
+					v1pb.Engine_HIVE.String(),
+					v1pb.Engine_ELASTICSEARCH.String(),
 				}, false),
 				Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.",
 			},
@@ -92,8 +101,8 @@ func resourceInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ValidateFunc: validation.StringInSlice([]string{
-								string(api.DataSourceAdmin),
-								string(api.DataSourceRO),
+								v1pb.DataSourceType_ADMIN.String(),
+								v1pb.DataSourceType_READ_ONLY.String(),
 							}, false),
 							Description: "The data source type. Should be ADMIN or RO.",
 						},
@@ -167,6 +176,13 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	instanceID := d.Get("resource_id").(string)
 	instanceName := fmt.Sprintf("%s%s", internal.InstanceNamePrefix, instanceID)
 
+	engineString := d.Get("engine").(string)
+	engineValue, ok := v1pb.Engine_value[engineString]
+	if !ok {
+		return diag.Errorf("invalid engine type %v", engineString)
+	}
+	engine := v1pb.Engine(engineValue)
+
 	existedInstance, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get instance %s failed with error: %v", instanceName, err))
@@ -180,8 +196,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			Detail:   fmt.Sprintf("Instance %s already exists, try to exec the update operation", instanceName),
 		})
 
-		engine := d.Get("engine").(string)
-		if string(existedInstance.Engine) != engine {
+		if existedInstance.Engine != engine {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Invalid argument",
@@ -190,7 +205,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			return diags
 		}
 
-		if existedInstance.State == api.Deleted {
+		if existedInstance.State == v1pb.State_DELETED {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
 				Summary:  "Instance is deleted",
@@ -208,12 +223,13 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 		title := d.Get("title").(string)
 		externalLink := d.Get("external_link").(string)
-		if _, err := c.UpdateInstance(ctx, &api.InstancePatchMessage{
+		if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
 			Name:         instanceName,
-			Title:        &title,
-			ExternalLink: &externalLink,
+			Title:        title,
+			ExternalLink: externalLink,
 			DataSources:  dataSourceList,
-		}); err != nil {
+			State:        existedInstance.State,
+		}, []string{"title", "external_link", "data_sources"}); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update instance",
@@ -222,12 +238,12 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			return diags
 		}
 	} else {
-		if _, err := c.CreateInstance(ctx, instanceID, &api.InstanceMessage{
+		if _, err := c.CreateInstance(ctx, instanceID, &v1pb.Instance{
 			Name:         instanceName,
 			Title:        d.Get("title").(string),
-			Engine:       api.EngineType(d.Get("engine").(string)),
+			Engine:       engine,
 			ExternalLink: d.Get("external_link").(string),
-			State:        api.Active,
+			State:        v1pb.State_ACTIVE,
 			DataSources:  dataSourceList,
 			Environment:  d.Get("environment").(string),
 		}); err != nil {
@@ -285,7 +301,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	var diags diag.Diagnostics
-	if existedInstance.State == api.Deleted {
+	if existedInstance.State == v1pb.State_DELETED {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Instance is deleted",
@@ -301,26 +317,29 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 	}
 
-	patch := &api.InstancePatchMessage{
-		Name: instanceName,
-	}
-	if d.HasChange("title") {
-		v := d.Get("title").(string)
-		patch.Title = &v
-	}
-	if d.HasChange("external_link") {
-		v := d.Get("external_link").(string)
-		patch.ExternalLink = &v
-	}
-	if d.HasChange("data_sources") {
-		dataSourceList, err := convertDataSourceCreateList(d, true /* validate */)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.DataSources = dataSourceList
+	dataSourceList, err := convertDataSourceCreateList(d, true /* validate */)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
-	if _, err := c.UpdateInstance(ctx, patch); err != nil {
+	paths := []string{}
+	if d.HasChange("title") {
+		paths = append(paths, "title")
+	}
+	if d.HasChange("external_link") {
+		paths = append(paths, "external_link")
+	}
+	if d.HasChange("data_sources") {
+		paths = append(paths, "data_sources")
+	}
+
+	if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
+		Name:         instanceName,
+		Title:        d.Get("title").(string),
+		ExternalLink: d.Get("external_link").(string),
+		DataSources:  dataSourceList,
+		State:        existedInstance.State,
+	}, paths); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := c.SyncInstanceSchema(ctx, instanceName); err != nil {
@@ -355,7 +374,7 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 	return diags
 }
 
-func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) diag.Diagnostics {
+func setInstanceMessage(d *schema.ResourceData, instance *v1pb.Instance) diag.Diagnostics {
 	instanceID, err := internal.GetInstanceID(instance.Name)
 	if err != nil {
 		return diag.FromErr(err)
@@ -372,7 +391,7 @@ func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) d
 	if err := d.Set("environment", instance.Environment); err != nil {
 		return diag.Errorf("cannot set environment for instance: %s", err.Error())
 	}
-	if err := d.Set("engine", instance.Engine); err != nil {
+	if err := d.Set("engine", instance.Engine.String()); err != nil {
 		return diag.Errorf("cannot set engine for instance: %s", err.Error())
 	}
 	if err := d.Set("external_link", instance.ExternalLink); err != nil {
@@ -390,28 +409,28 @@ func setInstanceMessage(d *schema.ResourceData, instance *api.InstanceMessage) d
 	return nil
 }
 
-func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*api.DataSourceMessage) ([]interface{}, error) {
+func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSource) ([]interface{}, error) {
 	oldDataSourceList, err := convertDataSourceCreateList(d, false)
 	if err != nil {
 		return nil, err
 	}
-	oldDataSourceMap := make(map[string]*api.DataSourceMessage)
+	oldDataSourceMap := make(map[string]*v1pb.DataSource)
 	for _, ds := range oldDataSourceList {
-		oldDataSourceMap[ds.ID] = ds
+		oldDataSourceMap[ds.Id] = ds
 	}
 
 	res := []interface{}{}
 	for _, dataSource := range dataSourceList {
 		raw := map[string]interface{}{}
-		raw["id"] = dataSource.ID
-		raw["type"] = dataSource.Type
+		raw["id"] = dataSource.Id
+		raw["type"] = dataSource.Type.String()
 		raw["username"] = dataSource.Username
 		raw["host"] = dataSource.Host
 		raw["port"] = dataSource.Port
 		raw["database"] = dataSource.Database
 
 		// These sensitive fields won't returned in the API. Propagate state value.
-		if ds, ok := oldDataSourceMap[dataSource.ID]; ok {
+		if ds, ok := oldDataSourceMap[dataSource.Id]; ok {
 			raw["password"] = ds.Password
 			raw["ssl_ca"] = ds.SslCa
 			raw["ssl_cert"] = ds.SslCert
@@ -422,17 +441,17 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*api.DataSou
 	return res, nil
 }
 
-func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*api.DataSourceMessage, error) {
-	var dataSourceList []*api.DataSourceMessage
+func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb.DataSource, error) {
+	var dataSourceList []*v1pb.DataSource
 	if rawList, ok := d.Get("data_sources").([]interface{}); ok {
-		dataSourceTypeMap := map[api.DataSourceType]bool{}
+		dataSourceTypeMap := map[v1pb.DataSourceType]bool{}
 		for _, raw := range rawList {
 			obj := raw.(map[string]interface{})
-			dataSource := &api.DataSourceMessage{
-				ID:   obj["id"].(string),
-				Type: api.DataSourceType(obj["type"].(string)),
+			dataSource := &v1pb.DataSource{
+				Id:   obj["id"].(string),
+				Type: v1pb.DataSourceType(v1pb.DataSourceType_value[obj["type"].(string)]),
 			}
-			if dataSourceTypeMap[dataSource.Type] && dataSource.Type == api.DataSourceAdmin {
+			if dataSourceTypeMap[dataSource.Type] && dataSource.Type == v1pb.DataSourceType_ADMIN {
 				return nil, errors.Errorf("duplicate data source type ADMIN")
 			}
 			dataSourceTypeMap[dataSource.Type] = true
@@ -464,8 +483,8 @@ func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*api.
 			dataSourceList = append(dataSourceList, dataSource)
 		}
 
-		if !dataSourceTypeMap[api.DataSourceAdmin] && validate {
-			return nil, errors.Errorf("data source \"%v\" is required", api.DataSourceAdmin)
+		if !dataSourceTypeMap[v1pb.DataSourceType_ADMIN] && validate {
+			return nil, errors.Errorf("data source \"%v\" is required", v1pb.DataSourceType_ADMIN.String())
 		}
 	}
 

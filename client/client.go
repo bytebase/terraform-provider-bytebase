@@ -9,6 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
@@ -18,7 +20,7 @@ type client struct {
 	version string
 	client  *http.Client
 	token   string
-	auth    *api.Login
+	auth    *v1pb.LoginRequest
 }
 
 // NewClient returns the new Bytebase API client.
@@ -29,7 +31,7 @@ func NewClient(url, version, email, password string) (api.Client, error) {
 		version: version,
 	}
 
-	c.auth = &api.Login{
+	c.auth = &v1pb.LoginRequest{
 		Email:    email,
 		Password: password,
 	}

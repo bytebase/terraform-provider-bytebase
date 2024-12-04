@@ -3,33 +3,36 @@ package internal
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 )
 
-var environmentMap map[string]*api.EnvironmentMessage
-var instanceMap map[string]*api.InstanceMessage
+var environmentMap map[string]*v1pb.Environment
+var instanceMap map[string]*v1pb.Instance
 var policyMap map[string]*api.PolicyMessage
-var projectMap map[string]*api.ProjectMessage
-var databaseMap map[string]*api.DatabaseMessage
+var projectMap map[string]*v1pb.Project
+var databaseMap map[string]*v1pb.Database
 
 func init() {
-	environmentMap = map[string]*api.EnvironmentMessage{}
-	instanceMap = map[string]*api.InstanceMessage{}
+	environmentMap = map[string]*v1pb.Environment{}
+	instanceMap = map[string]*v1pb.Instance{}
 	policyMap = map[string]*api.PolicyMessage{}
-	projectMap = map[string]*api.ProjectMessage{}
-	databaseMap = map[string]*api.DatabaseMessage{}
+	projectMap = map[string]*v1pb.Project{}
+	databaseMap = map[string]*v1pb.Database{}
 }
 
 type mockClient struct {
-	environmentMap map[string]*api.EnvironmentMessage
-	instanceMap    map[string]*api.InstanceMessage
+	environmentMap map[string]*v1pb.Environment
+	instanceMap    map[string]*v1pb.Instance
 	policyMap      map[string]*api.PolicyMessage
-	projectMap     map[string]*api.ProjectMessage
-	databaseMap    map[string]*api.DatabaseMessage
+	projectMap     map[string]*v1pb.Project
+	databaseMap    map[string]*v1pb.Database
 }
 
 // newMockClient returns the new Bytebase API mock client.
@@ -44,17 +47,17 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 }
 
 // Login will login the user and get the response.
-func (*mockClient) Login() (*api.AuthResponse, error) {
-	return &api.AuthResponse{}, nil
+func (*mockClient) Login() (*v1pb.LoginResponse, error) {
+	return &v1pb.LoginResponse{}, nil
 }
 
 // CreateEnvironment creates the environment.
-func (c *mockClient) CreateEnvironment(_ context.Context, environmentID string, create *api.EnvironmentMessage) (*api.EnvironmentMessage, error) {
-	env := &api.EnvironmentMessage{
+func (c *mockClient) CreateEnvironment(_ context.Context, environmentID string, create *v1pb.Environment) (*v1pb.Environment, error) {
+	env := &v1pb.Environment{
 		Name:  fmt.Sprintf("%s%s", EnvironmentNamePrefix, environmentID),
 		Order: create.Order,
 		Title: create.Title,
-		State: api.Active,
+		State: v1pb.State_ACTIVE,
 		Tier:  create.Tier,
 	}
 
@@ -68,7 +71,7 @@ func (c *mockClient) CreateEnvironment(_ context.Context, environmentID string, 
 }
 
 // GetEnvironment gets the environment by id.
-func (c *mockClient) GetEnvironment(_ context.Context, environmentName string) (*api.EnvironmentMessage, error) {
+func (c *mockClient) GetEnvironment(_ context.Context, environmentName string) (*v1pb.Environment, error) {
 	env, ok := c.environmentMap[environmentName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found environment %s", environmentName)
@@ -78,35 +81,35 @@ func (c *mockClient) GetEnvironment(_ context.Context, environmentName string) (
 }
 
 // ListEnvironment finds all environments.
-func (c *mockClient) ListEnvironment(_ context.Context, showDeleted bool) (*api.ListEnvironmentMessage, error) {
-	environments := make([]*api.EnvironmentMessage, 0)
+func (c *mockClient) ListEnvironment(_ context.Context, showDeleted bool) (*v1pb.ListEnvironmentsResponse, error) {
+	environments := make([]*v1pb.Environment, 0)
 	for _, env := range c.environmentMap {
-		if env.State == api.Deleted && !showDeleted {
+		if env.State == v1pb.State_DELETED && !showDeleted {
 			continue
 		}
 		environments = append(environments, env)
 	}
 
-	return &api.ListEnvironmentMessage{
+	return &v1pb.ListEnvironmentsResponse{
 		Environments: environments,
 	}, nil
 }
 
 // UpdateEnvironment updates the environment.
-func (c *mockClient) UpdateEnvironment(ctx context.Context, patch *api.EnvironmentPatchMessage) (*api.EnvironmentMessage, error) {
+func (c *mockClient) UpdateEnvironment(ctx context.Context, patch *v1pb.Environment, updateMasks []string) (*v1pb.Environment, error) {
 	env, err := c.GetEnvironment(ctx, patch.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if v := patch.Title; v != nil {
-		env.Title = *v
+	if slices.Contains(updateMasks, "title") {
+		env.Title = patch.Title
 	}
-	if v := patch.Order; v != nil {
-		env.Order = *v
+	if slices.Contains(updateMasks, "order") {
+		env.Order = patch.Order
 	}
-	if v := patch.Tier; v != nil {
-		env.Tier = *v
+	if slices.Contains(updateMasks, "tier") {
+		env.Tier = patch.Tier
 	}
 
 	c.environmentMap[env.Name] = env
@@ -121,40 +124,40 @@ func (c *mockClient) DeleteEnvironment(ctx context.Context, environmentName stri
 		return err
 	}
 
-	env.State = api.Deleted
+	env.State = v1pb.State_DELETED
 	c.environmentMap[env.Name] = env
 	return nil
 }
 
 // UndeleteEnvironment undeletes the environment.
-func (c *mockClient) UndeleteEnvironment(ctx context.Context, environmentName string) (*api.EnvironmentMessage, error) {
+func (c *mockClient) UndeleteEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error) {
 	env, err := c.GetEnvironment(ctx, environmentName)
 	if err != nil {
 		return nil, err
 	}
 
-	env.State = api.Active
+	env.State = v1pb.State_ACTIVE
 	c.environmentMap[env.Name] = env
 	return env, nil
 }
 
 // ListInstance will return instances in environment.
-func (c *mockClient) ListInstance(_ context.Context, find *api.InstanceFindMessage) (*api.ListInstanceMessage, error) {
-	instances := make([]*api.InstanceMessage, 0)
+func (c *mockClient) ListInstance(_ context.Context, showDeleted bool) (*v1pb.ListInstancesResponse, error) {
+	instances := make([]*v1pb.Instance, 0)
 	for _, ins := range c.instanceMap {
-		if ins.State == api.Deleted && !find.ShowDeleted {
+		if ins.State == v1pb.State_DELETED && !showDeleted {
 			continue
 		}
 		instances = append(instances, ins)
 	}
 
-	return &api.ListInstanceMessage{
+	return &v1pb.ListInstancesResponse{
 		Instances: instances,
 	}, nil
 }
 
 // GetInstance gets the instance by id.
-func (c *mockClient) GetInstance(_ context.Context, instanceName string) (*api.InstanceMessage, error) {
+func (c *mockClient) GetInstance(_ context.Context, instanceName string) (*v1pb.Instance, error) {
 	ins, ok := c.instanceMap[instanceName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found instance %s", instanceName)
@@ -164,10 +167,10 @@ func (c *mockClient) GetInstance(_ context.Context, instanceName string) (*api.I
 }
 
 // CreateInstance creates the instance.
-func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instance *api.InstanceMessage) (*api.InstanceMessage, error) {
-	ins := &api.InstanceMessage{
+func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error) {
+	ins := &v1pb.Instance{
 		Name:         fmt.Sprintf("%s%s", InstanceNamePrefix, instanceID),
-		State:        api.Active,
+		State:        v1pb.State_ACTIVE,
 		Title:        instance.Title,
 		Engine:       instance.Engine,
 		ExternalLink: instance.ExternalLink,
@@ -180,9 +183,9 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 		return nil, err
 	}
 
-	database := &api.DatabaseMessage{
+	database := &v1pb.Database{
 		Name:      fmt.Sprintf("%s/%sdefault", ins.Name, DatabaseIDPrefix),
-		SyncState: api.Active,
+		SyncState: v1pb.State_ACTIVE,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
@@ -194,20 +197,20 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 }
 
 // UpdateInstance updates the instance.
-func (c *mockClient) UpdateInstance(ctx context.Context, patch *api.InstancePatchMessage) (*api.InstanceMessage, error) {
+func (c *mockClient) UpdateInstance(ctx context.Context, patch *v1pb.Instance, updateMasks []string) (*v1pb.Instance, error) {
 	ins, err := c.GetInstance(ctx, patch.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if v := patch.Title; v != nil {
-		ins.Title = *v
+	if slices.Contains(updateMasks, "title") {
+		ins.Title = patch.Title
 	}
-	if v := patch.ExternalLink; v != nil {
-		ins.ExternalLink = *v
+	if slices.Contains(updateMasks, "external_link") {
+		ins.ExternalLink = patch.ExternalLink
 	}
-	if v := patch.DataSources; v != nil {
-		ins.DataSources = v
+	if slices.Contains(updateMasks, "data_sources") {
+		ins.DataSources = patch.DataSources
 	}
 
 	c.instanceMap[ins.Name] = ins
@@ -221,20 +224,20 @@ func (c *mockClient) DeleteInstance(ctx context.Context, instanceName string) er
 		return err
 	}
 
-	ins.State = api.Deleted
+	ins.State = v1pb.State_DELETED
 	c.instanceMap[ins.Name] = ins
 
 	return nil
 }
 
 // UndeleteInstance undeletes the instance.
-func (c *mockClient) UndeleteInstance(ctx context.Context, instanceName string) (*api.InstanceMessage, error) {
+func (c *mockClient) UndeleteInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
 	ins, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
 		return nil, err
 	}
 
-	ins.State = api.Active
+	ins.State = v1pb.State_ACTIVE
 	c.instanceMap[ins.Name] = ins
 
 	return ins, nil
@@ -343,7 +346,7 @@ func (c *mockClient) DeletePolicy(_ context.Context, policyName string) error {
 }
 
 // GetDatabase gets the database by instance resource id and the database name.
-func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*api.DatabaseMessage, error) {
+func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*v1pb.Database, error) {
 	db, ok := c.databaseMap[databaseName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found database %s", databaseName)
@@ -353,45 +356,45 @@ func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*api.D
 }
 
 // ListDatabase list the databases.
-func (c *mockClient) ListDatabase(_ context.Context, find *api.DatabaseFindMessage) (*api.ListDatabaseMessage, error) {
+func (c *mockClient) ListDatabase(_ context.Context, instaceID, filter string) (*v1pb.ListDatabasesResponse, error) {
 	projectID := "-"
-	if v := find.Filter; v != nil && strings.HasPrefix(*v, "project == ") {
-		projectID = strings.Split(*v, "project == ")[1]
+	if strings.HasPrefix(filter, "project == ") {
+		projectID = strings.Split(filter, "project == ")[1]
 	}
-	databases := make([]*api.DatabaseMessage, 0)
+	databases := make([]*v1pb.Database, 0)
 	for _, db := range c.databaseMap {
 		if projectID != "-" && fmt.Sprintf(`"%s"`, db.Project) != projectID {
 			continue
 		}
-		if find.InstanceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("%s%s", InstanceNamePrefix, find.InstanceID)) {
+		if instaceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("%s%s", InstanceNamePrefix, instaceID)) {
 			continue
 		}
 		databases = append(databases, db)
 	}
 
-	return &api.ListDatabaseMessage{
+	return &v1pb.ListDatabasesResponse{
 		Databases: databases,
 	}, nil
 }
 
 // UpdateDatabase patches the database.
-func (c *mockClient) UpdateDatabase(ctx context.Context, patch *api.DatabasePatchMessage) (*api.DatabaseMessage, error) {
+func (c *mockClient) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updateMasks []string) (*v1pb.Database, error) {
 	db, err := c.GetDatabase(ctx, patch.Name)
 	if err != nil {
 		return nil, err
 	}
-	if v := patch.Project; v != nil {
-		db.Project = *v
+	if slices.Contains(updateMasks, "project") {
+		db.Project = patch.Project
 	}
-	if v := patch.Labels; v != nil {
-		db.Labels = *v
+	if slices.Contains(updateMasks, "labels") {
+		db.Labels = patch.Labels
 	}
 	c.databaseMap[db.Name] = db
 	return db, nil
 }
 
 // GetProject gets the project by resource id.
-func (c *mockClient) GetProject(_ context.Context, projectName string) (*api.ProjectMessage, error) {
+func (c *mockClient) GetProject(_ context.Context, projectName string) (*v1pb.Project, error) {
 	proj, ok := c.projectMap[projectName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found project %s", projectName)
@@ -401,28 +404,28 @@ func (c *mockClient) GetProject(_ context.Context, projectName string) (*api.Pro
 }
 
 // ListProject list the projects.
-func (c *mockClient) ListProject(_ context.Context, showDeleted bool) (*api.ListProjectMessage, error) {
-	projects := make([]*api.ProjectMessage, 0)
+func (c *mockClient) ListProject(_ context.Context, showDeleted bool) (*v1pb.ListProjectsResponse, error) {
+	projects := make([]*v1pb.Project, 0)
 	for _, proj := range c.projectMap {
-		if proj.State == api.Deleted && !showDeleted {
+		if proj.State == v1pb.State_DELETED && !showDeleted {
 			continue
 		}
 		projects = append(projects, proj)
 	}
 
-	return &api.ListProjectMessage{
+	return &v1pb.ListProjectsResponse{
 		Projects: projects,
 	}, nil
 }
 
 // CreateProject creates the project.
-func (c *mockClient) CreateProject(_ context.Context, projectID string, project *api.ProjectMessage) (*api.ProjectMessage, error) {
-	proj := &api.ProjectMessage{
+func (c *mockClient) CreateProject(_ context.Context, projectID string, project *v1pb.Project) (*v1pb.Project, error) {
+	proj := &v1pb.Project{
 		Name:     fmt.Sprintf("%s%s", ProjectNamePrefix, projectID),
-		State:    api.Active,
+		State:    v1pb.State_ACTIVE,
 		Title:    project.Title,
 		Key:      project.Key,
-		Workflow: api.ProjectWorkflowUI,
+		Workflow: v1pb.Workflow_UI,
 	}
 
 	c.projectMap[proj.Name] = proj
@@ -430,17 +433,17 @@ func (c *mockClient) CreateProject(_ context.Context, projectID string, project 
 }
 
 // UpdateProject updates the project.
-func (c *mockClient) UpdateProject(ctx context.Context, patch *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
+func (c *mockClient) UpdateProject(ctx context.Context, patch *v1pb.Project, updateMasks []string) (*v1pb.Project, error) {
 	proj, err := c.GetProject(ctx, patch.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if v := patch.Title; v != nil {
-		proj.Title = *v
+	if slices.Contains(updateMasks, "title") {
+		proj.Title = patch.Title
 	}
-	if v := patch.Key; v != nil {
-		proj.Key = *v
+	if slices.Contains(updateMasks, "key") {
+		proj.Key = patch.Key
 	}
 
 	c.projectMap[proj.Name] = proj
@@ -454,20 +457,20 @@ func (c *mockClient) DeleteProject(ctx context.Context, projectName string) erro
 		return err
 	}
 
-	proj.State = api.Deleted
+	proj.State = v1pb.State_DELETED
 	c.projectMap[proj.Name] = proj
 
 	return nil
 }
 
 // UndeleteProject undeletes the project.
-func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*api.ProjectMessage, error) {
+func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
 	proj, err := c.GetProject(ctx, projectName)
 	if err != nil {
 		return nil, err
 	}
 
-	proj.State = api.Active
+	proj.State = v1pb.State_ACTIVE
 	c.projectMap[proj.Name] = proj
 
 	return proj, nil

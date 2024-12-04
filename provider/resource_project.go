@@ -11,6 +11,8 @@ import (
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
+
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 )
 
 // defaultProj is the default project name.
@@ -123,7 +125,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 			Detail:   fmt.Sprintf("Project %s already exists, try to exec the update operation", projectName),
 		})
 
-		if existedProject.State == api.Deleted {
+		if existedProject.State == v1pb.State_DELETED {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
 				Summary:  "Project is deleted",
@@ -139,11 +141,13 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 			}
 		}
 
-		project, err := c.UpdateProject(ctx, &api.ProjectPatchMessage{
-			Name:  projectName,
-			Title: &title,
-			Key:   &key,
-		})
+		project, err := c.UpdateProject(ctx, &v1pb.Project{
+			Name:     projectName,
+			Title:    title,
+			Key:      key,
+			State:    existedProject.State,
+			Workflow: existedProject.Workflow,
+		}, []string{"title", "key"})
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -155,10 +159,12 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 		d.SetId(project.Name)
 	} else {
-		project, err := c.CreateProject(ctx, projectID, &api.ProjectMessage{
-			Name:  projectName,
-			Title: title,
-			Key:   key,
+		project, err := c.CreateProject(ctx, projectID, &v1pb.Project{
+			Name:     projectName,
+			Title:    title,
+			Key:      key,
+			State:    v1pb.State_ACTIVE,
+			Workflow: v1pb.Workflow_UI,
 		})
 		if err != nil {
 			return diag.FromErr(err)
@@ -195,7 +201,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	var diags diag.Diagnostics
-	if existedProject.State == api.Deleted {
+	if existedProject.State == v1pb.State_DELETED {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Project is deleted",
@@ -211,19 +217,21 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		}
 	}
 
-	patch := &api.ProjectPatchMessage{
-		Name: projectName,
-	}
+	paths := []string{}
 	if d.HasChange("title") {
-		v := d.Get("title").(string)
-		patch.Title = &v
+		paths = append(paths, "title")
 	}
 	if d.HasChange("key") {
-		v := d.Get("key").(string)
-		patch.Key = &v
+		paths = append(paths, "key")
 	}
 
-	if _, err := c.UpdateProject(ctx, patch); err != nil {
+	if _, err := c.UpdateProject(ctx, &v1pb.Project{
+		Name:     projectName,
+		Title:    d.Get("title").(string),
+		Key:      d.Get("key").(string),
+		State:    existedProject.State,
+		Workflow: existedProject.Workflow,
+	}, paths); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
@@ -253,10 +261,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	filter := fmt.Sprintf(`project == "%s"`, project.Name)
-	response, err := c.ListDatabase(ctx, &api.DatabaseFindMessage{
-		InstanceID: "-",
-		Filter:     &filter,
-	})
+	response, err := c.ListDatabase(ctx, "-", filter)
 	if err != nil {
 		return diag.Errorf("failed to list database with error: %v", err)
 	}
@@ -282,14 +287,11 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
 	filter := fmt.Sprintf(`project == "%s"`, projectName)
-	listDB, err := client.ListDatabase(ctx, &api.DatabaseFindMessage{
-		InstanceID: "-",
-		Filter:     &filter,
-	})
+	listDB, err := client.ListDatabase(ctx, "-", filter)
 	if err != nil {
 		return diag.Errorf("failed to list database with error: %v", err)
 	}
-	existedDBMap := map[string]*api.DatabaseMessage{}
+	existedDBMap := map[string]*v1pb.Database{}
 	for _, db := range listDB.Databases {
 		existedDBMap[db.Name] = db
 	}
@@ -298,7 +300,7 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 	if !ok {
 		return nil
 	}
-	updatedDBMap := map[string]*api.DatabasePatchMessage{}
+	updatedDBMap := map[string]*v1pb.Database{}
 	for _, raw := range rawList {
 		obj := raw.(map[string]interface{})
 		dbName := obj["name"].(string)
@@ -308,25 +310,23 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 			labels[key] = val.(string)
 		}
 
-		// TODO(ed):
-		patch := &api.DatabasePatchMessage{
+		updatedDBMap[dbName] = &v1pb.Database{
 			Name:    dbName,
-			Project: &projectName,
-			Labels:  &labels,
+			Project: projectName,
+			Labels:  labels,
 		}
-		updatedDBMap[dbName] = patch
-		if _, err := client.UpdateDatabase(ctx, patch); err != nil {
-			return diag.Errorf("failed to update database %s with error: %v", patch.Name, err)
+		if _, err := client.UpdateDatabase(ctx, updatedDBMap[dbName], []string{"project", "label"}); err != nil {
+			return diag.Errorf("failed to update database %s with error: %v", dbName, err)
 		}
 	}
 
 	for _, db := range existedDBMap {
 		if _, ok := updatedDBMap[db.Name]; !ok {
 			// move db to default project
-			if _, err := client.UpdateDatabase(ctx, &api.DatabasePatchMessage{
+			if _, err := client.UpdateDatabase(ctx, &v1pb.Database{
 				Name:    db.Name,
-				Project: &defaultProj,
-			}); err != nil {
+				Project: projectName,
+			}, []string{"project"}); err != nil {
 				return diag.Errorf("failed to move database %s to project %s with error: %v", db.Name, defaultProj, err)
 			}
 		}

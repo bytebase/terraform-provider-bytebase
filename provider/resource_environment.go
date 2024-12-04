@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
@@ -54,8 +56,8 @@ func resourceEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					string(api.EnvironmentTierProtected),
-					string(api.EnvironmentTierUnProtected),
+					v1pb.EnvironmentTier_PROTECTED.String(),
+					v1pb.EnvironmentTier_UNPROTECTED.String(),
 				}, false),
 				Description: "If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default.",
 			},
@@ -76,7 +78,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	title := d.Get("title").(string)
 	order := d.Get("order").(int)
-	tier := api.EnvironmentTier(d.Get("environment_tier_policy").(string))
+	tier := v1pb.EnvironmentTier(v1pb.EnvironmentTier_value[d.Get("environment_tier_policy").(string)])
 
 	var diags diag.Diagnostics
 	if existedEnv != nil && err == nil {
@@ -86,7 +88,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 			Detail:   fmt.Sprintf("Environment %s already exists, try to exec the update operation", environmentID),
 		})
 
-		if existedEnv.State == api.Deleted {
+		if existedEnv.State == v1pb.State_DELETED {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
 				Summary:  "Environment is deleted",
@@ -102,12 +104,12 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 			}
 		}
 
-		env, err := c.UpdateEnvironment(ctx, &api.EnvironmentPatchMessage{
+		env, err := c.UpdateEnvironment(ctx, &v1pb.Environment{
 			Name:  environmentName,
-			Title: &title,
-			Order: &order,
-			Tier:  &tier,
-		})
+			Title: title,
+			Order: int32(order),
+			Tier:  tier,
+		}, []string{"title", "order", "tier"})
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -119,10 +121,10 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 
 		d.SetId(env.Name)
 	} else {
-		env, err := c.CreateEnvironment(ctx, environmentID, &api.EnvironmentMessage{
+		env, err := c.CreateEnvironment(ctx, environmentID, &v1pb.Environment{
 			Name:  environmentName,
 			Title: title,
-			Order: order,
+			Order: int32(order),
 			Tier:  tier,
 		})
 		if err != nil {
@@ -166,7 +168,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	var diags diag.Diagnostics
-	if existedEnv.State == api.Deleted {
+	if existedEnv.State == v1pb.State_DELETED {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Environment is deleted",
@@ -182,29 +184,29 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 		}
 	}
 
-	patch := &api.EnvironmentPatchMessage{
-		Name: environmentName,
-	}
+	paths := []string{}
 	if d.HasChange("title") {
-		title, ok := d.Get("title").(string)
-		if ok {
-			patch.Title = &title
-		}
+		paths = append(paths, "title")
 	}
 
 	if d.HasChange("order") {
-		order, ok := d.Get("order").(int)
-		if ok {
-			patch.Order = &order
-		}
+		paths = append(paths, "order")
 	}
 
 	if d.HasChange("environment_tier_policy") {
-		tier := api.EnvironmentTier(d.Get("environment_tier_policy").(string))
-		patch.Tier = &tier
+		paths = append(paths, "tier")
 	}
 
-	if _, err := c.UpdateEnvironment(ctx, patch); err != nil {
+	title := d.Get("title").(string)
+	order := d.Get("order").(int)
+	tier := v1pb.EnvironmentTier(v1pb.EnvironmentTier_value[d.Get("environment_tier_policy").(string)])
+
+	if _, err := c.UpdateEnvironment(ctx, &v1pb.Environment{
+		Name:  environmentName,
+		Title: title,
+		Order: int32(order),
+		Tier:  tier,
+	}, paths); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -232,7 +234,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m in
 	return diags
 }
 
-func setEnvironment(d *schema.ResourceData, env *api.EnvironmentMessage) diag.Diagnostics {
+func setEnvironment(d *schema.ResourceData, env *v1pb.Environment) diag.Diagnostics {
 	environmentID, err := internal.GetEnvironmentID(env.Name)
 	if err != nil {
 		return diag.FromErr(err)
@@ -250,7 +252,7 @@ func setEnvironment(d *schema.ResourceData, env *api.EnvironmentMessage) diag.Di
 	if err := d.Set("order", env.Order); err != nil {
 		return diag.Errorf("cannot set order for environment: %s", err.Error())
 	}
-	if err := d.Set("environment_tier_policy", string(env.Tier)); err != nil {
+	if err := d.Set("environment_tier_policy", env.Tier.String()); err != nil {
 		return diag.Errorf("cannot set environment_tier_policy for environment: %s", err.Error())
 	}
 

@@ -2,17 +2,17 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // CreateEnvironment creates the environment.
-func (c *client) CreateEnvironment(ctx context.Context, environmentID string, create *api.EnvironmentMessage) (*api.EnvironmentMessage, error) {
-	payload, err := json.Marshal(create)
+func (c *client) CreateEnvironment(ctx context.Context, environmentID string, create *v1pb.Environment) (*v1pb.Environment, error) {
+	payload, err := protojson.Marshal(create)
 	if err != nil {
 		return nil, err
 	}
@@ -27,8 +27,8 @@ func (c *client) CreateEnvironment(ctx context.Context, environmentID string, cr
 		return nil, err
 	}
 
-	var env api.EnvironmentMessage
-	err = json.Unmarshal(body, &env)
+	var env v1pb.Environment
+	err = ProtojsonUnmarshaler.Unmarshal(body, &env)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (c *client) CreateEnvironment(ctx context.Context, environmentID string, cr
 }
 
 // GetEnvironment gets the environment by id.
-func (c *client) GetEnvironment(ctx context.Context, environmentName string) (*api.EnvironmentMessage, error) {
+func (c *client) GetEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, environmentName), nil)
 	if err != nil {
 		return nil, err
@@ -48,8 +48,8 @@ func (c *client) GetEnvironment(ctx context.Context, environmentName string) (*a
 		return nil, err
 	}
 
-	var env api.EnvironmentMessage
-	err = json.Unmarshal(body, &env)
+	var env v1pb.Environment
+	err = ProtojsonUnmarshaler.Unmarshal(body, &env)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (c *client) GetEnvironment(ctx context.Context, environmentName string) (*a
 }
 
 // ListEnvironment finds all environments.
-func (c *client) ListEnvironment(ctx context.Context, showDeleted bool) (*api.ListEnvironmentMessage, error) {
+func (c *client) ListEnvironment(ctx context.Context, showDeleted bool) (*v1pb.ListEnvironmentsResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/environments?showDeleted=%v", c.url, c.version, showDeleted), nil)
 	if err != nil {
 		return nil, err
@@ -69,8 +69,8 @@ func (c *client) ListEnvironment(ctx context.Context, showDeleted bool) (*api.Li
 		return nil, err
 	}
 
-	var res api.ListEnvironmentMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.ListEnvironmentsResponse
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -79,24 +79,13 @@ func (c *client) ListEnvironment(ctx context.Context, showDeleted bool) (*api.Li
 }
 
 // UpdateEnvironment updates the environment.
-func (c *client) UpdateEnvironment(ctx context.Context, patch *api.EnvironmentPatchMessage) (*api.EnvironmentMessage, error) {
-	payload, err := json.Marshal(patch)
+func (c *client) UpdateEnvironment(ctx context.Context, patch *v1pb.Environment, updateMask []string) (*v1pb.Environment, error) {
+	payload, err := protojson.Marshal(patch)
 	if err != nil {
 		return nil, err
 	}
 
-	paths := []string{}
-	if patch.Title != nil {
-		paths = append(paths, "title")
-	}
-	if patch.Order != nil {
-		paths = append(paths, "order")
-	}
-	if patch.Tier != nil {
-		paths = append(paths, "tier")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(updateMask, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +95,8 @@ func (c *client) UpdateEnvironment(ctx context.Context, patch *api.EnvironmentPa
 		return nil, err
 	}
 
-	var env api.EnvironmentMessage
-	err = json.Unmarshal(body, &env)
+	var env v1pb.Environment
+	err = ProtojsonUnmarshaler.Unmarshal(body, &env)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +118,7 @@ func (c *client) DeleteEnvironment(ctx context.Context, environmentName string) 
 }
 
 // UndeleteEnvironment undeletes the environment.
-func (c *client) UndeleteEnvironment(ctx context.Context, environmentName string) (*api.EnvironmentMessage, error) {
+func (c *client) UndeleteEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:undelete", c.url, c.version, environmentName), nil)
 	if err != nil {
 		return nil, err
@@ -140,8 +129,8 @@ func (c *client) UndeleteEnvironment(ctx context.Context, environmentName string
 		return nil, err
 	}
 
-	var res api.EnvironmentMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.Environment
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}

@@ -2,16 +2,16 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // GetProject gets the project by resource id.
-func (c *client) GetProject(ctx context.Context, projectName string) (*api.ProjectMessage, error) {
+func (c *client) GetProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, projectName), nil)
 	if err != nil {
 		return nil, err
@@ -22,8 +22,8 @@ func (c *client) GetProject(ctx context.Context, projectName string) (*api.Proje
 		return nil, err
 	}
 
-	var res api.ProjectMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.Project
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (c *client) GetProject(ctx context.Context, projectName string) (*api.Proje
 }
 
 // ListProject list the projects.
-func (c *client) ListProject(ctx context.Context, showDeleted bool) (*api.ListProjectMessage, error) {
+func (c *client) ListProject(ctx context.Context, showDeleted bool) (*v1pb.ListProjectsResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/projects?showDeleted=%v", c.url, c.version, showDeleted), nil)
 	if err != nil {
 		return nil, err
@@ -43,8 +43,8 @@ func (c *client) ListProject(ctx context.Context, showDeleted bool) (*api.ListPr
 		return nil, err
 	}
 
-	var res api.ListProjectMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.ListProjectsResponse
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +53,8 @@ func (c *client) ListProject(ctx context.Context, showDeleted bool) (*api.ListPr
 }
 
 // CreateProject creates the project.
-func (c *client) CreateProject(ctx context.Context, projectID string, project *api.ProjectMessage) (*api.ProjectMessage, error) {
-	payload, err := json.Marshal(project)
+func (c *client) CreateProject(ctx context.Context, projectID string, project *v1pb.Project) (*v1pb.Project, error) {
+	payload, err := protojson.Marshal(project)
 	if err != nil {
 		return nil, err
 	}
@@ -70,8 +70,8 @@ func (c *client) CreateProject(ctx context.Context, projectID string, project *a
 		return nil, err
 	}
 
-	var res api.ProjectMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.Project
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -80,21 +80,13 @@ func (c *client) CreateProject(ctx context.Context, projectID string, project *a
 }
 
 // UpdateProject updates the project.
-func (c *client) UpdateProject(ctx context.Context, patch *api.ProjectPatchMessage) (*api.ProjectMessage, error) {
-	payload, err := json.Marshal(patch)
+func (c *client) UpdateProject(ctx context.Context, patch *v1pb.Project, updateMask []string) (*v1pb.Project, error) {
+	payload, err := protojson.Marshal(patch)
 	if err != nil {
 		return nil, err
 	}
 
-	paths := []string{}
-	if patch.Title != nil {
-		paths = append(paths, "title")
-	}
-	if patch.Key != nil {
-		paths = append(paths, "key")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(paths, ",")), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(updateMask, ",")), strings.NewReader(string(payload)))
 
 	if err != nil {
 		return nil, err
@@ -105,8 +97,8 @@ func (c *client) UpdateProject(ctx context.Context, patch *api.ProjectPatchMessa
 		return nil, err
 	}
 
-	var res api.ProjectMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.Project
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +120,7 @@ func (c *client) DeleteProject(ctx context.Context, projectName string) error {
 }
 
 // UndeleteProject undeletes the project.
-func (c *client) UndeleteProject(ctx context.Context, projectName string) (*api.ProjectMessage, error) {
+func (c *client) UndeleteProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:undelete", c.url, c.version, projectName), nil)
 	if err != nil {
 		return nil, err
@@ -139,8 +131,8 @@ func (c *client) UndeleteProject(ctx context.Context, projectName string) (*api.
 		return nil, err
 	}
 
-	var res api.ProjectMessage
-	err = json.Unmarshal(body, &res)
+	var res v1pb.Project
+	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
