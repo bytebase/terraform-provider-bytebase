@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -98,7 +99,10 @@ func TestAccEnvironment_InvalidInput(t *testing.T) {
 }
 
 func testAccCheckEnvironmentDestroy(s *terraform.State) error {
-	c := testAccProvider.Meta().(api.Client)
+	c, ok := testAccProvider.Meta().(api.Client)
+	if !ok {
+		return errors.Errorf("cannot get the api client")
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "bytebase_environment" {

@@ -124,7 +124,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["name"] = project.Name
 		proj["title"] = project.Title
 		proj["key"] = project.Key
-		proj["workflow"] = project.Workflow
+		proj["workflow"] = project.Workflow.String()
 
 		filter := fmt.Sprintf(`project == "%s"`, project.Name)
 		response, err := c.ListDatabase(ctx, "-", filter)

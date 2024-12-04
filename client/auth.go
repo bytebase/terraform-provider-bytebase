@@ -32,8 +32,7 @@ func (c *client) Login() (*v1pb.LoginResponse, error) {
 	}
 
 	ar := v1pb.LoginResponse{}
-	err = ProtojsonUnmarshaler.Unmarshal(body, &ar)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &ar); err != nil {
 		return nil, err
 	}
 
