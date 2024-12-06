@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -28,8 +28,7 @@ func (c *client) CreateEnvironment(ctx context.Context, environmentID string, cr
 	}
 
 	var env v1pb.Environment
-	err = ProtojsonUnmarshaler.Unmarshal(body, &env)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &env); err != nil {
 		return nil, err
 	}
 
@@ -49,8 +48,7 @@ func (c *client) GetEnvironment(ctx context.Context, environmentName string) (*v
 	}
 
 	var env v1pb.Environment
-	err = ProtojsonUnmarshaler.Unmarshal(body, &env)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &env); err != nil {
 		return nil, err
 	}
 
@@ -70,8 +68,7 @@ func (c *client) ListEnvironment(ctx context.Context, showDeleted bool) (*v1pb.L
 	}
 
 	var res v1pb.ListEnvironmentsResponse
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -96,8 +93,7 @@ func (c *client) UpdateEnvironment(ctx context.Context, patch *v1pb.Environment,
 	}
 
 	var env v1pb.Environment
-	err = ProtojsonUnmarshaler.Unmarshal(body, &env)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &env); err != nil {
 		return nil, err
 	}
 
@@ -130,8 +126,7 @@ func (c *client) UndeleteEnvironment(ctx context.Context, environmentName string
 	}
 
 	var res v1pb.Environment
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 

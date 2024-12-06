@@ -35,8 +35,7 @@ func (c *client) ListPolicies(ctx context.Context, find *api.PolicyFindMessage) 
 	}
 
 	var res api.ListPolicyMessage
-	err = json.Unmarshal(body, &res)
-	if err != nil {
+	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -56,8 +55,7 @@ func (c *client) GetPolicy(ctx context.Context, policyName string) (*api.PolicyM
 	}
 
 	var res api.PolicyMessage
-	err = json.Unmarshal(body, &res)
-	if err != nil {
+	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -93,8 +91,7 @@ func (c *client) UpsertPolicy(ctx context.Context, patch *api.PolicyPatchMessage
 	}
 
 	var res api.PolicyMessage
-	err = json.Unmarshal(body, &res)
-	if err != nil {
+	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 

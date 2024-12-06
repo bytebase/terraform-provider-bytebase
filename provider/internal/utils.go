@@ -25,6 +25,8 @@ const (
 	DatabaseIDPrefix = "databases/"
 	// PolicyNamePrefix is the prefix for policy unique name.
 	PolicyNamePrefix = "policies/"
+	// SettingNamePrefix is the prefix for setting unique name.
+	SettingNamePrefix = "settings/"
 	// ResourceIDPattern is the pattern for resource id.
 	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
 )

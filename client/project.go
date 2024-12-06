@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -23,8 +23,7 @@ func (c *client) GetProject(ctx context.Context, projectName string) (*v1pb.Proj
 	}
 
 	var res v1pb.Project
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -44,8 +43,7 @@ func (c *client) ListProject(ctx context.Context, showDeleted bool) (*v1pb.ListP
 	}
 
 	var res v1pb.ListProjectsResponse
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -71,8 +69,7 @@ func (c *client) CreateProject(ctx context.Context, projectID string, project *v
 	}
 
 	var res v1pb.Project
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -98,8 +95,7 @@ func (c *client) UpdateProject(ctx context.Context, patch *v1pb.Project, updateM
 	}
 
 	var res v1pb.Project
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -132,8 +128,7 @@ func (c *client) UndeleteProject(ctx context.Context, projectName string) (*v1pb
 	}
 
 	var res v1pb.Project
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 

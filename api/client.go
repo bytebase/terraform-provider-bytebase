@@ -3,7 +3,8 @@ package api
 import (
 	"context"
 
-	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
 // Client is the API message for Bytebase OpenAPI client.
@@ -73,4 +74,16 @@ type Client interface {
 	DeleteProject(ctx context.Context, projectName string) error
 	// UndeleteProject undeletes the project.
 	UndeleteProject(ctx context.Context, projectName string) (*v1pb.Project, error)
+
+	// Setting
+	// ListSettings lists all settings.
+	ListSettings(ctx context.Context) (*v1pb.ListSettingsResponse, error)
+	// GetSetting gets the setting by the name.
+	GetSetting(ctx context.Context, settingName string) (*v1pb.Setting, error)
+	// UpsertSetting updates or creates the setting.
+	UpsertSetting(ctx context.Context, upsert *v1pb.Setting, updateMasks []string) (*v1pb.Setting, error)
+
+	// Cel
+	// ParseExpression parse the expression string.
+	ParseExpression(ctx context.Context, expression string) (*v1alpha1.Expr, error)
 }
