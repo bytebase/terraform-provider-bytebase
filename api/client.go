@@ -4,7 +4,7 @@ import (
 	"context"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
-	"google.golang.org/genproto/googleapis/api/expr/v1alpha1"
+	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
 // Client is the API message for Bytebase OpenAPI client.

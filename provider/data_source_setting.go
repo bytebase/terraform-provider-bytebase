@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
-	"google.golang.org/genproto/googleapis/api/expr/v1alpha1"
+	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
