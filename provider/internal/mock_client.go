@@ -10,7 +10,8 @@ import (
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 
-	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
 var environmentMap map[string]*v1pb.Environment
@@ -18,6 +19,7 @@ var instanceMap map[string]*v1pb.Instance
 var policyMap map[string]*api.PolicyMessage
 var projectMap map[string]*v1pb.Project
 var databaseMap map[string]*v1pb.Database
+var settingMap map[string]*v1pb.Setting
 
 func init() {
 	environmentMap = map[string]*v1pb.Environment{}
@@ -25,6 +27,7 @@ func init() {
 	policyMap = map[string]*api.PolicyMessage{}
 	projectMap = map[string]*v1pb.Project{}
 	databaseMap = map[string]*v1pb.Database{}
+	settingMap = map[string]*v1pb.Setting{}
 }
 
 type mockClient struct {
@@ -33,6 +36,7 @@ type mockClient struct {
 	policyMap      map[string]*api.PolicyMessage
 	projectMap     map[string]*v1pb.Project
 	databaseMap    map[string]*v1pb.Database
+	settingMap     map[string]*v1pb.Setting
 }
 
 // newMockClient returns the new Bytebase API mock client.
@@ -43,6 +47,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		policyMap:      policyMap,
 		projectMap:     projectMap,
 		databaseMap:    databaseMap,
+		settingMap:     settingMap,
 	}, nil
 }
 
@@ -474,4 +479,42 @@ func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*
 	c.projectMap[proj.Name] = proj
 
 	return proj, nil
+}
+
+// ListSettings lists all settings.
+func (c *mockClient) ListSettings(ctx context.Context) (*v1pb.ListSettingsResponse, error) {
+	settings := make([]*v1pb.Setting, 0)
+	for _, setting := range c.settingMap {
+		settings = append(settings, setting)
+	}
+
+	return &v1pb.ListSettingsResponse{
+		Settings: settings,
+	}, nil
+}
+
+// ListSettings lists all settings.
+func (c *mockClient) GetSetting(ctx context.Context, settingName string) (*v1pb.Setting, error) {
+	setting, ok := c.settingMap[settingName]
+	if !ok {
+		return nil, errors.Errorf("Cannot found setting %s", settingName)
+	}
+
+	return setting, nil
+}
+
+// UpsertSetting updates or creates the setting.
+func (c *mockClient) UpsertSetting(ctx context.Context, upsert *v1pb.Setting, updateMasks []string) (*v1pb.Setting, error) {
+	setting, ok := c.settingMap[upsert.Name]
+	if !ok {
+		c.settingMap[upsert.Name] = upsert
+	} else {
+		setting.Value = upsert.Value
+		c.settingMap[upsert.Name] = setting
+	}
+	return c.settingMap[upsert.Name], nil
+}
+
+func (c *mockClient) ParseExpression(ctx context.Context, expression string) (*v1alpha1.Expr, error) {
+	return nil, nil
 }

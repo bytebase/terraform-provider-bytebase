@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -23,8 +23,7 @@ func (c *client) ListInstance(ctx context.Context, showDeleted bool) (*v1pb.List
 	}
 
 	var res v1pb.ListInstancesResponse
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -44,8 +43,7 @@ func (c *client) GetInstance(ctx context.Context, instanceName string) (*v1pb.In
 	}
 
 	var res v1pb.Instance
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -71,8 +69,7 @@ func (c *client) CreateInstance(ctx context.Context, instanceID string, instance
 	}
 
 	var res v1pb.Instance
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -98,8 +95,7 @@ func (c *client) UpdateInstance(ctx context.Context, patch *v1pb.Instance, updat
 	}
 
 	var res v1pb.Instance
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -132,8 +128,7 @@ func (c *client) UndeleteInstance(ctx context.Context, instanceName string) (*v1
 	}
 
 	var res v1pb.Instance
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 

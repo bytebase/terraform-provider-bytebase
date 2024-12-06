@@ -12,7 +12,7 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 
-	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 )
 
 // defaultProj is the default project name.

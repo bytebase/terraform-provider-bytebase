@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -24,8 +24,7 @@ func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Da
 	}
 
 	var res v1pb.Database
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -50,8 +49,7 @@ func (c *client) ListDatabase(ctx context.Context, instanceID, filter string) (*
 	}
 
 	var res v1pb.ListDatabasesResponse
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
@@ -65,14 +63,6 @@ func (c *client) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updat
 		return nil, err
 	}
 
-	// updateMask := []string{}
-	// if patch.Project != nil {
-	// 	updateMask = append(updateMask, "project")
-	// }
-	// if patch.Labels != nil {
-	// 	updateMask = append(updateMask, "labels")
-	// }
-
 	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(updateMasks, ",")), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
@@ -84,8 +74,7 @@ func (c *client) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updat
 	}
 
 	var res v1pb.Database
-	err = ProtojsonUnmarshaler.Unmarshal(body, &res)
-	if err != nil {
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
