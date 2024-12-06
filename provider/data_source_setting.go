@@ -196,14 +196,14 @@ func parseApprovalExpression(callExpr *v1alpha1.Expr_Call) ([]map[string]interfa
 				resp[argName] = argExpr.Args[1].GetConstExpr().GetStringValue()
 			case "level":
 				levelNumber := argExpr.Args[1].GetConstExpr().GetInt64Value()
-				switch levelNumber {
-				case 0:
+				switch int(levelNumber) {
+				case api.RiskLevelDefault.Int():
 					resp[argName] = api.RiskLevelDefault
-				case 100:
+				case api.RiskLevelLow.Int():
 					resp[argName] = api.RiskLevelLow
-				case 200:
+				case api.RiskLevelModerate.Int():
 					resp[argName] = api.RiskLevelModerate
-				case 300:
+				case api.RiskLevelHigh.Int():
 					resp[argName] = api.RiskLevelHigh
 				default:
 					return nil, errors.Errorf("unknown risk level: %v", levelNumber)
