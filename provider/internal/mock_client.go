@@ -504,7 +504,7 @@ func (c *mockClient) GetSetting(_ context.Context, settingName string) (*v1pb.Se
 }
 
 // UpsertSetting updates or creates the setting.
-func (c *mockClient) UpsertSetting(_ context.Context, upsert *v1pb.Setting, updateMasks []string) (*v1pb.Setting, error) {
+func (c *mockClient) UpsertSetting(_ context.Context, upsert *v1pb.Setting, _ []string) (*v1pb.Setting, error) {
 	setting, ok := c.settingMap[upsert.Name]
 	if !ok {
 		c.settingMap[upsert.Name] = upsert
