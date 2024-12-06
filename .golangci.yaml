@@ -77,6 +77,8 @@ linters-settings:
         disabled: true
       - name: unchecked-type-assertion
         disabled: true
+      - name: redundant-import-alias
+        disabled: true
   gocritic:
     disabled-checks:
       - ifElseChain
