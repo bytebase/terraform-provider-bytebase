@@ -149,7 +149,7 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 				approvalNode.Payload = &v1pb.ApprovalNode_GroupValue_{
 					GroupValue: v1pb.ApprovalNode_GroupValue(group),
 				}
-			case api.ApprovalNodeTypeExternalNodeId:
+			case api.ApprovalNodeTypeExternalNodeID:
 				approvalNode.Payload = &v1pb.ApprovalNode_ExternalNodeId{
 					ExternalNodeId: node,
 				}

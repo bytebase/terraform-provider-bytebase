@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
-	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
+	"google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -82,7 +82,7 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 														ValidateFunc: validation.StringInSlice([]string{
 															string(api.ApprovalNodeTypeGroup),
 															string(api.ApprovalNodeTypeRole),
-															string(api.ApprovalNodeTypeExternalNodeId),
+															string(api.ApprovalNodeTypeExternalNodeID),
 														}, false),
 													},
 													"node": {
@@ -240,7 +240,7 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 					rawNode["type"] = string(api.ApprovalNodeTypeRole)
 					rawNode["node"] = payload.Role
 				case *v1pb.ApprovalNode_ExternalNodeId:
-					rawNode["type"] = string(api.ApprovalNodeTypeExternalNodeId)
+					rawNode["type"] = string(api.ApprovalNodeTypeExternalNodeID)
 					rawNode["node"] = payload.ExternalNodeId
 				case *v1pb.ApprovalNode_GroupValue_:
 					rawNode["type"] = string(api.ApprovalNodeTypeGroup)

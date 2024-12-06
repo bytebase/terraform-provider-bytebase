@@ -46,6 +46,6 @@ const (
 	ApprovalNodeTypeGroup ApprovalNodeType = "GROUP"
 	// ApprovalNodeTypeRole means the approval node is a role, the value should be role fullname.
 	ApprovalNodeTypeRole ApprovalNodeType = "ROLE"
-	// ApprovalNodeTypeRole means the approval node is a external node, the value should be the node id.
-	ApprovalNodeTypeExternalNodeId ApprovalNodeType = "EXTERNAL_NODE"
+	// ApprovalNodeTypeExternalNodeID means the approval node is a external node, the value should be the node id.
+	ApprovalNodeTypeExternalNodeID ApprovalNodeType = "EXTERNAL_NODE"
 )

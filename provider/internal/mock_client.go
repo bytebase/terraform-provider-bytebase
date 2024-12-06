@@ -11,7 +11,7 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
-	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
+	"google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
 var environmentMap map[string]*v1pb.Environment
@@ -482,7 +482,7 @@ func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*
 }
 
 // ListSettings lists all settings.
-func (c *mockClient) ListSettings(ctx context.Context) (*v1pb.ListSettingsResponse, error) {
+func (c *mockClient) ListSettings(_ context.Context) (*v1pb.ListSettingsResponse, error) {
 	settings := make([]*v1pb.Setting, 0)
 	for _, setting := range c.settingMap {
 		settings = append(settings, setting)
@@ -494,7 +494,7 @@ func (c *mockClient) ListSettings(ctx context.Context) (*v1pb.ListSettingsRespon
 }
 
 // ListSettings lists all settings.
-func (c *mockClient) GetSetting(ctx context.Context, settingName string) (*v1pb.Setting, error) {
+func (c *mockClient) GetSetting(_ context.Context, settingName string) (*v1pb.Setting, error) {
 	setting, ok := c.settingMap[settingName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found setting %s", settingName)
@@ -504,7 +504,7 @@ func (c *mockClient) GetSetting(ctx context.Context, settingName string) (*v1pb.
 }
 
 // UpsertSetting updates or creates the setting.
-func (c *mockClient) UpsertSetting(ctx context.Context, upsert *v1pb.Setting, updateMasks []string) (*v1pb.Setting, error) {
+func (c *mockClient) UpsertSetting(_ context.Context, upsert *v1pb.Setting, updateMasks []string) (*v1pb.Setting, error) {
 	setting, ok := c.settingMap[upsert.Name]
 	if !ok {
 		c.settingMap[upsert.Name] = upsert
@@ -515,6 +515,6 @@ func (c *mockClient) UpsertSetting(ctx context.Context, upsert *v1pb.Setting, up
 	return c.settingMap[upsert.Name], nil
 }
 
-func (c *mockClient) ParseExpression(ctx context.Context, expression string) (*v1alpha1.Expr, error) {
+func (*mockClient) ParseExpression(_ context.Context, _ string) (*v1alpha1.Expr, error) {
 	return nil, nil
 }

@@ -10,7 +10,7 @@ import (
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"github.com/pkg/errors"
-	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
+	"google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
