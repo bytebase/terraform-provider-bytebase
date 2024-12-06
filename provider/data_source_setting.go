@@ -27,24 +27,9 @@ func dataSourceSetting() *schema.Resource {
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.SettingWorkspaceApproval),
-					string(api.SettingWorkspaceExternalApproval),
 				}, false),
 			},
-			"value": {
-				Computed: true,
-				Type:     schema.TypeList,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"string": {
-							Optional: true,
-							Computed: true,
-							Default:  nil,
-							Type:     schema.TypeString,
-						},
-						"workspace_approval_setting": getWorkspaceApprovalSetting(true),
-					},
-				},
-			},
+			"approval_flow": getWorkspaceApprovalSetting(true),
 		},
 	}
 }
@@ -60,28 +45,34 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 				"rules": {
 					Type:     schema.TypeList,
 					Computed: computed,
+					Optional: true,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"flow": {
 								Computed: computed,
+								Optional: true,
 								Type:     schema.TypeList,
 								Elem: &schema.Resource{
 									Schema: map[string]*schema.Schema{
 										"title": {
 											Type:     schema.TypeString,
 											Computed: computed,
+											Optional: true,
 										},
 										"description": {
 											Type:     schema.TypeString,
 											Computed: computed,
+											Optional: true,
 										},
 										"creator": {
 											Type:     schema.TypeString,
 											Computed: computed,
+											Optional: true,
 										},
 										"steps": {
 											Type:     schema.TypeList,
 											Computed: computed,
+											Optional: true,
 											Elem: &schema.Resource{
 												Schema: map[string]*schema.Schema{
 													"type": {
@@ -89,50 +80,17 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 														Computed: computed,
 														Optional: true,
 														ValidateFunc: validation.StringInSlice([]string{
-															v1pb.ApprovalStep_ALL.String(),
-															v1pb.ApprovalStep_ANY.String(),
+															string(api.ApprovalNodeTypeGroup),
+															string(api.ApprovalNodeTypeRole),
+															string(api.ApprovalNodeTypeExternalNodeId),
 														}, false),
 													},
-													"nodes": {
-														Type:     schema.TypeList,
+													"node": {
+														Optional: true,
+														Default:  nil,
 														Computed: computed,
-														Elem: &schema.Resource{
-															Schema: map[string]*schema.Schema{
-																"type": {
-																	Type:     schema.TypeString,
-																	Computed: computed,
-																	Optional: true,
-																	ValidateFunc: validation.StringInSlice([]string{
-																		v1pb.ApprovalNode_ANY_IN_GROUP.String(),
-																	}, false),
-																},
-																"group_value": {
-																	Optional: true,
-																	Default:  nil,
-																	Computed: computed,
-																	Type:     schema.TypeString,
-																	ValidateFunc: validation.StringInSlice([]string{
-																		v1pb.ApprovalNode_WORKSPACE_OWNER.String(),
-																		v1pb.ApprovalNode_WORKSPACE_DBA.String(),
-																		v1pb.ApprovalNode_PROJECT_OWNER.String(),
-																		v1pb.ApprovalNode_PROJECT_MEMBER.String(),
-																	}, false),
-																},
-																"role": {
-																	Optional:    true,
-																	Default:     nil,
-																	Computed:    computed,
-																	Type:        schema.TypeString,
-																	Description: "role name in roles/{role} format",
-																},
-																"external_node_id": {
-																	Optional: true,
-																	Default:  nil,
-																	Computed: computed,
-																	Type:     schema.TypeString,
-																},
-															},
-														},
+														Type:     schema.TypeString,
+														// TODO(ed): consider add validate
 													},
 												},
 											},
@@ -200,10 +158,7 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 		if err != nil {
 			return diag.Errorf("failed to parse workspace_approval_setting: %s", err.Error())
 		}
-		workspaceApprovalSetting := map[string]interface{}{
-			"workspace_approval_setting": settingVal,
-		}
-		if err := d.Set("value", []interface{}{workspaceApprovalSetting}); err != nil {
+		if err := d.Set("approval_flow", settingVal); err != nil {
 			return diag.Errorf("cannot set workspace_approval_setting: %s", err.Error())
 		}
 	}
@@ -278,21 +233,21 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 	for _, rule := range setting.Rules {
 		stepList := []interface{}{}
 		for _, step := range rule.Template.Flow.Steps {
-			nodeList := []interface{}{}
 			for _, node := range step.Nodes {
-				rawNode := map[string]interface{}{
-					"type":             node.Type.String(),
-					"group_value":      node.GetGroupValue().String(),
-					"role":             node.GetRole(),
-					"external_node_id": node.GetExternalNodeId(),
+				rawNode := map[string]interface{}{}
+				switch payload := node.Payload.(type) {
+				case *v1pb.ApprovalNode_Role:
+					rawNode["type"] = string(api.ApprovalNodeTypeRole)
+					rawNode["node"] = payload.Role
+				case *v1pb.ApprovalNode_ExternalNodeId:
+					rawNode["type"] = string(api.ApprovalNodeTypeExternalNodeId)
+					rawNode["node"] = payload.ExternalNodeId
+				case *v1pb.ApprovalNode_GroupValue_:
+					rawNode["type"] = string(api.ApprovalNodeTypeGroup)
+					rawNode["node"] = payload.GroupValue.String()
 				}
-				nodeList = append(nodeList, rawNode)
+				stepList = append(stepList, rawNode)
 			}
-			raw := map[string]interface{}{
-				"type":  step.Type.String(),
-				"nodes": nodeList,
-			}
-			stepList = append(stepList, raw)
 		}
 
 		conditionList := []map[string]interface{}{}

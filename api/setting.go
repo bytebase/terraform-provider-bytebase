@@ -23,3 +23,29 @@ const (
 	// RiskLevelHigh is the high risk level, the level number should be 300.
 	RiskLevelHigh RiskLevel = "HIGH"
 )
+
+// Int returns the int value for risk.
+func (r RiskLevel) Int() int {
+	switch r {
+	case RiskLevelLow:
+		return 100
+	case RiskLevelModerate:
+		return 200
+	case RiskLevelHigh:
+		return 300
+	default:
+		return 0
+	}
+}
+
+// ApprovalNodeType is the type for approval node.
+type ApprovalNodeType string
+
+const (
+	// ApprovalNodeTypeGroup means the approval node is a group.
+	ApprovalNodeTypeGroup ApprovalNodeType = "GROUP"
+	// ApprovalNodeTypeRole means the approval node is a role, the value should be role fullname.
+	ApprovalNodeTypeRole ApprovalNodeType = "ROLE"
+	// ApprovalNodeTypeRole means the approval node is a external node, the value should be the node id.
+	ApprovalNodeTypeExternalNodeId ApprovalNodeType = "EXTERNAL_NODE"
+)
