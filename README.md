@@ -73,10 +73,10 @@ terraform destory
 
 > This will generate the doc template in the `docs` folder
 >
-> Check https://github.com/hashicorp/terraform-plugin-docs for details.
+> Check https://github.com/hashicorp/terraform-plugin-docs and https://github.com/hashicorp/terraform-plugin-docs/issues/141 for details.
 
 ```bash
-go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs --provider-name=terraform-provider-bytebase
+GOOS=darwin GOARCH=amd64 go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs --provider-name=terraform-provider-bytebase
 ```
 
 ## Release

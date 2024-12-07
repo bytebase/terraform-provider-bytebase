@@ -37,7 +37,11 @@ Read-Only:
 - `database` (String)
 - `host` (String)
 - `id` (String)
+- `password` (String)
 - `port` (String)
+- `ssl_ca` (String)
+- `ssl_cert` (String)
+- `ssl_key` (String)
 - `type` (String)
 - `username` (String)
 

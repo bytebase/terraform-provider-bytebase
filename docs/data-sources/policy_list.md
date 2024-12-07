@@ -29,73 +29,52 @@ The policy data source list.
 
 Read-Only:
 
-- `access_control_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--access_control_policy))
-- `backup_plan_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--backup_plan_policy))
-- `deployment_approval_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--deployment_approval_policy))
 - `enforce` (Boolean)
 - `inherit_from_parent` (Boolean)
+- `masking_exception_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy))
+- `masking_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_policy))
 - `name` (String)
-- `sensitive_data_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--sensitive_data_policy))
 - `type` (String)
 
-<a id="nestedobjatt--policies--access_control_policy"></a>
-### Nested Schema for `policies.access_control_policy`
+<a id="nestedobjatt--policies--masking_exception_policy"></a>
+### Nested Schema for `policies.masking_exception_policy`
 
 Read-Only:
 
-- `disallow_rules` (List of Object) (see [below for nested schema](#nestedobjatt--policies--access_control_policy--disallow_rules))
+- `exceptions` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy--exceptions))
 
-<a id="nestedobjatt--policies--access_control_policy--disallow_rules"></a>
-### Nested Schema for `policies.access_control_policy.disallow_rules`
-
-Read-Only:
-
-- `all_databases` (Boolean)
-
-
-
-<a id="nestedobjatt--policies--backup_plan_policy"></a>
-### Nested Schema for `policies.backup_plan_policy`
+<a id="nestedobjatt--policies--masking_exception_policy--exceptions"></a>
+### Nested Schema for `policies.masking_exception_policy.exceptions`
 
 Read-Only:
 
-- `retention_duration` (Number)
-- `schedule` (String)
-
-
-<a id="nestedobjatt--policies--deployment_approval_policy"></a>
-### Nested Schema for `policies.deployment_approval_policy`
-
-Read-Only:
-
-- `default_strategy` (String)
-- `deployment_approval_strategies` (List of Object) (see [below for nested schema](#nestedobjatt--policies--deployment_approval_policy--deployment_approval_strategies))
-
-<a id="nestedobjatt--policies--deployment_approval_policy--deployment_approval_strategies"></a>
-### Nested Schema for `policies.deployment_approval_policy.deployment_approval_strategies`
-
-Read-Only:
-
-- `approval_group` (String)
-- `approval_strategy` (String)
-- `deployment_type` (String)
+- `action` (String)
+- `column` (String)
+- `database` (String)
+- `expire_timestamp` (String)
+- `masking_level` (String)
+- `member` (String)
+- `schema` (String)
+- `table` (String)
 
 
 
-<a id="nestedobjatt--policies--sensitive_data_policy"></a>
-### Nested Schema for `policies.sensitive_data_policy`
+<a id="nestedobjatt--policies--masking_policy"></a>
+### Nested Schema for `policies.masking_policy`
 
 Read-Only:
 
-- `sensitive_data` (List of Object) (see [below for nested schema](#nestedobjatt--policies--sensitive_data_policy--sensitive_data))
+- `mask_data` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_policy--mask_data))
 
-<a id="nestedobjatt--policies--sensitive_data_policy--sensitive_data"></a>
-### Nested Schema for `policies.sensitive_data_policy.sensitive_data`
+<a id="nestedobjatt--policies--masking_policy--mask_data"></a>
+### Nested Schema for `policies.masking_policy.mask_data`
 
 Read-Only:
 
 - `column` (String)
-- `mask_type` (String)
+- `full_masking_algorithm_id` (String)
+- `masking_level` (String)
+- `partial_masking_algorithm_id` (String)
 - `schema` (String)
 - `table` (String)
 

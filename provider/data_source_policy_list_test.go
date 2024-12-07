@@ -5,7 +5,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
@@ -27,12 +28,12 @@ func TestAccPolicyListDataSource(t *testing.T) {
 			),
 			internal.GetTestStepForDataSourceList(
 				testAccCheckPolicyResource(
-					"backup_plan",
-					"environments/test",
-					getBackupPlanPolicy(string(api.BackupPlanScheduleDaily), 999),
-					api.PolicyTypeBackupPlan,
+					"masking_policy",
+					"instances/test-sample-instance/databases/employee",
+					getMaskingPolicy("salary", "amount", v1pb.MaskingLevel_FULL),
+					v1pb.PolicyType_MASKING,
 				),
-				"bytebase_policy.backup_plan",
+				"bytebase_policy.masking_policy",
 				"bytebase_policy_list",
 				"after",
 				"policies",

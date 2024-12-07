@@ -27,9 +27,51 @@ func dataSourceSetting() *schema.Resource {
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.SettingWorkspaceApproval),
+					string(api.SettingWorkspaceExternalApproval),
 				}, false),
 			},
-			"approval_flow": getWorkspaceApprovalSetting(true),
+			"approval_flow":           getWorkspaceApprovalSetting(true),
+			"external_approval_nodes": getExternalApprovalSetting(true),
+		},
+	}
+}
+
+func getExternalApprovalSetting(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed: computed,
+		Optional: true,
+		Default:  nil,
+		Type:     schema.TypeList,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"nodes": {
+					Type:     schema.TypeList,
+					Computed: computed,
+					Required: !computed,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"id": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Required:    !computed,
+								Description: "The unique external node id.",
+							},
+							"title": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Required:    !computed,
+								Description: "The external node title.",
+							},
+							"endpoint": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Required:    !computed,
+								Description: "The endpoint URL to receive the approval message. Learn more: https://www.bytebase.com/docs/api/external-approval",
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -45,19 +87,19 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 				"rules": {
 					Type:     schema.TypeList,
 					Computed: computed,
-					Optional: true,
+					Required: !computed,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"flow": {
 								Computed: computed,
-								Optional: true,
+								Required: !computed,
 								Type:     schema.TypeList,
 								Elem: &schema.Resource{
 									Schema: map[string]*schema.Schema{
 										"title": {
 											Type:     schema.TypeString,
 											Computed: computed,
-											Optional: true,
+											Required: !computed,
 										},
 										"description": {
 											Type:     schema.TypeString,
@@ -65,14 +107,16 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 											Optional: true,
 										},
 										"creator": {
-											Type:     schema.TypeString,
-											Computed: computed,
-											Optional: true,
+											Type:        schema.TypeString,
+											Computed:    computed,
+											Required:    !computed,
+											Description: "The creator name in users/{email} format",
 										},
 										"steps": {
-											Type:     schema.TypeList,
-											Computed: computed,
-											Optional: true,
+											Type:        schema.TypeList,
+											Computed:    computed,
+											Required:    !computed,
+											Description: "Approval flow following the step order.",
 											Elem: &schema.Resource{
 												Schema: map[string]*schema.Schema{
 													"type": {
@@ -86,11 +130,10 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 														}, false),
 													},
 													"node": {
-														Optional: true,
+														Required: !computed,
 														Default:  nil,
 														Computed: computed,
 														Type:     schema.TypeString,
-														// TODO(ed): consider add validate
 													},
 												},
 											},
@@ -99,9 +142,10 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								},
 							},
 							"conditions": {
-								Computed: computed,
-								Type:     schema.TypeList,
-								Optional: true,
+								Computed:    computed,
+								Type:        schema.TypeList,
+								Optional:    true,
+								Description: "Match any condition will trigger this approval flow.",
 								Elem: &schema.Resource{
 									Schema: map[string]*schema.Schema{
 										"source": {
@@ -160,6 +204,12 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 		}
 		if err := d.Set("approval_flow", settingVal); err != nil {
 			return diag.Errorf("cannot set workspace_approval_setting: %s", err.Error())
+		}
+	}
+	if value := setting.Value.GetExternalApprovalSettingValue(); value != nil {
+		settingVal := flattenExternalApprovalSetting(value)
+		if err := d.Set("external_approval_nodes", settingVal); err != nil {
+			return diag.Errorf("cannot set external_approval_nodes: %s", err.Error())
 		}
 	}
 
@@ -284,4 +334,20 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 		"rules": ruleList,
 	}
 	return []interface{}{approvalSetting}, nil
+}
+
+func flattenExternalApprovalSetting(setting *v1pb.ExternalApprovalSetting) []interface{} {
+	nodeList := []interface{}{}
+	for _, node := range setting.Nodes {
+		rawNode := map[string]interface{}{}
+		rawNode["id"] = node.Id
+		rawNode["title"] = node.Title
+		rawNode["endpoint"] = node.Endpoint
+		nodeList = append(nodeList, rawNode)
+	}
+
+	approvalSetting := map[string]interface{}{
+		"nodes": nodeList,
+	}
+	return []interface{}{approvalSetting}
 }

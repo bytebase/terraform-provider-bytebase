@@ -33,9 +33,11 @@ func resourceSetting() *schema.Resource {
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.SettingWorkspaceApproval),
+					string(api.SettingWorkspaceExternalApproval),
 				}, false),
 			},
-			"approval_flow": getWorkspaceApprovalSetting(false),
+			"approval_flow":           getWorkspaceApprovalSetting(false),
+			"external_approval_nodes": getExternalApprovalSetting(false),
 		},
 	}
 }
@@ -62,6 +64,16 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 				WorkspaceApprovalSettingValue: workspaceApproval,
 			},
 		}
+	case api.SettingWorkspaceExternalApproval:
+		externalApproval, err := convertToV1ExternalNodesSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_ExternalApprovalSettingValue{
+				ExternalApprovalSettingValue: externalApproval,
+			},
+		}
 	default:
 		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
 	}
@@ -79,6 +91,27 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	return diags
+}
+
+func convertToV1ExternalNodesSetting(d *schema.ResourceData) (*v1pb.ExternalApprovalSetting, error) {
+	rawList, ok := d.Get("external_approval_nodes").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid external_approval_nodes")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+	nodes := raw["nodes"].([]interface{})
+	externalApprovalSetting := &v1pb.ExternalApprovalSetting{}
+
+	for _, node := range nodes {
+		rawNode := node.(map[string]interface{})
+		externalApprovalSetting.Nodes = append(externalApprovalSetting.Nodes, &v1pb.ExternalApprovalSetting_Node{
+			Id:       rawNode["id"].(string),
+			Title:    rawNode["title"].(string),
+			Endpoint: rawNode["endpoint"].(string),
+		})
+	}
+	return externalApprovalSetting, nil
 }
 
 func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApprovalSetting, error) {
@@ -111,6 +144,10 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 			return nil, errors.Errorf("invalid flow")
 		}
 		rawFlow := flowList[0].(map[string]interface{})
+		creator := rawFlow["creator"].(string)
+		if !strings.HasPrefix(creator, "users/") {
+			return nil, errors.Errorf("creator should in users/{email} format")
+		}
 		approvalRule := &v1pb.WorkspaceApprovalSetting_Rule{
 			Template: &v1pb.ApprovalTemplate{
 				Title:       rawFlow["title"].(string),
@@ -138,13 +175,23 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 			}
 			switch stepType {
 			case api.ApprovalNodeTypeRole:
+				if !strings.HasPrefix(node, "roles/") {
+					return nil, errors.Errorf("invalid role name: %v, role name should in roles/{role} format", node)
+				}
 				approvalNode.Payload = &v1pb.ApprovalNode_Role{
 					Role: node,
 				}
 			case api.ApprovalNodeTypeGroup:
 				group, ok := v1pb.ApprovalNode_GroupValue_value[node]
 				if !ok {
-					return nil, errors.Errorf("invalid group: %v", node)
+					return nil, errors.Errorf(
+						"invalid group: %v, group should be one of: %s, %s, %s, %s",
+						node,
+						v1pb.ApprovalNode_WORKSPACE_OWNER.String(),
+						v1pb.ApprovalNode_WORKSPACE_DBA.String(),
+						v1pb.ApprovalNode_PROJECT_OWNER.String(),
+						v1pb.ApprovalNode_PROJECT_MEMBER.String(),
+					)
 				}
 				approvalNode.Payload = &v1pb.ApprovalNode_GroupValue_{
 					GroupValue: v1pb.ApprovalNode_GroupValue(group),

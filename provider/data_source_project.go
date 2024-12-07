@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -138,7 +139,7 @@ func setProjectWithDatabases(d *schema.ResourceData, project *v1pb.Project, data
 		db["name"] = database.Name
 		db["environment"] = database.Environment
 		db["sync_state"] = database.SyncState.String()
-		db["successful_sync_time"] = database.SuccessfulSyncTime
+		db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
 		db["schema_version"] = database.SchemaVersion
 		db["labels"] = database.Labels
 		dbList = append(dbList, db)

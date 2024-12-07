@@ -10,6 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
+	"google.golang.org/genproto/googleapis/type/expr"
+
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -39,7 +42,7 @@ func resourcePolicy() *schema.Resource {
 					// project policy
 					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern)),
 					// database policy
-					regexp.MustCompile(fmt.Sprintf("^%s%s%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern)),
+					regexp.MustCompile(fmt.Sprintf("^%s%s/%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern)),
 				),
 				Description: "The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}",
 			},
@@ -47,10 +50,8 @@ func resourcePolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					string(api.PolicyTypeDeploymentApproval),
-					string(api.PolicyTypeBackupPlan),
-					string(api.PolicyTypeSensitiveData),
-					string(api.PolicyTypeAccessControl),
+					v1pb.PolicyType_MASKING.String(),
+					v1pb.PolicyType_MASKING_EXCEPTION.String(),
 				}, false),
 				Description: "The policy type.",
 			},
@@ -71,10 +72,8 @@ func resourcePolicy() *schema.Resource {
 				Default:     false,
 				Description: "Decide if the policy should inherit from the parent.",
 			},
-			"deployment_approval_policy": getDeploymentApprovalPolicySchema(false),
-			"backup_plan_policy":         getBackupPlanPolicySchema(false),
-			"sensitive_data_policy":      getSensitiveDataPolicy(false),
-			"access_control_policy":      getAccessControlPolicy(false),
+			"masking_policy":           getMaskingPolicySchema(false),
+			"masking_exception_policy": getMaskingExceptionPolicySchema(false),
 		},
 	}
 }
@@ -113,52 +112,39 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	inheritFromParent := d.Get("inherit_from_parent").(bool)
 	enforce := d.Get("enforce").(bool)
 
-	patch := &api.PolicyPatchMessage{
-		Name:              policyName,
-		InheritFromParent: &inheritFromParent,
-		Enforce:           &enforce,
-	}
-
-	policyType := api.PolicyType(strings.ToUpper(d.Get("type").(string)))
-	switch policyType {
-	case api.PolicyTypeDeploymentApproval:
-		if _, ok := d.GetOk("deployment_approval_policy"); ok {
-			policy, err := convertDeploymentApprovalPolicy(d)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			patch.DeploymentApprovalPolicy = policy
-		}
-	case api.PolicyTypeBackupPlan:
-		if _, ok := d.GetOk("backup_plan_policy"); ok {
-			policy, err := convertBackupPlanPolicy(d)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			patch.BackupPlanPolicy = policy
-		}
-	case api.PolicyTypeSensitiveData:
-		if _, ok := d.GetOk("sensitive_data_policy"); ok {
-			policy, err := convertSensitiveDataPolicy(d)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			patch.SensitiveDataPolicy = policy
-		}
-	case api.PolicyTypeAccessControl:
-		policy, err := convertAccessControlPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.AccessControlPolicy = policy
-	}
-
-	if err := validatePolicy(policyType, patch); err != nil {
+	_, policyType, err := internal.GetPolicyParentAndType(policyName)
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	patch := &v1pb.Policy{
+		Name:              policyName,
+		InheritFromParent: inheritFromParent,
+		Enforce:           enforce,
+		Type:              policyType,
+	}
+
+	switch policyType {
+	case v1pb.PolicyType_MASKING:
+		maskingPolicy, err := convertToMaskingPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_MaskingPolicy{
+			MaskingPolicy: maskingPolicy,
+		}
+	case v1pb.PolicyType_MASKING_EXCEPTION:
+		maskingExceptionPolicy, err := convertToMaskingExceptionPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_MaskingExceptionPolicy{
+			MaskingExceptionPolicy: maskingExceptionPolicy,
+		}
+	}
+
 	var diags diag.Diagnostics
-	p, err := c.UpsertPolicy(ctx, patch)
+	p, err := c.UpsertPolicy(ctx, patch, []string{"inherit_from_parent", "enforce", "payload"})
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -181,56 +167,49 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 	policyName := d.Id()
-
-	patch := &api.PolicyPatchMessage{
-		Name: policyName,
-	}
-
-	if d.HasChange("inherit_from_parent") {
-		v := d.Get("inherit_from_parent").(bool)
-		patch.InheritFromParent = &v
-	}
-	if d.HasChange("enforce") {
-		v := d.Get("enforce").(bool)
-		patch.Enforce = &v
-	}
-
-	if d.HasChange("deployment_approval_policy") {
-		policy, err := convertDeploymentApprovalPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.DeploymentApprovalPolicy = policy
-	}
-	if d.HasChange("backup_plan_policy") {
-		policy, err := convertBackupPlanPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.BackupPlanPolicy = policy
-	}
-	if d.HasChange("sensitive_data_policy") {
-		policy, err := convertSensitiveDataPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.SensitiveDataPolicy = policy
-	}
-	if d.HasChange("access_control_policy") {
-		policy, err := convertAccessControlPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.AccessControlPolicy = policy
-	}
-
-	policyType := api.PolicyType(strings.ToUpper(d.Get("type").(string)))
-	if err := validatePolicy(policyType, patch); err != nil {
+	_, policyType, err := internal.GetPolicyParentAndType(policyName)
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	patch := &v1pb.Policy{
+		Name:              policyName,
+		InheritFromParent: d.Get("inherit_from_parent").(bool),
+		Enforce:           d.Get("enforce").(bool),
+		Type:              policyType,
+	}
+
+	updateMasks := []string{}
+	if d.HasChange("inherit_from_parent") {
+		updateMasks = append(updateMasks, "inherit_from_parent")
+	}
+	if d.HasChange("enforce") {
+		updateMasks = append(updateMasks, "enforce")
+	}
+
+	if d.HasChange("masking_policy") {
+		updateMasks = append(updateMasks, "payload")
+		maskingPolicy, err := convertToMaskingPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_MaskingPolicy{
+			MaskingPolicy: maskingPolicy,
+		}
+	}
+	if d.HasChange("masking_exception_policy") {
+		updateMasks = append(updateMasks, "payload")
+		maskingExceptionPolicy, err := convertToMaskingExceptionPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_MaskingExceptionPolicy{
+			MaskingExceptionPolicy: maskingExceptionPolicy,
+		}
+	}
+
 	var diags diag.Diagnostics
-	if _, err := c.UpsertPolicy(ctx, patch); err != nil {
+	if _, err := c.UpsertPolicy(ctx, patch, updateMasks); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to upsert policy",
@@ -247,119 +226,82 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	return diags
 }
 
-func convertDeploymentApprovalPolicy(d *schema.ResourceData) (*api.DeploymentApprovalPolicy, error) {
-	rawList, ok := d.Get("deployment_approval_policy").([]interface{})
+func convertToMaskingLevel(level string) v1pb.MaskingLevel {
+	return v1pb.MaskingLevel(v1pb.MaskingLevel_value[level])
+}
+
+func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExceptionPolicy, error) {
+	rawList, ok := d.Get("masking_exception_policy").([]interface{})
 	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid deployment_approval_policy")
+		return nil, errors.Errorf("invalid masking_exception_policy")
 	}
 
 	raw := rawList[0].(map[string]interface{})
-	strategies := raw["deployment_approval_strategies"].([]interface{})
+	exceptionList := raw["exceptions"].([]interface{})
 
-	policy := &api.DeploymentApprovalPolicy{
-		DefaultStrategy: api.ApprovalStrategy(raw["default_strategy"].(string)),
-	}
+	policy := &v1pb.MaskingExceptionPolicy{}
 
-	for _, strategy := range strategies {
-		rawStrategy := strategy.(map[string]interface{})
-		policy.DeploymentApprovalStrategies = append(policy.DeploymentApprovalStrategies, &api.DeploymentApprovalStrategy{
-			ApprovalGroup:    api.ApprovalGroup(rawStrategy["approval_group"].(string)),
-			ApprovalStrategy: api.ApprovalStrategy(rawStrategy["approval_strategy"].(string)),
-			DeploymentType:   api.DeploymentType(rawStrategy["deployment_type"].(string)),
-		})
-	}
-	return policy, nil
-}
+	for _, exception := range exceptionList {
+		rawException := exception.(map[string]interface{})
 
-func convertBackupPlanPolicy(d *schema.ResourceData) (*api.BackupPlanPolicy, error) {
-	rawList, ok := d.Get("backup_plan_policy").([]interface{})
-	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid backup_plan_policy")
-	}
-
-	raw := rawList[0].(map[string]interface{})
-	return &api.BackupPlanPolicy{
-		Schedule:          api.BackupPlanSchedule(raw["schedule"].(string)),
-		RetentionDuration: fmt.Sprintf("%ds", raw["retention_duration"].(int)),
-	}, nil
-}
-
-func convertSensitiveDataPolicy(d *schema.ResourceData) (*api.SensitiveDataPolicy, error) {
-	rawList, ok := d.Get("sensitive_data_policy").([]interface{})
-	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid sensitive_data_policy")
-	}
-
-	raw := rawList[0].(map[string]interface{})
-	dataList := raw["sensitive_data"].([]interface{})
-	policy := &api.SensitiveDataPolicy{}
-
-	for _, data := range dataList {
-		rawData := data.(map[string]interface{})
-		policy.SensitiveData = append(policy.SensitiveData, &api.SensitiveData{
-			Schema:   rawData["schema"].(string),
-			Table:    rawData["table"].(string),
-			Column:   rawData["column"].(string),
-			MaskType: api.SensitiveDataMaskType(rawData["mask_type"].(string)),
-		})
-	}
-
-	return policy, nil
-}
-
-func convertAccessControlPolicy(d *schema.ResourceData) (*api.AccessControlPolicy, error) {
-	rawList, ok := d.Get("access_control_policy").([]interface{})
-	if !ok || len(rawList) > 1 {
-		return nil, errors.Errorf("invalid access_control_policy")
-	}
-
-	if len(rawList) == 0 {
-		if _, ok := d.GetOk("database"); !ok {
-			return nil, errors.Errorf("access_control_policy is required")
+		databaseFullName := rawException["database"].(string)
+		instanceID, databaseName, err := internal.GetInstanceDatabaseID(databaseFullName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid database full name: %v", databaseFullName)
 		}
 
-		return &api.AccessControlPolicy{
-			DisallowRules: []*api.AccessControlRule{
-				{
-					FullDatabase: false,
-				},
+		expressions := []string{
+			fmt.Sprintf(`resource.instance_id == "%s"`, instanceID),
+			fmt.Sprintf(`resource.database_name == "%s"`, databaseName),
+		}
+		if schema, ok := rawException["schema"].(string); ok && schema != "" {
+			expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
+		}
+		if table, ok := rawException["table"].(string); ok && table != "" {
+			expressions = append(expressions, fmt.Sprintf(`resource.table_name == "%s"`, table))
+		}
+		if column, ok := rawException["column"].(string); ok && column != "" {
+			expressions = append(expressions, fmt.Sprintf(`resource.column_name == "%s"`, column))
+		}
+		if expire, ok := rawException["expire_timestamp"].(string); ok && expire != "" {
+			expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, expire))
+		}
+		policy.MaskingExceptions = append(policy.MaskingExceptions, &v1pb.MaskingExceptionPolicy_MaskingException{
+			Member: rawException["member"].(string),
+			Action: v1pb.MaskingExceptionPolicy_MaskingException_Action(
+				v1pb.MaskingExceptionPolicy_MaskingException_Action_value[rawException["action"].(string)],
+			),
+			MaskingLevel: convertToMaskingLevel(rawException["masking_level"].(string)),
+			Condition: &expr.Expr{
+				Expression: strings.Join(expressions, " && "),
 			},
-		}, nil
+		})
+	}
+	return policy, nil
+}
+
+func convertToMaskingPolicy(d *schema.ResourceData) (*v1pb.MaskingPolicy, error) {
+	rawList, ok := d.Get("masking_policy").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid masking_policy")
 	}
 
 	raw := rawList[0].(map[string]interface{})
-	rules := raw["disallow_rules"].([]interface{})
-	policy := &api.AccessControlPolicy{}
+	rawMaskList := raw["mask_data"].([]interface{})
 
-	for _, rule := range rules {
-		rawRule := rule.(map[string]interface{})
-		policy.DisallowRules = append(policy.DisallowRules, &api.AccessControlRule{
-			FullDatabase: rawRule["all_databases"].(bool),
+	policy := &v1pb.MaskingPolicy{}
+
+	for _, maskData := range rawMaskList {
+		rawMask := maskData.(map[string]interface{})
+		policy.MaskData = append(policy.MaskData, &v1pb.MaskData{
+			Schema:                    rawMask["schema"].(string),
+			Table:                     rawMask["table"].(string),
+			Column:                    rawMask["column"].(string),
+			FullMaskingAlgorithmId:    rawMask["full_masking_algorithm_id"].(string),
+			PartialMaskingAlgorithmId: rawMask["partial_masking_algorithm_id"].(string),
+			MaskingLevel:              convertToMaskingLevel(rawMask["masking_level"].(string)),
 		})
 	}
 
 	return policy, nil
-}
-
-func validatePolicy(policyType api.PolicyType, patch *api.PolicyPatchMessage) error {
-	switch policyType {
-	case api.PolicyTypeDeploymentApproval:
-		if patch.DeploymentApprovalPolicy == nil {
-			return errors.Errorf("must set deployment_approval_policy for %v policy", policyType)
-		}
-	case api.PolicyTypeBackupPlan:
-		if patch.BackupPlanPolicy == nil {
-			return errors.Errorf("must set backup_plan_policy for %v policy", policyType)
-		}
-	case api.PolicyTypeSensitiveData:
-		if patch.SensitiveDataPolicy == nil {
-			return errors.Errorf("must set sensitive_data_policy for %v policy", policyType)
-		}
-	case api.PolicyTypeAccessControl:
-		if patch.AccessControlPolicy == nil {
-			return errors.Errorf("must set access_control_policy for %v policy", policyType)
-		}
-	}
-
-	return nil
 }

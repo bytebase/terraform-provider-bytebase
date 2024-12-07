@@ -3,10 +3,9 @@ package provider
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
 	"testing"
 
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/pkg/errors"
@@ -25,108 +24,43 @@ func TestAccPolicy(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckPolicyResource(
-					"backup_plan",
-					"environments/test",
-					getBackupPlanPolicy(string(api.BackupPlanScheduleDaily), 999),
-					api.PolicyTypeBackupPlan,
+					"masking_policy",
+					"instances/test-sample-instance/databases/employee",
+					getMaskingPolicy("salary", "amount", v1pb.MaskingLevel_FULL),
+					v1pb.PolicyType_MASKING,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists("bytebase_policy.backup_plan"),
-					resource.TestCheckResourceAttr("bytebase_policy.backup_plan", "type", string(api.PolicyTypeBackupPlan)),
-					resource.TestCheckResourceAttr("bytebase_policy.backup_plan", "backup_plan_policy.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_policy.backup_plan", "backup_plan_policy.0.schedule", string(api.BackupPlanScheduleDaily)),
-					resource.TestCheckResourceAttr("bytebase_policy.backup_plan", "backup_plan_policy.0.retention_duration", "999"),
+					internal.TestCheckResourceExists("bytebase_policy.masking_policy"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "type", v1pb.PolicyType_MASKING.String()),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.#", "1"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.0.mask_data.#", "1"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.0.mask_data.0.table", "salary"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.0.mask_data.0.column", "amount"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.0.mask_data.0.masking_level", v1pb.MaskingLevel_FULL.String()),
 				),
 			},
 			{
 				Config: testAccCheckPolicyResource(
-					"backup_plan",
-					"environments/test",
-					getBackupPlanPolicy(string(api.BackupPlanScheduleWeekly), 99),
-					api.PolicyTypeBackupPlan,
+					"masking_exception_policy",
+					"projects/project-sample",
+					getMaskingExceptionPolicy("instances/test-sample-instance/databases/employee", "salary", "amount", v1pb.MaskingLevel_PARTIAL),
+					v1pb.PolicyType_MASKING_EXCEPTION,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists("bytebase_policy.backup_plan"),
-					resource.TestCheckResourceAttr("bytebase_policy.backup_plan", "type", string(api.PolicyTypeBackupPlan)),
-					resource.TestCheckResourceAttr("bytebase_policy.backup_plan", "backup_plan_policy.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_policy.backup_plan", "backup_plan_policy.0.schedule", string(api.BackupPlanScheduleWeekly)),
-					resource.TestCheckResourceAttr("bytebase_policy.backup_plan", "backup_plan_policy.0.retention_duration", "99"),
-				),
-			},
-			{
-				Config: testAccCheckPolicyResource(
-					"deployment_approval",
-					"environments/test",
-					getDeploymentApprovalPolicy(string(api.ApprovalStrategyAutomatic), []*api.DeploymentApprovalStrategy{
-						{
-							ApprovalGroup:    api.ApprovalGroupDBA,
-							ApprovalStrategy: api.ApprovalStrategyAutomatic,
-							DeploymentType:   api.DeploymentTypeDatabaseCreate,
-						},
-						{
-							ApprovalGroup:    api.ApprovalGroupOwner,
-							ApprovalStrategy: api.ApprovalStrategyAutomatic,
-							DeploymentType:   api.DeploymentTypeDatabaseDDL,
-						},
-					}),
-					api.PolicyTypeDeploymentApproval,
-				),
-				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists("bytebase_policy.deployment_approval"),
-					resource.TestCheckResourceAttr("bytebase_policy.deployment_approval", "type", string(api.PolicyTypeDeploymentApproval)),
-					resource.TestCheckResourceAttr("bytebase_policy.deployment_approval", "deployment_approval_policy.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_policy.deployment_approval", "deployment_approval_policy.0.default_strategy", string(api.ApprovalStrategyAutomatic)),
-					resource.TestCheckResourceAttr("bytebase_policy.deployment_approval", "deployment_approval_policy.0.deployment_approval_strategies.#", "2"),
-					resource.TestCheckResourceAttr("bytebase_policy.deployment_approval", "deployment_approval_policy.0.deployment_approval_strategies.0.deployment_type", string(api.DeploymentTypeDatabaseCreate)),
-					resource.TestCheckResourceAttr("bytebase_policy.deployment_approval", "deployment_approval_policy.0.deployment_approval_strategies.1.deployment_type", string(api.DeploymentTypeDatabaseDDL)),
+					internal.TestCheckResourceExists("bytebase_policy.masking_exception_policy"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "type", v1pb.PolicyType_MASKING_EXCEPTION.String()),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.#", "1"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.#", "1"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.table", "salary"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.column", "amount"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.masking_level", v1pb.MaskingLevel_PARTIAL.String()),
 				),
 			},
 		},
 	})
 }
 
-func TestAccPolicy_InvalidInput(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckPolicyDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckPolicyResource(
-					"backup_plan",
-					"environments/test",
-					getBackupPlanPolicy("daily", 999),
-					api.PolicyTypeBackupPlan,
-				),
-				ExpectError: regexp.MustCompile("expected backup_plan_policy.0.schedule to be one of"),
-			},
-			{
-				Config: testAccCheckPolicyResource(
-					"deployment_approval",
-					"environments/test",
-					getDeploymentApprovalPolicy("unknown", []*api.DeploymentApprovalStrategy{
-						{
-							ApprovalGroup:    api.ApprovalGroupDBA,
-							ApprovalStrategy: api.ApprovalStrategyAutomatic,
-							DeploymentType:   api.DeploymentTypeDatabaseCreate,
-						},
-						{
-							ApprovalGroup:    api.ApprovalGroupOwner,
-							ApprovalStrategy: api.ApprovalStrategyAutomatic,
-							DeploymentType:   api.DeploymentTypeDatabaseDDL,
-						},
-					}),
-					api.PolicyTypeDeploymentApproval,
-				),
-				ExpectError: regexp.MustCompile("expected deployment_approval_policy.0.default_strategy to be one of"),
-			},
-		},
-	})
-}
-
-func testAccCheckPolicyResource(identifier, parent, payload string, pType api.PolicyType) string {
+func testAccCheckPolicyResource(identifier, parent, payload string, pType v1pb.PolicyType) string {
 	return fmt.Sprintf(`
 	resource "bytebase_policy" "%s" {
 		parent = "%s"
@@ -134,36 +68,34 @@ func testAccCheckPolicyResource(identifier, parent, payload string, pType api.Po
 
 		%s
 	}
-	`, identifier, parent, pType, payload)
+	`, identifier, parent, pType.String(), payload)
 }
 
-func getBackupPlanPolicy(schedule string, duration int) string {
+func getMaskingPolicy(table, column string, level v1pb.MaskingLevel) string {
 	return fmt.Sprintf(`
-	backup_plan_policy {
-		schedule           = "%s"
-		retention_duration = %d
-	}
-	`, schedule, duration)
-}
-
-func getDeploymentApprovalPolicy(defaultStrategy string, strategies []*api.DeploymentApprovalStrategy) string {
-	approvalStrategies := []string{}
-	for _, strategy := range strategies {
-		approvalStrategies = append(approvalStrategies, fmt.Sprintf(`
-		deployment_approval_strategies {
-			approval_group    = "%s"
-			approval_strategy = "%s"
-			deployment_type   = "%s"
+	masking_policy {
+		mask_data {
+			table         = "%s"
+			column        = "%s"
+			masking_level = "%s"
 		}
-		`, strategy.ApprovalGroup, strategy.ApprovalStrategy, strategy.DeploymentType))
 	}
+	`, table, column, level.String())
+}
 
+func getMaskingExceptionPolicy(database, table, column string, level v1pb.MaskingLevel) string {
 	return fmt.Sprintf(`
-	deployment_approval_policy {
-		default_strategy = "%s"
-		%s
+	masking_exception_policy {
+		exceptions {
+			database      = "%s"
+			table         = "%s"
+			column        = "%s"
+			masking_level = "%s"
+			member        = "user:ed@bytebase.com"
+			action        = "QUERY"
+		}
 	}
-	`, defaultStrategy, strings.Join(approvalStrategies, "\n"))
+	`, database, table, column, level.String())
 }
 
 func testAccCheckPolicyDestroy(s *terraform.State) error {
