@@ -266,6 +266,10 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 		if expire, ok := rawException["expire_timestamp"].(string); ok && expire != "" {
 			expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, expire))
 		}
+		member := rawException["member"].(string)
+		if !strings.HasPrefix(member, "user:") {
+			return nil, errors.Errorf("member should in user:{email} format")
+		}
 		policy.MaskingExceptions = append(policy.MaskingExceptions, &v1pb.MaskingExceptionPolicy_MaskingException{
 			Member: rawException["member"].(string),
 			Action: v1pb.MaskingExceptionPolicy_MaskingException_Action(
