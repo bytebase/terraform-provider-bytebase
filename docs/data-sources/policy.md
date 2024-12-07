@@ -47,9 +47,9 @@ Optional:
 - `action` (String)
 - `column` (String)
 - `database` (String) The database full name in instances/{instance resource id}/databases/{database name} format
-- `expire_timestamp` (String) The exception expire timestamp
+- `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format
 - `masking_level` (String)
-- `member` (String)
+- `member` (String) The member in user:{email} format.
 - `schema` (String)
 - `table` (String)
 
