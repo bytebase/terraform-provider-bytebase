@@ -45,11 +45,11 @@ type Client interface {
 
 	// Policy
 	// ListPolicies lists policies in a specific resource.
-	ListPolicies(ctx context.Context, find *PolicyFindMessage) (*ListPolicyMessage, error)
+	ListPolicies(ctx context.Context, parent string) (*v1pb.ListPoliciesResponse, error)
 	// GetPolicy gets a policy in a specific resource.
-	GetPolicy(ctx context.Context, policyName string) (*PolicyMessage, error)
+	GetPolicy(ctx context.Context, policyName string) (*v1pb.Policy, error)
 	// UpsertPolicy creates or updates the policy.
-	UpsertPolicy(ctx context.Context, patch *PolicyPatchMessage) (*PolicyMessage, error)
+	UpsertPolicy(ctx context.Context, patch *v1pb.Policy, updateMasks []string) (*v1pb.Policy, error)
 	// DeletePolicy deletes the policy.
 	DeletePolicy(ctx context.Context, policyName string) error
 

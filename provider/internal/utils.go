@@ -5,13 +5,12 @@ import (
 	"regexp"
 	"strings"
 
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
-
-	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
 const (
@@ -69,14 +68,18 @@ func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateDiagF
 }
 
 // GetPolicyParentAndType returns the policy parent and type by the name.
-func GetPolicyParentAndType(name string) (string, api.PolicyType, error) {
+func GetPolicyParentAndType(name string) (string, v1pb.PolicyType, error) {
 	names := strings.Split(name, PolicyNamePrefix)
 	if len(names) != 2 {
-		return "", "", errors.Errorf("invalid policy name %s", name)
+		return "", v1pb.PolicyType_POLICY_TYPE_UNSPECIFIED, errors.Errorf("invalid policy name %s", name)
 	}
-	policyType := api.PolicyType(strings.ToUpper(names[1]))
+	policyType := strings.ToUpper(names[1])
+	pType, ok := v1pb.PolicyType_value[policyType]
+	if !ok {
+		return "", v1pb.PolicyType_POLICY_TYPE_UNSPECIFIED, errors.Errorf("invalid policy name %s", name)
+	}
 
-	return strings.TrimSuffix(names[0], "/"), policyType, nil
+	return strings.TrimSuffix(names[0], "/"), v1pb.PolicyType(pType), nil
 }
 
 // GetEnvironmentID will parse the environment resource id.

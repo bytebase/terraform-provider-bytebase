@@ -138,7 +138,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 			db["name"] = database.Name
 			db["environment"] = database.Environment
 			db["sync_state"] = database.SyncState.String()
-			db["successful_sync_time"] = database.SuccessfulSyncTime
+			db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
 			db["schema_version"] = database.SchemaVersion
 			db["labels"] = database.Labels
 			dbList = append(dbList, db)

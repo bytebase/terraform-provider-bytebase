@@ -62,10 +62,8 @@ func dataSourcePolicyList() *schema.Resource {
 							Computed:    true,
 							Description: "Decide if the policy is enforced.",
 						},
-						"deployment_approval_policy": getDeploymentApprovalPolicySchema(true),
-						"backup_plan_policy":         getBackupPlanPolicySchema(true),
-						"sensitive_data_policy":      getSensitiveDataPolicy(true),
-						"access_control_policy":      getAccessControlPolicy(true),
+						"masking_policy":           getMaskingPolicySchema(true),
+						"masking_exception_policy": getMaskingExceptionPolicySchema(true),
 					},
 				},
 			},
@@ -76,11 +74,7 @@ func dataSourcePolicyList() *schema.Resource {
 func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	find := &api.PolicyFindMessage{
-		Parent: d.Get("parent").(string),
-	}
-
-	response, err := c.ListPolicies(ctx, find)
+	response, err := c.ListPolicies(ctx, d.Get("parent").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -89,25 +83,21 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 	for _, policy := range response.Policies {
 		raw := make(map[string]interface{})
 		raw["name"] = policy.Name
-		raw["type"] = policy.Type
+		raw["type"] = policy.Type.String()
 		raw["inherit_from_parent"] = policy.InheritFromParent
 		raw["enforce"] = policy.Enforce
-		if p := policy.DeploymentApprovalPolicy; p != nil {
-			raw["deployment_approval_policy"] = flattenDeploymentApprovalPolicy(p)
+
+		if p := policy.GetMaskingPolicy(); p != nil {
+			raw["masking_policy"] = flattenMaskingPolicy(p)
 		}
-		if p := policy.BackupPlanPolicy; p != nil {
-			backupPlan, err := flattenBackupPlanPolicy(p)
+		if p := policy.GetMaskingExceptionPolicy(); p != nil {
+			exceptionPolicy, err := flattenMaskingExceptionPolicy(p)
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			raw["backup_plan_policy"] = backupPlan
+			raw["masking_exception_policy"] = exceptionPolicy
 		}
-		if p := policy.SensitiveDataPolicy; p != nil {
-			raw["sensitive_data_policy"] = flattenSensitiveDataPolicy(p)
-		}
-		if p := policy.AccessControlPolicy; p != nil {
-			raw["access_control_policy"] = flattenAccessControlPolicy(p)
-		}
+
 		policies = append(policies, raw)
 	}
 

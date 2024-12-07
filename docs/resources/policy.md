@@ -22,76 +22,55 @@ The policy resource.
 
 ### Optional
 
-- `access_control_policy` (Block List) (see [below for nested schema](#nestedblock--access_control_policy))
-- `backup_plan_policy` (Block List) (see [below for nested schema](#nestedblock--backup_plan_policy))
-- `deployment_approval_policy` (Block List) (see [below for nested schema](#nestedblock--deployment_approval_policy))
 - `enforce` (Boolean) Decide if the policy is enforced.
 - `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
-- `sensitive_data_policy` (Block List) (see [below for nested schema](#nestedblock--sensitive_data_policy))
+- `masking_exception_policy` (Block List) (see [below for nested schema](#nestedblock--masking_exception_policy))
+- `masking_policy` (Block List) (see [below for nested schema](#nestedblock--masking_policy))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 - `name` (String) The policy full name
 
-<a id="nestedblock--access_control_policy"></a>
-### Nested Schema for `access_control_policy`
+<a id="nestedblock--masking_exception_policy"></a>
+### Nested Schema for `masking_exception_policy`
 
 Optional:
 
-- `disallow_rules` (Block List) (see [below for nested schema](#nestedblock--access_control_policy--disallow_rules))
+- `exceptions` (Block List) (see [below for nested schema](#nestedblock--masking_exception_policy--exceptions))
 
-<a id="nestedblock--access_control_policy--disallow_rules"></a>
-### Nested Schema for `access_control_policy.disallow_rules`
-
-Optional:
-
-- `all_databases` (Boolean)
-
-
-
-<a id="nestedblock--backup_plan_policy"></a>
-### Nested Schema for `backup_plan_policy`
+<a id="nestedblock--masking_exception_policy--exceptions"></a>
+### Nested Schema for `masking_exception_policy.exceptions`
 
 Optional:
 
-- `retention_duration` (Number) The minimum allowed seconds that backup data is kept for databases in an environment.
-- `schedule` (String)
-
-
-<a id="nestedblock--deployment_approval_policy"></a>
-### Nested Schema for `deployment_approval_policy`
-
-Optional:
-
-- `default_strategy` (String)
-- `deployment_approval_strategies` (Block List) (see [below for nested schema](#nestedblock--deployment_approval_policy--deployment_approval_strategies))
-
-<a id="nestedblock--deployment_approval_policy--deployment_approval_strategies"></a>
-### Nested Schema for `deployment_approval_policy.deployment_approval_strategies`
-
-Optional:
-
-- `approval_group` (String)
-- `approval_strategy` (String)
-- `deployment_type` (String)
+- `action` (String)
+- `column` (String)
+- `database` (String) The database full name in instances/{instance resource id}/databases/{database name} format
+- `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format
+- `masking_level` (String)
+- `member` (String) The member in user:{email} format.
+- `schema` (String)
+- `table` (String)
 
 
 
-<a id="nestedblock--sensitive_data_policy"></a>
-### Nested Schema for `sensitive_data_policy`
+<a id="nestedblock--masking_policy"></a>
+### Nested Schema for `masking_policy`
 
 Optional:
 
-- `sensitive_data` (Block List) (see [below for nested schema](#nestedblock--sensitive_data_policy--sensitive_data))
+- `mask_data` (Block List) (see [below for nested schema](#nestedblock--masking_policy--mask_data))
 
-<a id="nestedblock--sensitive_data_policy--sensitive_data"></a>
-### Nested Schema for `sensitive_data_policy.sensitive_data`
+<a id="nestedblock--masking_policy--mask_data"></a>
+### Nested Schema for `masking_policy.mask_data`
 
 Optional:
 
 - `column` (String)
-- `mask_type` (String)
+- `full_masking_algorithm_id` (String)
+- `masking_level` (String)
+- `partial_masking_algorithm_id` (String)
 - `schema` (String)
 - `table` (String)
 

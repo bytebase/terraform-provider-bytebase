@@ -17,10 +17,12 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
-data "bytebase_setting" "approval_flow" {
-  name = "bb.workspace.approval"
+data "bytebase_policy" "masking_policy" {
+  parent = "instances/test-sample-instance/databases/employee"
+  type   = "MASKING"
 }
 
-data "bytebase_setting" "external_approval" {
-  name = "bb.workspace.approval.external"
+data "bytebase_policy" "masking_exception_policy" {
+  parent = "projects/project-sample"
+  type   = "MASKING_EXCEPTION"
 }

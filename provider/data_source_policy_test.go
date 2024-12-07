@@ -7,7 +7,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/bytebase/terraform-provider-bytebase/api"
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
@@ -22,22 +23,24 @@ func TestAccPolicyDataSource(t *testing.T) {
 			{
 				Config: testAccCheckPolicyDataSource(
 					testAccCheckPolicyResource(
-						"backup_plan",
-						"environments/test",
-						getBackupPlanPolicy(string(api.BackupPlanScheduleDaily), 999),
-						api.PolicyTypeBackupPlan,
+						"masking_policy",
+						"instances/test-sample-instance/databases/employee",
+						getMaskingPolicy("salary", "amount", v1pb.MaskingLevel_FULL),
+						v1pb.PolicyType_MASKING,
 					),
-					"backup_plan",
-					"environments/test",
-					"bytebase_policy.backup_plan",
-					api.PolicyTypeBackupPlan,
+					"masking_policy",
+					"instances/test-sample-instance/databases/employee",
+					"bytebase_policy.masking_policy",
+					v1pb.PolicyType_MASKING,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists("data.bytebase_policy.backup_plan"),
-					resource.TestCheckResourceAttr("data.bytebase_policy.backup_plan", "type", string(api.PolicyTypeBackupPlan)),
-					resource.TestCheckResourceAttr("data.bytebase_policy.backup_plan", "backup_plan_policy.#", "1"),
-					resource.TestCheckResourceAttr("data.bytebase_policy.backup_plan", "backup_plan_policy.0.schedule", string(api.BackupPlanScheduleDaily)),
-					resource.TestCheckResourceAttr("data.bytebase_policy.backup_plan", "backup_plan_policy.0.retention_duration", "999"),
+					internal.TestCheckResourceExists("data.bytebase_policy.masking_policy"),
+					resource.TestCheckResourceAttr("data.bytebase_policy.masking_policy", "type", v1pb.PolicyType_MASKING.String()),
+					resource.TestCheckResourceAttr("data.bytebase_policy.masking_policy", "masking_policy.#", "1"),
+					resource.TestCheckResourceAttr("data.bytebase_policy.masking_policy", "masking_policy.0.mask_data.#", "1"),
+					resource.TestCheckResourceAttr("data.bytebase_policy.masking_policy", "masking_policy.0.mask_data.0.table", "salary"),
+					resource.TestCheckResourceAttr("data.bytebase_policy.masking_policy", "masking_policy.0.mask_data.0.column", "amount"),
+					resource.TestCheckResourceAttr("data.bytebase_policy.masking_policy", "masking_policy.0.mask_data.0.masking_level", v1pb.MaskingLevel_FULL.String()),
 				),
 			},
 		},
@@ -56,11 +59,11 @@ func TestAccPolicyDataSource_NotFound(t *testing.T) {
 				Config: testAccCheckPolicyDataSource(
 					"",
 					"policy",
-					"environments/test",
+					"instances/test-sample-instance/databases/employee",
 					"",
-					api.PolicyTypeDeploymentApproval,
+					v1pb.PolicyType_MASKING,
 				),
-				ExpectError: regexp.MustCompile("Cannot found policy environments/test/policies/DEPLOYMENT_APPROVAL"),
+				ExpectError: regexp.MustCompile("Cannot found policy instances/test-sample-instance/databases/employee/policies/MASKING"),
 			},
 		},
 	})
@@ -71,7 +74,7 @@ func testAccCheckPolicyDataSource(
 	identifier,
 	parent,
 	dependsOn string,
-	pType api.PolicyType) string {
+	pType v1pb.PolicyType) string {
 	return fmt.Sprintf(`
 	%s
 
@@ -82,5 +85,5 @@ func testAccCheckPolicyDataSource(
     		%s
   		]
 	}
-	`, resource, identifier, parent, pType, dependsOn)
+	`, resource, identifier, parent, pType.String(), dependsOn)
 }

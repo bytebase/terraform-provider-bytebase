@@ -16,7 +16,7 @@ import (
 
 var environmentMap map[string]*v1pb.Environment
 var instanceMap map[string]*v1pb.Instance
-var policyMap map[string]*api.PolicyMessage
+var policyMap map[string]*v1pb.Policy
 var projectMap map[string]*v1pb.Project
 var databaseMap map[string]*v1pb.Database
 var settingMap map[string]*v1pb.Setting
@@ -24,7 +24,7 @@ var settingMap map[string]*v1pb.Setting
 func init() {
 	environmentMap = map[string]*v1pb.Environment{}
 	instanceMap = map[string]*v1pb.Instance{}
-	policyMap = map[string]*api.PolicyMessage{}
+	policyMap = map[string]*v1pb.Policy{}
 	projectMap = map[string]*v1pb.Project{}
 	databaseMap = map[string]*v1pb.Database{}
 	settingMap = map[string]*v1pb.Setting{}
@@ -33,7 +33,7 @@ func init() {
 type mockClient struct {
 	environmentMap map[string]*v1pb.Environment
 	instanceMap    map[string]*v1pb.Instance
-	policyMap      map[string]*api.PolicyMessage
+	policyMap      map[string]*v1pb.Policy
 	projectMap     map[string]*v1pb.Project
 	databaseMap    map[string]*v1pb.Database
 	settingMap     map[string]*v1pb.Setting
@@ -254,21 +254,21 @@ func (*mockClient) SyncInstanceSchema(_ context.Context, _ string) error {
 }
 
 // ListPolicies lists policies in a specific resource.
-func (c *mockClient) ListPolicies(_ context.Context, find *api.PolicyFindMessage) (*api.ListPolicyMessage, error) {
-	policies := make([]*api.PolicyMessage, 0)
+func (c *mockClient) ListPolicies(_ context.Context, parent string) (*v1pb.ListPoliciesResponse, error) {
+	policies := make([]*v1pb.Policy, 0)
 	for _, policy := range c.policyMap {
-		if find.Parent == "" || strings.HasPrefix(policy.Name, find.Parent) {
+		if parent == "" || strings.HasPrefix(policy.Name, parent) {
 			policies = append(policies, policy)
 		}
 	}
 
-	return &api.ListPolicyMessage{
+	return &v1pb.ListPoliciesResponse{
 		Policies: policies,
 	}, nil
 }
 
 // GetPolicy gets a policy in a specific resource.
-func (c *mockClient) GetPolicy(_ context.Context, policyName string) (*api.PolicyMessage, error) {
+func (c *mockClient) GetPolicy(_ context.Context, policyName string) (*v1pb.Policy, error) {
 	policy, ok := c.policyMap[policyName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found policy %s", policyName)
@@ -278,7 +278,7 @@ func (c *mockClient) GetPolicy(_ context.Context, policyName string) (*api.Polic
 }
 
 // UpsertPolicy creates or updates the policy.
-func (c *mockClient) UpsertPolicy(_ context.Context, patch *api.PolicyPatchMessage) (*api.PolicyMessage, error) {
+func (c *mockClient) UpsertPolicy(_ context.Context, patch *v1pb.Policy, updateMasks []string) (*v1pb.Policy, error) {
 	_, policyType, err := GetPolicyParentAndType(patch.Name)
 	if err != nil {
 		return nil, err
@@ -287,7 +287,7 @@ func (c *mockClient) UpsertPolicy(_ context.Context, patch *api.PolicyPatchMessa
 	policy, existed := c.policyMap[patch.Name]
 
 	if !existed {
-		policy = &api.PolicyMessage{
+		policy = &v1pb.Policy{
 			Name:    patch.Name,
 			Type:    policyType,
 			Enforce: true,
@@ -295,48 +295,37 @@ func (c *mockClient) UpsertPolicy(_ context.Context, patch *api.PolicyPatchMessa
 	}
 
 	switch policyType {
-	case api.PolicyTypeAccessControl:
+	case v1pb.PolicyType_MASKING:
 		if !existed {
-			if patch.AccessControlPolicy == nil {
+			if patch.GetMaskingPolicy() == nil {
 				return nil, errors.Errorf("payload is required to create the policy")
 			}
 		}
-		if v := patch.AccessControlPolicy; v != nil {
-			policy.AccessControlPolicy = v
+		if v := patch.GetMaskingPolicy(); v != nil {
+			policy.Policy = &v1pb.Policy_MaskingPolicy{
+				MaskingPolicy: v,
+			}
 		}
-	case api.PolicyTypeBackupPlan:
+	case v1pb.PolicyType_MASKING_EXCEPTION:
 		if !existed {
-			if patch.BackupPlanPolicy == nil {
+			if patch.GetMaskingExceptionPolicy() == nil {
 				return nil, errors.Errorf("payload is required to create the policy")
 			}
 		}
-		if v := patch.BackupPlanPolicy; v != nil {
-			policy.BackupPlanPolicy = v
-		}
-	case api.PolicyTypeDeploymentApproval:
-		if !existed {
-			if patch.DeploymentApprovalPolicy == nil {
-				return nil, errors.Errorf("payload is required to create the policy")
+		if v := patch.GetMaskingExceptionPolicy(); v != nil {
+			policy.Policy = &v1pb.Policy_MaskingExceptionPolicy{
+				MaskingExceptionPolicy: v,
 			}
-		}
-		if v := patch.DeploymentApprovalPolicy; v != nil {
-			policy.DeploymentApprovalPolicy = v
-		}
-	case api.PolicyTypeSensitiveData:
-		if !existed {
-			if patch.SensitiveDataPolicy == nil {
-				return nil, errors.Errorf("payload is required to create the policy")
-			}
-		}
-		if v := patch.SensitiveDataPolicy; v != nil {
-			policy.SensitiveDataPolicy = v
 		}
 	default:
 		return nil, errors.Errorf("invalid policy type %v", policyType)
 	}
 
-	if v := patch.InheritFromParent; v != nil {
-		policy.InheritFromParent = *v
+	if slices.Contains(updateMasks, "inherit_from_parent") {
+		policy.InheritFromParent = patch.InheritFromParent
+	}
+	if slices.Contains(updateMasks, "enforce") {
+		policy.Enforce = patch.Enforce
 	}
 
 	c.policyMap[policy.Name] = policy
