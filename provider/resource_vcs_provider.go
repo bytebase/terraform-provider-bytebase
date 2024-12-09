@@ -226,7 +226,6 @@ func resourceVCSProviderUpdate(ctx context.Context, d *schema.ResourceData, m in
 			})
 			return diags
 		}
-
 	}
 
 	diag := resourceVCSProviderRead(ctx, d, m)
