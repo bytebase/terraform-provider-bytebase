@@ -21,8 +21,8 @@ The policy data source.
 
 ### Optional
 
-- `masking_exception_policy` (Block List) (see [below for nested schema](#nestedblock--masking_exception_policy))
-- `masking_policy` (Block List) (see [below for nested schema](#nestedblock--masking_policy))
+- `masking_exception_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exception_policy))
+- `masking_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_policy))
 - `parent` (String) The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}
 
 ### Read-Only
