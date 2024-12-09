@@ -558,33 +558,3 @@ func (*mockClient) UpdateVCSConnector(_ context.Context, _ *v1pb.VCSConnector, _
 func (*mockClient) DeleteVCSConnector(_ context.Context, _ string) error {
 	return nil
 }
-
-// ListUser list all users.
-func (*mockClient) ListUser(_ context.Context, _ bool) (*v1pb.ListUsersResponse, error) {
-	return nil, nil
-}
-
-// GetUser gets the user by name.
-func (*mockClient) GetUser(_ context.Context, _ string) (*v1pb.User, error) {
-	return nil, nil
-}
-
-// CreateUser creates the user.
-func (*mockClient) CreateUser(_ context.Context, _ *v1pb.User) (*v1pb.User, error) {
-	return nil, nil
-}
-
-// UpdateUser updates the user.
-func (*mockClient) UpdateUser(_ context.Context, _ *v1pb.User, _ []string) (*v1pb.User, error) {
-	return nil, nil
-}
-
-// DeleteUser deletes the user by name.
-func (*mockClient) DeleteUser(_ context.Context, _ string) error {
-	return nil
-}
-
-// UndeleteUser undeletes the user by name.
-func (*mockClient) UndeleteUser(_ context.Context, _ string) (*v1pb.User, error) {
-	return nil, nil
-}

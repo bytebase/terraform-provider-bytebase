@@ -110,18 +110,4 @@ type Client interface {
 	UpdateVCSConnector(ctx context.Context, patch *v1pb.VCSConnector, updateMasks []string) (*v1pb.VCSConnector, error)
 	// DeleteVCSConnector deletes the vcs provider.
 	DeleteVCSConnector(ctx context.Context, name string) error
-
-	// User
-	// ListUser list all users.
-	ListUser(ctx context.Context, showDeleted bool) (*v1pb.ListUsersResponse, error)
-	// CreateUser creates the user.
-	CreateUser(ctx context.Context, user *v1pb.User) (*v1pb.User, error)
-	// GetUser gets the user by name.
-	GetUser(ctx context.Context, userName string) (*v1pb.User, error)
-	// UpdateUser updates the user.
-	UpdateUser(ctx context.Context, patch *v1pb.User, updateMasks []string) (*v1pb.User, error)
-	// DeleteUser deletes the user by name.
-	DeleteUser(ctx context.Context, userName string) error
-	// UndeleteUser undeletes the user by name.
-	UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error)
 }
