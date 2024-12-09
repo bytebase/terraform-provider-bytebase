@@ -141,37 +141,43 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 			}
 		}
 
-		project, err := c.UpdateProject(ctx, &v1pb.Project{
-			Name:     projectName,
-			Title:    title,
-			Key:      key,
-			State:    existedProject.State,
-			Workflow: existedProject.Workflow,
-		}, []string{"title", "key"})
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to update project",
-				Detail:   fmt.Sprintf("Update project %s failed, error: %v", projectName, err),
-			})
-			return diags
+		updateMasks := []string{}
+		if title != "" && title != existedProject.Title {
+			updateMasks = append(updateMasks, "title")
+		}
+		if key != "" && key != existedProject.Key {
+			updateMasks = append(updateMasks, "key")
 		}
 
-		d.SetId(project.Name)
+		if len(updateMasks) > 0 {
+			if _, err := c.UpdateProject(ctx, &v1pb.Project{
+				Name:     projectName,
+				Title:    title,
+				Key:      key,
+				State:    v1pb.State_ACTIVE,
+				Workflow: existedProject.Workflow,
+			}, updateMasks); err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to update project",
+					Detail:   fmt.Sprintf("Update project %s failed, error: %v", projectName, err),
+				})
+				return diags
+			}
+		}
 	} else {
-		project, err := c.CreateProject(ctx, projectID, &v1pb.Project{
+		if _, err := c.CreateProject(ctx, projectID, &v1pb.Project{
 			Name:     projectName,
 			Title:    title,
 			Key:      key,
 			State:    v1pb.State_ACTIVE,
 			Workflow: v1pb.Workflow_UI,
-		})
-		if err != nil {
+		}); err != nil {
 			return diag.FromErr(err)
 		}
-
-		d.SetId(project.Name)
 	}
+
+	d.SetId(projectName)
 
 	if diag := updateDatabasesInProject(ctx, d, c, d.Id()); diag != nil {
 		diags = append(diags, diag...)
@@ -225,15 +231,17 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		paths = append(paths, "key")
 	}
 
-	if _, err := c.UpdateProject(ctx, &v1pb.Project{
-		Name:     projectName,
-		Title:    d.Get("title").(string),
-		Key:      d.Get("key").(string),
-		State:    existedProject.State,
-		Workflow: existedProject.Workflow,
-	}, paths); err != nil {
-		diags = append(diags, diag.FromErr(err)...)
-		return diags
+	if len(paths) > 0 {
+		if _, err := c.UpdateProject(ctx, &v1pb.Project{
+			Name:     projectName,
+			Title:    d.Get("title").(string),
+			Key:      d.Get("key").(string),
+			State:    v1pb.State_ACTIVE,
+			Workflow: existedProject.Workflow,
+		}, paths); err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
 	}
 
 	if d.HasChange("databases") {

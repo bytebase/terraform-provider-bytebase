@@ -209,13 +209,15 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	var diags diag.Diagnostics
-	if _, err := c.UpsertPolicy(ctx, patch, updateMasks); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to upsert policy",
-			Detail:   fmt.Sprintf("Upsert policy %s failed, error: %v", policyName, err),
-		})
-		return diags
+	if len(updateMasks) > 0 {
+		if _, err := c.UpsertPolicy(ctx, patch, updateMasks); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to upsert policy",
+				Detail:   fmt.Sprintf("Upsert policy %s failed, error: %v", policyName, err),
+			})
+			return diags
+		}
 	}
 
 	diag := resourcePolicyRead(ctx, d, m)

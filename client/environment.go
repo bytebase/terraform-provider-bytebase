@@ -37,12 +37,7 @@ func (c *client) CreateEnvironment(ctx context.Context, environmentID string, cr
 
 // GetEnvironment gets the environment by id.
 func (c *client) GetEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, environmentName), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+	body, err := c.getResource(ctx, environmentName)
 	if err != nil {
 		return nil, err
 	}
@@ -76,18 +71,8 @@ func (c *client) ListEnvironment(ctx context.Context, showDeleted bool) (*v1pb.L
 }
 
 // UpdateEnvironment updates the environment.
-func (c *client) UpdateEnvironment(ctx context.Context, patch *v1pb.Environment, updateMask []string) (*v1pb.Environment, error) {
-	payload, err := protojson.Marshal(patch)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(updateMask, ",")), strings.NewReader(string(payload)))
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+func (c *client) UpdateEnvironment(ctx context.Context, patch *v1pb.Environment, updateMasks []string) (*v1pb.Environment, error) {
+	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
 	if err != nil {
 		return nil, err
 	}
@@ -102,25 +87,12 @@ func (c *client) UpdateEnvironment(ctx context.Context, patch *v1pb.Environment,
 
 // DeleteEnvironment deletes the environment.
 func (c *client) DeleteEnvironment(ctx context.Context, environmentName string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, environmentName), nil)
-	if err != nil {
-		return err
-	}
-
-	if _, err := c.doRequest(req); err != nil {
-		return err
-	}
-	return nil
+	return c.deleteResource(ctx, environmentName)
 }
 
 // UndeleteEnvironment undeletes the environment.
 func (c *client) UndeleteEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:undelete", c.url, c.version, environmentName), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+	body, err := c.undeleteResource(ctx, environmentName)
 	if err != nil {
 		return nil, err
 	}

@@ -86,4 +86,42 @@ type Client interface {
 	// Cel
 	// ParseExpression parse the expression string.
 	ParseExpression(ctx context.Context, expression string) (*v1alpha1.Expr, error)
+
+	// VCS Provider
+	// ListVCSProvider will returns all vcs providers.
+	ListVCSProvider(ctx context.Context) (*v1pb.ListVCSProvidersResponse, error)
+	// GetVCSProvider gets the vcs by id.
+	GetVCSProvider(ctx context.Context, name string) (*v1pb.VCSProvider, error)
+	// CreateVCSProvider creates the vcs provider.
+	CreateVCSProvider(ctx context.Context, vcsID string, vcs *v1pb.VCSProvider) (*v1pb.VCSProvider, error)
+	// UpdateVCSProvider updates the vcs provider.
+	UpdateVCSProvider(ctx context.Context, patch *v1pb.VCSProvider, updateMasks []string) (*v1pb.VCSConnector, error)
+	// DeleteVCSProvider deletes the vcs provider.
+	DeleteVCSProvider(ctx context.Context, name string) error
+
+	// VCS Connector
+	// ListVCSConnector will returns all vcs connector in a project.
+	ListVCSConnector(ctx context.Context, projectName string) (*v1pb.ListVCSConnectorsResponse, error)
+	// GetVCSConnector gets the vcs connector by id.
+	GetVCSConnector(ctx context.Context, name string) (*v1pb.VCSConnector, error)
+	// CreateVCSConnector creates the vcs connector in a project.
+	CreateVCSConnector(ctx context.Context, projectName, connectorID string, connector *v1pb.VCSConnector) (*v1pb.VCSConnector, error)
+	// UpdateVCSConnector updates the vcs connector.
+	UpdateVCSConnector(ctx context.Context, patch *v1pb.VCSConnector, updateMasks []string) (*v1pb.VCSConnector, error)
+	// DeleteVCSConnector deletes the vcs provider.
+	DeleteVCSConnector(ctx context.Context, name string) error
+
+	// User
+	// ListUser list all users.
+	ListUser(ctx context.Context, showDeleted bool) (*v1pb.ListUsersResponse, error)
+	// CreateUser creates the user.
+	CreateUser(ctx context.Context, user *v1pb.User) (*v1pb.User, error)
+	// GetUser gets the user by name.
+	GetUser(ctx context.Context, userName string) (*v1pb.User, error)
+	// UpdateUser updates the user.
+	UpdateUser(ctx context.Context, patch *v1pb.User, updateMasks []string) (*v1pb.User, error)
+	// DeleteUser deletes the user by name.
+	DeleteUser(ctx context.Context, userName string) error
+	// UndeleteUser undeletes the user by name.
+	UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error)
 }

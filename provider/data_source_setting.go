@@ -41,6 +41,8 @@ func getExternalApprovalSetting(computed bool) *schema.Schema {
 		Computed: computed,
 		Optional: true,
 		Default:  nil,
+		MinItems: 0,
+		MaxItems: 1,
 		Type:     schema.TypeList,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
@@ -82,6 +84,8 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 		Optional: true,
 		Default:  nil,
 		Type:     schema.TypeList,
+		MinItems: 0,
+		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"rules": {
@@ -142,6 +146,7 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								},
 							},
 							"conditions": {
+								MinItems:    0,
 								Computed:    computed,
 								Type:        schema.TypeList,
 								Optional:    true,

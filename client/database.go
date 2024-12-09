@@ -5,20 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// GetDatabase gets the database by environment resource id, instance resource id and the database name.
+// GetDatabase gets the database by the database name.
 func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Database, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, databaseName), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+	body, err := c.getResource(ctx, databaseName)
 	if err != nil {
 		return nil, err
 	}
@@ -58,17 +51,7 @@ func (c *client) ListDatabase(ctx context.Context, instanceID, filter string) (*
 
 // UpdateDatabase patches the database.
 func (c *client) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updateMasks []string) (*v1pb.Database, error) {
-	payload, err := protojson.Marshal(patch)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(updateMasks, ",")), strings.NewReader(string(payload)))
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
 	if err != nil {
 		return nil, err
 	}

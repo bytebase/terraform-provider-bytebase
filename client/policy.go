@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // ListPolicies lists policies in a specific resource.
@@ -38,12 +36,7 @@ func (c *client) ListPolicies(ctx context.Context, parent string) (*v1pb.ListPol
 
 // GetPolicy gets a policy in a specific resource.
 func (c *client) GetPolicy(ctx context.Context, policyName string) (*v1pb.Policy, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, policyName), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+	body, err := c.getResource(ctx, policyName)
 	if err != nil {
 		return nil, err
 	}
@@ -58,17 +51,7 @@ func (c *client) GetPolicy(ctx context.Context, policyName string) (*v1pb.Policy
 
 // UpsertPolicy creates or updates the policy.
 func (c *client) UpsertPolicy(ctx context.Context, policy *v1pb.Policy, updateMasks []string) (*v1pb.Policy, error) {
-	payload, err := protojson.Marshal(policy)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?allow_missing=true&update_mask=%s", c.url, c.version, policy.Name, strings.Join(updateMasks, ",")), strings.NewReader(string(payload)))
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+	body, err := c.updateResource(ctx, policy.Name, policy, updateMasks, true /* allow missing = true*/)
 	if err != nil {
 		return nil, err
 	}
@@ -83,13 +66,5 @@ func (c *client) UpsertPolicy(ctx context.Context, policy *v1pb.Policy, updateMa
 
 // DeletePolicy deletes the policy.
 func (c *client) DeletePolicy(ctx context.Context, policyName string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, policyName), nil)
-	if err != nil {
-		return err
-	}
-
-	if _, err := c.doRequest(req); err != nil {
-		return err
-	}
-	return nil
+	return c.deleteResource(ctx, policyName)
 }

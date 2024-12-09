@@ -38,7 +38,7 @@ func resourceEnvironment() *schema.Resource {
 			"title": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "The environment unique name.",
+				Description:  "The environment title.",
 				ValidateFunc: validation.StringMatch(environmentTitleRegex, fmt.Sprintf("environment title must matches %v", environmentTitleRegex)),
 			},
 			"name": {
@@ -104,35 +104,46 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 			}
 		}
 
-		env, err := c.UpdateEnvironment(ctx, &v1pb.Environment{
-			Name:  environmentName,
-			Title: title,
-			Order: int32(order),
-			Tier:  tier,
-		}, []string{"title", "order", "tier"})
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to update environment",
-				Detail:   fmt.Sprintf("Update environment %s failed, error: %v", environmentName, err),
-			})
-			return diags
+		updateMasks := []string{}
+		if title != "" && title != existedEnv.Title {
+			updateMasks = append(updateMasks, "title")
+		}
+		if order != int(existedEnv.Order) {
+			updateMasks = append(updateMasks, "order")
+		}
+		if tier != existedEnv.Tier {
+			updateMasks = append(updateMasks, "tier")
 		}
 
-		d.SetId(env.Name)
+		if len(updateMasks) > 0 {
+			if _, err := c.UpdateEnvironment(ctx, &v1pb.Environment{
+				Name:  environmentName,
+				Title: title,
+				Order: int32(order),
+				Tier:  tier,
+				State: v1pb.State_ACTIVE,
+			}, updateMasks); err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to update environment",
+					Detail:   fmt.Sprintf("Update environment %s failed, error: %v", environmentName, err),
+				})
+				return diags
+			}
+		}
 	} else {
-		env, err := c.CreateEnvironment(ctx, environmentID, &v1pb.Environment{
+		if _, err := c.CreateEnvironment(ctx, environmentID, &v1pb.Environment{
 			Name:  environmentName,
 			Title: title,
 			Order: int32(order),
 			Tier:  tier,
-		})
-		if err != nil {
+			State: v1pb.State_ACTIVE,
+		}); err != nil {
 			return diag.FromErr(err)
 		}
-
-		d.SetId(env.Name)
 	}
+
+	d.SetId(environmentName)
 
 	diag := resourceEnvironmentRead(ctx, d, m)
 	if diag != nil {
@@ -197,17 +208,20 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 		paths = append(paths, "tier")
 	}
 
-	title := d.Get("title").(string)
-	order := d.Get("order").(int)
-	tier := v1pb.EnvironmentTier(v1pb.EnvironmentTier_value[d.Get("environment_tier_policy").(string)])
+	if len(paths) > 0 {
+		title := d.Get("title").(string)
+		order := d.Get("order").(int)
+		tier := v1pb.EnvironmentTier(v1pb.EnvironmentTier_value[d.Get("environment_tier_policy").(string)])
 
-	if _, err := c.UpdateEnvironment(ctx, &v1pb.Environment{
-		Name:  environmentName,
-		Title: title,
-		Order: int32(order),
-		Tier:  tier,
-	}, paths); err != nil {
-		return diag.FromErr(err)
+		if _, err := c.UpdateEnvironment(ctx, &v1pb.Environment{
+			Name:  environmentName,
+			Title: title,
+			Order: int32(order),
+			Tier:  tier,
+			State: v1pb.State_ACTIVE,
+		}, paths); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	diag := resourceEnvironmentRead(ctx, d, m)

@@ -17,18 +17,30 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
-data "bytebase_setting" "approval_flow" {
-  name = "bb.workspace.approval"
+locals {
+  project_id = "project-sample"
 }
 
-data "bytebase_setting" "external_approval" {
-  name = "bb.workspace.approval.external"
+data "bytebase_vcs_provider" "github" {
+  resource_id = "vcs-github"
 }
 
-output "approval_flow" {
-  value = data.bytebase_setting.approval_flow
+data "bytebase_project" "sample_project" {
+  resource_id = local.project_id
 }
 
-output "external_approval" {
-  value = data.bytebase_setting.external_approval
+data "bytebase_vcs_connector" "github" {
+  depends_on = [
+    data.bytebase_project.sample_project
+  ]
+  resource_id = "connector-github"
+  project     = data.bytebase_project.sample_project.name
+}
+
+output "vcs_provider_github" {
+  value = data.bytebase_vcs_provider.github
+}
+
+output "vcs_connector_github" {
+  value = data.bytebase_vcs_connector.github
 }

@@ -175,6 +175,8 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	instanceID := d.Get("resource_id").(string)
 	instanceName := fmt.Sprintf("%s%s", internal.InstanceNamePrefix, instanceID)
+	title := d.Get("title").(string)
+	externalLink := d.Get("external_link").(string)
 
 	engineString := d.Get("engine").(string)
 	engineValue, ok := v1pb.Engine_value[engineString]
@@ -221,21 +223,32 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			}
 		}
 
-		title := d.Get("title").(string)
-		externalLink := d.Get("external_link").(string)
-		if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
-			Name:         instanceName,
-			Title:        title,
-			ExternalLink: externalLink,
-			DataSources:  dataSourceList,
-			State:        existedInstance.State,
-		}, []string{"title", "external_link", "data_sources"}); err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to update instance",
-				Detail:   fmt.Sprintf("Update instance %s failed, error: %v", instanceName, err),
-			})
-			return diags
+		updateMasks := []string{}
+		if title != "" && title != existedInstance.Title {
+			updateMasks = append(updateMasks, "title")
+		}
+		if externalLink != "" && externalLink != existedInstance.ExternalLink {
+			updateMasks = append(updateMasks, "external_link")
+		}
+		if len(dataSourceList) > 0 {
+			updateMasks = append(updateMasks, "data_sources")
+		}
+
+		if len(updateMasks) > 0 {
+			if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
+				Name:         instanceName,
+				Title:        title,
+				ExternalLink: externalLink,
+				DataSources:  dataSourceList,
+				State:        v1pb.State_ACTIVE,
+			}, updateMasks); err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Failed to update instance",
+					Detail:   fmt.Sprintf("Update instance %s failed, error: %v", instanceName, err),
+				})
+				return diags
+			}
 		}
 	} else {
 		if _, err := c.CreateInstance(ctx, instanceID, &v1pb.Instance{
@@ -333,21 +346,23 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		paths = append(paths, "data_sources")
 	}
 
-	if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
-		Name:         instanceName,
-		Title:        d.Get("title").(string),
-		ExternalLink: d.Get("external_link").(string),
-		DataSources:  dataSourceList,
-		State:        existedInstance.State,
-	}, paths); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := c.SyncInstanceSchema(ctx, instanceName); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Instance schema sync failed",
-			Detail:   fmt.Sprintf("Failed to sync schema for instance %s with error: %v. You can try to trigger the sync manually via Bytebase UI.", instanceName, err.Error()),
-		})
+	if len(paths) > 0 {
+		if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
+			Name:         instanceName,
+			Title:        d.Get("title").(string),
+			ExternalLink: d.Get("external_link").(string),
+			DataSources:  dataSourceList,
+			State:        v1pb.State_ACTIVE,
+		}, paths); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := c.SyncInstanceSchema(ctx, instanceName); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Instance schema sync failed",
+				Detail:   fmt.Sprintf("Failed to sync schema for instance %s with error: %v. You can try to trigger the sync manually via Bytebase UI.", instanceName, err.Error()),
+			})
+		}
 	}
 
 	diag := resourceInstanceRead(ctx, d, m)
