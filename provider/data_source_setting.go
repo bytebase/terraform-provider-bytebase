@@ -142,6 +142,7 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								},
 							},
 							"conditions": {
+								MinItems:    0,
 								Computed:    computed,
 								Type:        schema.TypeList,
 								Optional:    true,

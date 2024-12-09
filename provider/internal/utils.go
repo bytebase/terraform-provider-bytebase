@@ -26,6 +26,12 @@ const (
 	PolicyNamePrefix = "policies/"
 	// SettingNamePrefix is the prefix for setting unique name.
 	SettingNamePrefix = "settings/"
+	// VCSProviderNamePrefix is the prefix for vcs provider unique name.
+	VCSProviderNamePrefix = "vcsProviders/"
+	// VCSConnectorNamePrefix is the prefix for vcs connector unique name.
+	VCSConnectorNamePrefix = "vcsConnectors/"
+	// UserNamePrefix is the prefix for user name.
+	UserNamePrefix = "users/"
 	// ResourceIDPattern is the pattern for resource id.
 	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
 )
@@ -90,6 +96,26 @@ func GetEnvironmentID(name string) (string, error) {
 		return "", err
 	}
 	return tokens[0], nil
+}
+
+// GetVCSProviderID will parse the vcs provider resource id.
+func GetVCSProviderID(name string) (string, error) {
+	// the vcs provider name should be vcsProviders/{resource-id}
+	tokens, err := getNameParentTokens(name, VCSProviderNamePrefix)
+	if err != nil {
+		return "", err
+	}
+	return tokens[0], nil
+}
+
+// GetVCSConnectorID will parse the vcs connector resource id.
+func GetVCSConnectorID(name string) (string, string, error) {
+	// the vcs connector name should be projects/{project}/vcsConnectors/{resource-id}
+	tokens, err := getNameParentTokens(name, ProjectNamePrefix, VCSConnectorNamePrefix)
+	if err != nil {
+		return "", "", err
+	}
+	return tokens[0], tokens[1], nil
 }
 
 // GetInstanceID will parse the environment resource id and instance resource id.

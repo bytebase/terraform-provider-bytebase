@@ -76,12 +76,15 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 		Optional: true,
 		Default:  nil,
 		Type:     schema.TypeList,
+		MinItems: 0,
+		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"exceptions": {
 					Computed: computed,
 					Optional: true,
 					Default:  nil,
+					MinItems: 0,
 					Type:     schema.TypeList,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -154,9 +157,12 @@ func getMaskingPolicySchema(computed bool) *schema.Schema {
 		Optional: true,
 		Default:  nil,
 		Type:     schema.TypeList,
+		MinItems: 0,
+		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"mask_data": {
+					MinItems: 0,
 					Computed: computed,
 					Optional: true,
 					Default:  nil,

@@ -504,6 +504,57 @@ func (c *mockClient) UpsertSetting(_ context.Context, upsert *v1pb.Setting, _ []
 	return c.settingMap[upsert.Name], nil
 }
 
+// ParseExpression parse the expression string.
 func (*mockClient) ParseExpression(_ context.Context, _ string) (*v1alpha1.Expr, error) {
 	return nil, nil
+}
+
+// ListVCSProvider will returns all vcs providers.
+func (*mockClient) ListVCSProvider(_ context.Context) (*v1pb.ListVCSProvidersResponse, error) {
+	return nil, nil
+}
+
+// GetVCSProvider gets the vcs by id.
+func (*mockClient) GetVCSProvider(_ context.Context, _ string) (*v1pb.VCSProvider, error) {
+	return nil, nil
+}
+
+// CreateVCSProvider creates the vcs provider.
+func (*mockClient) CreateVCSProvider(_ context.Context, _ string, _ *v1pb.VCSProvider) (*v1pb.VCSProvider, error) {
+	return nil, nil
+}
+
+// UpdateVCSProvider updates the vcs provider.
+func (*mockClient) UpdateVCSProvider(_ context.Context, _ *v1pb.VCSProvider, _ []string) (*v1pb.VCSConnector, error) {
+	return nil, nil
+}
+
+// DeleteVCSProvider deletes the vcs provider.
+func (*mockClient) DeleteVCSProvider(_ context.Context, _ string) error {
+	return nil
+}
+
+// ListVCSConnector will returns all vcs connector in a project.
+func (*mockClient) ListVCSConnector(_ context.Context, _ string) (*v1pb.ListVCSConnectorsResponse, error) {
+	return nil, nil
+}
+
+// GetVCSConnector gets the vcs connector by id.
+func (*mockClient) GetVCSConnector(_ context.Context, _ string) (*v1pb.VCSConnector, error) {
+	return nil, nil
+}
+
+// CreateVCSConnector creates the vcs connector in a project.
+func (*mockClient) CreateVCSConnector(_ context.Context, _, _ string, _ *v1pb.VCSConnector) (*v1pb.VCSConnector, error) {
+	return nil, nil
+}
+
+// UpdateVCSConnector updates the vcs connector.
+func (*mockClient) UpdateVCSConnector(_ context.Context, _ *v1pb.VCSConnector, _ []string) (*v1pb.VCSConnector, error) {
+	return nil, nil
+}
+
+// DeleteVCSConnector deletes the vcs provider.
+func (*mockClient) DeleteVCSConnector(_ context.Context, _ string) error {
+	return nil
 }

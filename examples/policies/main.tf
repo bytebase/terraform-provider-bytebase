@@ -26,3 +26,11 @@ data "bytebase_policy" "masking_exception_policy" {
   parent = "projects/project-sample"
   type   = "MASKING_EXCEPTION"
 }
+
+output "masking_policy" {
+  value = data.bytebase_policy.masking_policy
+}
+
+output "masking_exception_policy" {
+  value = data.bytebase_policy.masking_exception_policy
+}

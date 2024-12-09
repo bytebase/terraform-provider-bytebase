@@ -24,8 +24,8 @@ The policy resource.
 
 - `enforce` (Boolean) Decide if the policy is enforced.
 - `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
-- `masking_exception_policy` (Block List) (see [below for nested schema](#nestedblock--masking_exception_policy))
-- `masking_policy` (Block List) (see [below for nested schema](#nestedblock--masking_policy))
+- `masking_exception_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exception_policy))
+- `masking_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_policy))
 
 ### Read-Only
 

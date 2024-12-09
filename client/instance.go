@@ -32,12 +32,7 @@ func (c *client) ListInstance(ctx context.Context, showDeleted bool) (*v1pb.List
 
 // GetInstance gets the instance by id.
 func (c *client) GetInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, instanceName), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+	body, err := c.getResource(ctx, instanceName)
 	if err != nil {
 		return nil, err
 	}
@@ -78,18 +73,7 @@ func (c *client) CreateInstance(ctx context.Context, instanceID string, instance
 
 // UpdateInstance updates the instance.
 func (c *client) UpdateInstance(ctx context.Context, patch *v1pb.Instance, updateMasks []string) (*v1pb.Instance, error) {
-	payload, err := protojson.Marshal(patch)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s", c.url, c.version, patch.Name, strings.Join(updateMasks, ",")), strings.NewReader(string(payload)))
-
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
 	if err != nil {
 		return nil, err
 	}
@@ -104,25 +88,12 @@ func (c *client) UpdateInstance(ctx context.Context, patch *v1pb.Instance, updat
 
 // DeleteInstance deletes the instance.
 func (c *client) DeleteInstance(ctx context.Context, instanceName string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, instanceName), nil)
-	if err != nil {
-		return err
-	}
-
-	if _, err := c.doRequest(req); err != nil {
-		return err
-	}
-	return nil
+	return c.deleteResource(ctx, instanceName)
 }
 
 // UndeleteInstance undeletes the instance.
 func (c *client) UndeleteInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:undelete", c.url, c.version, instanceName), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
+	body, err := c.undeleteResource(ctx, instanceName)
 	if err != nil {
 		return nil, err
 	}
