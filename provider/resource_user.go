@@ -51,14 +51,8 @@ func resourceUser() *schema.Resource {
 			"type": {
 				Type: schema.TypeString,
 				// TODO: support set type.
-				Computed: true,
-				// Optional:    true,
-				// Default:     v1pb.UserType_USER.String(),
+				Computed:    true,
 				Description: "The user type.",
-				// ValidateFunc: validation.StringInSlice([]string{
-				// 	v1pb.UserType_USER.String(),
-				// 	v1pb.UserType_SERVICE_ACCOUNT.String(),
-				// }, false),
 			},
 			"name": {
 				Type:        schema.TypeString,
