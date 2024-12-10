@@ -20,7 +20,7 @@ type client struct {
 	version string
 	client  *http.Client
 	token   string
-	auth    *v1pb.LoginRequest
+	caller  *v1pb.User
 }
 
 // NewClient returns the new Bytebase API client.
@@ -31,17 +31,16 @@ func NewClient(url, version, email, password string) (api.Client, error) {
 		version: version,
 	}
 
-	c.auth = &v1pb.LoginRequest{
+	response, err := c.login(&v1pb.LoginRequest{
 		Email:    email,
 		Password: password,
-	}
-
-	ar, err := c.Login()
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	c.token = ar.Token
+	c.token = response.Token
+	c.caller = response.User
 
 	return &c, nil
 }
@@ -67,4 +66,9 @@ func (c *client) doRequest(req *http.Request) ([]byte, error) {
 	}
 
 	return body, err
+}
+
+// GetCaller returns the API caller.
+func (c *client) GetCaller() *v1pb.User {
+	return c.caller
 }

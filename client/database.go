@@ -9,7 +9,7 @@ import (
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 )
 
-// GetDatabase gets the database by the database name.
+// GetDatabase gets the database by the database full name.
 func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Database, error) {
 	body, err := c.getResource(ctx, databaseName)
 	if err != nil {

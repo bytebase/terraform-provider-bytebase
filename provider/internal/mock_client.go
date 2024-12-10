@@ -51,9 +51,9 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 	}, nil
 }
 
-// Login will login the user and get the response.
-func (*mockClient) Login() (*v1pb.LoginResponse, error) {
-	return &v1pb.LoginResponse{}, nil
+// GetCaller returns the API caller.
+func (*mockClient) GetCaller() *v1pb.User {
+	return nil
 }
 
 // CreateEnvironment creates the environment.
@@ -470,6 +470,16 @@ func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*
 	return proj, nil
 }
 
+// GetProjectIAMPolicy gets the project IAM policy by project full name.
+func (*mockClient) GetProjectIAMPolicy(_ context.Context, _ string) (*v1pb.IamPolicy, error) {
+	return nil, nil
+}
+
+// SetProjectIAMPolicy sets the project IAM policy.
+func (*mockClient) SetProjectIAMPolicy(_ context.Context, _ string, _ *v1pb.IamPolicy) (*v1pb.IamPolicy, error) {
+	return nil, nil
+}
+
 // ListSettings lists all settings.
 func (c *mockClient) ListSettings(_ context.Context) (*v1pb.ListSettingsResponse, error) {
 	settings := make([]*v1pb.Setting, 0)
@@ -557,4 +567,34 @@ func (*mockClient) UpdateVCSConnector(_ context.Context, _ *v1pb.VCSConnector, _
 // DeleteVCSConnector deletes the vcs provider.
 func (*mockClient) DeleteVCSConnector(_ context.Context, _ string) error {
 	return nil
+}
+
+// ListUser list all users.
+func (*mockClient) ListUser(_ context.Context, _ bool) (*v1pb.ListUsersResponse, error) {
+	return nil, nil
+}
+
+// GetUser gets the user by name.
+func (*mockClient) GetUser(_ context.Context, _ string) (*v1pb.User, error) {
+	return nil, nil
+}
+
+// CreateUser creates the user.
+func (*mockClient) CreateUser(_ context.Context, _ *v1pb.User) (*v1pb.User, error) {
+	return nil, nil
+}
+
+// UpdateUser updates the user.
+func (*mockClient) UpdateUser(_ context.Context, _ *v1pb.User, _ []string) (*v1pb.User, error) {
+	return nil, nil
+}
+
+// DeleteUser deletes the user by name.
+func (*mockClient) DeleteUser(_ context.Context, _ string) error {
+	return nil
+}
+
+// UndeleteUser undeletes the user by name.
+func (*mockClient) UndeleteUser(_ context.Context, _ string) (*v1pb.User, error) {
+	return nil, nil
 }

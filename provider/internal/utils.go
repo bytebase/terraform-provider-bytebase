@@ -32,6 +32,8 @@ const (
 	VCSConnectorNamePrefix = "vcsConnectors/"
 	// UserNamePrefix is the prefix for user name.
 	UserNamePrefix = "users/"
+	// RoleNamePrefix is the prefix for role name.
+	RoleNamePrefix = "roles/"
 	// ResourceIDPattern is the pattern for resource id.
 	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
 )
@@ -164,4 +166,12 @@ func getNameParentTokens(name string, tokenPrefixes ...string) ([]string, error)
 		tokens = append(tokens, parts[2*i+1])
 	}
 	return tokens, nil
+}
+
+// ValidateMemberBinding checks the member binding format.
+func ValidateMemberBinding(member string) error {
+	if !strings.HasPrefix(member, "user:") && !strings.HasPrefix(member, "group:") {
+		return errors.Errorf("invalid member format")
+	}
+	return nil
 }

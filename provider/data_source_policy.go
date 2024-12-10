@@ -117,7 +117,7 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 								Computed:     computed,
 								Optional:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
-								Description:  "The member in user:{email} format.",
+								Description:  "The member in user:{email} or group:{email} format.",
 							},
 							"masking_level": {
 								Type:     schema.TypeString,
@@ -288,6 +288,10 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 		raw["member"] = exception.Member
 		raw["action"] = exception.Action.String()
 		raw["masking_level"] = exception.MaskingLevel.String()
+
+		if exception.Condition == nil || exception.Condition.Expression == "" {
+			return nil, errors.Errorf("invalid exception policy condition")
+		}
 
 		expressions := strings.Split(exception.Condition.Expression, " && ")
 		instanceID := ""
