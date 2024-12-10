@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// GetProject gets the project by resource id.
+// GetProject gets the project by project full name.
 func (c *client) GetProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
 	body, err := c.getResource(ctx, projectName)
 	if err != nil {
@@ -18,6 +18,49 @@ func (c *client) GetProject(ctx context.Context, projectName string) (*v1pb.Proj
 	}
 
 	var res v1pb.Project
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+// GetProjectIAMPolicy gets the project IAM policy by project full name.
+func (c *client) GetProjectIAMPolicy(ctx context.Context, projectName string) (*v1pb.IamPolicy, error) {
+	body, err := c.getResource(ctx, fmt.Sprintf("%s:getIamPolicy", projectName))
+	if err != nil {
+		return nil, err
+	}
+
+	var res v1pb.IamPolicy
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+// SetProjectIAMPolicy sets the project IAM policy.
+func (c *client) SetProjectIAMPolicy(ctx context.Context, projectName string, iamPolicy *v1pb.IamPolicy) (*v1pb.IamPolicy, error) {
+	payload, err := protojson.Marshal(&v1pb.SetIamPolicyRequest{
+		Policy: iamPolicy,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:setIamPolicy", c.url, c.version, projectName), strings.NewReader(string(payload)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var res v1pb.IamPolicy
 	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}

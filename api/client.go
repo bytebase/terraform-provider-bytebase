@@ -9,14 +9,13 @@ import (
 
 // Client is the API message for Bytebase OpenAPI client.
 type Client interface {
-	// Auth
-	// Login will login the user and get the response.
-	Login() (*v1pb.LoginResponse, error)
+	// GetCaller returns the API caller.
+	GetCaller() *v1pb.User
 
 	// Environment
 	// CreateEnvironment creates the environment.
 	CreateEnvironment(ctx context.Context, environmentID string, create *v1pb.Environment) (*v1pb.Environment, error)
-	// GetEnvironment gets the environment by id.
+	// GetEnvironment gets the environment by full name.
 	GetEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error)
 	// ListEnvironment finds all environments.
 	ListEnvironment(ctx context.Context, showDeleted bool) (*v1pb.ListEnvironmentsResponse, error)
@@ -30,7 +29,7 @@ type Client interface {
 	// Instance
 	// ListInstance will return instances.
 	ListInstance(ctx context.Context, showDeleted bool) (*v1pb.ListInstancesResponse, error)
-	// GetInstance gets the instance by id.
+	// GetInstance gets the instance by full name.
 	GetInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error)
 	// CreateInstance creates the instance.
 	CreateInstance(ctx context.Context, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error)
@@ -62,7 +61,7 @@ type Client interface {
 	UpdateDatabase(ctx context.Context, patch *v1pb.Database, updateMasks []string) (*v1pb.Database, error)
 
 	// Project
-	// GetProject gets the project by resource id.
+	// GetProject gets the project by project full name.
 	GetProject(ctx context.Context, projectName string) (*v1pb.Project, error)
 	// ListProject list the projects,
 	ListProject(ctx context.Context, showDeleted bool) (*v1pb.ListProjectsResponse, error)
@@ -74,6 +73,10 @@ type Client interface {
 	DeleteProject(ctx context.Context, projectName string) error
 	// UndeleteProject undeletes the project.
 	UndeleteProject(ctx context.Context, projectName string) (*v1pb.Project, error)
+	// GetProjectIAMPolicy gets the project IAM policy by project full name.
+	GetProjectIAMPolicy(ctx context.Context, projectName string) (*v1pb.IamPolicy, error)
+	// SetProjectIAMPolicy sets the project IAM policy.
+	SetProjectIAMPolicy(ctx context.Context, projectName string, iamPolicy *v1pb.IamPolicy) (*v1pb.IamPolicy, error)
 
 	// Setting
 	// ListSettings lists all settings.
@@ -90,7 +93,7 @@ type Client interface {
 	// VCS Provider
 	// ListVCSProvider will returns all vcs providers.
 	ListVCSProvider(ctx context.Context) (*v1pb.ListVCSProvidersResponse, error)
-	// GetVCSProvider gets the vcs by id.
+	// GetVCSProvider gets the vcs by full name.
 	GetVCSProvider(ctx context.Context, name string) (*v1pb.VCSProvider, error)
 	// CreateVCSProvider creates the vcs provider.
 	CreateVCSProvider(ctx context.Context, vcsID string, vcs *v1pb.VCSProvider) (*v1pb.VCSProvider, error)
@@ -102,7 +105,7 @@ type Client interface {
 	// VCS Connector
 	// ListVCSConnector will returns all vcs connector in a project.
 	ListVCSConnector(ctx context.Context, projectName string) (*v1pb.ListVCSConnectorsResponse, error)
-	// GetVCSConnector gets the vcs connector by id.
+	// GetVCSConnector gets the vcs connector by full name.
 	GetVCSConnector(ctx context.Context, name string) (*v1pb.VCSConnector, error)
 	// CreateVCSConnector creates the vcs connector in a project.
 	CreateVCSConnector(ctx context.Context, projectName, connectorID string, connector *v1pb.VCSConnector) (*v1pb.VCSConnector, error)
@@ -110,4 +113,18 @@ type Client interface {
 	UpdateVCSConnector(ctx context.Context, patch *v1pb.VCSConnector, updateMasks []string) (*v1pb.VCSConnector, error)
 	// DeleteVCSConnector deletes the vcs provider.
 	DeleteVCSConnector(ctx context.Context, name string) error
+
+	// User
+	// ListUser list all users.
+	ListUser(ctx context.Context, showDeleted bool) (*v1pb.ListUsersResponse, error)
+	// CreateUser creates the user.
+	CreateUser(ctx context.Context, user *v1pb.User) (*v1pb.User, error)
+	// GetUser gets the user by name.
+	GetUser(ctx context.Context, userName string) (*v1pb.User, error)
+	// UpdateUser updates the user.
+	UpdateUser(ctx context.Context, patch *v1pb.User, updateMasks []string) (*v1pb.User, error)
+	// DeleteUser deletes the user by name.
+	DeleteUser(ctx context.Context, userName string) error
+	// UndeleteUser undeletes the user by name.
+	UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error)
 }

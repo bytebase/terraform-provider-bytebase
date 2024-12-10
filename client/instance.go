@@ -30,7 +30,7 @@ func (c *client) ListInstance(ctx context.Context, showDeleted bool) (*v1pb.List
 	return &res, nil
 }
 
-// GetInstance gets the instance by id.
+// GetInstance gets the instance by full name.
 func (c *client) GetInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
 	body, err := c.getResource(ctx, instanceName)
 	if err != nil {

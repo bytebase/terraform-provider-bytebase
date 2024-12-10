@@ -30,7 +30,7 @@ func (c *client) ListVCSProvider(ctx context.Context) (*v1pb.ListVCSProvidersRes
 	return &res, nil
 }
 
-// GetVCSProvider gets the vcs by id.
+// GetVCSProvider gets the vcs by full name.
 func (c *client) GetVCSProvider(ctx context.Context, name string) (*v1pb.VCSProvider, error) {
 	body, err := c.getResource(ctx, name)
 	if err != nil {
@@ -111,7 +111,7 @@ func (c *client) ListVCSConnector(ctx context.Context, projectName string) (*v1p
 	return &res, nil
 }
 
-// GetVCSConnector gets the vcs connector by id.
+// GetVCSConnector gets the vcs connector by full name.
 func (c *client) GetVCSConnector(ctx context.Context, name string) (*v1pb.VCSConnector, error) {
 	body, err := c.getResource(ctx, name)
 	if err != nil {

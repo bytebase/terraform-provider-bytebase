@@ -12,11 +12,11 @@ import (
 )
 
 // Login will login the user and get the response.
-func (c *client) Login() (*v1pb.LoginResponse, error) {
-	if c.auth.Email == "" || c.auth.Password == "" {
+func (c *client) login(request *v1pb.LoginRequest) (*v1pb.LoginResponse, error) {
+	if request.Email == "" || request.Password == "" {
 		return nil, errors.Errorf("define username and password")
 	}
-	rb, err := protojson.Marshal(c.auth)
+	rb, err := protojson.Marshal(request)
 	if err != nil {
 		return nil, err
 	}

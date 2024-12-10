@@ -29,10 +29,17 @@ The project data source list.
 
 Read-Only:
 
+- `allow_modify_statement` (Boolean)
+- `auto_enable_backup` (Boolean)
+- `auto_resolve_issue` (Boolean)
 - `databases` (List of Object) (see [below for nested schema](#nestedobjatt--projects--databases))
+- `enforce_issue_title` (Boolean)
 - `key` (String)
+- `members` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--members))
 - `name` (String)
+- `postgres_database_tenant_mode` (Boolean)
 - `resource_id` (String)
+- `skip_backup_errors` (Boolean)
 - `title` (String)
 - `workflow` (String)
 
@@ -47,5 +54,26 @@ Read-Only:
 - `schema_version` (String)
 - `successful_sync_time` (String)
 - `sync_state` (String)
+
+
+<a id="nestedobjatt--projects--members"></a>
+### Nested Schema for `projects.members`
+
+Read-Only:
+
+- `condition` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--members--condition))
+- `member` (String)
+- `role` (String)
+
+<a id="nestedobjatt--projects--members--condition"></a>
+### Nested Schema for `projects.members.condition`
+
+Read-Only:
+
+- `database` (String)
+- `expire_timestamp` (String)
+- `row_limit` (Number)
+- `schema` (String)
+- `tables` (Set of String)
 
 
