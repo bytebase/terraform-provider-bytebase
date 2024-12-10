@@ -195,7 +195,7 @@ func getProjectMembersSchema(computed bool) *schema.Schema {
 						},
 					},
 					Set: func(i interface{}) int {
-						return internal.ToHashcodeString(conditionHash(i))
+						return internal.ToHashcodeInt(conditionHash(i))
 					},
 				},
 			},
@@ -284,7 +284,7 @@ func flattenMemberList(iamPolicy *v1pb.IamPolicy) ([]interface{}, error) {
 			rawMember["member"] = member
 			rawMember["role"] = binding.Role
 			rawMember["condition"] = schema.NewSet(func(i interface{}) int {
-				return internal.ToHashcodeString(conditionHash(i))
+				return internal.ToHashcodeInt(conditionHash(i))
 			}, []interface{}{rawCondition})
 			memberList = append(memberList, rawMember)
 		}
@@ -383,7 +383,7 @@ func memberHash(rawMember interface{}) int {
 		_, _ = buf.WriteString(conditionHash(rawCondition))
 	}
 
-	return internal.ToHashcodeString(buf.String())
+	return internal.ToHashcodeInt(buf.String())
 }
 
 func conditionHash(rawCondition interface{}) string {

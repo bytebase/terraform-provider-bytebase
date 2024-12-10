@@ -177,7 +177,8 @@ func ValidateMemberBinding(member string) error {
 	return nil
 }
 
-func ToHashcodeString(s string) int {
+// ToHashcodeInt returns int by string.
+func ToHashcodeInt(s string) int {
 	v := int(crc32.ChecksumIEEE([]byte(s)))
 	if v >= 0 {
 		return v
