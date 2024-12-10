@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"hash/crc32"
 	"regexp"
 	"strings"
 
@@ -174,4 +175,16 @@ func ValidateMemberBinding(member string) error {
 		return errors.Errorf("invalid member format")
 	}
 	return nil
+}
+
+func ToHashcodeString(s string) int {
+	v := int(crc32.ChecksumIEEE([]byte(s)))
+	if v >= 0 {
+		return v
+	}
+	if -v >= 0 {
+		return -v
+	}
+	// v == MinInt
+	return 0
 }

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/pkg/errors"
@@ -196,7 +195,7 @@ func getProjectMembersSchema(computed bool) *schema.Schema {
 						},
 					},
 					Set: func(i interface{}) int {
-						return hashcode.String(conditionHash(i))
+						return internal.ToHashcodeString(conditionHash(i))
 					},
 				},
 			},
@@ -285,7 +284,7 @@ func flattenMemberList(iamPolicy *v1pb.IamPolicy) ([]interface{}, error) {
 			rawMember["member"] = member
 			rawMember["role"] = binding.Role
 			rawMember["condition"] = schema.NewSet(func(i interface{}) int {
-				return hashcode.String(conditionHash(i))
+				return internal.ToHashcodeString(conditionHash(i))
 			}, []interface{}{rawCondition})
 			memberList = append(memberList, rawMember)
 		}
@@ -384,7 +383,7 @@ func memberHash(rawMember interface{}) int {
 		_, _ = buf.WriteString(conditionHash(rawCondition))
 	}
 
-	return hashcode.String(buf.String())
+	return internal.ToHashcodeString(buf.String())
 }
 
 func conditionHash(rawCondition interface{}) string {

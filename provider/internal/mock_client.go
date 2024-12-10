@@ -475,12 +475,12 @@ func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*
 
 // GetProjectIAMPolicy gets the project IAM policy by project full name.
 func (*mockClient) GetProjectIAMPolicy(_ context.Context, _ string) (*v1pb.IamPolicy, error) {
-	return nil, nil
+	return &v1pb.IamPolicy{}, nil
 }
 
 // SetProjectIAMPolicy sets the project IAM policy.
 func (*mockClient) SetProjectIAMPolicy(_ context.Context, _ string, _ *v1pb.IamPolicy) (*v1pb.IamPolicy, error) {
-	return nil, nil
+	return &v1pb.IamPolicy{}, nil
 }
 
 // ListSettings lists all settings.
