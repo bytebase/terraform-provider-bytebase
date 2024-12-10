@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
@@ -451,7 +453,11 @@ func updateMembersInProject(ctx context.Context, d *schema.ResourceData, client 
 					expressions = append(expressions, fmt.Sprintf(`request.row_limit <= %d`, rowLimit))
 				}
 				if expire, ok := rawCondition["expire_timestamp"].(string); ok && expire != "" {
-					expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, expire))
+					formattedTime, err := time.Parse(time.RFC3339, expire)
+					if err != nil {
+						return diag.FromErr(errors.Wrapf(err, "invalid time: %v", expire))
+					}
+					expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
 				}
 			}
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -266,7 +267,11 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 			expressions = append(expressions, fmt.Sprintf(`resource.column_name == "%s"`, column))
 		}
 		if expire, ok := rawException["expire_timestamp"].(string); ok && expire != "" {
-			expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, expire))
+			formattedTime, err := time.Parse(time.RFC3339, expire)
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid time: %v", expire)
+			}
+			expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
 		}
 		member := rawException["member"].(string)
 		if err := internal.ValidateMemberBinding(member); err != nil {
