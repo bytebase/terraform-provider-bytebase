@@ -35,7 +35,7 @@ func (c *client) CreateEnvironment(ctx context.Context, environmentID string, cr
 	return &env, nil
 }
 
-// GetEnvironment gets the environment by id.
+// GetEnvironment gets the environment by full name.
 func (c *client) GetEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error) {
 	body, err := c.getResource(ctx, environmentName)
 	if err != nil {

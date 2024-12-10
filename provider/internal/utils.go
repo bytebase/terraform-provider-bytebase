@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"hash/crc32"
 	"regexp"
 	"strings"
 
@@ -32,6 +33,8 @@ const (
 	VCSConnectorNamePrefix = "vcsConnectors/"
 	// UserNamePrefix is the prefix for user name.
 	UserNamePrefix = "users/"
+	// RoleNamePrefix is the prefix for role name.
+	RoleNamePrefix = "roles/"
 	// ResourceIDPattern is the pattern for resource id.
 	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
 )
@@ -164,4 +167,25 @@ func getNameParentTokens(name string, tokenPrefixes ...string) ([]string, error)
 		tokens = append(tokens, parts[2*i+1])
 	}
 	return tokens, nil
+}
+
+// ValidateMemberBinding checks the member binding format.
+func ValidateMemberBinding(member string) error {
+	if !strings.HasPrefix(member, "user:") && !strings.HasPrefix(member, "group:") {
+		return errors.Errorf("invalid member format")
+	}
+	return nil
+}
+
+// ToHashcodeInt returns int by string.
+func ToHashcodeInt(s string) int {
+	v := int(crc32.ChecksumIEEE([]byte(s)))
+	if v >= 0 {
+		return v
+	}
+	if -v >= 0 {
+		return -v
+	}
+	// v == MinInt
+	return 0
 }

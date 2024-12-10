@@ -62,6 +62,8 @@ func NewProvider() *schema.Provider {
 			"bytebase_vcs_provider_list":  dataSourceVCSProviderList(),
 			"bytebase_vcs_connector":      dataSourceVCSConnector(),
 			"bytebase_vcs_connector_list": dataSourceVCSConnectorList(),
+			"bytebase_user":               dataSourceUser(),
+			"bytebase_user_list":          dataSourceUserList(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"bytebase_environment":   resourceEnvironment(),
@@ -71,6 +73,7 @@ func NewProvider() *schema.Provider {
 			"bytebase_setting":       resourceSetting(),
 			"bytebase_vcs_provider":  resourceVCSProvider(),
 			"bytebase_vcs_connector": resourceVCSConnector(),
+			"bytebase_user":          resourceUser(),
 		},
 	}
 }
