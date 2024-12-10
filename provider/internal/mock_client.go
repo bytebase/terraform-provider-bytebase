@@ -53,7 +53,10 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 
 // GetCaller returns the API caller.
 func (*mockClient) GetCaller() *v1pb.User {
-	return nil
+	return &v1pb.User{
+		Name:  "users/mock@bytease.com",
+		Email: "mock@bytease.com",
+	}
 }
 
 // CreateEnvironment creates the environment.

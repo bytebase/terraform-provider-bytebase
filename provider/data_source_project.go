@@ -373,15 +373,15 @@ func memberHash(rawMember interface{}) int {
 	member := rawMember.(map[string]interface{})
 
 	if v, ok := member["member"].(string); ok {
-		buf.WriteString(fmt.Sprintf("%s-", v))
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
 	}
 	if v, ok := member["role"].(string); ok {
-		buf.WriteString(fmt.Sprintf("%s-", v))
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
 	}
 
 	if condition, ok := member["condition"].(*schema.Set); ok && condition.Len() > 0 && condition.List()[0] != nil {
 		rawCondition := condition.List()[0].(map[string]interface{})
-		buf.WriteString(conditionHash(rawCondition))
+		_, _ = buf.WriteString(conditionHash(rawCondition))
 	}
 
 	return hashcode.String(buf.String())
@@ -392,21 +392,21 @@ func conditionHash(rawCondition interface{}) string {
 	condition := rawCondition.(map[string]interface{})
 
 	if v, ok := condition["database"].(string); ok {
-		buf.WriteString(fmt.Sprintf("%s-", v))
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
 	}
 	if v, ok := condition["schema"].(string); ok {
-		buf.WriteString(fmt.Sprintf("%s-", v))
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
 	}
 	if v, ok := condition["tables"].(*schema.Set); ok {
 		for _, t := range v.List() {
-			buf.WriteString(fmt.Sprintf("table.%s-", t.(string)))
+			_, _ = buf.WriteString(fmt.Sprintf("table.%s-", t.(string)))
 		}
 	}
 	if v, ok := condition["row_limit"].(int); ok {
-		buf.WriteString(fmt.Sprintf("%d-", v))
+		_, _ = buf.WriteString(fmt.Sprintf("%d-", v))
 	}
 	if v, ok := condition["expire_timestamp"].(string); ok {
-		buf.WriteString(fmt.Sprintf("%s-", v))
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
 	}
 
 	return buf.String()
