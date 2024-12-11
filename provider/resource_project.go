@@ -485,13 +485,7 @@ func updateMembersInProject(ctx context.Context, d *schema.ResourceData, client 
 	}
 
 	if !existProjectOwner {
-		// Make sure we have the project owner.
-		iamPolicy.Bindings = append(iamPolicy.Bindings, &v1pb.Binding{
-			Role: "roles/projectOwner",
-			Members: []string{
-				fmt.Sprintf("user:%s", client.GetCaller().Email),
-			},
-		})
+		return diag.Errorf("require at least 1 member with roles/projectOwner role")
 	}
 
 	if len(iamPolicy.Bindings) > 0 {

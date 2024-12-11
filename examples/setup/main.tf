@@ -110,13 +110,14 @@ resource "bytebase_user" "project_developer" {
   title = "Developer"
   email = "developer@bytebase.com"
 
-  # Grant workspace level roles, will grant projectViewer for this user in all projects.
+  # Grant workspace level roles, will grant projectViewer for this user in all
   roles = ["roles/projectViewer"]
 }
 
 # Create a new project
 resource "bytebase_project" "sample_project" {
   depends_on = [
+    bytebase_user.workspace_dba,
     bytebase_user.project_developer
   ]
 
@@ -125,8 +126,8 @@ resource "bytebase_project" "sample_project" {
   key         = "SAMM"
 
   members {
-    member = format("user:%s", bytebase_user.project_developer.email)
-    role   = "roles/projectDeveloper"
+    member = format("user:%s", bytebase_user.workspace_dba.email)
+    role   = "roles/projectOwner"
   }
 
   members {
@@ -270,5 +271,3 @@ resource "bytebase_vcs_connector" "github" {
   repository_branch    = "main"
   repository_url       = "https://github.com/ed-bytebase/gitops"
 }
-
-
