@@ -3,12 +3,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -48,17 +50,18 @@ func resourceUser() *schema.Resource {
 				Optional:    true,
 				Description: "The user login password.",
 			},
+			"roles": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "The user's roles in the workspace level",
+			},
 			"type": {
-				Type: schema.TypeString,
-				// TODO: support set type.
-				Computed: true,
-				// Optional:    true,
-				// Default:     v1pb.UserType_USER.String(),
+				Type:        schema.TypeString,
+				Computed:    true,
 				Description: "The user type.",
-				// ValidateFunc: validation.StringInSlice([]string{
-				// 	v1pb.UserType_USER.String(),
-				// 	v1pb.UserType_SERVICE_ACCOUNT.String(),
-				// }, false),
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -108,7 +111,7 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 		return diag.FromErr(err)
 	}
 
-	return setUser(d, user)
+	return setUser(ctx, c, d, user)
 }
 
 func resourceUserDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -214,6 +217,15 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 		d.SetId(user.Name)
 	}
 
+	if err := patchWorkspaceIAMPolicy(ctx, c, email, getRoles(d)); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to patch user roles",
+			Detail:   fmt.Sprintf("Update roles for user %s failed, error: %v", userName, err),
+		})
+		return diags
+	}
+
 	diag := resourceUserRead(ctx, d, m)
 	if diag != nil {
 		diags = append(diags, diag...)
@@ -291,10 +303,76 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 		}
 	}
 
+	if d.HasChange("roles") {
+		if err := patchWorkspaceIAMPolicy(ctx, c, email, getRoles(d)); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to patch user roles",
+				Detail:   fmt.Sprintf("Update roles for user %s failed, error: %v", userName, err),
+			})
+			return diags
+		}
+	}
+
 	diag := resourceUserRead(ctx, d, m)
 	if diag != nil {
 		diags = append(diags, diag...)
 	}
 
 	return diags
+}
+
+func getRoles(d *schema.ResourceData) []string {
+	rawRoles := d.Get("roles").(*schema.Set)
+	roleList := []string{}
+
+	for _, rawRole := range rawRoles.List() {
+		roleList = append(roleList, rawRole.(string))
+	}
+	return roleList
+}
+
+func patchWorkspaceIAMPolicy(ctx context.Context, client api.Client, email string, roles []string) error {
+	workspaceIamPolicy, err := client.GetWorkspaceIAMPolicy(ctx)
+	if err != nil {
+		return errors.Errorf("cannot get workspace IAM with error: %s", err.Error())
+	}
+	patchMember := fmt.Sprintf("user:%s", email)
+	roleMap := map[string]bool{}
+	for _, role := range roles {
+		roleMap[role] = true
+	}
+
+	for _, binding := range workspaceIamPolicy.Bindings {
+		index := slices.Index(binding.Members, patchMember)
+		if !roleMap[binding.Role] {
+			if index >= 0 {
+				binding.Members = slices.Delete(binding.Members, index, index+1)
+			}
+		} else {
+			if index < 0 {
+				binding.Members = append(binding.Members, patchMember)
+			}
+		}
+
+		delete(roleMap, binding.Role)
+	}
+
+	for role := range roleMap {
+		workspaceIamPolicy.Bindings = append(workspaceIamPolicy.Bindings, &v1pb.Binding{
+			Role: role,
+			Members: []string{
+				patchMember,
+			},
+		})
+	}
+
+	if _, err := client.SetWorkspaceIAMPolicy(ctx, &v1pb.SetIamPolicyRequest{
+		Policy: workspaceIamPolicy,
+		Etag:   workspaceIamPolicy.Etag,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }

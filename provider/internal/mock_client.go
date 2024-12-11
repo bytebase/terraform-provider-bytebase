@@ -18,36 +18,54 @@ var environmentMap map[string]*v1pb.Environment
 var instanceMap map[string]*v1pb.Instance
 var policyMap map[string]*v1pb.Policy
 var projectMap map[string]*v1pb.Project
+var projectIAMMap map[string]*v1pb.IamPolicy
 var databaseMap map[string]*v1pb.Database
 var settingMap map[string]*v1pb.Setting
+var vcsProviderMap map[string]*v1pb.VCSProvider
+var vcsConnectorMap map[string]*v1pb.VCSConnector
+var userMap map[string]*v1pb.User
 
 func init() {
 	environmentMap = map[string]*v1pb.Environment{}
 	instanceMap = map[string]*v1pb.Instance{}
 	policyMap = map[string]*v1pb.Policy{}
 	projectMap = map[string]*v1pb.Project{}
+	projectIAMMap = map[string]*v1pb.IamPolicy{}
 	databaseMap = map[string]*v1pb.Database{}
 	settingMap = map[string]*v1pb.Setting{}
+	vcsProviderMap = map[string]*v1pb.VCSProvider{}
+	vcsConnectorMap = map[string]*v1pb.VCSConnector{}
+	userMap = map[string]*v1pb.User{}
 }
 
 type mockClient struct {
-	environmentMap map[string]*v1pb.Environment
-	instanceMap    map[string]*v1pb.Instance
-	policyMap      map[string]*v1pb.Policy
-	projectMap     map[string]*v1pb.Project
-	databaseMap    map[string]*v1pb.Database
-	settingMap     map[string]*v1pb.Setting
+	environmentMap     map[string]*v1pb.Environment
+	instanceMap        map[string]*v1pb.Instance
+	policyMap          map[string]*v1pb.Policy
+	projectMap         map[string]*v1pb.Project
+	projectIAMMap      map[string]*v1pb.IamPolicy
+	databaseMap        map[string]*v1pb.Database
+	settingMap         map[string]*v1pb.Setting
+	vcsProviderMap     map[string]*v1pb.VCSProvider
+	vcsConnectorMap    map[string]*v1pb.VCSConnector
+	userMap            map[string]*v1pb.User
+	workspaceIAMPolicy *v1pb.IamPolicy
 }
 
 // newMockClient returns the new Bytebase API mock client.
 func newMockClient(_, _, _ string) (api.Client, error) {
 	return &mockClient{
-		environmentMap: environmentMap,
-		instanceMap:    instanceMap,
-		policyMap:      policyMap,
-		projectMap:     projectMap,
-		databaseMap:    databaseMap,
-		settingMap:     settingMap,
+		environmentMap:     environmentMap,
+		instanceMap:        instanceMap,
+		policyMap:          policyMap,
+		projectMap:         projectMap,
+		projectIAMMap:      projectIAMMap,
+		databaseMap:        databaseMap,
+		settingMap:         settingMap,
+		vcsProviderMap:     vcsProviderMap,
+		vcsConnectorMap:    vcsConnectorMap,
+		userMap:            userMap,
+		workspaceIAMPolicy: &v1pb.IamPolicy{},
 	}, nil
 }
 
@@ -474,13 +492,18 @@ func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*
 }
 
 // GetProjectIAMPolicy gets the project IAM policy by project full name.
-func (*mockClient) GetProjectIAMPolicy(_ context.Context, _ string) (*v1pb.IamPolicy, error) {
-	return &v1pb.IamPolicy{}, nil
+func (m *mockClient) GetProjectIAMPolicy(_ context.Context, projectName string) (*v1pb.IamPolicy, error) {
+	iamPolicy, ok := m.projectIAMMap[projectName]
+	if !ok {
+		return &v1pb.IamPolicy{}, nil
+	}
+	return iamPolicy, nil
 }
 
 // SetProjectIAMPolicy sets the project IAM policy.
-func (*mockClient) SetProjectIAMPolicy(_ context.Context, _ string, _ *v1pb.IamPolicy) (*v1pb.IamPolicy, error) {
-	return &v1pb.IamPolicy{}, nil
+func (m *mockClient) SetProjectIAMPolicy(_ context.Context, projectName string, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
+	m.projectIAMMap[projectName] = update.Policy
+	return m.projectIAMMap[projectName], nil
 }
 
 // ListSettings lists all settings.
@@ -519,85 +542,205 @@ func (c *mockClient) UpsertSetting(_ context.Context, upsert *v1pb.Setting, _ []
 
 // ParseExpression parse the expression string.
 func (*mockClient) ParseExpression(_ context.Context, _ string) (*v1alpha1.Expr, error) {
-	return nil, nil
+	return &v1alpha1.Expr{}, nil
 }
 
 // ListVCSProvider will returns all vcs providers.
-func (*mockClient) ListVCSProvider(_ context.Context) (*v1pb.ListVCSProvidersResponse, error) {
-	return nil, nil
+func (c *mockClient) ListVCSProvider(_ context.Context) (*v1pb.ListVCSProvidersResponse, error) {
+	providers := make([]*v1pb.VCSProvider, 0)
+	for _, provider := range c.vcsProviderMap {
+		providers = append(providers, provider)
+	}
+
+	return &v1pb.ListVCSProvidersResponse{
+		VcsProviders: providers,
+	}, nil
 }
 
 // GetVCSProvider gets the vcs by id.
-func (*mockClient) GetVCSProvider(_ context.Context, _ string) (*v1pb.VCSProvider, error) {
-	return nil, nil
+func (c *mockClient) GetVCSProvider(_ context.Context, providerName string) (*v1pb.VCSProvider, error) {
+	provider, ok := c.vcsProviderMap[providerName]
+	if !ok {
+		return nil, errors.Errorf("Cannot found provider %s", providerName)
+	}
+
+	return provider, nil
 }
 
 // CreateVCSProvider creates the vcs provider.
-func (*mockClient) CreateVCSProvider(_ context.Context, _ string, _ *v1pb.VCSProvider) (*v1pb.VCSProvider, error) {
-	return nil, nil
+func (c *mockClient) CreateVCSProvider(_ context.Context, providerID string, provider *v1pb.VCSProvider) (*v1pb.VCSProvider, error) {
+	providerName := fmt.Sprintf("%s%s", VCSProviderNamePrefix, providerID)
+	c.vcsProviderMap[providerName] = provider
+	return provider, nil
 }
 
 // UpdateVCSProvider updates the vcs provider.
-func (*mockClient) UpdateVCSProvider(_ context.Context, _ *v1pb.VCSProvider, _ []string) (*v1pb.VCSConnector, error) {
-	return nil, nil
+func (c *mockClient) UpdateVCSProvider(ctx context.Context, provider *v1pb.VCSProvider, updateMasks []string) (*v1pb.VCSProvider, error) {
+	existed, err := c.GetVCSProvider(ctx, provider.Name)
+	if err != nil {
+		return nil, err
+	}
+	if slices.Contains(updateMasks, "title") {
+		existed.Title = provider.Title
+	}
+	if slices.Contains(updateMasks, "access_token") {
+		existed.AccessToken = provider.AccessToken
+	}
+	c.vcsProviderMap[provider.Name] = existed
+	return c.vcsProviderMap[provider.Name], nil
 }
 
 // DeleteVCSProvider deletes the vcs provider.
-func (*mockClient) DeleteVCSProvider(_ context.Context, _ string) error {
+func (c *mockClient) DeleteVCSProvider(_ context.Context, provider string) error {
+	delete(c.vcsProviderMap, provider)
 	return nil
 }
 
 // ListVCSConnector will returns all vcs connector in a project.
-func (*mockClient) ListVCSConnector(_ context.Context, _ string) (*v1pb.ListVCSConnectorsResponse, error) {
-	return nil, nil
+func (c *mockClient) ListVCSConnector(_ context.Context, projectName string) (*v1pb.ListVCSConnectorsResponse, error) {
+	connectors := make([]*v1pb.VCSConnector, 0)
+	for _, connector := range c.vcsConnectorMap {
+		if strings.HasPrefix(connector.Name, fmt.Sprintf("%s/%s", projectName, VCSConnectorNamePrefix)) {
+			connectors = append(connectors, connector)
+		}
+	}
+
+	return &v1pb.ListVCSConnectorsResponse{
+		VcsConnectors: connectors,
+	}, nil
 }
 
 // GetVCSConnector gets the vcs connector by id.
-func (*mockClient) GetVCSConnector(_ context.Context, _ string) (*v1pb.VCSConnector, error) {
-	return nil, nil
+func (c *mockClient) GetVCSConnector(_ context.Context, connectorName string) (*v1pb.VCSConnector, error) {
+	connector, ok := c.vcsConnectorMap[connectorName]
+	if !ok {
+		return nil, errors.Errorf("Cannot found connector %s", connectorName)
+	}
+
+	return connector, nil
 }
 
 // CreateVCSConnector creates the vcs connector in a project.
-func (*mockClient) CreateVCSConnector(_ context.Context, _, _ string, _ *v1pb.VCSConnector) (*v1pb.VCSConnector, error) {
-	return nil, nil
+func (c *mockClient) CreateVCSConnector(_ context.Context, projectName, connectorID string, connector *v1pb.VCSConnector) (*v1pb.VCSConnector, error) {
+	connectorName := fmt.Sprintf("%s/%s%s", projectName, VCSProviderNamePrefix, connectorID)
+	c.vcsConnectorMap[connectorName] = connector
+	return connector, nil
 }
 
 // UpdateVCSConnector updates the vcs connector.
-func (*mockClient) UpdateVCSConnector(_ context.Context, _ *v1pb.VCSConnector, _ []string) (*v1pb.VCSConnector, error) {
-	return nil, nil
+func (c *mockClient) UpdateVCSConnector(ctx context.Context, connector *v1pb.VCSConnector, updateMasks []string) (*v1pb.VCSConnector, error) {
+	existed, err := c.GetVCSConnector(ctx, connector.Name)
+	if err != nil {
+		return nil, err
+	}
+	if slices.Contains(updateMasks, "branch") {
+		existed.Branch = connector.Branch
+	}
+	if slices.Contains(updateMasks, "base_directory") {
+		existed.BaseDirectory = connector.BaseDirectory
+	}
+	if slices.Contains(updateMasks, "database_group") {
+		existed.DatabaseGroup = connector.DatabaseGroup
+	}
+	c.vcsConnectorMap[connector.Name] = existed
+	return c.vcsConnectorMap[connector.Name], nil
 }
 
 // DeleteVCSConnector deletes the vcs provider.
-func (*mockClient) DeleteVCSConnector(_ context.Context, _ string) error {
+func (c *mockClient) DeleteVCSConnector(_ context.Context, connectorName string) error {
+	delete(c.vcsConnectorMap, connectorName)
 	return nil
 }
 
 // ListUser list all users.
-func (*mockClient) ListUser(_ context.Context, _ bool) (*v1pb.ListUsersResponse, error) {
-	return nil, nil
+func (c *mockClient) ListUser(_ context.Context, showDeleted bool) (*v1pb.ListUsersResponse, error) {
+	users := make([]*v1pb.User, 0)
+	for _, user := range c.userMap {
+		if user.State == v1pb.State_DELETED && !showDeleted {
+			continue
+		}
+		users = append(users, user)
+	}
+
+	return &v1pb.ListUsersResponse{
+		Users: users,
+	}, nil
 }
 
 // GetUser gets the user by name.
-func (*mockClient) GetUser(_ context.Context, _ string) (*v1pb.User, error) {
-	return nil, nil
+func (c *mockClient) GetUser(_ context.Context, userName string) (*v1pb.User, error) {
+	user, ok := c.userMap[userName]
+	if !ok {
+		return nil, errors.Errorf("Cannot found user %s", userName)
+	}
+
+	return user, nil
 }
 
 // CreateUser creates the user.
-func (*mockClient) CreateUser(_ context.Context, _ *v1pb.User) (*v1pb.User, error) {
-	return nil, nil
+func (c *mockClient) CreateUser(_ context.Context, user *v1pb.User) (*v1pb.User, error) {
+	c.userMap[user.Name] = user
+	return c.userMap[user.Name], nil
 }
 
 // UpdateUser updates the user.
-func (*mockClient) UpdateUser(_ context.Context, _ *v1pb.User, _ []string) (*v1pb.User, error) {
-	return nil, nil
+func (c *mockClient) UpdateUser(ctx context.Context, user *v1pb.User, updateMasks []string) (*v1pb.User, error) {
+	existed, err := c.GetUser(ctx, user.Name)
+	if err != nil {
+		return nil, err
+	}
+	if slices.Contains(updateMasks, "email") {
+		existed.Email = user.Email
+		existed.Name = fmt.Sprintf("%s%s", UserNamePrefix, user.Email)
+	}
+	if slices.Contains(updateMasks, "title") {
+		existed.Title = user.Title
+	}
+	if slices.Contains(updateMasks, "password") {
+		existed.Password = user.Password
+	}
+	if slices.Contains(updateMasks, "phone") {
+		existed.Phone = user.Phone
+	}
+	c.userMap[user.Name] = existed
+	return c.userMap[user.Name], nil
 }
 
 // DeleteUser deletes the user by name.
-func (*mockClient) DeleteUser(_ context.Context, _ string) error {
+func (c *mockClient) DeleteUser(ctx context.Context, userName string) error {
+	user, err := c.GetUser(ctx, userName)
+	if err != nil {
+		return err
+	}
+
+	user.State = v1pb.State_DELETED
+	c.userMap[user.Name] = user
+
 	return nil
 }
 
 // UndeleteUser undeletes the user by name.
-func (*mockClient) UndeleteUser(_ context.Context, _ string) (*v1pb.User, error) {
-	return nil, nil
+func (c *mockClient) UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error) {
+	user, err := c.GetUser(ctx, userName)
+	if err != nil {
+		return nil, err
+	}
+
+	user.State = v1pb.State_ACTIVE
+	c.userMap[user.Name] = user
+
+	return c.userMap[user.Name], nil
+}
+
+// GetWorkspaceIAMPolicy gets the workspace IAM policy.
+func (c *mockClient) GetWorkspaceIAMPolicy(_ context.Context) (*v1pb.IamPolicy, error) {
+	return c.workspaceIAMPolicy, nil
+}
+
+// SetWorkspaceIAMPolicy sets the workspace IAM policy.
+func (c *mockClient) SetWorkspaceIAMPolicy(_ context.Context, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
+	if v := update.Policy; v != nil {
+		c.workspaceIAMPolicy = v
+	}
+	return c.workspaceIAMPolicy, nil
 }

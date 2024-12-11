@@ -97,9 +97,21 @@ resource "bytebase_instance" "prod" {
 }
 
 # Create a new user.
+resource "bytebase_user" "workspace_dba" {
+  title = "DBA"
+  email = "dba@bytebase.com"
+
+  # Grant workspace level roles.
+  roles = ["roles/workspaceDBA"]
+}
+
+# Create a new user.
 resource "bytebase_user" "project_developer" {
   title = "Developer"
   email = "developer@bytebase.com"
+
+  # Grant workspace level roles, will grant projectViewer for this user in all projects.
+  roles = ["roles/projectViewer"]
 }
 
 # Create a new project

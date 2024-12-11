@@ -72,13 +72,13 @@ func (c *client) CreateVCSProvider(ctx context.Context, vcsID string, vcs *v1pb.
 }
 
 // UpdateVCSProvider updates the vcs provider.
-func (c *client) UpdateVCSProvider(ctx context.Context, patch *v1pb.VCSProvider, updateMasks []string) (*v1pb.VCSConnector, error) {
+func (c *client) UpdateVCSProvider(ctx context.Context, patch *v1pb.VCSProvider, updateMasks []string) (*v1pb.VCSProvider, error) {
 	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.VCSConnector
+	var res v1pb.VCSProvider
 	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}

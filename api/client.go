@@ -76,7 +76,7 @@ type Client interface {
 	// GetProjectIAMPolicy gets the project IAM policy by project full name.
 	GetProjectIAMPolicy(ctx context.Context, projectName string) (*v1pb.IamPolicy, error)
 	// SetProjectIAMPolicy sets the project IAM policy.
-	SetProjectIAMPolicy(ctx context.Context, projectName string, iamPolicy *v1pb.IamPolicy) (*v1pb.IamPolicy, error)
+	SetProjectIAMPolicy(ctx context.Context, projectName string, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error)
 
 	// Setting
 	// ListSettings lists all settings.
@@ -98,7 +98,7 @@ type Client interface {
 	// CreateVCSProvider creates the vcs provider.
 	CreateVCSProvider(ctx context.Context, vcsID string, vcs *v1pb.VCSProvider) (*v1pb.VCSProvider, error)
 	// UpdateVCSProvider updates the vcs provider.
-	UpdateVCSProvider(ctx context.Context, patch *v1pb.VCSProvider, updateMasks []string) (*v1pb.VCSConnector, error)
+	UpdateVCSProvider(ctx context.Context, patch *v1pb.VCSProvider, updateMasks []string) (*v1pb.VCSProvider, error)
 	// DeleteVCSProvider deletes the vcs provider.
 	DeleteVCSProvider(ctx context.Context, name string) error
 
@@ -127,4 +127,10 @@ type Client interface {
 	DeleteUser(ctx context.Context, userName string) error
 	// UndeleteUser undeletes the user by name.
 	UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error)
+
+	// Workspace
+	// GetWorkspaceIAMPolicy gets the workspace IAM policy.
+	GetWorkspaceIAMPolicy(ctx context.Context) (*v1pb.IamPolicy, error)
+	// SetWorkspaceIAMPolicy sets the workspace IAM policy.
+	SetWorkspaceIAMPolicy(ctx context.Context, setIamPolicyRequest *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error)
 }
