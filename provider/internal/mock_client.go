@@ -492,8 +492,8 @@ func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*
 }
 
 // GetProjectIAMPolicy gets the project IAM policy by project full name.
-func (m *mockClient) GetProjectIAMPolicy(_ context.Context, projectName string) (*v1pb.IamPolicy, error) {
-	iamPolicy, ok := m.projectIAMMap[projectName]
+func (c *mockClient) GetProjectIAMPolicy(_ context.Context, projectName string) (*v1pb.IamPolicy, error) {
+	iamPolicy, ok := c.projectIAMMap[projectName]
 	if !ok {
 		return &v1pb.IamPolicy{}, nil
 	}
@@ -501,9 +501,9 @@ func (m *mockClient) GetProjectIAMPolicy(_ context.Context, projectName string) 
 }
 
 // SetProjectIAMPolicy sets the project IAM policy.
-func (m *mockClient) SetProjectIAMPolicy(_ context.Context, projectName string, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
-	m.projectIAMMap[projectName] = update.Policy
-	return m.projectIAMMap[projectName], nil
+func (c *mockClient) SetProjectIAMPolicy(_ context.Context, projectName string, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
+	c.projectIAMMap[projectName] = update.Policy
+	return c.projectIAMMap[projectName], nil
 }
 
 // ListSettings lists all settings.
@@ -570,6 +570,7 @@ func (c *mockClient) GetVCSProvider(_ context.Context, providerName string) (*v1
 // CreateVCSProvider creates the vcs provider.
 func (c *mockClient) CreateVCSProvider(_ context.Context, providerID string, provider *v1pb.VCSProvider) (*v1pb.VCSProvider, error) {
 	providerName := fmt.Sprintf("%s%s", VCSProviderNamePrefix, providerID)
+	provider.Name = providerName
 	c.vcsProviderMap[providerName] = provider
 	return provider, nil
 }
@@ -623,6 +624,7 @@ func (c *mockClient) GetVCSConnector(_ context.Context, connectorName string) (*
 // CreateVCSConnector creates the vcs connector in a project.
 func (c *mockClient) CreateVCSConnector(_ context.Context, projectName, connectorID string, connector *v1pb.VCSConnector) (*v1pb.VCSConnector, error) {
 	connectorName := fmt.Sprintf("%s/%s%s", projectName, VCSProviderNamePrefix, connectorID)
+	connector.Name = connectorName
 	c.vcsConnectorMap[connectorName] = connector
 	return connector, nil
 }
