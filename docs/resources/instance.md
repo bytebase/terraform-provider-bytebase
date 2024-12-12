@@ -26,9 +26,12 @@ The instance resource.
 ### Optional
 
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
+- `maximum_connections` (Number) The maximum number of connections.
+- `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync.
 
 ### Read-Only
 
+- `engine_version` (String) The engine version.
 - `id` (String) The ID of this resource.
 - `name` (String) The instance full name in instances/{resource id} format.
 

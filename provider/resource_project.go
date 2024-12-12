@@ -445,7 +445,7 @@ func updateMembersInProject(ctx context.Context, d *schema.ResourceData, client 
 				if tables, ok := rawCondition["tables"].(*schema.Set); ok && tables.Len() > 0 {
 					tableList := []string{}
 					for _, table := range tables.List() {
-						tableList = append(tableList, fmt.Sprintf(`"%s"`, table))
+						tableList = append(tableList, fmt.Sprintf(`"%s"`, table.(string)))
 					}
 					expressions = append(expressions, fmt.Sprintf(`resource.table in [%s]`, strings.Join(tableList, ",")))
 				}
@@ -485,18 +485,15 @@ func updateMembersInProject(ctx context.Context, d *schema.ResourceData, client 
 	}
 
 	if !existProjectOwner {
-		// Make sure we have the project owner.
-		iamPolicy.Bindings = append(iamPolicy.Bindings, &v1pb.Binding{
-			Role: "roles/projectOwner",
-			Members: []string{
-				fmt.Sprintf("user:%s", client.GetCaller().Email),
-			},
-		})
+		return diag.Errorf("require at least 1 member with roles/projectOwner role")
 	}
 
 	if len(iamPolicy.Bindings) > 0 {
-		if _, err := client.SetProjectIAMPolicy(ctx, projectName, iamPolicy); err != nil {
-			return diag.Errorf("failed to update iam: %v", err.Error())
+		if _, err := client.SetProjectIAMPolicy(ctx, projectName, &v1pb.SetIamPolicyRequest{
+			Policy: iamPolicy,
+			Etag:   iamPolicy.Etag,
+		}); err != nil {
+			return diag.Errorf("failed to update iam for project %s with error: %v", projectName, err.Error())
 		}
 	}
 	return nil

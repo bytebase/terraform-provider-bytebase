@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 
@@ -79,11 +80,27 @@ func resourceInstance() *schema.Resource {
 				}, false),
 				Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.",
 			},
+			"engine_version": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The engine version.",
+			},
 			"external_link": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
 				Description: "The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)",
+			},
+			"sync_interval": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "How often the instance is synced in seconds. Default 0, means never sync.",
+			},
+			"maximum_connections": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     0,
+				Description: "The maximum number of connections.",
 			},
 			"data_sources": {
 				Type:        schema.TypeList,
@@ -177,6 +194,12 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	instanceName := fmt.Sprintf("%s%s", internal.InstanceNamePrefix, instanceID)
 	title := d.Get("title").(string)
 	externalLink := d.Get("external_link").(string)
+	instanceOptions := &v1pb.InstanceOptions{
+		SyncInterval: &durationpb.Duration{
+			Seconds: int64(d.Get("sync_interval").(int)),
+		},
+		MaximumConnections: int32(d.Get("maximum_connections").(int)),
+	}
 
 	engineString := d.Get("engine").(string)
 	engineValue, ok := v1pb.Engine_value[engineString]
@@ -230,6 +253,14 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		if externalLink != "" && externalLink != existedInstance.ExternalLink {
 			updateMasks = append(updateMasks, "external_link")
 		}
+		if op := existedInstance.Options; op != nil {
+			if instanceOptions.SyncInterval.GetSeconds() != op.SyncInterval.GetSeconds() {
+				updateMasks = append(updateMasks, "options.sync_interval")
+			}
+			if instanceOptions.MaximumConnections != op.MaximumConnections {
+				updateMasks = append(updateMasks, "options.maximum_connections")
+			}
+		}
 		if len(dataSourceList) > 0 {
 			updateMasks = append(updateMasks, "data_sources")
 		}
@@ -241,6 +272,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 				ExternalLink: externalLink,
 				DataSources:  dataSourceList,
 				State:        v1pb.State_ACTIVE,
+				Options:      instanceOptions,
 			}, updateMasks); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
@@ -259,6 +291,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			State:        v1pb.State_ACTIVE,
 			DataSources:  dataSourceList,
 			Environment:  d.Get("environment").(string),
+			Options:      instanceOptions,
 		}); err != nil {
 			return diag.FromErr(err)
 		}
@@ -345,6 +378,12 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if d.HasChange("data_sources") {
 		paths = append(paths, "data_sources")
 	}
+	if d.HasChange("sync_interval") {
+		paths = append(paths, "options.sync_interval")
+	}
+	if d.HasChange("maximum_connections") {
+		paths = append(paths, "options.maximum_connections")
+	}
 
 	if len(paths) > 0 {
 		if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
@@ -353,6 +392,12 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			ExternalLink: d.Get("external_link").(string),
 			DataSources:  dataSourceList,
 			State:        v1pb.State_ACTIVE,
+			Options: &v1pb.InstanceOptions{
+				SyncInterval: &durationpb.Duration{
+					Seconds: int64(d.Get("sync_interval").(int)),
+				},
+				MaximumConnections: int32(d.Get("maximum_connections").(int)),
+			},
 		}, paths); err != nil {
 			return diag.FromErr(err)
 		}
@@ -409,8 +454,19 @@ func setInstanceMessage(d *schema.ResourceData, instance *v1pb.Instance) diag.Di
 	if err := d.Set("engine", instance.Engine.String()); err != nil {
 		return diag.Errorf("cannot set engine for instance: %s", err.Error())
 	}
+	if err := d.Set("engine_version", instance.EngineVersion); err != nil {
+		return diag.Errorf("cannot set engine_version for instance: %s", err.Error())
+	}
 	if err := d.Set("external_link", instance.ExternalLink); err != nil {
 		return diag.Errorf("cannot set external_link for instance: %s", err.Error())
+	}
+	if op := instance.Options; op != nil {
+		if err := d.Set("sync_interval", op.SyncInterval.GetSeconds()); err != nil {
+			return diag.Errorf("cannot set sync_interval for instance: %s", err.Error())
+		}
+		if err := d.Set("maximum_connections", op.MaximumConnections); err != nil {
+			return diag.Errorf("cannot set maximum_connections for instance: %s", err.Error())
+		}
 	}
 
 	dataSources, err := flattenDataSourceList(d, instance.DataSources)

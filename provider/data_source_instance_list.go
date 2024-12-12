@@ -53,10 +53,25 @@ func dataSourceInstanceList() *schema.Resource {
 							Computed:    true,
 							Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.",
 						},
+						"engine_version": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The engine version.",
+						},
 						"external_link": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)",
+						},
+						"sync_interval": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "How often the instance is synced in seconds. Default 0, means never sync.",
+						},
+						"maximum_connections": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The maximum number of connections. The default value is 10.",
 						},
 						"data_sources": {
 							Type:     schema.TypeList,
@@ -150,8 +165,14 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		ins["title"] = instance.Title
 		ins["name"] = instance.Name
 		ins["engine"] = instance.Engine.String()
+		ins["engine_version"] = instance.EngineVersion
 		ins["external_link"] = instance.ExternalLink
 		ins["environment"] = instance.Environment
+
+		if op := instance.Options; op != nil {
+			ins["sync_interval"] = op.SyncInterval.GetSeconds()
+			ins["maximum_connections"] = op.MaximumConnections
+		}
 
 		dataSources, err := flattenDataSourceList(d, instance.DataSources)
 		if err != nil {

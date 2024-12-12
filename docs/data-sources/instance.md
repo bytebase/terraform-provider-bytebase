@@ -23,10 +23,13 @@ The instance data source.
 
 - `data_sources` (List of Object) (see [below for nested schema](#nestedatt--data_sources))
 - `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.
+- `engine_version` (String) The engine version.
 - `environment` (String) The environment name for your instance in "environments/{resource id}" format.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
 - `id` (String) The ID of this resource.
+- `maximum_connections` (Number) The maximum number of connections. The default value is 10.
 - `name` (String) The instance full name in instances/{resource id} format.
+- `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync.
 - `title` (String) The instance title.
 
 <a id="nestedatt--data_sources"></a>
