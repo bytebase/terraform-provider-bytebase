@@ -43,6 +43,14 @@ func dataSourceUser() *schema.Resource {
 				Computed:    true,
 				Description: "The user phone.",
 			},
+			"roles": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "The user's roles in the workspace level",
+			},
 			"type": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -88,10 +96,29 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	d.SetId(user.Name)
 
-	return setUser(d, user)
+	return setUser(ctx, c, d, user)
 }
 
-func setUser(d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
+func getUserRoles(iamPolicy *v1pb.IamPolicy, email string) []string {
+	userBinding := fmt.Sprintf("user:%s", email)
+	roles := []string{}
+
+	for _, binding := range iamPolicy.Bindings {
+		for _, member := range binding.Members {
+			if member == userBinding {
+				roles = append(roles, binding.Role)
+			}
+		}
+	}
+	return roles
+}
+
+func setUser(ctx context.Context, client api.Client, d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
+	workspaceIAM, err := client.GetWorkspaceIAMPolicy(ctx)
+	if err != nil {
+		return diag.Errorf("cannot get workspace IAM with error: %s", err.Error())
+	}
+
 	if err := d.Set("title", user.Title); err != nil {
 		return diag.Errorf("cannot set title for user: %s", err.Error())
 	}
@@ -120,6 +147,9 @@ func setUser(d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
 		if err := d.Set("source", p.Source); err != nil {
 			return diag.Errorf("cannot set source for user: %s", err.Error())
 		}
+	}
+	if err := d.Set("roles", getUserRoles(workspaceIAM, user.Email)); err != nil {
+		return diag.Errorf("cannot set roles for user: %s", err.Error())
 	}
 
 	return nil

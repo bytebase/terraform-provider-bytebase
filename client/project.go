@@ -41,10 +41,8 @@ func (c *client) GetProjectIAMPolicy(ctx context.Context, projectName string) (*
 }
 
 // SetProjectIAMPolicy sets the project IAM policy.
-func (c *client) SetProjectIAMPolicy(ctx context.Context, projectName string, iamPolicy *v1pb.IamPolicy) (*v1pb.IamPolicy, error) {
-	payload, err := protojson.Marshal(&v1pb.SetIamPolicyRequest{
-		Policy: iamPolicy,
-	})
+func (c *client) SetProjectIAMPolicy(ctx context.Context, projectName string, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
+	payload, err := protojson.Marshal(update)
 	if err != nil {
 		return nil, err
 	}

@@ -42,10 +42,25 @@ func dataSourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.",
 			},
+			"engine_version": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The engine version.",
+			},
 			"external_link": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)",
+			},
+			"sync_interval": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "How often the instance is synced in seconds. Default 0, means never sync.",
+			},
+			"maximum_connections": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The maximum number of connections. The default value is 10.",
 			},
 			"data_sources": {
 				Type:     schema.TypeList,

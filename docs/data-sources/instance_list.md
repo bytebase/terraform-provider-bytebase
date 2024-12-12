@@ -31,10 +31,13 @@ Read-Only:
 
 - `data_sources` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources))
 - `engine` (String)
+- `engine_version` (String)
 - `environment` (String)
 - `external_link` (String)
+- `maximum_connections` (Number)
 - `name` (String)
 - `resource_id` (String)
+- `sync_interval` (Number)
 - `title` (String)
 
 <a id="nestedobjatt--instances--data_sources"></a>

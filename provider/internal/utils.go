@@ -33,6 +33,8 @@ const (
 	VCSConnectorNamePrefix = "vcsConnectors/"
 	// UserNamePrefix is the prefix for user name.
 	UserNamePrefix = "users/"
+	// GroupNamePrefix is the prefix for group name.
+	GroupNamePrefix = "groups/"
 	// RoleNamePrefix is the prefix for role name.
 	RoleNamePrefix = "roles/"
 	// ResourceIDPattern is the pattern for resource id.

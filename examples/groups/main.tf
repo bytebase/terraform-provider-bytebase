@@ -17,18 +17,17 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
-data "bytebase_setting" "approval_flow" {
-  name = "bb.workspace.approval"
+data "bytebase_group_list" "all" {
 }
 
-data "bytebase_setting" "external_approval" {
-  name = "bb.workspace.approval.external"
+output "all_groups" {
+  value = data.bytebase_group_list.all
 }
 
-output "approval_flow" {
-  value = data.bytebase_setting.approval_flow
+data "bytebase_group" "sample" {
+  name = "groups/group@bytebase.com"
 }
 
-output "external_approval" {
-  value = data.bytebase_setting.external_approval
+output "sample_group" {
+  value = data.bytebase_group.sample
 }

@@ -27,6 +27,7 @@ The user data source.
 - `last_login_time` (String) The user last login time.
 - `mfa_enabled` (Boolean) The mfa_enabled flag means if the user has enabled MFA.
 - `phone` (String) The user phone.
+- `roles` (Set of String) The user's roles in the workspace level
 - `source` (String) Source means where the user comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.
 - `state` (String) The user is deleted or not.
 - `title` (String) The user title.

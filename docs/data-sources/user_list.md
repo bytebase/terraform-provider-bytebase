@@ -35,6 +35,7 @@ Read-Only:
 - `mfa_enabled` (Boolean)
 - `name` (String)
 - `phone` (String)
+- `roles` (Set of String)
 - `source` (String)
 - `state` (String)
 - `title` (String)
