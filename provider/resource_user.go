@@ -74,13 +74,8 @@ func resourceUser() *schema.Resource {
 				Description: "The mfa_enabled flag means if the user has enabled MFA.",
 			},
 			"state": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  v1pb.State_ACTIVE.String(),
-				ValidateFunc: validation.StringInSlice([]string{
-					v1pb.State_ACTIVE.String(),
-					v1pb.State_DELETED.String(),
-				}, false),
+				Type:        schema.TypeString,
+				Computed:    true,
 				Description: "The user is deleted or not.",
 			},
 			"last_login_time": {

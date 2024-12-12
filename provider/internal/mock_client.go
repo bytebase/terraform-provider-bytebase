@@ -24,6 +24,7 @@ var settingMap map[string]*v1pb.Setting
 var vcsProviderMap map[string]*v1pb.VCSProvider
 var vcsConnectorMap map[string]*v1pb.VCSConnector
 var userMap map[string]*v1pb.User
+var groupMap map[string]*v1pb.Group
 
 func init() {
 	environmentMap = map[string]*v1pb.Environment{}
@@ -36,6 +37,7 @@ func init() {
 	vcsProviderMap = map[string]*v1pb.VCSProvider{}
 	vcsConnectorMap = map[string]*v1pb.VCSConnector{}
 	userMap = map[string]*v1pb.User{}
+	groupMap = map[string]*v1pb.Group{}
 }
 
 type mockClient struct {
@@ -49,6 +51,7 @@ type mockClient struct {
 	vcsProviderMap     map[string]*v1pb.VCSProvider
 	vcsConnectorMap    map[string]*v1pb.VCSConnector
 	userMap            map[string]*v1pb.User
+	groupMap           map[string]*v1pb.Group
 	workspaceIAMPolicy *v1pb.IamPolicy
 }
 
@@ -65,6 +68,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		vcsProviderMap:     vcsProviderMap,
 		vcsConnectorMap:    vcsConnectorMap,
 		userMap:            userMap,
+		groupMap:           groupMap,
 		workspaceIAMPolicy: &v1pb.IamPolicy{},
 	}, nil
 }
@@ -732,6 +736,61 @@ func (c *mockClient) UndeleteUser(ctx context.Context, userName string) (*v1pb.U
 	c.userMap[user.Name] = user
 
 	return c.userMap[user.Name], nil
+}
+
+// ListGroup list all groups.
+func (c *mockClient) ListGroup(_ context.Context) (*v1pb.ListGroupsResponse, error) {
+	groups := make([]*v1pb.Group, 0)
+	for _, group := range c.groupMap {
+		groups = append(groups, group)
+	}
+
+	return &v1pb.ListGroupsResponse{
+		Groups: groups,
+	}, nil
+}
+
+// GetGroup gets the group by name.
+func (c *mockClient) GetGroup(_ context.Context, name string) (*v1pb.Group, error) {
+	group, ok := c.groupMap[name]
+	if !ok {
+		return nil, errors.Errorf("Cannot found group %s", name)
+	}
+
+	return group, nil
+}
+
+// CreateGroup creates the group.
+func (c *mockClient) CreateGroup(_ context.Context, email string, group *v1pb.Group) (*v1pb.Group, error) {
+	groupName := fmt.Sprintf("%s%s", GroupNamePrefix, email)
+	group.Name = groupName
+	c.groupMap[groupName] = group
+	return c.groupMap[groupName], nil
+}
+
+// UpdateGroup updates the group.
+func (c *mockClient) UpdateGroup(ctx context.Context, group *v1pb.Group, updateMasks []string) (*v1pb.Group, error) {
+	existed, err := c.GetGroup(ctx, group.Name)
+	if err != nil {
+		return nil, err
+	}
+	if slices.Contains(updateMasks, "description") {
+		existed.Description = group.Description
+	}
+	if slices.Contains(updateMasks, "title") {
+		existed.Title = group.Title
+	}
+	if slices.Contains(updateMasks, "members") {
+		existed.Members = group.Members
+	}
+	c.groupMap[existed.Name] = existed
+	return existed, nil
+}
+
+// DeleteGroup deletes the group by name.
+func (c *mockClient) DeleteGroup(ctx context.Context, name string) error {
+	delete(c.groupMap, name)
+	return nil
 }
 
 // GetWorkspaceIAMPolicy gets the workspace IAM policy.

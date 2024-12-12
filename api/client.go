@@ -128,6 +128,18 @@ type Client interface {
 	// UndeleteUser undeletes the user by name.
 	UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error)
 
+	// Group
+	// ListGroup list all groups.
+	ListGroup(ctx context.Context) (*v1pb.ListGroupsResponse, error)
+	// CreateGroup creates the group.
+	CreateGroup(ctx context.Context, email string, group *v1pb.Group) (*v1pb.Group, error)
+	// GetGroup gets the group by name.
+	GetGroup(ctx context.Context, name string) (*v1pb.Group, error)
+	// UpdateGroup updates the group.
+	UpdateGroup(ctx context.Context, patch *v1pb.Group, updateMasks []string) (*v1pb.Group, error)
+	// DeleteGroup deletes the group by name.
+	DeleteGroup(ctx context.Context, name string) error
+
 	// Workspace
 	// GetWorkspaceIAMPolicy gets the workspace IAM policy.
 	GetWorkspaceIAMPolicy(ctx context.Context) (*v1pb.IamPolicy, error)

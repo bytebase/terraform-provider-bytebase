@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.4"
+      version = "1.0.5"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -114,11 +114,32 @@ resource "bytebase_user" "project_developer" {
   roles = ["roles/projectViewer"]
 }
 
+resource "bytebase_group" "developers" {
+  depends_on = [
+    bytebase_user.workspace_dba,
+    bytebase_user.project_developer
+  ]
+
+  email = "developers@bytebase.com"
+  title = "Bytebase Developers"
+
+  members {
+    member = format("users/%s", bytebase_user.workspace_dba.email)
+    role   = "OWNER"
+  }
+
+  members {
+    member = format("users/%s", bytebase_user.project_developer.email)
+    role   = "MEMBER"
+  }
+}
+
 # Create a new project
 resource "bytebase_project" "sample_project" {
   depends_on = [
     bytebase_user.workspace_dba,
-    bytebase_user.project_developer
+    bytebase_user.project_developer,
+    bytebase_group.developers
   ]
 
   resource_id = local.project_id
@@ -128,6 +149,11 @@ resource "bytebase_project" "sample_project" {
   members {
     member = format("user:%s", bytebase_user.workspace_dba.email)
     role   = "roles/projectOwner"
+  }
+
+  members {
+    member = format("group:%s", bytebase_group.developers.email)
+    role   = "roles/projectDeveloper"
   }
 
   members {
