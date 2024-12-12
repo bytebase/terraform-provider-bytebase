@@ -253,11 +253,13 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		if externalLink != "" && externalLink != existedInstance.ExternalLink {
 			updateMasks = append(updateMasks, "external_link")
 		}
-		if instanceOptions.MaximumConnections != existedInstance.Options.MaximumConnections {
-			updateMasks = append(updateMasks, "options.maximum_connections")
-		}
-		if instanceOptions.SyncInterval.GetSeconds() != existedInstance.Options.SyncInterval.GetSeconds() {
-			updateMasks = append(updateMasks, "options.sync_interval")
+		if op := existedInstance.Options; op != nil {
+			if instanceOptions.SyncInterval.GetSeconds() != op.SyncInterval.GetSeconds() {
+				updateMasks = append(updateMasks, "options.sync_interval")
+			}
+			if instanceOptions.MaximumConnections != op.MaximumConnections {
+				updateMasks = append(updateMasks, "options.maximum_connections")
+			}
 		}
 		if len(dataSourceList) > 0 {
 			updateMasks = append(updateMasks, "data_sources")

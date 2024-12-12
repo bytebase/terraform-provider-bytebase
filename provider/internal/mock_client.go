@@ -206,6 +206,7 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 		ExternalLink: instance.ExternalLink,
 		DataSources:  instance.DataSources,
 		Environment:  instance.Environment,
+		Options:      &v1pb.InstanceOptions{},
 	}
 
 	envID, err := GetEnvironmentID(ins.Environment)
@@ -241,6 +242,12 @@ func (c *mockClient) UpdateInstance(ctx context.Context, patch *v1pb.Instance, u
 	}
 	if slices.Contains(updateMasks, "data_sources") {
 		ins.DataSources = patch.DataSources
+	}
+	if slices.Contains(updateMasks, "options.sync_interval") {
+		ins.Options.SyncInterval = patch.Options.SyncInterval
+	}
+	if slices.Contains(updateMasks, "options.maximum_connections") {
+		ins.Options.MaximumConnections = patch.Options.MaximumConnections
 	}
 
 	c.instanceMap[ins.Name] = ins
@@ -788,7 +795,7 @@ func (c *mockClient) UpdateGroup(ctx context.Context, group *v1pb.Group, updateM
 }
 
 // DeleteGroup deletes the group by name.
-func (c *mockClient) DeleteGroup(ctx context.Context, name string) error {
+func (c *mockClient) DeleteGroup(_ context.Context, name string) error {
 	delete(c.groupMap, name)
 	return nil
 }
