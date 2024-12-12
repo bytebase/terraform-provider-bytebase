@@ -99,8 +99,8 @@ func resourceInstance() *schema.Resource {
 			"maximum_connections": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     10,
-				Description: "The maximum number of connections. The default value is 10.",
+				Default:     0,
+				Description: "The maximum number of connections.",
 			},
 			"data_sources": {
 				Type:        schema.TypeList,
