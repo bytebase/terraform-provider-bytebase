@@ -20,6 +20,7 @@ var policyMap map[string]*v1pb.Policy
 var projectMap map[string]*v1pb.Project
 var projectIAMMap map[string]*v1pb.IamPolicy
 var databaseMap map[string]*v1pb.Database
+var databaseCatalogMap map[string]*v1pb.DatabaseCatalog
 var settingMap map[string]*v1pb.Setting
 var vcsProviderMap map[string]*v1pb.VCSProvider
 var vcsConnectorMap map[string]*v1pb.VCSConnector
@@ -33,6 +34,7 @@ func init() {
 	projectMap = map[string]*v1pb.Project{}
 	projectIAMMap = map[string]*v1pb.IamPolicy{}
 	databaseMap = map[string]*v1pb.Database{}
+	databaseCatalogMap = map[string]*v1pb.DatabaseCatalog{}
 	settingMap = map[string]*v1pb.Setting{}
 	vcsProviderMap = map[string]*v1pb.VCSProvider{}
 	vcsConnectorMap = map[string]*v1pb.VCSConnector{}
@@ -47,6 +49,7 @@ type mockClient struct {
 	projectMap         map[string]*v1pb.Project
 	projectIAMMap      map[string]*v1pb.IamPolicy
 	databaseMap        map[string]*v1pb.Database
+	databaseCatalogMap map[string]*v1pb.DatabaseCatalog
 	settingMap         map[string]*v1pb.Setting
 	vcsProviderMap     map[string]*v1pb.VCSProvider
 	vcsConnectorMap    map[string]*v1pb.VCSConnector
@@ -64,6 +67,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		projectMap:         projectMap,
 		projectIAMMap:      projectIAMMap,
 		databaseMap:        databaseMap,
+		databaseCatalogMap: databaseCatalogMap,
 		settingMap:         settingMap,
 		vcsProviderMap:     vcsProviderMap,
 		vcsConnectorMap:    vcsConnectorMap,
@@ -327,17 +331,6 @@ func (c *mockClient) UpsertPolicy(_ context.Context, patch *v1pb.Policy, updateM
 	}
 
 	switch policyType {
-	case v1pb.PolicyType_MASKING:
-		if !existed {
-			if patch.GetMaskingPolicy() == nil {
-				return nil, errors.Errorf("payload is required to create the policy")
-			}
-		}
-		if v := patch.GetMaskingPolicy(); v != nil {
-			policy.Policy = &v1pb.Policy_MaskingPolicy{
-				MaskingPolicy: v,
-			}
-		}
 	case v1pb.PolicyType_MASKING_EXCEPTION:
 		if !existed {
 			if patch.GetMaskingExceptionPolicy() == nil {
@@ -417,6 +410,22 @@ func (c *mockClient) UpdateDatabase(ctx context.Context, patch *v1pb.Database, u
 	}
 	c.databaseMap[db.Name] = db
 	return db, nil
+}
+
+// GetDatabaseCatalog gets the database catalog by the database full name.
+func (c *mockClient) GetDatabaseCatalog(_ context.Context, databaseName string) (*v1pb.DatabaseCatalog, error) {
+	db, ok := c.databaseCatalogMap[databaseName]
+	if !ok {
+		return nil, errors.Errorf("Cannot found database catalog %s", databaseName)
+	}
+
+	return db, nil
+}
+
+// UpdateDatabaseCatalog patches the database catalog.
+func (c *mockClient) UpdateDatabaseCatalog(_ context.Context, patch *v1pb.DatabaseCatalog, updateMasks []string) (*v1pb.DatabaseCatalog, error) {
+	c.databaseCatalogMap[patch.Name] = patch
+	return patch, nil
 }
 
 // GetProject gets the project by resource id.

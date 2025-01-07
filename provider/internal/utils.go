@@ -37,6 +37,8 @@ const (
 	GroupNamePrefix = "groups/"
 	// RoleNamePrefix is the prefix for role name.
 	RoleNamePrefix = "roles/"
+	// DatabaseCatalogNameSuffix is the suffix for the database catalog name.
+	DatabaseCatalogNameSuffix = "/catalog"
 	// ResourceIDPattern is the pattern for resource id.
 	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
 )

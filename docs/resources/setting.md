@@ -21,8 +21,8 @@ The setting resource.
 
 ### Optional
 
-- `approval_flow` (Block List) (see [below for nested schema](#nestedblock--approval_flow))
-- `external_approval_nodes` (Block List) (see [below for nested schema](#nestedblock--external_approval_nodes))
+- `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
+- `external_approval_nodes` (Block List) Configure external nodes in the approval flow. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--external_approval_nodes))
 
 ### Read-Only
 

@@ -28,12 +28,12 @@ func TestAccPolicyListDataSource(t *testing.T) {
 			),
 			internal.GetTestStepForDataSourceList(
 				testAccCheckPolicyResource(
-					"masking_policy",
-					"instances/test-sample-instance/databases/employee",
-					getMaskingPolicy("salary", "amount", v1pb.MaskingLevel_FULL),
-					v1pb.PolicyType_MASKING,
+					"masking_exception_policy",
+					"projects/project-sample",
+					getMaskingExceptionPolicy("instances/test-sample-instance/databases/employee", "salary", "amount"),
+					v1pb.PolicyType_MASKING_EXCEPTION,
 				),
-				"bytebase_policy.masking_policy",
+				"bytebase_policy.masking_exception_policy",
 				"bytebase_policy_list",
 				"after",
 				"policies",

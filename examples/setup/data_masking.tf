@@ -1,30 +1,34 @@
-resource "bytebase_policy" "masking_policy" {
+resource "bytebase_database_catalog" "employee_catalog" {
   depends_on = [
     bytebase_instance.test
   ]
 
-  parent              = "instances/test-sample-instance/databases/employee"
-  type                = "MASKING"
-  enforce             = true
-  inherit_from_parent = false
+  database = "instances/test-sample-instance/databases/employee"
 
-  masking_policy {
-    mask_data {
-      table         = "salary"
-      column        = "amount"
-      masking_level = "FULL"
-    }
-    mask_data {
-      table         = "salary"
-      column        = "emp_no"
-      masking_level = "NONE"
+  schemas {
+    tables {
+      name = "salary"
+      columns {
+        name           = "amount"
+        semantic_type  = "default"
+        classification = "1-1-1"
+      }
+      columns {
+        name          = "emp_no"
+        semantic_type = "default-partial"
+        labels = {
+          tenant = "example"
+          region = "asia"
+        }
+      }
     }
   }
 }
 
 resource "bytebase_policy" "masking_exception_policy" {
   depends_on = [
-    bytebase_project.sample_project
+    bytebase_project.sample_project,
+    bytebase_instance.test
   ]
 
   parent              = bytebase_project.sample_project.name
@@ -34,20 +38,18 @@ resource "bytebase_policy" "masking_exception_policy" {
 
   masking_exception_policy {
     exceptions {
-      database      = "instances/test-sample-instance/databases/employee"
-      table         = "salary"
-      column        = "amount"
-      masking_level = "NONE"
-      member        = "user:ed@bytebase.com"
-      action        = "EXPORT"
+      database = "instances/test-sample-instance/databases/employee"
+      table    = "salary"
+      column   = "amount"
+      member   = "user:ed@bytebase.com"
+      action   = "EXPORT"
     }
     exceptions {
-      database      = "instances/test-sample-instance/databases/employee"
-      table         = "salary"
-      column        = "amount"
-      masking_level = "NONE"
-      member        = "user:ed@bytebase.com"
-      action        = "QUERY"
+      database = "instances/test-sample-instance/databases/employee"
+      table    = "salary"
+      column   = "amount"
+      member   = "user:ed@bytebase.com"
+      action   = "QUERY"
     }
   }
 }

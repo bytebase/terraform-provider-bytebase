@@ -17,7 +17,7 @@ The environment resource.
 
 ### Required
 
-- `environment_tier_policy` (String) If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default.
+- `environment_tier_policy` (String) If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default. Require ENTERPRISE subscription.
 - `order` (Number) The environment sorting order.
 - `resource_id` (String) The environment unique resource id.
 - `title` (String) The environment title.

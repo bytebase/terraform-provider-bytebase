@@ -51,7 +51,6 @@ func resourcePolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					v1pb.PolicyType_MASKING.String(),
 					v1pb.PolicyType_MASKING_EXCEPTION.String(),
 				}, false),
 				Description: "The policy type.",
@@ -73,7 +72,6 @@ func resourcePolicy() *schema.Resource {
 				Default:     false,
 				Description: "Decide if the policy should inherit from the parent.",
 			},
-			"masking_policy":           getMaskingPolicySchema(false),
 			"masking_exception_policy": getMaskingExceptionPolicySchema(false),
 		},
 	}
@@ -126,14 +124,6 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	switch policyType {
-	case v1pb.PolicyType_MASKING:
-		maskingPolicy, err := convertToMaskingPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.Policy = &v1pb.Policy_MaskingPolicy{
-			MaskingPolicy: maskingPolicy,
-		}
 	case v1pb.PolicyType_MASKING_EXCEPTION:
 		maskingExceptionPolicy, err := convertToMaskingExceptionPolicy(d)
 		if err != nil {
@@ -188,16 +178,6 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		updateMasks = append(updateMasks, "enforce")
 	}
 
-	if d.HasChange("masking_policy") {
-		updateMasks = append(updateMasks, "payload")
-		maskingPolicy, err := convertToMaskingPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.Policy = &v1pb.Policy_MaskingPolicy{
-			MaskingPolicy: maskingPolicy,
-		}
-	}
 	if d.HasChange("masking_exception_policy") {
 		updateMasks = append(updateMasks, "payload")
 		maskingExceptionPolicy, err := convertToMaskingExceptionPolicy(d)
@@ -227,10 +207,6 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	return diags
-}
-
-func convertToMaskingLevel(level string) v1pb.MaskingLevel {
-	return v1pb.MaskingLevel(v1pb.MaskingLevel_value[level])
 }
 
 func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExceptionPolicy, error) {
@@ -282,37 +258,10 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 			Action: v1pb.MaskingExceptionPolicy_MaskingException_Action(
 				v1pb.MaskingExceptionPolicy_MaskingException_Action_value[rawException["action"].(string)],
 			),
-			MaskingLevel: convertToMaskingLevel(rawException["masking_level"].(string)),
 			Condition: &expr.Expr{
 				Expression: strings.Join(expressions, " && "),
 			},
 		})
 	}
-	return policy, nil
-}
-
-func convertToMaskingPolicy(d *schema.ResourceData) (*v1pb.MaskingPolicy, error) {
-	rawList, ok := d.Get("masking_policy").([]interface{})
-	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid masking_policy")
-	}
-
-	raw := rawList[0].(map[string]interface{})
-	rawMaskList := raw["mask_data"].([]interface{})
-
-	policy := &v1pb.MaskingPolicy{}
-
-	for _, maskData := range rawMaskList {
-		rawMask := maskData.(map[string]interface{})
-		policy.MaskData = append(policy.MaskData, &v1pb.MaskData{
-			Schema:                    rawMask["schema"].(string),
-			Table:                     rawMask["table"].(string),
-			Column:                    rawMask["column"].(string),
-			FullMaskingAlgorithmId:    rawMask["full_masking_algorithm_id"].(string),
-			PartialMaskingAlgorithmId: rawMask["partial_masking_algorithm_id"].(string),
-			MaskingLevel:              convertToMaskingLevel(rawMask["masking_level"].(string)),
-		})
-	}
-
 	return policy, nil
 }

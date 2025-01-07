@@ -24,26 +24,9 @@ func TestAccPolicy(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckPolicyResource(
-					"masking_policy",
-					"instances/test-sample-instance/databases/employee",
-					getMaskingPolicy("salary", "amount", v1pb.MaskingLevel_FULL),
-					v1pb.PolicyType_MASKING,
-				),
-				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists("bytebase_policy.masking_policy"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "type", v1pb.PolicyType_MASKING.String()),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.0.mask_data.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.0.mask_data.0.table", "salary"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.0.mask_data.0.column", "amount"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_policy", "masking_policy.0.mask_data.0.masking_level", v1pb.MaskingLevel_FULL.String()),
-				),
-			},
-			{
-				Config: testAccCheckPolicyResource(
 					"masking_exception_policy",
 					"projects/project-sample",
-					getMaskingExceptionPolicy("instances/test-sample-instance/databases/employee", "salary", "amount", v1pb.MaskingLevel_PARTIAL),
+					getMaskingExceptionPolicy("instances/test-sample-instance/databases/employee", "salary", "amount"),
 					v1pb.PolicyType_MASKING_EXCEPTION,
 				),
 				Check: resource.ComposeTestCheckFunc(
@@ -53,7 +36,6 @@ func TestAccPolicy(t *testing.T) {
 					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.#", "1"),
 					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.table", "salary"),
 					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.column", "amount"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.masking_level", v1pb.MaskingLevel_PARTIAL.String()),
 				),
 			},
 		},
@@ -71,31 +53,18 @@ func testAccCheckPolicyResource(identifier, parent, payload string, pType v1pb.P
 	`, identifier, parent, pType.String(), payload)
 }
 
-func getMaskingPolicy(table, column string, level v1pb.MaskingLevel) string {
-	return fmt.Sprintf(`
-	masking_policy {
-		mask_data {
-			table         = "%s"
-			column        = "%s"
-			masking_level = "%s"
-		}
-	}
-	`, table, column, level.String())
-}
-
-func getMaskingExceptionPolicy(database, table, column string, level v1pb.MaskingLevel) string {
+func getMaskingExceptionPolicy(database, table, column string) string {
 	return fmt.Sprintf(`
 	masking_exception_policy {
 		exceptions {
 			database      = "%s"
 			table         = "%s"
 			column        = "%s"
-			masking_level = "%s"
 			member        = "user:ed@bytebase.com"
 			action        = "QUERY"
 		}
 	}
-	`, database, table, column, level.String())
+	`, database, table, column)
 }
 
 func testAccCheckPolicyDestroy(s *terraform.State) error {
