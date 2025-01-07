@@ -3,12 +3,12 @@
 page_title: "bytebase_group Resource - terraform-provider-bytebase"
 subcategory: ""
 description: |-
-  The group resource.
+  The group resource. Workspace domain is required for creating groups.
 ---
 
 # bytebase_group (Resource)
 
-The group resource.
+The group resource. Workspace domain is required for creating groups.
 
 
 

@@ -18,7 +18,7 @@ import (
 
 func resourceGroup() *schema.Resource {
 	return &schema.Resource{
-		Description:   "The group resource.",
+		Description:   "The group resource. Workspace domain is required for creating groups.",
 		ReadContext:   resourceGroupRead,
 		DeleteContext: resourceGroupDelete,
 		CreateContext: resourceGroupCreate,

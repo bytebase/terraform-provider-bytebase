@@ -22,7 +22,6 @@ The policy data source.
 ### Optional
 
 - `masking_exception_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exception_policy))
-- `masking_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_policy))
 - `parent` (String) The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}
 
 ### Read-Only
@@ -48,29 +47,7 @@ Optional:
 - `column` (String)
 - `database` (String) The database full name in instances/{instance resource id}/databases/{database name} format
 - `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format
-- `masking_level` (String)
 - `member` (String) The member in user:{email} or group:{email} format.
-- `schema` (String)
-- `table` (String)
-
-
-
-<a id="nestedblock--masking_policy"></a>
-### Nested Schema for `masking_policy`
-
-Optional:
-
-- `mask_data` (Block List) (see [below for nested schema](#nestedblock--masking_policy--mask_data))
-
-<a id="nestedblock--masking_policy--mask_data"></a>
-### Nested Schema for `masking_policy.mask_data`
-
-Optional:
-
-- `column` (String)
-- `full_masking_algorithm_id` (String)
-- `masking_level` (String)
-- `partial_masking_algorithm_id` (String)
 - `schema` (String)
 - `table` (String)
 

@@ -59,7 +59,7 @@ func resourceEnvironment() *schema.Resource {
 					v1pb.EnvironmentTier_PROTECTED.String(),
 					v1pb.EnvironmentTier_UNPROTECTED.String(),
 				}, false),
-				Description: "If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default.",
+				Description: "If marked as PROTECTED, developers cannot execute any query on this environment's databases using SQL Editor by default. Require ENTERPRISE subscription.",
 			},
 		},
 	}

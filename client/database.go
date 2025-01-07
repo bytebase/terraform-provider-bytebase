@@ -63,3 +63,33 @@ func (c *client) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updat
 
 	return &res, nil
 }
+
+// GetDatabaseCatalog gets the database catalog by the database full name.
+func (c *client) GetDatabaseCatalog(ctx context.Context, databaseName string) (*v1pb.DatabaseCatalog, error) {
+	body, err := c.getResource(ctx, fmt.Sprintf("%s/catalog", databaseName))
+	if err != nil {
+		return nil, err
+	}
+
+	var res v1pb.DatabaseCatalog
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+// UpdateDatabaseCatalog patches the database catalog.
+func (c *client) UpdateDatabaseCatalog(ctx context.Context, patch *v1pb.DatabaseCatalog, updateMasks []string) (*v1pb.DatabaseCatalog, error) {
+	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
+	if err != nil {
+		return nil, err
+	}
+
+	var res v1pb.DatabaseCatalog
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}

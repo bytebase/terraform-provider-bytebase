@@ -1,3 +1,4 @@
+# Examples for query the environments
 terraform {
   required_providers {
     bytebase = {
@@ -17,11 +18,12 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
-data "bytebase_policy" "masking_exception_policy" {
-  parent = "projects/project-sample"
-  type   = "MASKING_EXCEPTION"
+
+
+data "bytebase_database_catalog" "employee" {
+  database = "instances/test-sample-instance/databases/employee"
 }
 
-output "masking_exception_policy" {
-  value = data.bytebase_policy.masking_exception_policy
+output "employee_catalog" {
+  value = data.bytebase_database_catalog.employee
 }

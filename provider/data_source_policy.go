@@ -44,7 +44,6 @@ func dataSourcePolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					v1pb.PolicyType_MASKING.String(),
 					v1pb.PolicyType_MASKING_EXCEPTION.String(),
 				}, false),
 				Description: "The policy type.",
@@ -64,7 +63,6 @@ func dataSourcePolicy() *schema.Resource {
 				Computed:    true,
 				Description: "Decide if the policy is enforced.",
 			},
-			"masking_policy":           getMaskingPolicySchema(true),
 			"masking_exception_policy": getMaskingExceptionPolicySchema(true),
 		},
 	}
@@ -119,15 +117,6 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 								ValidateFunc: validation.StringIsNotEmpty,
 								Description:  "The member in user:{email} or group:{email} format.",
 							},
-							"masking_level": {
-								Type:     schema.TypeString,
-								Computed: computed,
-								Optional: true,
-								ValidateFunc: validation.StringInSlice([]string{
-									v1pb.MaskingLevel_NONE.String(),
-									v1pb.MaskingLevel_PARTIAL.String(),
-								}, false),
-							},
 							"action": {
 								Type:     schema.TypeString,
 								Computed: computed,
@@ -142,69 +131,6 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 								Computed:    computed,
 								Optional:    true,
 								Description: "The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func getMaskingPolicySchema(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Computed: computed,
-		Optional: true,
-		Default:  nil,
-		Type:     schema.TypeList,
-		MinItems: 0,
-		MaxItems: 1,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"mask_data": {
-					MinItems: 0,
-					Computed: computed,
-					Optional: true,
-					Default:  nil,
-					Type:     schema.TypeList,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"schema": {
-								Type:     schema.TypeString,
-								Computed: computed,
-								Optional: true,
-							},
-							"table": {
-								Type:         schema.TypeString,
-								Computed:     computed,
-								Optional:     true,
-								ValidateFunc: validation.StringIsNotEmpty,
-							},
-							"column": {
-								Type:         schema.TypeString,
-								Computed:     computed,
-								Optional:     true,
-								ValidateFunc: validation.StringIsNotEmpty,
-							},
-							"full_masking_algorithm_id": {
-								Type:     schema.TypeString,
-								Computed: computed,
-								Optional: true,
-							},
-							"partial_masking_algorithm_id": {
-								Type:     schema.TypeString,
-								Computed: computed,
-								Optional: true,
-							},
-							"masking_level": {
-								Type:     schema.TypeString,
-								Computed: computed,
-								Optional: true,
-								ValidateFunc: validation.StringInSlice([]string{
-									v1pb.MaskingLevel_NONE.String(),
-									v1pb.MaskingLevel_PARTIAL.String(),
-									v1pb.MaskingLevel_FULL.String(),
-								}, false),
 							},
 						},
 					},
@@ -245,40 +171,17 @@ func setPolicyMessage(d *schema.ResourceData, policy *v1pb.Policy) diag.Diagnost
 		return diag.Errorf("cannot set enforce for policy: %s", err.Error())
 	}
 
-	if p := policy.GetMaskingPolicy(); p != nil {
-		if err := d.Set("masking_policy", flattenMaskingPolicy(p)); err != nil {
-			return diag.Errorf("cannot set masking_policy: %s", err.Error())
-		}
-	}
 	if p := policy.GetMaskingExceptionPolicy(); p != nil {
 		exceptionPolicy, err := flattenMaskingExceptionPolicy(p)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		if err := d.Set("masking_exception_policy", exceptionPolicy); err != nil {
-			return diag.Errorf("cannot set masking_policy: %s", err.Error())
+			return diag.Errorf("cannot set masking_exception_policy: %s", err.Error())
 		}
 	}
 
 	return nil
-}
-
-func flattenMaskingPolicy(p *v1pb.MaskingPolicy) []interface{} {
-	maskDataList := []interface{}{}
-	for _, maskData := range p.MaskData {
-		raw := map[string]interface{}{}
-		raw["schema"] = maskData.Schema
-		raw["table"] = maskData.Table
-		raw["column"] = maskData.Column
-		raw["full_masking_algorithm_id"] = maskData.FullMaskingAlgorithmId
-		raw["partial_masking_algorithm_id"] = maskData.PartialMaskingAlgorithmId
-		raw["masking_level"] = maskData.MaskingLevel.String()
-		maskDataList = append(maskDataList, raw)
-	}
-	policy := map[string]interface{}{
-		"mask_data": maskDataList,
-	}
-	return []interface{}{policy}
 }
 
 func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{}, error) {
@@ -287,7 +190,6 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 		raw := map[string]interface{}{}
 		raw["member"] = exception.Member
 		raw["action"] = exception.Action.String()
-		raw["masking_level"] = exception.MaskingLevel.String()
 
 		if exception.Condition == nil || exception.Condition.Expression == "" {
 			return nil, errors.Errorf("invalid exception policy condition")

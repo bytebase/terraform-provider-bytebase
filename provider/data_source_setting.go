@@ -38,10 +38,11 @@ func dataSourceSetting() *schema.Resource {
 
 func getExternalApprovalSetting(computed bool) *schema.Schema {
 	return &schema.Schema{
-		Computed: computed,
-		Optional: true,
-		Default:  nil,
-		Type:     schema.TypeList,
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		Description: "Configure external nodes in the approval flow. Require ENTERPRISE subscription.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"nodes": {
@@ -78,10 +79,11 @@ func getExternalApprovalSetting(computed bool) *schema.Schema {
 
 func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 	return &schema.Schema{
-		Computed: computed,
-		Optional: true,
-		Default:  nil,
-		Type:     schema.TypeList,
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		Description: "Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"rules": {

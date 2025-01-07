@@ -33,7 +33,7 @@ func dataSourcePolicyList() *schema.Resource {
 					// project policy
 					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern)),
 					// database policy
-					regexp.MustCompile(fmt.Sprintf("^%s%s%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern)),
+					regexp.MustCompile(fmt.Sprintf("^%s%s/%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern)),
 				),
 				Description: "The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}",
 			},
@@ -62,7 +62,6 @@ func dataSourcePolicyList() *schema.Resource {
 							Computed:    true,
 							Description: "Decide if the policy is enforced.",
 						},
-						"masking_policy":           getMaskingPolicySchema(true),
 						"masking_exception_policy": getMaskingExceptionPolicySchema(true),
 					},
 				},
@@ -87,9 +86,6 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 		raw["inherit_from_parent"] = policy.InheritFromParent
 		raw["enforce"] = policy.Enforce
 
-		if p := policy.GetMaskingPolicy(); p != nil {
-			raw["masking_policy"] = flattenMaskingPolicy(p)
-		}
 		if p := policy.GetMaskingExceptionPolicy(); p != nil {
 			exceptionPolicy, err := flattenMaskingExceptionPolicy(p)
 			if err != nil {

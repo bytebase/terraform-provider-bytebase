@@ -59,6 +59,10 @@ type Client interface {
 	ListDatabase(ctx context.Context, instanceID, filter string) (*v1pb.ListDatabasesResponse, error)
 	// UpdateDatabase patches the database.
 	UpdateDatabase(ctx context.Context, patch *v1pb.Database, updateMasks []string) (*v1pb.Database, error)
+	// GetDatabaseCatalog gets the database catalog by the database full name.
+	GetDatabaseCatalog(ctx context.Context, databaseName string) (*v1pb.DatabaseCatalog, error)
+	// UpdateDatabaseCatalog patches the database catalog.
+	UpdateDatabaseCatalog(ctx context.Context, patch *v1pb.DatabaseCatalog, updateMasks []string) (*v1pb.DatabaseCatalog, error)
 
 	// Project
 	// GetProject gets the project by project full name.

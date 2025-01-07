@@ -32,7 +32,6 @@ Read-Only:
 - `enforce` (Boolean)
 - `inherit_from_parent` (Boolean)
 - `masking_exception_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy))
-- `masking_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_policy))
 - `name` (String)
 - `type` (String)
 
@@ -52,29 +51,7 @@ Read-Only:
 - `column` (String)
 - `database` (String)
 - `expire_timestamp` (String)
-- `masking_level` (String)
 - `member` (String)
-- `schema` (String)
-- `table` (String)
-
-
-
-<a id="nestedobjatt--policies--masking_policy"></a>
-### Nested Schema for `policies.masking_policy`
-
-Read-Only:
-
-- `mask_data` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_policy--mask_data))
-
-<a id="nestedobjatt--policies--masking_policy--mask_data"></a>
-### Nested Schema for `policies.masking_policy.mask_data`
-
-Read-Only:
-
-- `column` (String)
-- `full_masking_algorithm_id` (String)
-- `masking_level` (String)
-- `partial_masking_algorithm_id` (String)
 - `schema` (String)
 - `table` (String)
 
