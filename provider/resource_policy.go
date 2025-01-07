@@ -123,8 +123,7 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		Type:              policyType,
 	}
 
-	switch policyType {
-	case v1pb.PolicyType_MASKING_EXCEPTION:
+	if policyType == v1pb.PolicyType_MASKING_EXCEPTION {
 		maskingExceptionPolicy, err := convertToMaskingExceptionPolicy(d)
 		if err != nil {
 			return diag.FromErr(err)

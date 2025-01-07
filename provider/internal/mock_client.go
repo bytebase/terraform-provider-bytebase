@@ -423,7 +423,7 @@ func (c *mockClient) GetDatabaseCatalog(_ context.Context, databaseName string) 
 }
 
 // UpdateDatabaseCatalog patches the database catalog.
-func (c *mockClient) UpdateDatabaseCatalog(_ context.Context, patch *v1pb.DatabaseCatalog, updateMasks []string) (*v1pb.DatabaseCatalog, error) {
+func (c *mockClient) UpdateDatabaseCatalog(_ context.Context, patch *v1pb.DatabaseCatalog, _ []string) (*v1pb.DatabaseCatalog, error) {
 	c.databaseCatalogMap[patch.Name] = patch
 	return patch, nil
 }
