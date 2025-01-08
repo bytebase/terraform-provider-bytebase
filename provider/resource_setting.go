@@ -139,7 +139,6 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 			workspacePrfile.Domains = append(workspacePrfile.Domains, domain.(string))
 		}
 		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.domains")
-
 	} else if _, ok := raw["enforce_identity_domain"]; ok {
 		return nil, nil, errors.Errorf("enforce_identity_domain must works with domains")
 	}
