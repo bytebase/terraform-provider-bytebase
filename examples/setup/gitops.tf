@@ -10,7 +10,9 @@ resource "bytebase_vcs_provider" "github" {
 resource "bytebase_vcs_connector" "github" {
   depends_on = [
     bytebase_project.sample_project,
-    bytebase_vcs_provider.github
+    bytebase_vcs_provider.github,
+    # vcs connector requires the external_url.
+    bytebase_setting.workspace_profile
   ]
 
   resource_id          = "connector-github"

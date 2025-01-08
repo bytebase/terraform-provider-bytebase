@@ -6,6 +6,8 @@ type SettingName string
 const (
 	// SettingWorkspaceApproval is the setting name for workspace approval config.
 	SettingWorkspaceApproval SettingName = "bb.workspace.approval"
+	// SettingWorkspaceProfile is the setting name for workspace profile settings.
+	SettingWorkspaceProfile SettingName = "bb.workspace.profile"
 	// SettingWorkspaceExternalApproval is the setting name for workspace external approval config.
 	SettingWorkspaceExternalApproval SettingName = "bb.workspace.approval.external"
 )

@@ -19,11 +19,27 @@ The setting data source.
 
 - `name` (String)
 
+### Optional
+
+- `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
+
 ### Read-Only
 
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `external_approval_nodes` (Block List) Configure external nodes in the approval flow. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--external_approval_nodes))
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--workspace_profile"></a>
+### Nested Schema for `workspace_profile`
+
+Optional:
+
+- `disallow_password_signin` (Boolean) Whether to disallow password signin. (Except workspace admins). Require ENTERPRISE subscription
+- `disallow_signup` (Boolean) Disallow self-service signup, users can only be invited by the owner. Require PRO subscription.
+- `domains` (List of String) The workspace domain, e.g. bytebase.com. Required for the group
+- `enforce_identity_domain` (Boolean) Only user and group from the domains can be created and login.
+- `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
+
 
 <a id="nestedblock--approval_flow"></a>
 ### Nested Schema for `approval_flow`

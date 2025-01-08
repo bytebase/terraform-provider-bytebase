@@ -20,7 +20,9 @@ resource "bytebase_user" "project_developer" {
 resource "bytebase_group" "developers" {
   depends_on = [
     bytebase_user.workspace_dba,
-    bytebase_user.project_developer
+    bytebase_user.project_developer,
+    # group requires the domain.
+    bytebase_setting.workspace_profile
   ]
 
   email = "developers@bytebase.com"

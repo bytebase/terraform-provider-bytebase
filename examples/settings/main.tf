@@ -25,10 +25,18 @@ data "bytebase_setting" "external_approval" {
   name = "bb.workspace.approval.external"
 }
 
+data "bytebase_setting" "workspace_profile" {
+  name = "bb.workspace.profile"
+}
+
 output "approval_flow" {
   value = data.bytebase_setting.approval_flow
 }
 
 output "external_approval" {
   value = data.bytebase_setting.external_approval
+}
+
+output "workspace_profile" {
+  value = data.bytebase_setting.workspace_profile
 }
