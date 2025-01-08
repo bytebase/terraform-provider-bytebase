@@ -25,3 +25,12 @@ locals {
   instance_id_prod    = "prod-sample-instance"
   project_id          = "project-sample"
 }
+
+resource "bytebase_setting" "workspace_profile" {
+  name = "bb.workspace.profile"
+
+  workspace_profile {
+    external_url = "https://bytebase.example.com"
+    domains      = ["bytebase.com"]
+  }
+}

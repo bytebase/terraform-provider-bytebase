@@ -34,10 +34,12 @@ func resourceSetting() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.SettingWorkspaceApproval),
 					string(api.SettingWorkspaceExternalApproval),
+					string(api.SettingWorkspaceProfile),
 				}, false),
 			},
 			"approval_flow":           getWorkspaceApprovalSetting(false),
 			"external_approval_nodes": getExternalApprovalSetting(false),
+			"workspace_profile":       getWorkspaceProfileSetting(false),
 		},
 	}
 }
@@ -52,6 +54,7 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	setting := &v1pb.Setting{
 		Name: settingName,
 	}
+	updateMasks := []string{}
 
 	switch name {
 	case api.SettingWorkspaceApproval:
@@ -74,11 +77,22 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 				ExternalApprovalSettingValue: externalApproval,
 			},
 		}
+	case api.SettingWorkspaceProfile:
+		workspaceProfile, updatePathes, err := convertToV1WorkspaceProfileSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_WorkspaceProfileSettingValue{
+				WorkspaceProfileSettingValue: workspaceProfile,
+			},
+		}
+		updateMasks = updatePathes
 	default:
 		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
 	}
 
-	updatedSetting, err := c.UpsertSetting(ctx, setting, []string{})
+	updatedSetting, err := c.UpsertSetting(ctx, setting, updateMasks)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -91,6 +105,45 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	return diags
+}
+
+func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.WorkspaceProfileSetting, []string, error) {
+	rawList, ok := d.Get("workspace_profile").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, nil, errors.Errorf("invalid workspace_profile")
+	}
+
+	updateMasks := []string{}
+	raw := rawList[0].(map[string]interface{})
+
+	workspacePrfile := &v1pb.WorkspaceProfileSetting{}
+
+	if externalURL, ok := raw["external_url"]; ok {
+		workspacePrfile.ExternalUrl = externalURL.(string)
+		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.external_url")
+	}
+	if disallowSignup, ok := raw["disallow_signup"]; ok {
+		workspacePrfile.DisallowSignup = disallowSignup.(bool)
+		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.disallow_signup")
+	}
+	if disallowPasswordSignin, ok := raw["disallow_password_signin"]; ok {
+		workspacePrfile.DisallowPasswordSignin = disallowPasswordSignin.(bool)
+		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.disallow_password_signin")
+	}
+	if domains, ok := raw["domains"]; ok {
+		if enforceIdentityDomain, ok := raw["enforce_identity_domain"]; ok {
+			workspacePrfile.EnforceIdentityDomain = enforceIdentityDomain.(bool)
+			updateMasks = append(updateMasks, "value.workspace_profile_setting_value.enforce_identity_domain")
+		}
+		for _, domain := range domains.([]interface{}) {
+			workspacePrfile.Domains = append(workspacePrfile.Domains, domain.(string))
+		}
+		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.domains")
+	} else if _, ok := raw["enforce_identity_domain"]; ok {
+		return nil, nil, errors.Errorf("enforce_identity_domain must works with domains")
+	}
+
+	return workspacePrfile, updateMasks, nil
 }
 
 func convertToV1ExternalNodesSetting(d *schema.ResourceData) (*v1pb.ExternalApprovalSetting, error) {

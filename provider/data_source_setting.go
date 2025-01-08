@@ -28,10 +28,60 @@ func dataSourceSetting() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.SettingWorkspaceApproval),
 					string(api.SettingWorkspaceExternalApproval),
+					string(api.SettingWorkspaceProfile),
 				}, false),
 			},
 			"approval_flow":           getWorkspaceApprovalSetting(true),
 			"external_approval_nodes": getExternalApprovalSetting(true),
+			"workspace_profile":       getWorkspaceProfileSetting(true),
+		},
+	}
+}
+
+func getWorkspaceProfileSetting(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed: computed,
+		Optional: true,
+		Default:  nil,
+		Type:     schema.TypeList,
+		MaxItems: 1,
+		MinItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"external_url": {
+					Type:        schema.TypeString,
+					Computed:    computed,
+					Optional:    true,
+					Description: "The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.",
+				},
+				"disallow_signup": {
+					Type:        schema.TypeBool,
+					Computed:    computed,
+					Optional:    true,
+					Description: "Disallow self-service signup, users can only be invited by the owner. Require PRO subscription.",
+				},
+				"disallow_password_signin": {
+					Type:        schema.TypeBool,
+					Computed:    computed,
+					Optional:    true,
+					Description: "Whether to disallow password signin. (Except workspace admins). Require ENTERPRISE subscription",
+				},
+				"domains": {
+					Type:        schema.TypeList,
+					Computed:    computed,
+					Optional:    true,
+					Description: "The workspace domain, e.g. bytebase.com. Required for the group",
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
+				"enforce_identity_domain": {
+					Type:        schema.TypeBool,
+					Computed:    computed,
+					Optional:    true,
+					Description: "Only user and group from the domains can be created and login.",
+				},
+			},
 		},
 	}
 }
@@ -215,6 +265,12 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 			return diag.Errorf("cannot set external_approval_nodes: %s", err.Error())
 		}
 	}
+	if value := setting.Value.GetWorkspaceProfileSettingValue(); value != nil {
+		settingVal := flattenWorkspaceProfileSetting(value)
+		if err := d.Set("workspace_profile", settingVal); err != nil {
+			return diag.Errorf("cannot set workspace_profile: %s", err.Error())
+		}
+	}
 
 	return nil
 }
@@ -353,4 +409,16 @@ func flattenExternalApprovalSetting(setting *v1pb.ExternalApprovalSetting) []int
 		"nodes": nodeList,
 	}
 	return []interface{}{approvalSetting}
+}
+
+func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []interface{} {
+	raw := map[string]interface{}{}
+
+	raw["external_url"] = setting.ExternalUrl
+	raw["disallow_signup"] = setting.DisallowSignup
+	raw["disallow_password_signin"] = setting.DisallowPasswordSignin
+	raw["enforce_identity_domain"] = setting.EnforceIdentityDomain
+	raw["domains"] = setting.Domains
+
+	return []interface{}{raw}
 }
