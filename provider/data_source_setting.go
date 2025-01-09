@@ -530,7 +530,8 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []interface{} {
 	raw := map[string]interface{}{}
 
-	for _, config := range setting.GetConfigs() {
+	if len(setting.GetConfigs()) > 0 {
+		config := setting.GetConfigs()[0]
 		raw["id"] = config.Id
 		raw["title"] = config.Title
 		raw["classification_from_config"] = config.ClassificationFromConfig
@@ -555,7 +556,6 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 			rawClassifications = append(rawClassifications, rawClassification)
 		}
 		raw["classifications"] = rawClassifications
-		break
 	}
 
 	return []interface{}{raw}
