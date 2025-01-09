@@ -29,11 +29,109 @@ func dataSourceSetting() *schema.Resource {
 					string(api.SettingWorkspaceApproval),
 					string(api.SettingWorkspaceExternalApproval),
 					string(api.SettingWorkspaceProfile),
+					string(api.SettingDataClassification),
 				}, false),
 			},
 			"approval_flow":           getWorkspaceApprovalSetting(true),
 			"external_approval_nodes": getExternalApprovalSetting(true),
 			"workspace_profile":       getWorkspaceProfileSetting(true),
+			"classification":          getClassificationSetting(true),
+		},
+	}
+}
+
+func getClassificationSetting(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		MaxItems:    1,
+		MinItems:    1,
+		Description: "Classification for data masking. Require ENTERPRISE subscription.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"id": {
+					Type:        schema.TypeString,
+					Computed:    computed,
+					Optional:    true,
+					Description: "The classification unique uuid.",
+				},
+				"title": {
+					Type:        schema.TypeString,
+					Computed:    computed,
+					Optional:    true,
+					Description: "The classification title. Optional.",
+				},
+				"classification_from_config": {
+					Type:        schema.TypeBool,
+					Computed:    computed,
+					Optional:    true,
+					Description: "If true, we will only store the classification in the config. Otherwise we will get the classification from table/column comment, and write back to the schema metadata.",
+				},
+				"levels": {
+					Computed: computed,
+					Optional: true,
+					Type:     schema.TypeList,
+					MinItems: 1,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"id": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Optional:    true,
+								Description: "The classification level unique uuid.",
+							},
+							"title": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Optional:    true,
+								Description: "The classification level title.",
+							},
+							"description": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Optional:    true,
+								Description: "The classification level description.",
+							},
+						},
+					},
+				},
+				"classifications": {
+					Computed: computed,
+					Optional: true,
+					Type:     schema.TypeList,
+					MinItems: 1,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"id": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Optional:    true,
+								Description: "The classification unique id, must in {number}-{number} format.",
+							},
+							"title": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Optional:    true,
+								Description: "The classification title.",
+							},
+							"description": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Optional:    true,
+								Description: "The classification description.",
+							},
+							"level": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Optional:    true,
+								Description: "The classification level id.",
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -271,6 +369,12 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 			return diag.Errorf("cannot set workspace_profile: %s", err.Error())
 		}
 	}
+	if value := setting.Value.GetDataClassificationSettingValue(); value != nil {
+		settingVal := flattenClassificationSetting(value)
+		if err := d.Set("classification", settingVal); err != nil {
+			return diag.Errorf("cannot set classification: %s", err.Error())
+		}
+	}
 
 	return nil
 }
@@ -419,6 +523,40 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	raw["disallow_password_signin"] = setting.DisallowPasswordSignin
 	raw["enforce_identity_domain"] = setting.EnforceIdentityDomain
 	raw["domains"] = setting.Domains
+
+	return []interface{}{raw}
+}
+
+func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []interface{} {
+	raw := map[string]interface{}{}
+
+	if len(setting.GetConfigs()) > 0 {
+		config := setting.GetConfigs()[0]
+		raw["id"] = config.Id
+		raw["title"] = config.Title
+		raw["classification_from_config"] = config.ClassificationFromConfig
+
+		rawLevels := []interface{}{}
+		for _, level := range config.Levels {
+			rawLevel := map[string]interface{}{}
+			rawLevel["id"] = level.Id
+			rawLevel["title"] = level.Title
+			rawLevel["description"] = level.Description
+			rawLevels = append(rawLevels, rawLevel)
+		}
+		raw["levels"] = rawLevels
+
+		rawClassifications := []interface{}{}
+		for _, classification := range config.GetClassification() {
+			rawClassification := map[string]interface{}{}
+			rawClassification["id"] = classification.Id
+			rawClassification["title"] = classification.Title
+			rawClassification["description"] = classification.Description
+			rawClassification["level"] = classification.LevelId
+			rawClassifications = append(rawClassifications, rawClassification)
+		}
+		raw["classifications"] = rawClassifications
+	}
 
 	return []interface{}{raw}
 }

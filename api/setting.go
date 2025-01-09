@@ -10,6 +10,8 @@ const (
 	SettingWorkspaceProfile SettingName = "bb.workspace.profile"
 	// SettingWorkspaceExternalApproval is the setting name for workspace external approval config.
 	SettingWorkspaceExternalApproval SettingName = "bb.workspace.approval.external"
+	// SettingDataClassification is the setting name for data classification.
+	SettingDataClassification SettingName = "bb.workspace.data-classification"
 )
 
 // RiskLevel is the approval risk level.

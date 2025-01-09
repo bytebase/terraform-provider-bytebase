@@ -22,6 +22,7 @@ The setting resource.
 ### Optional
 
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
+- `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `external_approval_nodes` (Block List) Configure external nodes in the approval flow. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--external_approval_nodes))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
@@ -81,6 +82,39 @@ Optional:
 - `level` (String)
 - `source` (String)
 
+
+
+
+<a id="nestedblock--classification"></a>
+### Nested Schema for `classification`
+
+Optional:
+
+- `classification_from_config` (Boolean) If true, we will only store the classification in the config. Otherwise we will get the classification from table/column comment, and write back to the schema metadata.
+- `classifications` (Block List) (see [below for nested schema](#nestedblock--classification--classifications))
+- `id` (String) The classification unique uuid.
+- `levels` (Block List) (see [below for nested schema](#nestedblock--classification--levels))
+- `title` (String) The classification title. Optional.
+
+<a id="nestedblock--classification--classifications"></a>
+### Nested Schema for `classification.classifications`
+
+Optional:
+
+- `description` (String) The classification description.
+- `id` (String) The classification unique id, must in {number}-{number} format.
+- `level` (String) The classification level id.
+- `title` (String) The classification title.
+
+
+<a id="nestedblock--classification--levels"></a>
+### Nested Schema for `classification.levels`
+
+Optional:
+
+- `description` (String) The classification level description.
+- `id` (String) The classification level unique uuid.
+- `title` (String) The classification level title.
 
 
 
