@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.6"
+      version = "1.0.7"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -29,6 +29,10 @@ data "bytebase_setting" "workspace_profile" {
   name = "bb.workspace.profile"
 }
 
+data "bytebase_setting" "classification" {
+  name = "bb.workspace.data-classification"
+}
+
 output "approval_flow" {
   value = data.bytebase_setting.approval_flow
 }
@@ -39,4 +43,8 @@ output "external_approval" {
 
 output "workspace_profile" {
   value = data.bytebase_setting.workspace_profile
+}
+
+output "classification" {
+  value = data.bytebase_setting.classification
 }

@@ -35,12 +35,13 @@ func resourceSetting() *schema.Resource {
 					string(api.SettingWorkspaceApproval),
 					string(api.SettingWorkspaceExternalApproval),
 					string(api.SettingWorkspaceProfile),
+					string(api.SettingDataClassification),
 				}, false),
 			},
 			"approval_flow":           getWorkspaceApprovalSetting(false),
 			"external_approval_nodes": getExternalApprovalSetting(false),
 			"workspace_profile":       getWorkspaceProfileSetting(false),
-		},
+			"classification":          getClassificationSetting(false)},
 	}
 }
 
@@ -88,6 +89,16 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 			},
 		}
 		updateMasks = updatePathes
+	case api.SettingDataClassification:
+		classificationSetting, err := convertToV1ClassificationSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_DataClassificationSettingValue{
+				DataClassificationSettingValue: classificationSetting,
+			},
+		}
 	default:
 		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
 	}
@@ -144,6 +155,70 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 	}
 
 	return workspacePrfile, updateMasks, nil
+}
+
+func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassificationSetting, error) {
+	rawList, ok := d.Get("classification").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid classification")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+
+	dataClassificationConfig := &v1pb.DataClassificationSetting_DataClassificationConfig{
+		Id:                       raw["id"].(string),
+		Title:                    raw["title"].(string),
+		ClassificationFromConfig: raw["classification_from_config"].(bool),
+		Levels:                   []*v1pb.DataClassificationSetting_DataClassificationConfig_Level{},
+		Classification:           map[string]*v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification{},
+	}
+	if dataClassificationConfig.Id == "" {
+		return nil, errors.Errorf("id is required for classification config")
+	}
+
+	rawLevels := raw["levels"].([]interface{})
+	for _, level := range rawLevels {
+		rawLevel := level.(map[string]interface{})
+		classificationLevel := &v1pb.DataClassificationSetting_DataClassificationConfig_Level{
+			Id:          rawLevel["id"].(string),
+			Title:       rawLevel["title"].(string),
+			Description: rawLevel["description"].(string),
+		}
+		if classificationLevel.Id == "" {
+			return nil, errors.Errorf("classification level id is required")
+		}
+		if classificationLevel.Title == "" {
+			return nil, errors.Errorf("classification level title is required")
+		}
+		dataClassificationConfig.Levels = append(dataClassificationConfig.Levels, classificationLevel)
+	}
+
+	rawClassificationss := raw["classifications"].([]interface{})
+	for _, classification := range rawClassificationss {
+		rawClassification := classification.(map[string]interface{})
+		classificationData := &v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification{
+			Id:          rawClassification["id"].(string),
+			Title:       rawClassification["title"].(string),
+			Description: rawClassification["description"].(string),
+		}
+		if classificationData.Id == "" {
+			return nil, errors.Errorf("classification id is required")
+		}
+		if classificationData.Title == "" {
+			return nil, errors.Errorf("classification title is required")
+		}
+		levelID, ok := rawClassification["level"].(string)
+		if ok {
+			classificationData.LevelId = &levelID
+		}
+		dataClassificationConfig.Classification[classificationData.Id] = classificationData
+	}
+
+	return &v1pb.DataClassificationSetting{
+		Configs: []*v1pb.DataClassificationSetting_DataClassificationConfig{
+			dataClassificationConfig,
+		},
+	}, nil
 }
 
 func convertToV1ExternalNodesSetting(d *schema.ResourceData) (*v1pb.ExternalApprovalSetting, error) {
