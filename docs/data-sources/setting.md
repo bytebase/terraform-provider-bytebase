@@ -36,9 +36,9 @@ The setting data source.
 Optional:
 
 - `classification_from_config` (Boolean) If true, we will only store the classification in the config. Otherwise we will get the classification from table/column comment, and write back to the schema metadata.
-- `classifications` (Block List) (see [below for nested schema](#nestedblock--classification--classifications))
+- `classifications` (Block Set) (see [below for nested schema](#nestedblock--classification--classifications))
 - `id` (String) The classification unique uuid.
-- `levels` (Block List) (see [below for nested schema](#nestedblock--classification--levels))
+- `levels` (Block Set) (see [below for nested schema](#nestedblock--classification--levels))
 - `title` (String) The classification title. Optional.
 
 <a id="nestedblock--classification--classifications"></a>
@@ -126,7 +126,7 @@ Read-Only:
 
 Read-Only:
 
-- `nodes` (List of Object) (see [below for nested schema](#nestedatt--external_approval_nodes--nodes))
+- `nodes` (Set of Object) (see [below for nested schema](#nestedatt--external_approval_nodes--nodes))
 
 <a id="nestedatt--external_approval_nodes--nodes"></a>
 ### Nested Schema for `external_approval_nodes.nodes`

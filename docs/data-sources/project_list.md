@@ -32,7 +32,7 @@ Read-Only:
 - `allow_modify_statement` (Boolean)
 - `auto_enable_backup` (Boolean)
 - `auto_resolve_issue` (Boolean)
-- `databases` (List of Object) (see [below for nested schema](#nestedobjatt--projects--databases))
+- `databases` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--databases))
 - `enforce_issue_title` (Boolean)
 - `key` (String)
 - `members` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--members))

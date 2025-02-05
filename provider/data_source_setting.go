@@ -193,8 +193,6 @@ func getExternalApprovalSetting(computed bool) *schema.Schema {
 		Optional:    true,
 		Default:     nil,
 		Type:        schema.TypeList,
-		MaxItems:    1,
-		MinItems:    1,
 		Description: "Configure external nodes in the approval flow. Require ENTERPRISE subscription.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
@@ -237,8 +235,6 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 		Optional:    true,
 		Default:     nil,
 		Type:        schema.TypeList,
-		MaxItems:    1,
-		MinItems:    1,
 		Description: "Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{

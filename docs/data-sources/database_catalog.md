@@ -22,7 +22,7 @@ The database catalog data source.
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `schemas` (List of Object) (see [below for nested schema](#nestedatt--schemas))
+- `schemas` (Set of Object) (see [below for nested schema](#nestedatt--schemas))
 
 <a id="nestedatt--schemas"></a>
 ### Nested Schema for `schemas`
@@ -30,7 +30,7 @@ The database catalog data source.
 Read-Only:
 
 - `name` (String)
-- `tables` (List of Object) (see [below for nested schema](#nestedobjatt--schemas--tables))
+- `tables` (Set of Object) (see [below for nested schema](#nestedobjatt--schemas--tables))
 
 <a id="nestedobjatt--schemas--tables"></a>
 ### Nested Schema for `schemas.tables`
@@ -38,7 +38,7 @@ Read-Only:
 Read-Only:
 
 - `classification` (String)
-- `columns` (List of Object) (see [below for nested schema](#nestedobjatt--schemas--tables--columns))
+- `columns` (Set of Object) (see [below for nested schema](#nestedobjatt--schemas--tables--columns))
 - `name` (String)
 
 <a id="nestedobjatt--schemas--tables--columns"></a>

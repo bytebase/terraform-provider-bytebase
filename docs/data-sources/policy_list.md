@@ -40,7 +40,7 @@ Read-Only:
 
 Read-Only:
 
-- `exceptions` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy--exceptions))
+- `exceptions` (Set of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy--exceptions))
 
 <a id="nestedobjatt--policies--masking_exception_policy--exceptions"></a>
 ### Nested Schema for `policies.masking_exception_policy.exceptions`
