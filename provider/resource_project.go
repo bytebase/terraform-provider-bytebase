@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -375,12 +376,13 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 		existedDBMap[db.Name] = db
 	}
 
-	rawList, ok := d.Get("databases").([]interface{})
+	rawSet, ok := d.Get("databases").(*schema.Set)
 	if !ok {
 		return nil
 	}
 	updatedDBMap := map[string]*v1pb.Database{}
-	for _, raw := range rawList {
+	batchTransferDatabases := []*v1pb.UpdateDatabaseRequest{}
+	for _, raw := range rawSet.List() {
 		obj := raw.(map[string]interface{})
 		dbName := obj["name"].(string)
 		if _, _, err := internal.GetInstanceDatabaseID(dbName); err != nil {
@@ -397,20 +399,52 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 			Project: projectName,
 			Labels:  labels,
 		}
-		if _, err := client.UpdateDatabase(ctx, updatedDBMap[dbName], []string{"project", "label"}); err != nil {
-			return diag.Errorf("failed to update database %s with error: %v", dbName, err)
+		if _, ok := existedDBMap[dbName]; !ok {
+			batchTransferDatabases = append(batchTransferDatabases, &v1pb.UpdateDatabaseRequest{
+				Database: updatedDBMap[dbName],
+				UpdateMask: &fieldmaskpb.FieldMask{
+					Paths: []string{"project"},
+				},
+			})
 		}
 	}
 
+	if len(batchTransferDatabases) > 0 {
+		if _, err := client.BatchUpdateDatabases(ctx, &v1pb.BatchUpdateDatabasesRequest{
+			Requests: batchTransferDatabases,
+			Parent:   "instances/-",
+		}); err != nil {
+			return diag.Errorf("failed to assign databases to project %s", projectName)
+		}
+	}
+
+	for _, database := range updatedDBMap {
+		if len(database.Labels) > 0 {
+			if _, err := client.UpdateDatabase(ctx, database, []string{"label"}); err != nil {
+				return diag.Errorf("failed to update database %s with error: %v", database.Name, err)
+			}
+		}
+	}
+
+	unassignDatabases := []*v1pb.UpdateDatabaseRequest{}
 	for _, db := range existedDBMap {
 		if _, ok := updatedDBMap[db.Name]; !ok {
 			// move db to default project
-			if _, err := client.UpdateDatabase(ctx, &v1pb.Database{
-				Name:    db.Name,
-				Project: projectName,
-			}, []string{"project"}); err != nil {
-				return diag.Errorf("failed to move database %s to project %s with error: %v", db.Name, defaultProj, err)
-			}
+			db.Project = defaultProj
+			unassignDatabases = append(unassignDatabases, &v1pb.UpdateDatabaseRequest{
+				Database: db,
+				UpdateMask: &fieldmaskpb.FieldMask{
+					Paths: []string{"project"},
+				},
+			})
+		}
+	}
+	if len(unassignDatabases) > 0 {
+		if _, err := client.BatchUpdateDatabases(ctx, &v1pb.BatchUpdateDatabasesRequest{
+			Requests: unassignDatabases,
+			Parent:   "instances/-",
+		}); err != nil {
+			return diag.Errorf("failed to move databases to default project")
 		}
 	}
 
@@ -484,11 +518,11 @@ func updateMembersInProject(ctx context.Context, d *schema.ResourceData, client 
 		})
 	}
 
-	if !existProjectOwner {
-		return diag.Errorf("require at least 1 member with roles/projectOwner role")
-	}
-
 	if len(iamPolicy.Bindings) > 0 {
+		if !existProjectOwner {
+			return diag.Errorf("require at least 1 member with roles/projectOwner role")
+		}
+
 		if _, err := client.SetProjectIAMPolicy(ctx, projectName, &v1pb.SetIamPolicyRequest{
 			Policy: iamPolicy,
 			Etag:   iamPolicy.Etag,

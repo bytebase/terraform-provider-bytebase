@@ -36,7 +36,7 @@ The policy data source.
 
 Optional:
 
-- `exceptions` (Block List) (see [below for nested schema](#nestedblock--masking_exception_policy--exceptions))
+- `exceptions` (Block Set) (see [below for nested schema](#nestedblock--masking_exception_policy--exceptions))
 
 <a id="nestedblock--masking_exception_policy--exceptions"></a>
 ### Nested Schema for `masking_exception_policy.exceptions`

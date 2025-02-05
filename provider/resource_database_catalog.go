@@ -38,7 +38,7 @@ func resourceDatabaseCatalog() *schema.Resource {
 			},
 			"schemas": {
 				Required: true,
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -48,7 +48,7 @@ func resourceDatabaseCatalog() *schema.Resource {
 						},
 						"tables": {
 							Required: true,
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -64,7 +64,7 @@ func resourceDatabaseCatalog() *schema.Resource {
 									},
 									"columns": {
 										Required: true,
-										Type:     schema.TypeList,
+										Type:     schema.TypeSet,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"name": {
@@ -88,12 +88,19 @@ func resourceDatabaseCatalog() *schema.Resource {
 												},
 											},
 										},
+										Set: func(i interface{}) int {
+											return internal.ToHashcodeInt(columnHash(i))
+										},
 									},
 								},
+							},
+							Set: func(i interface{}) int {
+								return internal.ToHashcodeInt(tableHash(i))
 							},
 						},
 					},
 				},
+				Set: schemaHash,
 			},
 		},
 	}
@@ -177,7 +184,7 @@ func convertToDatabaseCatalog(d *schema.ResourceData) (*v1pb.DatabaseCatalog, er
 	if !ok || database == "" {
 		return nil, errors.Errorf("invalid database")
 	}
-	rawSchemaList, ok := d.Get("schemas").([]interface{})
+	rawSchemaList, ok := d.Get("schemas").(*schema.Set)
 	if !ok {
 		return nil, errors.Errorf("invalid schemas")
 	}
@@ -187,17 +194,17 @@ func convertToDatabaseCatalog(d *schema.ResourceData) (*v1pb.DatabaseCatalog, er
 		Schemas: []*v1pb.SchemaCatalog{},
 	}
 
-	for _, schema := range rawSchemaList {
-		rawSchema := schema.(map[string]interface{})
-		schema := &v1pb.SchemaCatalog{
+	for _, raw := range rawSchemaList.List() {
+		rawSchema := raw.(map[string]interface{})
+		schemaCatalog := &v1pb.SchemaCatalog{
 			Name: rawSchema["name"].(string),
 		}
 
-		rawTableList, ok := rawSchema["tables"].([]interface{})
+		rawTableList, ok := rawSchema["tables"].(*schema.Set)
 		if !ok {
 			return nil, errors.Errorf("invalid tables")
 		}
-		for _, table := range rawTableList {
+		for _, table := range rawTableList.List() {
 			rawTable := table.(map[string]interface{})
 			table := &v1pb.TableCatalog{
 				Name:           rawTable["name"].(string),
@@ -205,11 +212,11 @@ func convertToDatabaseCatalog(d *schema.ResourceData) (*v1pb.DatabaseCatalog, er
 			}
 
 			columnList := []*v1pb.ColumnCatalog{}
-			rawColumnList, ok := rawTable["columns"].([]interface{})
+			rawColumnList, ok := rawTable["columns"].(*schema.Set)
 			if !ok {
 				return nil, errors.Errorf("invalid columns")
 			}
-			for _, column := range rawColumnList {
+			for _, column := range rawColumnList.List() {
 				rawColumn := column.(map[string]interface{})
 				labels := map[string]string{}
 				for key, val := range rawColumn["labels"].(map[string]interface{}) {
@@ -231,10 +238,10 @@ func convertToDatabaseCatalog(d *schema.ResourceData) (*v1pb.DatabaseCatalog, er
 				},
 			}
 
-			schema.Tables = append(schema.Tables, table)
+			schemaCatalog.Tables = append(schemaCatalog.Tables, table)
 		}
 
-		catalog.Schemas = append(catalog.Schemas, schema)
+		catalog.Schemas = append(catalog.Schemas, schemaCatalog)
 	}
 
 	return catalog, nil

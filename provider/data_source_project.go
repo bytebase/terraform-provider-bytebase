@@ -87,7 +87,7 @@ func dataSourceProject() *schema.Resource {
 
 func getProjectDatabasesSchema(computed bool) *schema.Schema {
 	return &schema.Schema{
-		Type:        schema.TypeList,
+		Type:        schema.TypeSet,
 		Computed:    computed,
 		Optional:    !computed,
 		Description: "The databases in the project.",
@@ -128,6 +128,7 @@ func getProjectDatabasesSchema(computed bool) *schema.Schema {
 				},
 			},
 		},
+		Set: databaseHash,
 	}
 }
 
@@ -352,7 +353,8 @@ func setProject(
 		return diag.Errorf("cannot set postgres_database_tenant_mode for project: %s", err.Error())
 	}
 
-	if err := d.Set("databases", flattenDatabaseList(listDBResponse.Databases)); err != nil {
+	databaseList := flattenDatabaseList(listDBResponse.Databases)
+	if err := d.Set("databases", schema.NewSet(databaseHash, databaseList)); err != nil {
 		return diag.Errorf("cannot set databases for project: %s", err.Error())
 	}
 
@@ -365,6 +367,16 @@ func setProject(
 	}
 
 	return nil
+}
+
+func databaseHash(rawDatabase interface{}) int {
+	var buf bytes.Buffer
+	database := rawDatabase.(map[string]interface{})
+
+	if v, ok := database["name"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	return internal.ToHashcodeInt(buf.String())
 }
 
 func memberHash(rawMember interface{}) int {

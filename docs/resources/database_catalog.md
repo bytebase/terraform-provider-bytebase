@@ -18,7 +18,7 @@ The database catalog resource.
 ### Required
 
 - `database` (String) The database full name in instances/{instance}/databases/{database} format
-- `schemas` (Block List, Min: 1) (see [below for nested schema](#nestedblock--schemas))
+- `schemas` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--schemas))
 
 ### Read-Only
 
@@ -29,7 +29,7 @@ The database catalog resource.
 
 Required:
 
-- `tables` (Block List, Min: 1) (see [below for nested schema](#nestedblock--schemas--tables))
+- `tables` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--schemas--tables))
 
 Optional:
 
@@ -40,7 +40,7 @@ Optional:
 
 Required:
 
-- `columns` (Block List, Min: 1) (see [below for nested schema](#nestedblock--schemas--tables--columns))
+- `columns` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--schemas--tables--columns))
 - `name` (String)
 
 Optional:

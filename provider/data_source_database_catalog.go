@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"regexp"
@@ -29,7 +30,7 @@ func dataSourceDatabaseCatalog() *schema.Resource {
 			},
 			"schemas": {
 				Computed: true,
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -38,7 +39,7 @@ func dataSourceDatabaseCatalog() *schema.Resource {
 						},
 						"tables": {
 							Computed: true,
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -52,7 +53,7 @@ func dataSourceDatabaseCatalog() *schema.Resource {
 									},
 									"columns": {
 										Computed: true,
-										Type:     schema.TypeList,
+										Type:     schema.TypeSet,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"name": {
@@ -76,12 +77,19 @@ func dataSourceDatabaseCatalog() *schema.Resource {
 												},
 											},
 										},
+										Set: func(i interface{}) int {
+											return internal.ToHashcodeInt(columnHash(i))
+										},
 									},
 								},
+							},
+							Set: func(i interface{}) int {
+								return internal.ToHashcodeInt(tableHash(i))
 							},
 						},
 					},
 				},
+				Set: schemaHash,
 			},
 		},
 	}
@@ -108,11 +116,11 @@ func setDatabaseCatalog(d *schema.ResourceData, catalog *v1pb.DatabaseCatalog) d
 	}
 
 	schemaList := []interface{}{}
-	for _, schema := range catalog.Schemas {
+	for _, schemaCatalog := range catalog.Schemas {
 		rawSchema := map[string]interface{}{}
 
 		tableList := []interface{}{}
-		for _, table := range schema.Tables {
+		for _, table := range schemaCatalog.Tables {
 			rawTable := map[string]interface{}{}
 			rawTable["name"] = table.Name
 			rawTable["classification"] = table.Classification
@@ -126,15 +134,64 @@ func setDatabaseCatalog(d *schema.ResourceData, catalog *v1pb.DatabaseCatalog) d
 				rawColumn["labels"] = column.Labels
 				columnList = append(columnList, rawColumn)
 			}
-			rawTable["columns"] = columnList
+			rawTable["columns"] = schema.NewSet(func(i interface{}) int {
+				return internal.ToHashcodeInt(columnHash(i))
+			}, columnList)
 			tableList = append(tableList, rawTable)
 		}
-		rawSchema["tables"] = tableList
+		rawSchema["tables"] = schema.NewSet(func(i interface{}) int {
+			return internal.ToHashcodeInt(tableHash(i))
+		}, tableList)
 		schemaList = append(schemaList, rawSchema)
 	}
 
-	if err := d.Set("schemas", schemaList); err != nil {
+	if err := d.Set("schemas", schema.NewSet(schemaHash, schemaList)); err != nil {
 		return diag.Errorf("cannot set schemas: %s", err.Error())
 	}
 	return nil
+}
+
+func columnHash(rawColumn interface{}) string {
+	var buf bytes.Buffer
+	column := rawColumn.(map[string]interface{})
+
+	if v, ok := column["name"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+
+	return buf.String()
+}
+
+func tableHash(rawTable interface{}) string {
+	var buf bytes.Buffer
+	table := rawTable.(map[string]interface{})
+
+	if v, ok := table["name"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if columns, ok := table["columns"].(*schema.Set); ok {
+		for _, column := range columns.List() {
+			rawColumn := column.(map[string]interface{})
+			_, _ = buf.WriteString(columnHash(rawColumn))
+		}
+	}
+
+	return buf.String()
+}
+
+func schemaHash(rawSchema interface{}) int {
+	var buf bytes.Buffer
+	raw := rawSchema.(map[string]interface{})
+
+	if v, ok := raw["name"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if tables, ok := raw["tables"].(*schema.Set); ok {
+		for _, table := range tables.List() {
+			rawTable := table.(map[string]interface{})
+			_, _ = buf.WriteString(tableHash(rawTable))
+		}
+	}
+
+	return internal.ToHashcodeInt(buf.String())
 }

@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"regexp"
@@ -83,7 +84,7 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 					Optional: true,
 					Default:  nil,
 					MinItems: 0,
-					Type:     schema.TypeList,
+					Type:     schema.TypeSet,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"database": {
@@ -134,6 +135,7 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 							},
 						},
 					},
+					Set: exceptionHash,
 				},
 			},
 		},
@@ -243,7 +245,36 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 		exceptionList = append(exceptionList, raw)
 	}
 	policy := map[string]interface{}{
-		"exceptions": exceptionList,
+		"exceptions": schema.NewSet(exceptionHash, exceptionList),
 	}
 	return []interface{}{policy}, nil
+}
+
+func exceptionHash(rawException interface{}) int {
+	var buf bytes.Buffer
+	exception := rawException.(map[string]interface{})
+
+	if v, ok := exception["database"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := exception["schema"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := exception["table"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := exception["column"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := exception["member"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := exception["action"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := exception["expire_timestamp"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+
+	return internal.ToHashcodeInt(buf.String())
 }

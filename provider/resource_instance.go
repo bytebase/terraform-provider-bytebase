@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"regexp"
@@ -103,7 +104,7 @@ func resourceInstance() *schema.Resource {
 				Description: "The maximum number of connections.",
 			},
 			"data_sources": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Required:    true,
 				MinItems:    1,
 				Description: "The connection for the instance. You can configure read-only or admin connection account here.",
@@ -177,6 +178,7 @@ func resourceInstance() *schema.Resource {
 						},
 					},
 				},
+				Set: dataSourceHash,
 			},
 		},
 	}
@@ -473,7 +475,7 @@ func setInstanceMessage(d *schema.ResourceData, instance *v1pb.Instance) diag.Di
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("data_sources", dataSources); err != nil {
+	if err := d.Set("data_sources", schema.NewSet(dataSourceHash, dataSources)); err != nil {
 		return diag.Errorf("cannot set data_sources for instance: %s", err.Error())
 	}
 
@@ -512,51 +514,67 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 	return res, nil
 }
 
+func dataSourceHash(rawDataSource interface{}) int {
+	var buf bytes.Buffer
+	dataSource := rawDataSource.(map[string]interface{})
+
+	if v, ok := dataSource["id"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := dataSource["type"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	return internal.ToHashcodeInt(buf.String())
+}
+
 func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb.DataSource, error) {
 	var dataSourceList []*v1pb.DataSource
-	if rawList, ok := d.Get("data_sources").([]interface{}); ok {
-		dataSourceTypeMap := map[v1pb.DataSourceType]bool{}
-		for _, raw := range rawList {
-			obj := raw.(map[string]interface{})
-			dataSource := &v1pb.DataSource{
-				Id:   obj["id"].(string),
-				Type: v1pb.DataSourceType(v1pb.DataSourceType_value[obj["type"].(string)]),
-			}
-			if dataSourceTypeMap[dataSource.Type] && dataSource.Type == v1pb.DataSourceType_ADMIN {
-				return nil, errors.Errorf("duplicate data source type ADMIN")
-			}
-			dataSourceTypeMap[dataSource.Type] = true
+	dataSourceSet, ok := d.Get("data_sources").(*schema.Set)
+	if !ok {
+		return dataSourceList, nil
+	}
 
-			if v, ok := obj["username"].(string); ok {
-				dataSource.Username = v
-			}
-			if v, ok := obj["password"].(string); ok && v != "" {
-				dataSource.Password = v
-			}
-			if v, ok := obj["ssl_ca"].(string); ok {
-				dataSource.SslCa = v
-			}
-			if v, ok := obj["ssl_cert"].(string); ok {
-				dataSource.SslCert = v
-			}
-			if v, ok := obj["ssl_key"].(string); ok {
-				dataSource.SslKey = v
-			}
-			if v, ok := obj["host"].(string); ok {
-				dataSource.Host = v
-			}
-			if v, ok := obj["port"].(string); ok {
-				dataSource.Port = v
-			}
-			if v, ok := obj["database"].(string); ok {
-				dataSource.Database = v
-			}
-			dataSourceList = append(dataSourceList, dataSource)
+	dataSourceTypeMap := map[v1pb.DataSourceType]bool{}
+	for _, raw := range dataSourceSet.List() {
+		obj := raw.(map[string]interface{})
+		dataSource := &v1pb.DataSource{
+			Id:   obj["id"].(string),
+			Type: v1pb.DataSourceType(v1pb.DataSourceType_value[obj["type"].(string)]),
 		}
+		if dataSourceTypeMap[dataSource.Type] && dataSource.Type == v1pb.DataSourceType_ADMIN {
+			return nil, errors.Errorf("duplicate data source type ADMIN")
+		}
+		dataSourceTypeMap[dataSource.Type] = true
 
-		if !dataSourceTypeMap[v1pb.DataSourceType_ADMIN] && validate {
-			return nil, errors.Errorf("data source \"%v\" is required", v1pb.DataSourceType_ADMIN.String())
+		if v, ok := obj["username"].(string); ok {
+			dataSource.Username = v
 		}
+		if v, ok := obj["password"].(string); ok && v != "" {
+			dataSource.Password = v
+		}
+		if v, ok := obj["ssl_ca"].(string); ok {
+			dataSource.SslCa = v
+		}
+		if v, ok := obj["ssl_cert"].(string); ok {
+			dataSource.SslCert = v
+		}
+		if v, ok := obj["ssl_key"].(string); ok {
+			dataSource.SslKey = v
+		}
+		if v, ok := obj["host"].(string); ok {
+			dataSource.Host = v
+		}
+		if v, ok := obj["port"].(string); ok {
+			dataSource.Port = v
+		}
+		if v, ok := obj["database"].(string); ok {
+			dataSource.Database = v
+		}
+		dataSourceList = append(dataSourceList, dataSource)
+	}
+
+	if !dataSourceTypeMap[v1pb.DataSourceType_ADMIN] && validate {
+		return nil, errors.Errorf("data source \"%v\" is required", v1pb.DataSourceType_ADMIN.String())
 	}
 
 	return dataSourceList, nil

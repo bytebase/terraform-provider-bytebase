@@ -17,7 +17,7 @@ The instance resource.
 
 ### Required
 
-- `data_sources` (Block List, Min: 1) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_sources))
+- `data_sources` (Block Set, Min: 1) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_sources))
 - `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.
 - `environment` (String) The environment full name for the instance in environments/{environment id} format.
 - `resource_id` (String) The instance unique resource id.

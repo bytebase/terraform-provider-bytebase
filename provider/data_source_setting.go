@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -72,7 +73,7 @@ func getClassificationSetting(computed bool) *schema.Schema {
 				"levels": {
 					Computed: computed,
 					Optional: true,
-					Type:     schema.TypeList,
+					Type:     schema.TypeSet,
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -96,11 +97,12 @@ func getClassificationSetting(computed bool) *schema.Schema {
 							},
 						},
 					},
+					Set: itemIDHash,
 				},
 				"classifications": {
 					Computed: computed,
 					Optional: true,
-					Type:     schema.TypeList,
+					Type:     schema.TypeSet,
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -130,6 +132,7 @@ func getClassificationSetting(computed bool) *schema.Schema {
 							},
 						},
 					},
+					Set: itemIDHash,
 				},
 			},
 		},
@@ -194,7 +197,7 @@ func getExternalApprovalSetting(computed bool) *schema.Schema {
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"nodes": {
-					Type:     schema.TypeList,
+					Type:     schema.TypeSet,
 					Computed: computed,
 					Required: !computed,
 					Elem: &schema.Resource{
@@ -219,6 +222,7 @@ func getExternalApprovalSetting(computed bool) *schema.Schema {
 							},
 						},
 					},
+					Set: itemIDHash,
 				},
 			},
 		},
@@ -544,7 +548,7 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 			rawLevel["description"] = level.Description
 			rawLevels = append(rawLevels, rawLevel)
 		}
-		raw["levels"] = rawLevels
+		raw["levels"] = schema.NewSet(itemIDHash, rawLevels)
 
 		rawClassifications := []interface{}{}
 		for _, classification := range config.GetClassification() {
@@ -555,8 +559,19 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 			rawClassification["level"] = classification.LevelId
 			rawClassifications = append(rawClassifications, rawClassification)
 		}
-		raw["classifications"] = rawClassifications
+		raw["classifications"] = schema.NewSet(itemIDHash, rawClassifications)
 	}
 
 	return []interface{}{raw}
+}
+
+func itemIDHash(rawItem interface{}) int {
+	var buf bytes.Buffer
+	item := rawItem.(map[string]interface{})
+
+	if v, ok := item["id"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+
+	return internal.ToHashcodeInt(buf.String())
 }

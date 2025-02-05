@@ -176,8 +176,11 @@ func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassif
 		return nil, errors.Errorf("id is required for classification config")
 	}
 
-	rawLevels := raw["levels"].([]interface{})
-	for _, level := range rawLevels {
+	rawLevels := raw["levels"].(*schema.Set)
+	if !ok {
+		return nil, errors.Errorf("levels is required for classification config")
+	}
+	for _, level := range rawLevels.List() {
 		rawLevel := level.(map[string]interface{})
 		classificationLevel := &v1pb.DataClassificationSetting_DataClassificationConfig_Level{
 			Id:          rawLevel["id"].(string),
@@ -193,8 +196,11 @@ func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassif
 		dataClassificationConfig.Levels = append(dataClassificationConfig.Levels, classificationLevel)
 	}
 
-	rawClassificationss := raw["classifications"].([]interface{})
-	for _, classification := range rawClassificationss {
+	rawClassificationss := raw["classifications"].(*schema.Set)
+	if !ok {
+		return nil, errors.Errorf("classifications is required for classification config")
+	}
+	for _, classification := range rawClassificationss.List() {
 		rawClassification := classification.(map[string]interface{})
 		classificationData := &v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification{
 			Id:          rawClassification["id"].(string),
@@ -228,10 +234,14 @@ func convertToV1ExternalNodesSetting(d *schema.ResourceData) (*v1pb.ExternalAppr
 	}
 
 	raw := rawList[0].(map[string]interface{})
-	nodes := raw["nodes"].([]interface{})
+	nodes, ok := raw["nodes"].(*schema.Set)
+	if !ok {
+		return nil, errors.Errorf("missing nodes")
+	}
+
 	externalApprovalSetting := &v1pb.ExternalApprovalSetting{}
 
-	for _, node := range nodes {
+	for _, node := range nodes.List() {
 		rawNode := node.(map[string]interface{})
 		externalApprovalSetting.Nodes = append(externalApprovalSetting.Nodes, &v1pb.ExternalApprovalSetting_Node{
 			Id:       rawNode["id"].(string),
