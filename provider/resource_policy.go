@@ -215,11 +215,14 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 	}
 
 	raw := rawList[0].(map[string]interface{})
-	exceptionList := raw["exceptions"].([]interface{})
+	exceptionList, ok := raw["exceptions"].(*schema.Set)
+	if !ok {
+		return nil, errors.Errorf("invalid exceptions")
+	}
 
 	policy := &v1pb.MaskingExceptionPolicy{}
 
-	for _, exception := range exceptionList {
+	for _, exception := range exceptionList.List() {
 		rawException := exception.(map[string]interface{})
 
 		databaseFullName := rawException["database"].(string)

@@ -412,6 +412,22 @@ func (c *mockClient) UpdateDatabase(ctx context.Context, patch *v1pb.Database, u
 	return db, nil
 }
 
+// BatchUpdateDatabases batch updates databases.
+func (c *mockClient) BatchUpdateDatabases(ctx context.Context, request *v1pb.BatchUpdateDatabasesRequest) (*v1pb.BatchUpdateDatabasesResponse, error) {
+	for _, req := range request.Requests {
+		db, err := c.GetDatabase(ctx, req.Database.Name)
+		if err != nil {
+			return nil, err
+		}
+		if slices.Contains(req.UpdateMask.Paths, "project") {
+			db.Project = req.Database.Project
+		}
+		c.databaseMap[db.Name] = db
+	}
+
+	return &v1pb.BatchUpdateDatabasesResponse{}, nil
+}
+
 // GetDatabaseCatalog gets the database catalog by the database full name.
 func (c *mockClient) GetDatabaseCatalog(_ context.Context, databaseName string) (*v1pb.DatabaseCatalog, error) {
 	db, ok := c.databaseCatalogMap[databaseName]

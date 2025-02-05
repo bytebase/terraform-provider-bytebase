@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // GetDatabase gets the database by the database full name.
@@ -57,6 +59,32 @@ func (c *client) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updat
 	}
 
 	var res v1pb.Database
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+// BatchUpdateDatabases batch updates databases.
+func (c *client) BatchUpdateDatabases(ctx context.Context, request *v1pb.BatchUpdateDatabasesRequest) (*v1pb.BatchUpdateDatabasesResponse, error) {
+	requestURL := fmt.Sprintf("%s/%s/instances/-/databases:batchUpdate", c.url, c.version)
+	payload, err := protojson.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", requestURL, strings.NewReader(string(payload)))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var res v1pb.BatchUpdateDatabasesResponse
 	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}

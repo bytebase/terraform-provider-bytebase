@@ -63,7 +63,7 @@ func dataSourceInstance() *schema.Resource {
 				Description: "The maximum number of connections. The default value is 10.",
 			},
 			"data_sources": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -123,6 +123,7 @@ func dataSourceInstance() *schema.Resource {
 						},
 					},
 				},
+				Set: dataSourceHash,
 			},
 		},
 	}
