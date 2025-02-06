@@ -27,7 +27,7 @@ resource "bytebase_project" "sample_project" {
       database         = "instances/test-sample-instance/databases/employee"
       tables           = ["dept_emp", "dept_manager"]
       row_limit        = 10000
-      expire_timestamp = "2027-03-09T16:17:49.637Z"
+      expire_timestamp = "2027-03-09T16:17:49Z"
     }
   }
 }

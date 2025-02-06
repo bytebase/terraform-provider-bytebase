@@ -191,7 +191,7 @@ func getProjectMembersSchema(computed bool) *schema.Schema {
 								Type:        schema.TypeString,
 								Computed:    computed,
 								Optional:    true,
-								Description: "The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format",
+								Description: "The expiration timestamp in YYYY-MM-DDThh:mm:ssZ format",
 							},
 						},
 					},
@@ -300,7 +300,7 @@ func setProject(
 	project *v1pb.Project,
 ) diag.Diagnostics {
 	filter := fmt.Sprintf(`project == "%s"`, project.Name)
-	listDBResponse, err := client.ListDatabase(ctx, "-", filter)
+	databases, err := client.ListDatabase(ctx, "-", filter)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -353,7 +353,7 @@ func setProject(
 		return diag.Errorf("cannot set postgres_database_tenant_mode for project: %s", err.Error())
 	}
 
-	databaseList := flattenDatabaseList(listDBResponse.Databases)
+	databaseList := flattenDatabaseList(databases)
 	if err := d.Set("databases", schema.NewSet(databaseHash, databaseList)); err != nil {
 		return diag.Errorf("cannot set databases for project: %s", err.Error())
 	}
