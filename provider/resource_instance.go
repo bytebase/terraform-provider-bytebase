@@ -180,6 +180,7 @@ func resourceInstance() *schema.Resource {
 				},
 				Set: dataSourceHash,
 			},
+			"databases": getDatabasesSchema(true),
 		},
 	}
 }
@@ -325,7 +326,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	return setInstanceMessage(d, instance)
+	return setInstanceMessage(ctx, c, d, instance)
 }
 
 func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -436,7 +437,12 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 	return diags
 }
 
-func setInstanceMessage(d *schema.ResourceData, instance *v1pb.Instance) diag.Diagnostics {
+func setInstanceMessage(
+	ctx context.Context,
+	client api.Client,
+	d *schema.ResourceData,
+	instance *v1pb.Instance,
+) diag.Diagnostics {
 	instanceID, err := internal.GetInstanceID(instance.Name)
 	if err != nil {
 		return diag.FromErr(err)
@@ -477,6 +483,15 @@ func setInstanceMessage(d *schema.ResourceData, instance *v1pb.Instance) diag.Di
 	}
 	if err := d.Set("data_sources", schema.NewSet(dataSourceHash, dataSources)); err != nil {
 		return diag.Errorf("cannot set data_sources for instance: %s", err.Error())
+	}
+
+	databases, err := client.ListDatabase(ctx, instanceID, "")
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	databaseList := flattenDatabaseList(databases)
+	if err := d.Set("databases", schema.NewSet(databaseHash, databaseList)); err != nil {
+		return diag.Errorf("cannot set databases for instance: %s", err.Error())
 	}
 
 	return nil

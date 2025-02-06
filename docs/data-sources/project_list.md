@@ -51,6 +51,7 @@ Read-Only:
 - `environment` (String)
 - `labels` (Map of String)
 - `name` (String)
+- `project` (String)
 - `schema_version` (String)
 - `successful_sync_time` (String)
 - `sync_state` (String)
