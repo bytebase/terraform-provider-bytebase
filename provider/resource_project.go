@@ -98,7 +98,7 @@ func resourceProjct() *schema.Resource {
 				Default:     false,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
-			"databases": getProjectDatabasesSchema(false),
+			"databases": getDatabasesSchema(false),
 			"members":   getProjectMembersSchema(false),
 		},
 	}

@@ -74,7 +74,7 @@ func dataSourceInstanceList() *schema.Resource {
 							Description: "The maximum number of connections. The default value is 10.",
 						},
 						"data_sources": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -134,7 +134,9 @@ func dataSourceInstanceList() *schema.Resource {
 									},
 								},
 							},
+							Set: dataSourceHash,
 						},
+						"databases": getDatabasesSchema(true),
 					},
 				},
 			},
@@ -178,7 +180,14 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		ins["data_sources"] = dataSources
+		ins["data_sources"] = schema.NewSet(dataSourceHash, dataSources)
+
+		databases, err := c.ListDatabase(ctx, instanceID, "")
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		databaseList := flattenDatabaseList(databases)
+		ins["databases"] = schema.NewSet(databaseHash, databaseList)
 
 		instances = append(instances, ins)
 	}

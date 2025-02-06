@@ -79,18 +79,18 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
-			"databases": getProjectDatabasesSchema(true),
+			"databases": getDatabasesSchema(true),
 			"members":   getProjectMembersSchema(true),
 		},
 	}
 }
 
-func getProjectDatabasesSchema(computed bool) *schema.Schema {
+func getDatabasesSchema(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeSet,
 		Computed:    computed,
 		Optional:    !computed,
-		Description: "The databases in the project.",
+		Description: "The databases in the resource.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": {
@@ -98,6 +98,11 @@ func getProjectDatabasesSchema(computed bool) *schema.Schema {
 					Computed:    computed,
 					Optional:    !computed,
 					Description: "The database full name in instances/{instance id}/databases/{db name} format.",
+				},
+				"project": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The project full name for the database.",
 				},
 				"environment": {
 					Type:        schema.TypeString,
@@ -222,6 +227,7 @@ func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
 	for _, database := range databases {
 		db := map[string]interface{}{}
 		db["name"] = database.Name
+		db["project"] = database.Project
 		db["environment"] = database.Environment
 		db["sync_state"] = database.SyncState.String()
 		db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)

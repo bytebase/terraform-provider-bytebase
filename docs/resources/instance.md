@@ -31,6 +31,7 @@ The instance resource.
 
 ### Read-Only
 
+- `databases` (Set of Object) The databases in the resource. (see [below for nested schema](#nestedatt--databases))
 - `engine_version` (String) The engine version.
 - `id` (String) The ID of this resource.
 - `name` (String) The instance full name in instances/{resource id} format.
@@ -53,5 +54,19 @@ Optional:
 - `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `ssl_key` (String, Sensitive) The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
+
+
+<a id="nestedatt--databases"></a>
+### Nested Schema for `databases`
+
+Read-Only:
+
+- `environment` (String)
+- `labels` (Map of String)
+- `name` (String)
+- `project` (String)
+- `schema_version` (String)
+- `successful_sync_time` (String)
+- `sync_state` (String)
 
 
