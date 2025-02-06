@@ -26,12 +26,37 @@ func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Da
 	return &res, nil
 }
 
-// ListDatabase list the databases.
-func (c *client) ListDatabase(ctx context.Context, instanceID, filter string) (*v1pb.ListDatabasesResponse, error) {
-	requestURL := fmt.Sprintf("%s/%s/instances/%s/databases", c.url, c.version, instanceID)
-	if filter != "" {
-		requestURL = fmt.Sprintf("%s?filter=%s", requestURL, url.QueryEscape(filter))
+// ListDatabase list all databases.
+func (c *client) ListDatabase(ctx context.Context, instanceID, filter string) ([]*v1pb.Database, error) {
+	res := []*v1pb.Database{}
+	pageToken := ""
+
+	for true {
+		resp, err := c.listDatabase(ctx, instanceID, filter, pageToken, 500)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, resp.Databases...)
+		pageToken = resp.NextPageToken
+		if pageToken == "" {
+			break
+		}
 	}
+
+	return res, nil
+}
+
+// listDatabase list the databases.
+func (c *client) listDatabase(ctx context.Context, instanceID, filter, pageToken string, pageSize int) (*v1pb.ListDatabasesResponse, error) {
+	requestURL := fmt.Sprintf(
+		"%s/%s/instances/%s/databases?filter=%s&page_size=%d&page_token=%s",
+		c.url,
+		c.version,
+		instanceID,
+		url.QueryEscape(filter),
+		pageSize,
+		pageToken,
+	)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {

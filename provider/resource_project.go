@@ -367,12 +367,12 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
 	filter := fmt.Sprintf(`project == "%s"`, projectName)
-	listDB, err := client.ListDatabase(ctx, "-", filter)
+	databases, err := client.ListDatabase(ctx, "-", filter)
 	if err != nil {
 		return diag.Errorf("failed to list database with error: %v", err)
 	}
 	existedDBMap := map[string]*v1pb.Database{}
-	for _, db := range listDB.Databases {
+	for _, db := range databases {
 		existedDBMap[db.Name] = db
 	}
 

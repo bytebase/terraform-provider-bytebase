@@ -125,12 +125,12 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["postgres_database_tenant_mode"] = project.PostgresDatabaseTenantMode
 
 		filter := fmt.Sprintf(`project == "%s"`, project.Name)
-		response, err := c.ListDatabase(ctx, "-", filter)
+		databases, err := c.ListDatabase(ctx, "-", filter)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		proj["databases"] = flattenDatabaseList(response.Databases)
+		proj["databases"] = flattenDatabaseList(databases)
 
 		iamPolicy, err := c.GetProjectIAMPolicy(ctx, project.Name)
 		if err != nil {
