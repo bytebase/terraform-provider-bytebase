@@ -31,8 +31,8 @@ func (c *client) ListDatabase(ctx context.Context, instanceID, filter string) ([
 	res := []*v1pb.Database{}
 	pageToken := ""
 
-	for true {
-		resp, err := c.listDatabase(ctx, instanceID, filter, pageToken, 500)
+	for {
+		resp, err := c.listDatabasePerPage(ctx, instanceID, filter, pageToken, 500)
 		if err != nil {
 			return nil, err
 		}
@@ -46,8 +46,8 @@ func (c *client) ListDatabase(ctx context.Context, instanceID, filter string) ([
 	return res, nil
 }
 
-// listDatabase list the databases.
-func (c *client) listDatabase(ctx context.Context, instanceID, filter, pageToken string, pageSize int) (*v1pb.ListDatabasesResponse, error) {
+// listDatabasePerPage list the databases.
+func (c *client) listDatabasePerPage(ctx context.Context, instanceID, filter, pageToken string, pageSize int) (*v1pb.ListDatabasesResponse, error) {
 	requestURL := fmt.Sprintf(
 		"%s/%s/instances/%s/databases?filter=%s&page_size=%d&page_token=%s",
 		c.url,
