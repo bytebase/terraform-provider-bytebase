@@ -191,7 +191,7 @@ func getProjectMembersSchema(computed bool) *schema.Schema {
 								Type:        schema.TypeString,
 								Computed:    computed,
 								Optional:    true,
-								Description: "The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format",
+								Description: "The expiration timestamp in YYYY-MM-DDThh:mm:ssZ format",
 							},
 						},
 					},
