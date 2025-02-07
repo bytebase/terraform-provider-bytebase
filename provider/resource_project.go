@@ -417,7 +417,7 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 			end = len(batchTransferDatabases)
 		}
 		batch := batchTransferDatabases[i:end]
-		tflog.Info(ctx, fmt.Sprintf("transfering databases for range [%d, %d]", i, end))
+		tflog.Info(ctx, fmt.Sprintf("transfer databases for range [%d, %d]", i, end))
 		if _, err := client.BatchUpdateDatabases(ctx, &v1pb.BatchUpdateDatabasesRequest{
 			Requests: batch,
 			Parent:   "instances/-",
