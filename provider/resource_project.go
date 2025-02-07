@@ -369,7 +369,7 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 	filter := fmt.Sprintf(`project == "%s"`, projectName)
 	databases, err := client.ListDatabase(ctx, "-", filter)
 	if err != nil {
-		return diag.Errorf("failed to list database with error: %v", err)
+		return diag.Errorf("failed to list database with error: %v", err.Error())
 	}
 	existedDBMap := map[string]*v1pb.Database{}
 	for _, db := range databases {
@@ -414,14 +414,14 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 			Requests: batchTransferDatabases,
 			Parent:   "instances/-",
 		}); err != nil {
-			return diag.Errorf("failed to assign databases to project %s", projectName)
+			return diag.Errorf("failed to assign databases to project %s with error: %v", projectName, err.Error())
 		}
 	}
 
 	for _, database := range updatedDBMap {
 		if len(database.Labels) > 0 {
 			if _, err := client.UpdateDatabase(ctx, database, []string{"label"}); err != nil {
-				return diag.Errorf("failed to update database %s with error: %v", database.Name, err)
+				return diag.Errorf("failed to update database %s with error: %v", database.Name, err.Error())
 			}
 		}
 	}
@@ -444,7 +444,7 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 			Requests: unassignDatabases,
 			Parent:   "instances/-",
 		}); err != nil {
-			return diag.Errorf("failed to move databases to default project")
+			return diag.Errorf("failed to move databases to default project with error: %v", err.Error())
 		}
 	}
 
