@@ -365,6 +365,8 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 	return diags
 }
 
+const batchSize = 50
+
 func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
 	filter := fmt.Sprintf(`project == "%s"`, projectName)
 	databases, err := client.ListDatabase(ctx, "-", filter)
@@ -409,9 +411,15 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 		}
 	}
 
-	if len(batchTransferDatabases) > 0 {
+	for i := 0; i < len(batchTransferDatabases); i += batchSize {
+		end := i + batchSize
+		if end > len(batchTransferDatabases) {
+			end = len(batchTransferDatabases)
+		}
+		batch := batchTransferDatabases[i:end]
+		tflog.Info(ctx, fmt.Sprintf("transfer databases for range [%d, %d]", i, end))
 		if _, err := client.BatchUpdateDatabases(ctx, &v1pb.BatchUpdateDatabasesRequest{
-			Requests: batchTransferDatabases,
+			Requests: batch,
 			Parent:   "instances/-",
 		}); err != nil {
 			return diag.Errorf("failed to assign databases to project %s with error: %v", projectName, err.Error())
@@ -439,9 +447,15 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 			})
 		}
 	}
-	if len(unassignDatabases) > 0 {
+	for i := 0; i < len(unassignDatabases); i += batchSize {
+		end := i + batchSize
+		if end > len(unassignDatabases) {
+			end = len(unassignDatabases)
+		}
+		batch := unassignDatabases[i:end]
+		tflog.Info(ctx, fmt.Sprintf("unassign databases for range [%d, %d]", i, end))
 		if _, err := client.BatchUpdateDatabases(ctx, &v1pb.BatchUpdateDatabasesRequest{
-			Requests: unassignDatabases,
+			Requests: batch,
 			Parent:   "instances/-",
 		}); err != nil {
 			return diag.Errorf("failed to move databases to default project with error: %v", err.Error())
