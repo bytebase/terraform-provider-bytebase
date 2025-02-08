@@ -25,11 +25,11 @@ var defaultProj = fmt.Sprintf("%sdefault", internal.ProjectNamePrefix)
 
 func resourceProjct() *schema.Resource {
 	return &schema.Resource{
-		Description:        "The project resource.",
-		CreateContext:      resourceProjectCreate,
-		ReadWithoutTimeout: resourceProjectRead,
-		UpdateContext:      resourceProjectUpdate,
-		DeleteContext:      resourceProjectDelete,
+		Description:          "The project resource.",
+		CreateWithoutTimeout: resourceProjectCreate,
+		ReadWithoutTimeout:   resourceProjectRead,
+		UpdateWithoutTimeout: resourceProjectUpdate,
+		DeleteContext:        resourceProjectDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
