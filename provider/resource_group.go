@@ -42,6 +42,7 @@ func resourceGroup() *schema.Resource {
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "The group description.",
 			},
 			"name": {

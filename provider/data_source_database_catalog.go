@@ -152,14 +152,8 @@ func setDatabaseCatalog(d *schema.ResourceData, catalog *v1pb.DatabaseCatalog) d
 }
 
 func columnHash(rawColumn interface{}) string {
-	var buf bytes.Buffer
 	column := rawColumn.(map[string]interface{})
-
-	if v, ok := column["name"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-
-	return buf.String()
+	return column["name"].(string)
 }
 
 func tableHash(rawTable interface{}) string {

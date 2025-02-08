@@ -342,6 +342,17 @@ func (c *mockClient) UpsertPolicy(_ context.Context, patch *v1pb.Policy, updateM
 				MaskingExceptionPolicy: v,
 			}
 		}
+	case v1pb.PolicyType_MASKING_RULE:
+		if !existed {
+			if patch.GetMaskingRulePolicy() == nil {
+				return nil, errors.Errorf("payload is required to create the policy")
+			}
+		}
+		if v := patch.GetMaskingRulePolicy(); v != nil {
+			policy.Policy = &v1pb.Policy_MaskingRulePolicy{
+				MaskingRulePolicy: v,
+			}
+		}
 	default:
 		return nil, errors.Errorf("invalid policy type %v", policyType)
 	}

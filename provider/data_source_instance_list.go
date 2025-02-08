@@ -14,8 +14,8 @@ import (
 
 func dataSourceInstanceList() *schema.Resource {
 	return &schema.Resource{
-		Description: "The instance data source list.",
-		ReadContext: dataSourceInstanceListRead,
+		Description:        "The instance data source list.",
+		ReadWithoutTimeout: dataSourceInstanceListRead,
 		Schema: map[string]*schema.Schema{
 			"show_deleted": {
 				Type:        schema.TypeBool,
@@ -182,7 +182,7 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		}
 		ins["data_sources"] = schema.NewSet(dataSourceHash, dataSources)
 
-		databases, err := c.ListDatabase(ctx, instanceID, "")
+		databases, err := c.ListDatabase(ctx, instance.Name, "")
 		if err != nil {
 			return diag.FromErr(err)
 		}

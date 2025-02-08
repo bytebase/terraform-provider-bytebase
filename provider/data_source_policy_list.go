@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
@@ -63,6 +65,7 @@ func dataSourcePolicyList() *schema.Resource {
 							Description: "Decide if the policy is enforced.",
 						},
 						"masking_exception_policy": getMaskingExceptionPolicySchema(true),
+						"global_masking_policy":    getGlobalMaskingPolicySchema(true),
 					},
 				},
 			},
@@ -80,6 +83,9 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 
 	policies := make([]map[string]interface{}, 0)
 	for _, policy := range response.Policies {
+		if policy.Type != v1pb.PolicyType_MASKING_EXCEPTION && policy.Type != v1pb.PolicyType_MASKING_RULE {
+			continue
+		}
 		raw := make(map[string]interface{})
 		raw["name"] = policy.Name
 		raw["type"] = policy.Type.String()
@@ -92,6 +98,13 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 				return diag.FromErr(err)
 			}
 			raw["masking_exception_policy"] = exceptionPolicy
+		}
+		if p := policy.GetMaskingRulePolicy(); p != nil {
+			maskingPolicy, err := flattenGlobalMaskingPolicy(p)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			raw["global_masking_policy"] = maskingPolicy
 		}
 
 		policies = append(policies, raw)

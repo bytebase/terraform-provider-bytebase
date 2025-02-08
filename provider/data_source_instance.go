@@ -13,8 +13,8 @@ import (
 
 func dataSourceInstance() *schema.Resource {
 	return &schema.Resource{
-		Description: "The instance data source.",
-		ReadContext: dataSourceInstanceRead,
+		Description:        "The instance data source.",
+		ReadWithoutTimeout: dataSourceInstanceRead,
 		Schema: map[string]*schema.Schema{
 			"resource_id": {
 				Type:         schema.TypeString,

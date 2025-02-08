@@ -59,7 +59,8 @@ func resourceDatabaseCatalog() *schema.Resource {
 									"classification": {
 										Type:        schema.TypeString,
 										Optional:    true,
-										Default:     "",
+										Computed:    true,
+										Default:     nil,
 										Description: "The classification id",
 									},
 									"columns": {
@@ -74,11 +75,13 @@ func resourceDatabaseCatalog() *schema.Resource {
 												"semantic_type": {
 													Type:        schema.TypeString,
 													Optional:    true,
+													Computed:    true,
 													Description: "The semantic type id",
 												},
 												"classification": {
 													Type:        schema.TypeString,
 													Optional:    true,
+													Computed:    true,
 													Description: "The classification id",
 												},
 												"labels": {

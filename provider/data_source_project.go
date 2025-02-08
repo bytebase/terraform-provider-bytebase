@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/pkg/errors"
@@ -20,8 +21,8 @@ import (
 
 func dataSourceProject() *schema.Resource {
 	return &schema.Resource{
-		Description: "The project data source.",
-		ReadContext: dataSourceProjectRead,
+		Description:        "The project data source.",
+		ReadWithoutTimeout: dataSourceProjectRead,
 		Schema: map[string]*schema.Schema{
 			"resource_id": {
 				Type:         schema.TypeString,
@@ -124,13 +125,6 @@ func getDatabasesSchema(computed bool) *schema.Schema {
 					Computed:    true,
 					Description: "The version of database schema.",
 				},
-				"labels": {
-					Type:        schema.TypeMap,
-					Computed:    computed,
-					Optional:    !computed,
-					Description: "The deployment and policy control labels.",
-					Elem:        &schema.Schema{Type: schema.TypeString},
-				},
 			},
 		},
 		Set: databaseHash,
@@ -232,7 +226,6 @@ func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
 		db["sync_state"] = database.SyncState.String()
 		db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
 		db["schema_version"] = database.SchemaVersion
-		db["labels"] = database.Labels
 		dbList = append(dbList, db)
 	}
 	return dbList
@@ -305,8 +298,11 @@ func setProject(
 	d *schema.ResourceData,
 	project *v1pb.Project,
 ) diag.Diagnostics {
-	filter := fmt.Sprintf(`project == "%s"`, project.Name)
-	databases, err := client.ListDatabase(ctx, "-", filter)
+	tflog.Debug(ctx, "[read project] start reading project", map[string]interface{}{
+		"project": project.Name,
+	})
+
+	databases, err := client.ListDatabase(ctx, project.Name, "")
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -359,11 +355,18 @@ func setProject(
 		return diag.Errorf("cannot set postgres_database_tenant_mode for project: %s", err.Error())
 	}
 
+	startTime := time.Now()
 	databaseList := flattenDatabaseList(databases)
 	if err := d.Set("databases", schema.NewSet(databaseHash, databaseList)); err != nil {
 		return diag.Errorf("cannot set databases for project: %s", err.Error())
 	}
+	tflog.Debug(ctx, "[read project] set project databases", map[string]interface{}{
+		"project":   project.Name,
+		"databases": len(databases),
+		"ms":        time.Since(startTime).Milliseconds(),
+	})
 
+	startTime = time.Now()
 	memberList, err := flattenMemberList(iamPolicy)
 	if err != nil {
 		return diag.FromErr(err)
@@ -372,17 +375,18 @@ func setProject(
 		return diag.Errorf("cannot set members for project: %s", err.Error())
 	}
 
+	tflog.Debug(ctx, "[read project] set project members", map[string]interface{}{
+		"project": project.Name,
+		"members": len(memberList),
+		"ms":      time.Since(startTime).Milliseconds(),
+	})
+
 	return nil
 }
 
 func databaseHash(rawDatabase interface{}) int {
-	var buf bytes.Buffer
 	database := rawDatabase.(map[string]interface{})
-
-	if v, ok := database["name"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	return internal.ToHashcodeInt(buf.String())
+	return internal.ToHashcodeInt(database["name"].(string))
 }
 
 func memberHash(rawMember interface{}) int {
