@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -27,32 +29,44 @@ func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Da
 }
 
 // ListDatabase list all databases.
-func (c *client) ListDatabase(ctx context.Context, instanceID, filter string) ([]*v1pb.Database, error) {
+func (c *client) ListDatabase(ctx context.Context, parent, filter string) ([]*v1pb.Database, error) {
 	res := []*v1pb.Database{}
 	pageToken := ""
+	startTime := time.Now()
 
 	for {
-		resp, err := c.listDatabasePerPage(ctx, instanceID, filter, pageToken, 500)
+		startTimePerPage := time.Now()
+		resp, err := c.listDatabasePerPage(ctx, parent, filter, pageToken, 500)
 		if err != nil {
 			return nil, err
 		}
 		res = append(res, resp.Databases...)
+		tflog.Debug(ctx, "[list database per page]", map[string]interface{}{
+			"count": len(resp.Databases),
+			"ms":    time.Since(startTimePerPage).Milliseconds(),
+		})
+
 		pageToken = resp.NextPageToken
 		if pageToken == "" {
 			break
 		}
 	}
 
+	tflog.Debug(ctx, "[list database]", map[string]interface{}{
+		"total": len(res),
+		"ms":    time.Since(startTime).Milliseconds(),
+	})
+
 	return res, nil
 }
 
 // listDatabasePerPage list the databases.
-func (c *client) listDatabasePerPage(ctx context.Context, instanceID, filter, pageToken string, pageSize int) (*v1pb.ListDatabasesResponse, error) {
+func (c *client) listDatabasePerPage(ctx context.Context, parent, filter, pageToken string, pageSize int) (*v1pb.ListDatabasesResponse, error) {
 	requestURL := fmt.Sprintf(
-		"%s/%s/instances/%s/databases?filter=%s&page_size=%d&page_token=%s",
+		"%s/%s/%s/databases?filter=%s&page_size=%d&page_token=%s",
 		c.url,
 		c.version,
-		instanceID,
+		parent,
 		url.QueryEscape(filter),
 		pageSize,
 		pageToken,

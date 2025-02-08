@@ -9,6 +9,10 @@ resource "bytebase_user" "workspace_dba" {
 
 # Create or update the user.
 resource "bytebase_user" "project_developer" {
+  depends_on = [
+    bytebase_user.workspace_dba
+  ]
+
   title = "Developer"
   email = "developer@bytebase.com"
 

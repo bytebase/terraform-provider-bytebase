@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -15,8 +14,8 @@ import (
 
 func dataSourceProjectList() *schema.Resource {
 	return &schema.Resource{
-		Description: "The project data source list.",
-		ReadContext: dataSourceProjectListRead,
+		Description:        "The project data source list.",
+		ReadWithoutTimeout: dataSourceProjectListRead,
 		Schema: map[string]*schema.Schema{
 			"show_deleted": {
 				Type:        schema.TypeBool,
@@ -124,8 +123,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["skip_backup_errors"] = project.AllowModifyStatement
 		proj["postgres_database_tenant_mode"] = project.PostgresDatabaseTenantMode
 
-		filter := fmt.Sprintf(`project == "%s"`, project.Name)
-		databases, err := c.ListDatabase(ctx, "-", filter)
+		databases, err := c.ListDatabase(ctx, project.Name, "")
 		if err != nil {
 			return diag.FromErr(err)
 		}

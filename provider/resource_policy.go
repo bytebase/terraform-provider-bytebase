@@ -52,6 +52,7 @@ func resourcePolicy() *schema.Resource {
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					v1pb.PolicyType_MASKING_EXCEPTION.String(),
+					v1pb.PolicyType_MASKING_RULE.String(),
 				}, false),
 				Description: "The policy type.",
 			},
@@ -73,6 +74,7 @@ func resourcePolicy() *schema.Resource {
 				Description: "Decide if the policy should inherit from the parent.",
 			},
 			"masking_exception_policy": getMaskingExceptionPolicySchema(false),
+			"global_masking_policy":    getGlobalMaskingPolicySchema(false),
 		},
 	}
 }
@@ -123,7 +125,8 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		Type:              policyType,
 	}
 
-	if policyType == v1pb.PolicyType_MASKING_EXCEPTION {
+	switch policyType {
+	case v1pb.PolicyType_MASKING_EXCEPTION:
 		maskingExceptionPolicy, err := convertToMaskingExceptionPolicy(d)
 		if err != nil {
 			return diag.FromErr(err)
@@ -131,6 +134,16 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.Policy = &v1pb.Policy_MaskingExceptionPolicy{
 			MaskingExceptionPolicy: maskingExceptionPolicy,
 		}
+	case v1pb.PolicyType_MASKING_RULE:
+		maskingRulePolicy, err := convertToMaskingRulePolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_MaskingRulePolicy{
+			MaskingRulePolicy: maskingRulePolicy,
+		}
+	default:
+		return diag.Errorf("unsupport policy type: %v", policyName)
 	}
 
 	var diags diag.Diagnostics
@@ -187,6 +200,16 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 			MaskingExceptionPolicy: maskingExceptionPolicy,
 		}
 	}
+	if d.HasChange("global_masking_policy") {
+		updateMasks = append(updateMasks, "payload")
+		maskingRulePolicy, err := convertToMaskingRulePolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_MaskingRulePolicy{
+			MaskingRulePolicy: maskingRulePolicy,
+		}
+	}
 
 	var diags diag.Diagnostics
 	if len(updateMasks) > 0 {
@@ -206,6 +229,34 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	return diags
+}
+
+func convertToMaskingRulePolicy(d *schema.ResourceData) (*v1pb.MaskingRulePolicy, error) {
+	rawList, ok := d.Get("global_masking_policy").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid global_masking_policy")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+	ruleList, ok := raw["rules"].([]interface{})
+	if !ok {
+		return nil, errors.Errorf("invalid masking rules")
+	}
+
+	policy := &v1pb.MaskingRulePolicy{}
+
+	for _, rule := range ruleList {
+		rawRule := rule.(map[string]interface{})
+		policy.Rules = append(policy.Rules, &v1pb.MaskingRulePolicy_MaskingRule{
+			Id:           rawRule["id"].(string),
+			SemanticType: rawRule["semantic_type"].(string),
+			Condition: &expr.Expr{
+				Expression: rawRule["condition"].(string),
+			},
+		})
+	}
+
+	return policy, nil
 }
 
 func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExceptionPolicy, error) {

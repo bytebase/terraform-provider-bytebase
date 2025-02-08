@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"regexp"
@@ -21,11 +20,11 @@ import (
 
 func resourceInstance() *schema.Resource {
 	return &schema.Resource{
-		Description:   "The instance resource.",
-		CreateContext: resourceInstanceCreate,
-		ReadContext:   resourceInstanceRead,
-		UpdateContext: resourceInstanceUpdate,
-		DeleteContext: resourceInstanceDelete,
+		Description:        "The instance resource.",
+		CreateContext:      resourceInstanceCreate,
+		ReadWithoutTimeout: resourceInstanceRead,
+		UpdateContext:      resourceInstanceUpdate,
+		DeleteContext:      resourceInstanceDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -89,12 +88,14 @@ func resourceInstance() *schema.Resource {
 			"external_link": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "",
+				Computed:    true,
+				Default:     nil,
 				Description: "The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)",
 			},
 			"sync_interval": {
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Default:     0,
 				Description: "How often the instance is synced in seconds. Default 0, means never sync.",
 			},
 			"maximum_connections": {
@@ -300,6 +301,10 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 	}
 
+	tflog.Debug(ctx, "[upsert instance] instance created, start to sync schema", map[string]interface{}{
+		"instance": instanceName,
+	})
+
 	if err := c.SyncInstanceSchema(ctx, instanceName); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
@@ -309,10 +314,18 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 	d.SetId(instanceName)
 
+	tflog.Debug(ctx, "[upsert instance] sync schema finished. now reading instance", map[string]interface{}{
+		"instance": instanceName,
+	})
+
 	diag := resourceInstanceRead(ctx, d, m)
 	if diag != nil {
 		diags = append(diags, diag...)
 	}
+
+	tflog.Debug(ctx, "[upsert instance] upsert instance finished", map[string]interface{}{
+		"instance": instanceName,
+	})
 
 	return diags
 }
@@ -326,7 +339,11 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	return setInstanceMessage(ctx, c, d, instance)
+	resp := setInstanceMessage(ctx, c, d, instance)
+	tflog.Debug(ctx, "[read instance] read instance finished", map[string]interface{}{
+		"instance": instance.Name,
+	})
+	return resp
 }
 
 func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -443,6 +460,10 @@ func setInstanceMessage(
 	d *schema.ResourceData,
 	instance *v1pb.Instance,
 ) diag.Diagnostics {
+	tflog.Debug(ctx, "[read instance] start reading instance", map[string]interface{}{
+		"instance": instance.Name,
+	})
+
 	instanceID, err := internal.GetInstanceID(instance.Name)
 	if err != nil {
 		return diag.FromErr(err)
@@ -485,7 +506,11 @@ func setInstanceMessage(
 		return diag.Errorf("cannot set data_sources for instance: %s", err.Error())
 	}
 
-	databases, err := client.ListDatabase(ctx, instanceID, "")
+	tflog.Debug(ctx, "[read instance] start set instance databases", map[string]interface{}{
+		"instance": instance.Name,
+	})
+
+	databases, err := client.ListDatabase(ctx, instance.Name, "")
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -530,16 +555,8 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 }
 
 func dataSourceHash(rawDataSource interface{}) int {
-	var buf bytes.Buffer
 	dataSource := rawDataSource.(map[string]interface{})
-
-	if v, ok := dataSource["id"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := dataSource["type"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	return internal.ToHashcodeInt(buf.String())
+	return internal.ToHashcodeInt(dataSource["id"].(string))
 }
 
 func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb.DataSource, error) {

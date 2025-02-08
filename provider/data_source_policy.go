@@ -46,6 +46,7 @@ func dataSourcePolicy() *schema.Resource {
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					v1pb.PolicyType_MASKING_EXCEPTION.String(),
+					v1pb.PolicyType_MASKING_RULE.String(),
 				}, false),
 				Description: "The policy type.",
 			},
@@ -65,6 +66,7 @@ func dataSourcePolicy() *schema.Resource {
 				Description: "Decide if the policy is enforced.",
 			},
 			"masking_exception_policy": getMaskingExceptionPolicySchema(true),
+			"global_masking_policy":    getGlobalMaskingPolicySchema(true),
 		},
 	}
 }
@@ -142,6 +144,53 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 	}
 }
 
+func getGlobalMaskingPolicySchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed: computed,
+		Optional: true,
+		Default:  nil,
+		Type:     schema.TypeList,
+		MinItems: 0,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"rules": {
+					Computed: computed,
+					Optional: true,
+					Default:  nil,
+					MinItems: 0,
+					Type:     schema.TypeList,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"id": {
+								Type:         schema.TypeString,
+								Computed:     computed,
+								Optional:     true,
+								ValidateFunc: validation.StringIsNotEmpty,
+								Description:  "The unique rule id",
+							},
+							"semantic_type": {
+								Type:         schema.TypeString,
+								Computed:     computed,
+								Optional:     true,
+								ValidateFunc: validation.StringIsNotEmpty,
+								Description:  "The semantic type id",
+							},
+							"condition": {
+								Type:         schema.TypeString,
+								Computed:     computed,
+								Optional:     true,
+								ValidateFunc: validation.StringIsNotEmpty,
+								Description:  "The condition expression",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
@@ -183,7 +232,38 @@ func setPolicyMessage(d *schema.ResourceData, policy *v1pb.Policy) diag.Diagnost
 		}
 	}
 
+	if p := policy.GetMaskingRulePolicy(); p != nil {
+		maskingPolicy, err := flattenGlobalMaskingPolicy(p)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if err := d.Set("global_masking_policy", maskingPolicy); err != nil {
+			return diag.Errorf("cannot set global_masking_policy: %s", err.Error())
+		}
+	}
+
 	return nil
+}
+
+func flattenGlobalMaskingPolicy(p *v1pb.MaskingRulePolicy) ([]interface{}, error) {
+	ruleList := []interface{}{}
+
+	for _, rule := range p.Rules {
+		if rule.Condition == nil || rule.Condition.Expression == "" {
+			return nil, errors.Errorf("invalid global masking policy condition")
+		}
+		raw := map[string]interface{}{}
+		raw["id"] = rule.Id
+		raw["semantic_type"] = rule.SemanticType
+		raw["condition"] = rule.Condition.Expression
+
+		ruleList = append(ruleList, raw)
+	}
+
+	policy := map[string]interface{}{
+		"rules": ruleList,
+	}
+	return []interface{}{policy}, nil
 }
 
 func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{}, error) {

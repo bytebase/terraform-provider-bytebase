@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
@@ -566,12 +565,6 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 }
 
 func itemIDHash(rawItem interface{}) int {
-	var buf bytes.Buffer
 	item := rawItem.(map[string]interface{})
-
-	if v, ok := item["id"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-
-	return internal.ToHashcodeInt(buf.String())
+	return internal.ToHashcodeInt(item["id"].(string))
 }
