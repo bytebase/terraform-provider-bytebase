@@ -80,54 +80,8 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
-			"databases": getDatabasesSchema(true),
-			"members":   getProjectMembersSchema(true),
+			"members": getProjectMembersSchema(true),
 		},
-	}
-}
-
-func getDatabasesSchema(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Type:        schema.TypeSet,
-		Computed:    computed,
-		Optional:    !computed,
-		Description: "The databases in the resource.",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"name": {
-					Type:        schema.TypeString,
-					Computed:    computed,
-					Optional:    !computed,
-					Description: "The database full name in instances/{instance id}/databases/{db name} format.",
-				},
-				"project": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The project full name for the database.",
-				},
-				"environment": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The database environment.",
-				},
-				"sync_state": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The existence of a database on latest sync.",
-				},
-				"successful_sync_time": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The latest synchronization time.",
-				},
-				"schema_version": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The version of database schema.",
-				},
-			},
-		},
-		Set: databaseHash,
 	}
 }
 
@@ -216,21 +170,6 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 	return setProject(ctx, c, d, project)
 }
 
-func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
-	dbList := []interface{}{}
-	for _, database := range databases {
-		db := map[string]interface{}{}
-		db["name"] = database.Name
-		db["project"] = database.Project
-		db["environment"] = database.Environment
-		db["sync_state"] = database.SyncState.String()
-		db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
-		db["schema_version"] = database.SchemaVersion
-		dbList = append(dbList, db)
-	}
-	return dbList
-}
-
 func flattenMemberList(iamPolicy *v1pb.IamPolicy) ([]interface{}, error) {
 	memberList := []interface{}{}
 	for _, binding := range iamPolicy.Bindings {
@@ -302,11 +241,6 @@ func setProject(
 		"project": project.Name,
 	})
 
-	databases, err := client.ListDatabase(ctx, project.Name, "")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	iamPolicy, err := client.GetProjectIAMPolicy(ctx, project.Name)
 	if err != nil {
 		return diag.Errorf("failed to get project iam with error: %v", err)
@@ -356,17 +290,6 @@ func setProject(
 	}
 
 	startTime := time.Now()
-	databaseList := flattenDatabaseList(databases)
-	if err := d.Set("databases", schema.NewSet(databaseHash, databaseList)); err != nil {
-		return diag.Errorf("cannot set databases for project: %s", err.Error())
-	}
-	tflog.Debug(ctx, "[read project] set project databases", map[string]interface{}{
-		"project":   project.Name,
-		"databases": len(databases),
-		"ms":        time.Since(startTime).Milliseconds(),
-	})
-
-	startTime = time.Now()
 	memberList, err := flattenMemberList(iamPolicy)
 	if err != nil {
 		return diag.FromErr(err)
@@ -382,11 +305,6 @@ func setProject(
 	})
 
 	return nil
-}
-
-func databaseHash(rawDatabase interface{}) int {
-	database := rawDatabase.(map[string]interface{})
-	return internal.ToHashcodeInt(database["name"].(string))
 }
 
 func memberHash(rawMember interface{}) int {

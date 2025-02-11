@@ -181,7 +181,6 @@ func resourceInstance() *schema.Resource {
 				},
 				Set: dataSourceHash,
 			},
-			"databases": getDatabasesSchema(true),
 		},
 	}
 }
@@ -339,7 +338,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	resp := setInstanceMessage(ctx, c, d, instance)
+	resp := setInstanceMessage(ctx, d, instance)
 	tflog.Debug(ctx, "[read instance] read instance finished", map[string]interface{}{
 		"instance": instance.Name,
 	})
@@ -362,8 +361,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	existedInstance, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
-		tflog.Debug(ctx, fmt.Sprintf("get instance %s failed with error: %v", instanceName, err))
-		return diag.FromErr(err)
+		return diag.Errorf("get instance %s failed with error: %v", instanceName, err)
 	}
 
 	var diags diag.Diagnostics
@@ -456,7 +454,6 @@ func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 func setInstanceMessage(
 	ctx context.Context,
-	client api.Client,
 	d *schema.ResourceData,
 	instance *v1pb.Instance,
 ) diag.Diagnostics {
@@ -504,19 +501,6 @@ func setInstanceMessage(
 	}
 	if err := d.Set("data_sources", schema.NewSet(dataSourceHash, dataSources)); err != nil {
 		return diag.Errorf("cannot set data_sources for instance: %s", err.Error())
-	}
-
-	tflog.Debug(ctx, "[read instance] start set instance databases", map[string]interface{}{
-		"instance": instance.Name,
-	})
-
-	databases, err := client.ListDatabase(ctx, instance.Name, "")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	databaseList := flattenDatabaseList(databases)
-	if err := d.Set("databases", schema.NewSet(databaseHash, databaseList)); err != nil {
-		return diag.Errorf("cannot set databases for instance: %s", err.Error())
 	}
 
 	return nil

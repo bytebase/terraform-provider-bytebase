@@ -32,7 +32,6 @@ Read-Only:
 - `allow_modify_statement` (Boolean)
 - `auto_enable_backup` (Boolean)
 - `auto_resolve_issue` (Boolean)
-- `databases` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--databases))
 - `enforce_issue_title` (Boolean)
 - `key` (String)
 - `members` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--members))
@@ -42,20 +41,6 @@ Read-Only:
 - `skip_backup_errors` (Boolean)
 - `title` (String)
 - `workflow` (String)
-
-<a id="nestedobjatt--projects--databases"></a>
-### Nested Schema for `projects.databases`
-
-Read-Only:
-
-- `environment` (String)
-- `labels` (Map of String)
-- `name` (String)
-- `project` (String)
-- `schema_version` (String)
-- `successful_sync_time` (String)
-- `sync_state` (String)
-
 
 <a id="nestedobjatt--projects--members"></a>
 ### Nested Schema for `projects.members`

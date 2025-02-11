@@ -195,8 +195,7 @@ func resourceVCSProviderUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	existedProvider, err := c.GetVCSProvider(ctx, providerName)
 	if err != nil {
-		tflog.Debug(ctx, fmt.Sprintf("get vcs provider %s failed with error: %v", providerName, err))
-		return diag.FromErr(err)
+		return diag.Errorf("get vcs provider %s failed with error: %v", providerName, err)
 	}
 
 	paths := []string{}

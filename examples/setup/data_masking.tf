@@ -40,34 +40,6 @@ resource "bytebase_setting" "classification" {
   }
 }
 
-resource "bytebase_database_catalog" "employee_catalog" {
-  depends_on = [
-    bytebase_instance.test,
-    bytebase_setting.classification
-  ]
-
-  database = "instances/test-sample-instance/databases/employee"
-
-  schemas {
-    tables {
-      name = "salary"
-      columns {
-        name          = "amount"
-        semantic_type = "default"
-      }
-      columns {
-        name           = "emp_no"
-        semantic_type  = "default-partial"
-        classification = "1-1"
-        labels = {
-          tenant = "example"
-          region = "asia"
-        }
-      }
-    }
-  }
-}
-
 resource "bytebase_policy" "masking_exception_policy" {
   depends_on = [
     bytebase_project.sample_project,

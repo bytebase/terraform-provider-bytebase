@@ -252,8 +252,7 @@ func resourceVCSConnectorUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	existedConnector, err := c.GetVCSConnector(ctx, connectorName)
 	if err != nil {
-		tflog.Debug(ctx, fmt.Sprintf("get vcs connector %s failed with error: %v", connectorName, err))
-		return diag.FromErr(err)
+		return diag.Errorf("get vcs connector %s failed with error: %v", connectorName, err)
 	}
 
 	paths := []string{}
