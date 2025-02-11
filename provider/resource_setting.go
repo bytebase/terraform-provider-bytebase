@@ -466,7 +466,7 @@ func resourceSettingDelete(_ context.Context, d *schema.ResourceData, _ interfac
 	diags = append(diags, diag.Diagnostic{
 		Severity: diag.Warning,
 		Summary:  "Unsupport delete setting",
-		Detail:   fmt.Sprintf("We don't support delete the setting, will only remove it from the terraform state"),
+		Detail:   "We don't support delete the setting, will only remove it from the terraform state",
 	})
 
 	d.SetId("")
