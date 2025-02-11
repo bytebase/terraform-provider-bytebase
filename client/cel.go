@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"github.com/pkg/errors"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
@@ -32,8 +30,6 @@ func (c *client) ParseExpression(ctx context.Context, expression string) (*v1alp
 	if err != nil {
 		return nil, err
 	}
-
-	tflog.Debug(ctx, fmt.Sprintf("parse cel response:\n%v", string(body)))
 
 	var res v1pb.BatchParseResponse
 	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {

@@ -150,7 +150,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		if title != "" && title != existedProject.Title {
 			updateMasks = append(updateMasks, "title")
 		}
-		if key != "" && key != existedProject.Key {
+		if key != "" && key != existedProject.Key && existedProject.Key != "" {
 			updateMasks = append(updateMasks, "key")
 		}
 		if allowModifyStatement != existedProject.AllowModifyStatement {
@@ -269,7 +269,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("title") {
 		paths = append(paths, "title")
 	}
-	if d.HasChange("key") {
+	if d.HasChange("key") && existedProject.Key != "" {
 		paths = append(paths, "key")
 	}
 	if d.HasChange("allow_modify_statement") {

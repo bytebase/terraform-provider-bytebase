@@ -11,13 +11,6 @@ resource "bytebase_project" "sample_project" {
   title       = "Sample project"
   key         = "SAMM"
 
-  dynamic "databases" {
-    for_each = bytebase_instance.prod.databases
-    content {
-      name = databases.value.name
-    }
-  }
-
   members {
     member = format("user:%s", bytebase_user.workspace_dba.email)
     role   = "roles/projectOwner"

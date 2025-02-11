@@ -12,6 +12,8 @@ const (
 	SettingWorkspaceExternalApproval SettingName = "bb.workspace.approval.external"
 	// SettingDataClassification is the setting name for data classification.
 	SettingDataClassification SettingName = "bb.workspace.data-classification"
+	// SettingSemanticTypes is the setting name for semantic types.
+	SettingSemanticTypes SettingName = "bb.workspace.semantic-types"
 )
 
 // RiskLevel is the approval risk level.

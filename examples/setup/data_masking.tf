@@ -40,6 +40,50 @@ resource "bytebase_setting" "classification" {
   }
 }
 
+resource "bytebase_setting" "semantic_types" {
+  name = "bb.workspace.semantic-types"
+
+  semantic_types {
+    id    = "bb.default"
+    title = "Default"
+  }
+
+  semantic_types {
+    id    = "bb.default-partial"
+    title = "Default partial"
+  }
+
+  semantic_types {
+    id    = "9c84e2a6-02e5-4031-89c5-13342b568f7b"
+    title = "Full mask"
+    algorithm {
+      full_mask {
+        substitution = "***"
+      }
+    }
+  }
+
+  semantic_types {
+    id    = "bb14d0ae-5aff-4f65-9143-bced63f8b054"
+    title = "Range mask"
+    algorithm {
+      range_mask {
+        slices {
+          start        = 0
+          end          = 1
+          substitution = "*"
+        }
+
+        slices {
+          start        = 2
+          end          = 3
+          substitution = "*"
+        }
+      }
+    }
+  }
+}
+
 resource "bytebase_policy" "masking_exception_policy" {
   depends_on = [
     bytebase_project.sample_project,
