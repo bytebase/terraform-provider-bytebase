@@ -23,6 +23,7 @@ The policy resource.
 ### Optional
 
 - `enforce` (Boolean) Decide if the policy is enforced.
+- `global_masking_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--global_masking_policy))
 - `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
 - `masking_exception_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exception_policy))
 
@@ -30,6 +31,24 @@ The policy resource.
 
 - `id` (String) The ID of this resource.
 - `name` (String) The policy full name
+
+<a id="nestedblock--global_masking_policy"></a>
+### Nested Schema for `global_masking_policy`
+
+Optional:
+
+- `rules` (Block List) (see [below for nested schema](#nestedblock--global_masking_policy--rules))
+
+<a id="nestedblock--global_masking_policy--rules"></a>
+### Nested Schema for `global_masking_policy.rules`
+
+Optional:
+
+- `condition` (String) The condition expression
+- `id` (String) The unique rule id
+- `semantic_type` (String) The semantic type id
+
+
 
 <a id="nestedblock--masking_exception_policy"></a>
 ### Nested Schema for `masking_exception_policy`

@@ -83,8 +83,7 @@ func dataSourceProjectList() *schema.Resource {
 							Computed:    true,
 							Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 						},
-						"databases": getDatabasesSchema(true),
-						"members":   getProjectMembersSchema(true),
+						"members": getProjectMembersSchema(true),
 					},
 				},
 			},
@@ -122,14 +121,6 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["auto_enable_backup"] = project.AutoEnableBackup
 		proj["skip_backup_errors"] = project.AllowModifyStatement
 		proj["postgres_database_tenant_mode"] = project.PostgresDatabaseTenantMode
-
-		databases, err := c.ListDatabase(ctx, project.Name, "")
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		databaseList := flattenDatabaseList(databases)
-		proj["databases"] = schema.NewSet(databaseHash, databaseList)
 
 		iamPolicy, err := c.GetProjectIAMPolicy(ctx, project.Name)
 		if err != nil {

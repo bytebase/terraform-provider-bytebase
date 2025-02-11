@@ -125,7 +125,6 @@ func dataSourceInstance() *schema.Resource {
 				},
 				Set: dataSourceHash,
 			},
-			"databases": getDatabasesSchema(true),
 		},
 	}
 }
@@ -141,5 +140,5 @@ func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId(ins.Name)
 
-	return setInstanceMessage(ctx, c, d, ins)
+	return setInstanceMessage(ctx, d, ins)
 }

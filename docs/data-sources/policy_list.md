@@ -30,10 +30,29 @@ The policy data source list.
 Read-Only:
 
 - `enforce` (Boolean)
+- `global_masking_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--global_masking_policy))
 - `inherit_from_parent` (Boolean)
 - `masking_exception_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy))
 - `name` (String)
 - `type` (String)
+
+<a id="nestedobjatt--policies--global_masking_policy"></a>
+### Nested Schema for `policies.global_masking_policy`
+
+Read-Only:
+
+- `rules` (List of Object) (see [below for nested schema](#nestedobjatt--policies--global_masking_policy--rules))
+
+<a id="nestedobjatt--policies--global_masking_policy--rules"></a>
+### Nested Schema for `policies.global_masking_policy.rules`
+
+Read-Only:
+
+- `condition` (String)
+- `id` (String)
+- `semantic_type` (String)
+
+
 
 <a id="nestedobjatt--policies--masking_exception_policy"></a>
 ### Nested Schema for `policies.masking_exception_policy`

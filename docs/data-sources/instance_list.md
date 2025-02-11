@@ -30,7 +30,6 @@ The instance data source list.
 Read-Only:
 
 - `data_sources` (Set of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources))
-- `databases` (Set of Object) (see [below for nested schema](#nestedobjatt--instances--databases))
 - `engine` (String)
 - `engine_version` (String)
 - `environment` (String)
@@ -56,19 +55,5 @@ Read-Only:
 - `ssl_key` (String)
 - `type` (String)
 - `username` (String)
-
-
-<a id="nestedobjatt--instances--databases"></a>
-### Nested Schema for `instances.databases`
-
-Read-Only:
-
-- `environment` (String)
-- `labels` (Map of String)
-- `name` (String)
-- `project` (String)
-- `schema_version` (String)
-- `successful_sync_time` (String)
-- `sync_state` (String)
 
 

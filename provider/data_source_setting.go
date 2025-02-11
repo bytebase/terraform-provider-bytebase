@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -468,8 +467,6 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 
 		conditionList := []map[string]interface{}{}
 		if rule.Condition.Expression != "" {
-			tflog.Debug(ctx, rule.Condition.Expression)
-
 			parsedExpr, err := client.ParseExpression(ctx, rule.Condition.Expression)
 			if err != nil {
 				return nil, err

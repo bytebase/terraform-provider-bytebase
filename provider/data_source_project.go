@@ -80,8 +80,7 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
-			"databases": getDatabasesSchema(true),
-			"members":   getProjectMembersSchema(true),
+			"members": getProjectMembersSchema(true),
 		},
 	}
 }
@@ -302,11 +301,6 @@ func setProject(
 		"project": project.Name,
 	})
 
-	databases, err := client.ListDatabase(ctx, project.Name, "")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
 	iamPolicy, err := client.GetProjectIAMPolicy(ctx, project.Name)
 	if err != nil {
 		return diag.Errorf("failed to get project iam with error: %v", err)
@@ -356,17 +350,6 @@ func setProject(
 	}
 
 	startTime := time.Now()
-	databaseList := flattenDatabaseList(databases)
-	if err := d.Set("databases", schema.NewSet(databaseHash, databaseList)); err != nil {
-		return diag.Errorf("cannot set databases for project: %s", err.Error())
-	}
-	tflog.Debug(ctx, "[read project] set project databases", map[string]interface{}{
-		"project":   project.Name,
-		"databases": len(databases),
-		"ms":        time.Since(startTime).Milliseconds(),
-	})
-
-	startTime = time.Now()
 	memberList, err := flattenMemberList(iamPolicy)
 	if err != nil {
 		return diag.FromErr(err)

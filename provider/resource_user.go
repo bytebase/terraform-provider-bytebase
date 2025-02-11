@@ -244,8 +244,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 
 	existedUser, err := c.GetUser(ctx, userName)
 	if err != nil {
-		tflog.Debug(ctx, fmt.Sprintf("get user %s failed with error: %v", userName, err))
-		return diag.FromErr(err)
+		return diag.Errorf("get user %s failed with error: %v", userName, err)
 	}
 
 	var diags diag.Diagnostics
