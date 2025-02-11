@@ -3,12 +3,20 @@ resource "bytebase_project" "sample_project" {
   depends_on = [
     bytebase_user.workspace_dba,
     bytebase_user.project_developer,
-    bytebase_group.developers
+    bytebase_group.developers,
+    bytebase_instance.prod
   ]
 
   resource_id = local.project_id
   title       = "Sample project"
   key         = "SAMM"
+
+  dynamic "databases" {
+    for_each = bytebase_instance.prod.databases
+    content {
+      name = databases.value.name
+    }
+  }
 
   members {
     member = format("user:%s", bytebase_user.workspace_dba.email)
