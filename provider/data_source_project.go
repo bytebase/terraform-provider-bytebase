@@ -85,51 +85,6 @@ func dataSourceProject() *schema.Resource {
 	}
 }
 
-func getDatabasesSchema(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Type:        schema.TypeSet,
-		Computed:    computed,
-		Optional:    !computed,
-		Description: "The databases in the resource.",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"name": {
-					Type:        schema.TypeString,
-					Computed:    computed,
-					Optional:    !computed,
-					Description: "The database full name in instances/{instance id}/databases/{db name} format.",
-				},
-				"project": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The project full name for the database.",
-				},
-				"environment": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The database environment.",
-				},
-				"sync_state": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The existence of a database on latest sync.",
-				},
-				"successful_sync_time": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The latest synchronization time.",
-				},
-				"schema_version": {
-					Type:        schema.TypeString,
-					Computed:    true,
-					Description: "The version of database schema.",
-				},
-			},
-		},
-		Set: databaseHash,
-	}
-}
-
 func getProjectMembersSchema(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeSet,
@@ -213,21 +168,6 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId(project.Name)
 	return setProject(ctx, c, d, project)
-}
-
-func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
-	dbList := []interface{}{}
-	for _, database := range databases {
-		db := map[string]interface{}{}
-		db["name"] = database.Name
-		db["project"] = database.Project
-		db["environment"] = database.Environment
-		db["sync_state"] = database.SyncState.String()
-		db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
-		db["schema_version"] = database.SchemaVersion
-		dbList = append(dbList, db)
-	}
-	return dbList
 }
 
 func flattenMemberList(iamPolicy *v1pb.IamPolicy) ([]interface{}, error) {
@@ -365,11 +305,6 @@ func setProject(
 	})
 
 	return nil
-}
-
-func databaseHash(rawDatabase interface{}) int {
-	database := rawDatabase.(map[string]interface{})
-	return internal.ToHashcodeInt(database["name"].(string))
 }
 
 func memberHash(rawMember interface{}) int {
