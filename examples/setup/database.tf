@@ -15,11 +15,11 @@ resource "bytebase_database" "database" {
         name = "salary"
         columns {
           name          = "amount"
-          semantic_type = "default"
+          semantic_type = "bb.default"
         }
         columns {
           name           = "emp_no"
-          semantic_type  = "default-partial"
+          semantic_type  = "bb.default-partial"
           classification = "1-1"
           labels = {
             tenant = "example"

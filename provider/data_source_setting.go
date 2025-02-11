@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -29,13 +30,168 @@ func dataSourceSetting() *schema.Resource {
 					string(api.SettingWorkspaceExternalApproval),
 					string(api.SettingWorkspaceProfile),
 					string(api.SettingDataClassification),
+					string(api.SettingSemanticTypes),
 				}, false),
 			},
 			"approval_flow":           getWorkspaceApprovalSetting(true),
 			"external_approval_nodes": getExternalApprovalSetting(true),
 			"workspace_profile":       getWorkspaceProfileSetting(true),
 			"classification":          getClassificationSetting(true),
+			"semantic_types":          getSemanticTypesSetting(true),
 		},
+	}
+}
+
+func getSemanticTypesSetting(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeSet,
+		Description: "Semantic types for data masking. Require ENTERPRISE subscription.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"id": {
+					Type:        schema.TypeString,
+					Computed:    computed,
+					Optional:    true,
+					Description: "The semantic type unique uuid.",
+				},
+				"title": {
+					Type:        schema.TypeString,
+					Computed:    computed,
+					Optional:    true,
+					Description: "The semantic type title. Required.",
+				},
+				"description": {
+					Type:        schema.TypeString,
+					Computed:    computed,
+					Optional:    true,
+					Description: "The semantic type description. Optional.",
+				},
+				"algorithm": {
+					Type:        schema.TypeList,
+					Computed:    computed,
+					Optional:    true,
+					MaxItems:    1,
+					MinItems:    0,
+					Description: "The semantic type algorithm. Required.",
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"full_mask": {
+								Type:     schema.TypeList,
+								Computed: computed,
+								Optional: true,
+								MaxItems: 1,
+								MinItems: 1,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"substitution": {
+											Type:        schema.TypeString,
+											Computed:    computed,
+											Optional:    true,
+											Description: "Substitution is the string used to replace the original value, the max length of the string is 16 bytes.",
+										},
+									},
+								},
+							},
+							"range_mask": {
+								Type:     schema.TypeList,
+								Computed: computed,
+								Optional: true,
+								MaxItems: 1,
+								MinItems: 1,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"slices": {
+											Type:     schema.TypeList,
+											Computed: computed,
+											Optional: true,
+											MinItems: 1,
+											Elem: &schema.Resource{
+												Schema: map[string]*schema.Schema{
+													"start": {
+														Type:        schema.TypeInt,
+														Computed:    computed,
+														Optional:    true,
+														Description: "Start is the start index of the original value, start from 0 and should be less than stop.",
+													},
+													"end": {
+														Type:        schema.TypeInt,
+														Computed:    computed,
+														Optional:    true,
+														Description: "End is the stop index of the original value, should be less than the length of the original value.",
+													},
+													"substitution": {
+														Type:        schema.TypeString,
+														Computed:    computed,
+														Optional:    true,
+														Description: "Substitution is the string used to replace the OriginalValue[start:end).",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							"md5_mask": {
+								Type:     schema.TypeList,
+								Computed: computed,
+								Optional: true,
+								MaxItems: 1,
+								MinItems: 1,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"salt": {
+											Type:        schema.TypeString,
+											Computed:    computed,
+											Optional:    true,
+											Description: "Salt is the salt value to generate a different hash that with the word alone.",
+										},
+									},
+								},
+							},
+							"inner_outer_mask": {
+								Type:     schema.TypeList,
+								Computed: computed,
+								Optional: true,
+								MaxItems: 1,
+								MinItems: 1,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"prefix_len": {
+											Type:     schema.TypeInt,
+											Computed: computed,
+											Optional: true,
+										},
+										"suffix_len": {
+											Type:     schema.TypeInt,
+											Computed: computed,
+											Optional: true,
+										},
+										"substitution": {
+											Type:     schema.TypeString,
+											Computed: computed,
+											Optional: true,
+										},
+										"type": {
+											Type:     schema.TypeString,
+											Computed: computed,
+											Optional: true,
+											ValidateFunc: validation.StringInSlice([]string{
+												v1pb.Algorithm_InnerOuterMask_INNER.String(),
+												v1pb.Algorithm_InnerOuterMask_OUTER.String(),
+											}, false),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Set: itemIDHash,
 	}
 }
 
@@ -377,6 +533,19 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 			return diag.Errorf("cannot set classification: %s", err.Error())
 		}
 	}
+	if value := setting.Value.GetSemanticTypeSettingValue(); value != nil {
+		settingVal := flattenSemanticTypesSetting(value)
+		tflog.Debug(ctx, "flatten semantic types", map[string]interface{}{
+			"count": len(settingVal),
+		})
+		// 	semanticTypeSetting := map[string]interface{}{
+		// 	"semantic_types": schema.NewSet(itemIDHash, settingVal),
+		// }
+		// return []interface{}{approvalSetting}
+		if err := d.Set("semantic_types", schema.NewSet(itemIDHash, settingVal)); err != nil {
+			return diag.Errorf("cannot set semantic_types: %s", err.Error())
+		}
+	}
 
 	return nil
 }
@@ -559,6 +728,81 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 	}
 
 	return []interface{}{raw}
+}
+
+func flattenSemanticTypesSetting(setting *v1pb.SemanticTypeSetting) []interface{} {
+	raw := []interface{}{}
+
+	for _, semanticType := range setting.Types {
+		rawData := map[string]interface{}{}
+		rawData["id"] = semanticType.Id
+		rawData["title"] = semanticType.Title
+		rawData["description"] = semanticType.Description
+
+		if v := semanticType.Algorithm; v != nil {
+			switch m := v.Mask.(type) {
+			case *v1pb.Algorithm_FullMask_:
+				fullMask := map[string]interface{}{
+					"substitution": m.FullMask.Substitution,
+				}
+				rawData["algorithm"] = []interface{}{
+					map[string]interface{}{
+						"full_mask": []interface{}{
+							fullMask,
+						},
+					},
+				}
+			case *v1pb.Algorithm_RangeMask_:
+				rangeMaskSlices := []interface{}{}
+				for _, s := range m.RangeMask.Slices {
+					rangeMaskSlice := map[string]interface{}{}
+					rangeMaskSlice["start"] = s.Start
+					rangeMaskSlice["end"] = s.End
+					rangeMaskSlice["substitution"] = s.Substitution
+					rangeMaskSlices = append(rangeMaskSlices, rangeMaskSlice)
+				}
+				rangeMask := map[string]interface{}{
+					"slices": rangeMaskSlices,
+				}
+				rawData["algorithm"] = []interface{}{
+					map[string]interface{}{
+						"range_mask": []interface{}{
+							rangeMask,
+						},
+					},
+				}
+			case *v1pb.Algorithm_Md5Mask:
+				md5Mask := map[string]interface{}{
+					"salt": m.Md5Mask.Salt,
+				}
+				rawData["algorithm"] = []interface{}{
+					map[string]interface{}{
+						"md5_mask": []interface{}{
+							md5Mask,
+						},
+					},
+				}
+			case *v1pb.Algorithm_InnerOuterMask_:
+				innerOuterMask := map[string]interface{}{
+					"prefix_len":   m.InnerOuterMask.PrefixLen,
+					"suffix_len":   m.InnerOuterMask.SuffixLen,
+					"substitution": m.InnerOuterMask.Substitution,
+					"type":         m.InnerOuterMask.Type.String(),
+				}
+				rawData["algorithm"] = []interface{}{
+					map[string]interface{}{
+						"inner_outer_mask": []interface{}{
+							innerOuterMask,
+						},
+					},
+				}
+			}
+		}
+
+		raw = append(raw, rawData)
+	}
+
+	return raw
 }
 
 func itemIDHash(rawItem interface{}) int {

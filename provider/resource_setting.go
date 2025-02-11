@@ -36,12 +36,15 @@ func resourceSetting() *schema.Resource {
 					string(api.SettingWorkspaceExternalApproval),
 					string(api.SettingWorkspaceProfile),
 					string(api.SettingDataClassification),
+					string(api.SettingSemanticTypes),
 				}, false),
 			},
 			"approval_flow":           getWorkspaceApprovalSetting(false),
 			"external_approval_nodes": getExternalApprovalSetting(false),
 			"workspace_profile":       getWorkspaceProfileSetting(false),
-			"classification":          getClassificationSetting(false)},
+			"classification":          getClassificationSetting(false),
+			"semantic_types":          getSemanticTypesSetting(false),
+		},
 	}
 }
 
@@ -97,6 +100,16 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		setting.Value = &v1pb.Value{
 			Value: &v1pb.Value_DataClassificationSettingValue{
 				DataClassificationSettingValue: classificationSetting,
+			},
+		}
+	case api.SettingSemanticTypes:
+		classificationSetting, err := convertToV1SemanticTypeSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_SemanticTypeSettingValue{
+				SemanticTypeSettingValue: classificationSetting,
 			},
 		}
 	default:
@@ -354,6 +367,87 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 	return workspaceApprovalSetting, nil
 }
 
+func convertToV1SemanticTypeSetting(d *schema.ResourceData) (*v1pb.SemanticTypeSetting, error) {
+	set, ok := d.Get("semantic_types").(*schema.Set)
+	if !ok {
+		return nil, errors.Errorf("invalid semantic_types")
+	}
+
+	setting := &v1pb.SemanticTypeSetting{}
+	for _, s := range set.List() {
+		rawSemanticType := s.(map[string]interface{})
+		semanticType := &v1pb.SemanticTypeSetting_SemanticType{
+			Id:          rawSemanticType["id"].(string),
+			Title:       rawSemanticType["title"].(string),
+			Description: rawSemanticType["description"].(string),
+		}
+		if semanticType.Id == "" || semanticType.Title == "" {
+			return nil, errors.Errorf("semantic type id and title is required")
+		}
+
+		algorithmList, ok := rawSemanticType["algorithm"].([]interface{})
+		if !ok || len(algorithmList) != 1 {
+			setting.Types = append(setting.Types, semanticType)
+			continue
+		}
+
+		rawAlgorithm := algorithmList[0].(map[string]interface{})
+		if fullMasks, ok := rawAlgorithm["full_mask"].([]interface{}); ok && len(fullMasks) == 1 {
+			fullMask := fullMasks[0].(map[string]interface{})
+			semanticType.Algorithm = &v1pb.Algorithm{
+				Mask: &v1pb.Algorithm_FullMask_{
+					FullMask: &v1pb.Algorithm_FullMask{
+						Substitution: fullMask["substitution"].(string),
+					},
+				},
+			}
+		} else if rangeMasks, ok := rawAlgorithm["range_mask"].([]interface{}); ok && len(rangeMasks) == 1 {
+			rawRangeMask := rangeMasks[0].(map[string]interface{})
+			rangeMask := &v1pb.Algorithm_RangeMask{}
+			for _, raw := range rawRangeMask["slices"].([]interface{}) {
+				rawSlice := raw.(map[string]interface{})
+				rangeMask.Slices = append(rangeMask.Slices, &v1pb.Algorithm_RangeMask_Slice{
+					Start:        int32(rawSlice["start"].(int)),
+					End:          int32(rawSlice["end"].(int)),
+					Substitution: rawSlice["substitution"].(string),
+				})
+			}
+			semanticType.Algorithm = &v1pb.Algorithm{
+				Mask: &v1pb.Algorithm_RangeMask_{
+					RangeMask: rangeMask,
+				},
+			}
+		} else if md5Masks, ok := rawAlgorithm["md5_mask"].([]interface{}); ok && len(md5Masks) == 1 {
+			md5Mask := md5Masks[0].(map[string]interface{})
+			semanticType.Algorithm = &v1pb.Algorithm{
+				Mask: &v1pb.Algorithm_Md5Mask{
+					Md5Mask: &v1pb.Algorithm_MD5Mask{
+						Salt: md5Mask["salt"].(string),
+					},
+				},
+			}
+		} else if innerOuterMasks, ok := rawAlgorithm["inner_outer_mask"].([]interface{}); ok && len(innerOuterMasks) == 1 {
+			innerOuterMask := innerOuterMasks[0].(map[string]interface{})
+			semanticType.Algorithm = &v1pb.Algorithm{
+				Mask: &v1pb.Algorithm_InnerOuterMask_{
+					InnerOuterMask: &v1pb.Algorithm_InnerOuterMask{
+						PrefixLen:    int32(innerOuterMask["prefix_len"].(int)),
+						SuffixLen:    int32(innerOuterMask["suffix_len"].(int)),
+						Substitution: innerOuterMask["substitution"].(string),
+						Type: v1pb.Algorithm_InnerOuterMask_MaskType(
+							v1pb.Algorithm_InnerOuterMask_MaskType_value[innerOuterMask["type"].(string)],
+						),
+					},
+				},
+			}
+		}
+
+		setting.Types = append(setting.Types, semanticType)
+	}
+
+	return setting, nil
+}
+
 func resourceSettingRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
@@ -367,6 +461,14 @@ func resourceSettingRead(ctx context.Context, d *schema.ResourceData, m interfac
 }
 
 func resourceSettingDelete(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	diags = append(diags, diag.Diagnostic{
+		Severity: diag.Warning,
+		Summary:  "Unsupport delete setting",
+		Detail:   fmt.Sprintf("We don't support delete the setting, will only remove it from the terraform state"),
+	})
+
 	d.SetId("")
-	return nil
+	return diags
 }

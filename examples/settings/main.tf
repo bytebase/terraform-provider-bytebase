@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.14"
+      version = "1.0.15"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -33,6 +33,10 @@ data "bytebase_setting" "classification" {
   name = "bb.workspace.data-classification"
 }
 
+data "bytebase_setting" "semantic_types" {
+  name = "bb.workspace.semantic-types"
+}
+
 output "approval_flow" {
   value = data.bytebase_setting.approval_flow
 }
@@ -47,4 +51,8 @@ output "workspace_profile" {
 
 output "classification" {
   value = data.bytebase_setting.classification
+}
+
+output "semantic_types" {
+  value = data.bytebase_setting.semantic_types
 }

@@ -24,6 +24,7 @@ The setting resource.
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `external_approval_nodes` (Block List) Configure external nodes in the approval flow. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--external_approval_nodes))
+- `semantic_types` (Block Set) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
 ### Read-Only
@@ -133,6 +134,73 @@ Required:
 - `endpoint` (String) The endpoint URL to receive the approval message. Learn more: https://www.bytebase.com/docs/api/external-approval
 - `id` (String) The unique external node id.
 - `title` (String) The external node title.
+
+
+
+<a id="nestedblock--semantic_types"></a>
+### Nested Schema for `semantic_types`
+
+Optional:
+
+- `algorithm` (Block List, Max: 1) The semantic type algorithm. Required. (see [below for nested schema](#nestedblock--semantic_types--algorithm))
+- `description` (String) The semantic type description. Optional.
+- `id` (String) The semantic type unique uuid.
+- `title` (String) The semantic type title. Required.
+
+<a id="nestedblock--semantic_types--algorithm"></a>
+### Nested Schema for `semantic_types.algorithm`
+
+Optional:
+
+- `full_mask` (Block List, Max: 1) (see [below for nested schema](#nestedblock--semantic_types--algorithm--full_mask))
+- `inner_outer_mask` (Block List, Max: 1) (see [below for nested schema](#nestedblock--semantic_types--algorithm--inner_outer_mask))
+- `md5_mask` (Block List, Max: 1) (see [below for nested schema](#nestedblock--semantic_types--algorithm--md5_mask))
+- `range_mask` (Block List, Max: 1) (see [below for nested schema](#nestedblock--semantic_types--algorithm--range_mask))
+
+<a id="nestedblock--semantic_types--algorithm--full_mask"></a>
+### Nested Schema for `semantic_types.algorithm.full_mask`
+
+Optional:
+
+- `substitution` (String) Substitution is the string used to replace the original value, the max length of the string is 16 bytes.
+
+
+<a id="nestedblock--semantic_types--algorithm--inner_outer_mask"></a>
+### Nested Schema for `semantic_types.algorithm.inner_outer_mask`
+
+Optional:
+
+- `prefix_len` (Number)
+- `substitution` (String)
+- `suffix_len` (Number)
+- `type` (String)
+
+
+<a id="nestedblock--semantic_types--algorithm--md5_mask"></a>
+### Nested Schema for `semantic_types.algorithm.md5_mask`
+
+Optional:
+
+- `salt` (String) Salt is the salt value to generate a different hash that with the word alone.
+
+
+<a id="nestedblock--semantic_types--algorithm--range_mask"></a>
+### Nested Schema for `semantic_types.algorithm.range_mask`
+
+Optional:
+
+- `slices` (Block List) (see [below for nested schema](#nestedblock--semantic_types--algorithm--range_mask--slices))
+
+<a id="nestedblock--semantic_types--algorithm--range_mask--slices"></a>
+### Nested Schema for `semantic_types.algorithm.range_mask.slices`
+
+Optional:
+
+- `end` (Number) End is the stop index of the original value, should be less than the length of the original value.
+- `start` (Number) Start is the start index of the original value, start from 0 and should be less than stop.
+- `substitution` (String) Substitution is the string used to replace the OriginalValue[start:end).
+
+
 
 
 
