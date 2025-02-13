@@ -136,6 +136,7 @@ func dataSourceInstanceList() *schema.Resource {
 							},
 							Set: dataSourceHash,
 						},
+						"databases": getDatabasesSchema(true),
 					},
 				},
 			},
@@ -180,6 +181,12 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 			return diag.FromErr(err)
 		}
 		ins["data_sources"] = schema.NewSet(dataSourceHash, dataSources)
+
+		databases, err := c.ListDatabase(ctx, instance.Name, "")
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		ins["databases"] = flattenDatabaseList(databases)
 
 		instances = append(instances, ins)
 	}
