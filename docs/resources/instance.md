@@ -31,6 +31,7 @@ The instance resource.
 
 ### Read-Only
 
+- `databases` (Set of String) The databases full name in the resource.
 - `engine_version` (String) The engine version.
 - `id` (String) The ID of this resource.
 - `name` (String) The instance full name in instances/{resource id} format.

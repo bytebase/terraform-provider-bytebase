@@ -80,7 +80,20 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
-			"members": getProjectMembersSchema(true),
+			"members":   getProjectMembersSchema(true),
+			"databases": getDatabasesSchema(true),
+		},
+	}
+}
+
+func getDatabasesSchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeSet,
+		Computed:    computed,
+		Optional:    !computed,
+		Description: "The databases full name in the resource.",
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
 		},
 	}
 }
@@ -231,6 +244,14 @@ func flattenMemberList(iamPolicy *v1pb.IamPolicy) ([]interface{}, error) {
 	return memberList, nil
 }
 
+func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
+	dbList := []interface{}{}
+	for _, database := range databases {
+		dbList = append(dbList, database.Name)
+	}
+	return dbList
+}
+
 func setProject(
 	ctx context.Context,
 	client api.Client,
@@ -240,6 +261,11 @@ func setProject(
 	tflog.Debug(ctx, "[read project] start reading project", map[string]interface{}{
 		"project": project.Name,
 	})
+
+	databases, err := client.ListDatabase(ctx, project.Name, "")
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	iamPolicy, err := client.GetProjectIAMPolicy(ctx, project.Name)
 	if err != nil {
@@ -290,6 +316,17 @@ func setProject(
 	}
 
 	startTime := time.Now()
+	databaseList := flattenDatabaseList(databases)
+	if err := d.Set("databases", databaseList); err != nil {
+		return diag.Errorf("cannot set databases for project: %s", err.Error())
+	}
+	tflog.Debug(ctx, "[read project] set project databases", map[string]interface{}{
+		"project":   project.Name,
+		"databases": len(databases),
+		"ms":        time.Since(startTime).Milliseconds(),
+	})
+
+	startTime = time.Now()
 	memberList, err := flattenMemberList(iamPolicy)
 	if err != nil {
 		return diag.FromErr(err)

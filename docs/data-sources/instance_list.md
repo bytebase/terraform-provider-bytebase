@@ -30,6 +30,7 @@ The instance data source list.
 Read-Only:
 
 - `data_sources` (Set of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources))
+- `databases` (Set of String)
 - `engine` (String)
 - `engine_version` (String)
 - `environment` (String)

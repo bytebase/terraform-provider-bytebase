@@ -31,4 +31,6 @@ resource "bytebase_project" "sample_project" {
       expire_timestamp = "2027-03-09T16:17:49Z"
     }
   }
+
+  databases = bytebase_instance.prod.databases
 }

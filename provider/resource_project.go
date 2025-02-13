@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -97,7 +98,8 @@ func resourceProjct() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
-			"members": getProjectMembersSchema(false),
+			"members":   getProjectMembersSchema(false),
+			"databases": getDatabasesSchema(false),
 		},
 	}
 }
@@ -214,6 +216,11 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId(projectName)
 
+	if diag := updateDatabasesInProject(ctx, d, c, d.Id()); diag != nil {
+		diags = append(diags, diag...)
+		return diags
+	}
+
 	if diag := updateMembersInProject(ctx, d, c, d.Id()); diag != nil {
 		diags = append(diags, diag...)
 		return diags
@@ -313,6 +320,13 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			PostgresDatabaseTenantMode: postgresDatabaseTenantMode,
 		}, paths); err != nil {
 			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+	}
+
+	if d.HasChange("databases") {
+		if diag := updateDatabasesInProject(ctx, d, c, d.Id()); diag != nil {
+			diags = append(diags, diag...)
 			return diags
 		}
 	}
@@ -444,5 +458,107 @@ func updateMembersInProject(ctx context.Context, d *schema.ResourceData, client 
 			return diag.Errorf("failed to update iam for project %s with error: %v", projectName, err.Error())
 		}
 	}
+	return nil
+}
+
+const batchSize = 100
+
+func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
+	databases, err := client.ListDatabase(ctx, projectName, "")
+	if err != nil {
+		return diag.Errorf("failed to list database with error: %v", err.Error())
+	}
+	existedDBMap := map[string]*v1pb.Database{}
+	for _, db := range databases {
+		existedDBMap[db.Name] = db
+	}
+
+	rawSet, ok := d.Get("databases").(*schema.Set)
+	if !ok {
+		return nil
+	}
+	updatedDBMap := map[string]*v1pb.Database{}
+	batchTransferDatabases := []*v1pb.UpdateDatabaseRequest{}
+	for _, raw := range rawSet.List() {
+		dbName := raw.(string)
+		if _, _, err := internal.GetInstanceDatabaseID(dbName); err != nil {
+			return diag.Errorf("invalid database full name: %v", err.Error())
+		}
+
+		updatedDBMap[dbName] = &v1pb.Database{
+			Name:    dbName,
+			Project: projectName,
+		}
+		_, ok := existedDBMap[dbName]
+		if !ok {
+			// new assigned database
+			batchTransferDatabases = append(batchTransferDatabases, &v1pb.UpdateDatabaseRequest{
+				Database: updatedDBMap[dbName],
+				UpdateMask: &fieldmaskpb.FieldMask{
+					Paths: []string{"project"},
+				},
+			})
+		} else {
+			delete(existedDBMap, dbName)
+		}
+	}
+
+	tflog.Debug(ctx, "[transfer databases] batch transfer databases to project", map[string]interface{}{
+		"project":   projectName,
+		"databases": len(batchTransferDatabases),
+	})
+
+	for i := 0; i < len(batchTransferDatabases); i += batchSize {
+		end := i + batchSize
+		if end > len(batchTransferDatabases) {
+			end = len(batchTransferDatabases)
+		}
+		batch := batchTransferDatabases[i:end]
+		startTime := time.Now()
+
+		if _, err := client.BatchUpdateDatabases(ctx, &v1pb.BatchUpdateDatabasesRequest{
+			Requests: batch,
+			Parent:   "instances/-",
+		}); err != nil {
+			return diag.Errorf("failed to assign databases to project %s with error: %v", projectName, err.Error())
+		}
+
+		tflog.Debug(ctx, "[transfer databases]", map[string]interface{}{
+			"count":   end + 1 - i,
+			"project": projectName,
+			"ms":      time.Since(startTime).Milliseconds(),
+		})
+	}
+
+	if len(existedDBMap) > 0 {
+		tflog.Debug(ctx, "[transfer databases] batch unassign databases", map[string]interface{}{
+			"project":   projectName,
+			"databases": len(existedDBMap),
+		})
+
+		startTime := time.Now()
+		unassignDatabases := []*v1pb.UpdateDatabaseRequest{}
+		for _, db := range existedDBMap {
+			// move db to default project
+			db.Project = defaultProj
+			unassignDatabases = append(unassignDatabases, &v1pb.UpdateDatabaseRequest{
+				Database: db,
+				UpdateMask: &fieldmaskpb.FieldMask{
+					Paths: []string{"project"},
+				},
+			})
+		}
+		if _, err := client.BatchUpdateDatabases(ctx, &v1pb.BatchUpdateDatabasesRequest{
+			Requests: unassignDatabases,
+			Parent:   "instances/-",
+		}); err != nil {
+			return diag.Errorf("failed to move databases to default project with error: %v", err.Error())
+		}
+		tflog.Debug(ctx, "[unassign databases]", map[string]interface{}{
+			"count": len(unassignDatabases),
+			"ms":    time.Since(startTime).Milliseconds(),
+		})
+	}
+
 	return nil
 }

@@ -22,6 +22,7 @@ The instance data source.
 ### Read-Only
 
 - `data_sources` (Set of Object) (see [below for nested schema](#nestedatt--data_sources))
+- `databases` (Set of String) The databases full name in the resource.
 - `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.
 - `engine_version` (String) The engine version.
 - `environment` (String) The environment name for your instance in "environments/{resource id}" format.
