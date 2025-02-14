@@ -28,7 +28,7 @@ func TestAccProjectListDataSource(t *testing.T) {
 				0,
 			),
 			internal.GetTestStepForDataSourceList(
-				testAccCheckProjectResource(identifier, "dev-project", "dev project", "BYT"),
+				testAccCheckProjectResource(identifier, "dev-project", "dev project"),
 				fmt.Sprintf("bytebase_project.%s", identifier),
 				"bytebase_project_list",
 				"after",

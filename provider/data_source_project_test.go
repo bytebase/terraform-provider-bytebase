@@ -16,7 +16,6 @@ func TestAccProjectDataSource(t *testing.T) {
 
 	resourceID := "test-project"
 	title := "test project"
-	key := "BYT"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -28,7 +27,7 @@ func TestAccProjectDataSource(t *testing.T) {
 			// get single project test
 			{
 				Config: testAccCheckProjectDataSource(
-					testAccCheckProjectResource(identifier, resourceID, title, key),
+					testAccCheckProjectResource(identifier, resourceID, title),
 					resourceName,
 					identifier,
 					resourceID,
@@ -36,7 +35,6 @@ func TestAccProjectDataSource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(fmt.Sprintf("data.%s", resourceName)),
 					resource.TestCheckResourceAttr(resourceName, "title", title),
-					resource.TestCheckResourceAttr(resourceName, "key", key),
 				),
 			},
 		},
