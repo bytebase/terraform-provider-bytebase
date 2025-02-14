@@ -29,8 +29,6 @@ The vcs connector data source list.
 
 Read-Only:
 
-- `create_time` (String)
-- `creator` (String)
 - `database_group` (String)
 - `name` (String)
 - `project` (String)
@@ -41,8 +39,6 @@ Read-Only:
 - `repository_url` (String)
 - `resource_id` (String)
 - `title` (String)
-- `update_time` (String)
-- `updater` (String)
 - `vcs_provider` (String)
 
 

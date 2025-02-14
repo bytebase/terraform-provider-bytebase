@@ -17,7 +17,6 @@ The project resource.
 
 ### Required
 
-- `key` (String) The project unique key.
 - `resource_id` (String) The project unique resource id. Cannot change this after created.
 - `title` (String) The project title.
 

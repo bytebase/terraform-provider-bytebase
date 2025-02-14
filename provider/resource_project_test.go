@@ -19,7 +19,6 @@ func TestAccProject(t *testing.T) {
 
 	resourceID := "test-project"
 	title := "test project"
-	key := "BYT"
 	titleUpdated := fmt.Sprintf("%s-updated", title)
 
 	resource.Test(t, resource.TestCase{
@@ -31,20 +30,18 @@ func TestAccProject(t *testing.T) {
 		Steps: []resource.TestStep{
 			// resource create
 			{
-				Config: testAccCheckProjectResource(identifier, resourceID, title, key),
+				Config: testAccCheckProjectResource(identifier, resourceID, title),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", title),
-					resource.TestCheckResourceAttr(resourceName, "key", key),
 				),
 			},
 			// resource updated
 			{
-				Config: testAccCheckProjectResource(identifier, resourceID, titleUpdated, key),
+				Config: testAccCheckProjectResource(identifier, resourceID, titleUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", titleUpdated),
-					resource.TestCheckResourceAttr(resourceName, "key", key),
 				),
 			},
 		},
@@ -70,17 +67,16 @@ func testAccCheckProjectDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckProjectResource(identifier, resourceID, title, key string) string {
+func testAccCheckProjectResource(identifier, resourceID, title string) string {
 	return fmt.Sprintf(`
 	resource "bytebase_project" "%s" {
 		resource_id    = "%s"
 		title          = "%s"
-		key            = "%s"
 
 		members {
 			member = "user:mock@bytebase.com"
 			role = "roles/projectOwner"
 		}
 	}
-	`, identifier, resourceID, title, key)
+	`, identifier, resourceID, title)
 }

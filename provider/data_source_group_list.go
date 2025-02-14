@@ -41,16 +41,6 @@ func dataSourceGroupList() *schema.Resource {
 							Computed:    true,
 							Description: "Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.",
 						},
-						"creator": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The group creator in users/{email} format.",
-						},
-						"create_time": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The group create time in YYYY-MM-DDThh:mm:ss.000Z format",
-						},
 						"members": {
 							Type:        schema.TypeSet,
 							Computed:    true,
@@ -92,8 +82,6 @@ func dataSourceGroupListRead(ctx context.Context, d *schema.ResourceData, m inte
 		raw["name"] = group.Name
 		raw["title"] = group.Title
 		raw["description"] = group.Description
-		raw["creator"] = group.Creator
-		raw["create_time"] = group.CreateTime.AsTime().UTC().Format(time.RFC3339)
 		raw["source"] = group.Source
 
 		memberList := []interface{}{}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -41,26 +40,6 @@ func dataSourceVCSConnector() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The vcs connector title.",
-			},
-			"creator": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The vcs connector creator in users/{email} format.",
-			},
-			"create_time": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The vcs connector create time in YYYY-MM-DDThh:mm:ss.000Z format",
-			},
-			"updater": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The vcs connector updater in users/{email} format.",
-			},
-			"update_time": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The vcs connector update time in YYYY-MM-DDThh:mm:ss.000Z format",
 			},
 			"vcs_provider": {
 				Type:        schema.TypeString,
@@ -134,18 +113,6 @@ func setVCSConnector(d *schema.ResourceData, connector *v1pb.VCSConnector) diag.
 	}
 	if err := d.Set("name", connector.Name); err != nil {
 		return diag.Errorf("cannot set name for vcs connector: %s", err.Error())
-	}
-	if err := d.Set("creator", connector.Creator); err != nil {
-		return diag.Errorf("cannot set creator for vcs connector: %s", err.Error())
-	}
-	if err := d.Set("create_time", connector.CreateTime.AsTime().UTC().Format(time.RFC3339)); err != nil {
-		return diag.Errorf("cannot set create_time for vcs connector: %s", err.Error())
-	}
-	if err := d.Set("updater", connector.Updater); err != nil {
-		return diag.Errorf("cannot set updater for vcs connector: %s", err.Error())
-	}
-	if err := d.Set("update_time", connector.UpdateTime.AsTime().UTC().Format(time.RFC3339)); err != nil {
-		return diag.Errorf("cannot set update_time for vcs connector: %s", err.Error())
 	}
 	if err := d.Set("vcs_provider", connector.VcsProvider); err != nil {
 		return diag.Errorf("cannot set vcs_provider for vcs connector: %s", err.Error())

@@ -95,13 +95,13 @@ func resourceInstance() *schema.Resource {
 			"sync_interval": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     0,
+				Computed:    true,
 				Description: "How often the instance is synced in seconds. Default 0, means never sync.",
 			},
 			"maximum_connections": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     0,
+				Computed:    true,
 				Description: "The maximum number of connections.",
 			},
 			"data_sources": {

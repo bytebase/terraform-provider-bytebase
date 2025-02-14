@@ -42,6 +42,7 @@ func resourceUser() *schema.Resource {
 			"phone": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "The user phone.",
 			},
 			"password": {

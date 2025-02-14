@@ -64,7 +64,7 @@ type Client interface {
 	// GetDatabaseCatalog gets the database catalog by the database full name.
 	GetDatabaseCatalog(ctx context.Context, databaseName string) (*v1pb.DatabaseCatalog, error)
 	// UpdateDatabaseCatalog patches the database catalog.
-	UpdateDatabaseCatalog(ctx context.Context, patch *v1pb.DatabaseCatalog, updateMasks []string) (*v1pb.DatabaseCatalog, error)
+	UpdateDatabaseCatalog(ctx context.Context, patch *v1pb.DatabaseCatalog) (*v1pb.DatabaseCatalog, error)
 
 	// Project
 	// GetProject gets the project by project full name.

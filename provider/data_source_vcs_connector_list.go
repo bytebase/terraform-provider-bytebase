@@ -50,26 +50,6 @@ func dataSourceVCSConnectorList() *schema.Resource {
 							Computed:    true,
 							Description: "The vcs connector title.",
 						},
-						"creator": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The vcs connector creator in users/{email} format.",
-						},
-						"create_time": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The vcs connector create time in YYYY-MM-DDThh:mm:ss.000Z format",
-						},
-						"updater": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The vcs connector updater in users/{email} format.",
-						},
-						"update_time": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The vcs connector update time in YYYY-MM-DDThh:mm:ss.000Z format",
-						},
 						"vcs_provider": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -134,10 +114,6 @@ func dataSourceVCSConnectorListRead(ctx context.Context, d *schema.ResourceData,
 		rawConnector["project"] = fmt.Sprintf("%s%s", internal.ProjectNamePrefix, projectID)
 		rawConnector["title"] = connector.Title
 		rawConnector["name"] = connector.Name
-		rawConnector["creator"] = connector.Creator
-		rawConnector["create_time"] = connector.CreateTime.AsTime().UTC().Format(time.RFC3339)
-		rawConnector["updater"] = connector.Updater
-		rawConnector["update_time"] = connector.UpdateTime.AsTime().UTC().Format(time.RFC3339)
 		rawConnector["vcs_provider"] = connector.VcsProvider
 		rawConnector["database_group"] = connector.DatabaseGroup
 		rawConnector["repository_id"] = connector.ExternalId

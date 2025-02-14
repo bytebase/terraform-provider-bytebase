@@ -26,8 +26,6 @@ The vcs connector data source.
 
 ### Read-Only
 
-- `create_time` (String) The vcs connector create time in YYYY-MM-DDThh:mm:ss.000Z format
-- `creator` (String) The vcs connector creator in users/{email} format.
 - `id` (String) The ID of this resource.
 - `name` (String) The vcs connector full name in projects/{project}/vcsConnector/{resource id} format.
 - `repository_branch` (String) The connected repository branch in vcs provider.
@@ -36,8 +34,6 @@ The vcs connector data source.
 - `repository_path` (String) The connected repository path in vcs provider.
 - `repository_url` (String) The connected repository url in vcs provider.
 - `title` (String) The vcs connector title.
-- `update_time` (String) The vcs connector update time in YYYY-MM-DDThh:mm:ss.000Z format
-- `updater` (String) The vcs connector updater in users/{email} format.
 - `vcs_provider` (String) The vcs provider full name in vcsProviders/{resource id} format.
 
 

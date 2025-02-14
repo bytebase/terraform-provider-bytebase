@@ -21,8 +21,6 @@ The group data source.
 
 ### Read-Only
 
-- `create_time` (String) The group create time in YYYY-MM-DDThh:mm:ss.000Z format
-- `creator` (String) The group creator in users/{email} format.
 - `description` (String) The group description.
 - `id` (String) The ID of this resource.
 - `members` (Set of Object) The members in the group. (see [below for nested schema](#nestedatt--members))

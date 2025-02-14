@@ -34,7 +34,6 @@ Read-Only:
 - `auto_resolve_issue` (Boolean)
 - `databases` (Set of String)
 - `enforce_issue_title` (Boolean)
-- `key` (String)
 - `members` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--members))
 - `name` (String)
 - `postgres_database_tenant_mode` (Boolean)

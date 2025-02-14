@@ -40,11 +40,6 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "The project full name in projects/{resource id} format.",
 			},
-			"key": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The project key.",
-			},
 			"workflow": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -286,9 +281,6 @@ func setProject(
 	}
 	if err := d.Set("name", project.Name); err != nil {
 		return diag.Errorf("cannot set name for project: %s", err.Error())
-	}
-	if err := d.Set("key", project.Key); err != nil {
-		return diag.Errorf("cannot set key for project: %s", err.Error())
 	}
 	if err := d.Set("title", project.Title); err != nil {
 		return diag.Errorf("cannot set title for project: %s", err.Error())

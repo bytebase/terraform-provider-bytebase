@@ -147,8 +147,8 @@ func (c *client) GetDatabaseCatalog(ctx context.Context, databaseName string) (*
 }
 
 // UpdateDatabaseCatalog patches the database catalog.
-func (c *client) UpdateDatabaseCatalog(ctx context.Context, patch *v1pb.DatabaseCatalog, updateMasks []string) (*v1pb.DatabaseCatalog, error) {
-	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
+func (c *client) UpdateDatabaseCatalog(ctx context.Context, patch *v1pb.DatabaseCatalog) (*v1pb.DatabaseCatalog, error) {
+	body, err := c.updateResource(ctx, patch.Name, patch, nil, false /* allow missing = false*/)
 	if err != nil {
 		return nil, err
 	}

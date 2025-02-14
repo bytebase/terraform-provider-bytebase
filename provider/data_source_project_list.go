@@ -43,11 +43,6 @@ func dataSourceProjectList() *schema.Resource {
 							Computed:    true,
 							Description: "The project title.",
 						},
-						"key": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The project key.",
-						},
 						"workflow": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -114,7 +109,6 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["resource_id"] = projectID
 		proj["name"] = project.Name
 		proj["title"] = project.Title
-		proj["key"] = project.Key
 		proj["workflow"] = project.Workflow.String()
 		proj["allow_modify_statement"] = project.AllowModifyStatement
 		proj["auto_resolve_issue"] = project.AutoResolveIssue

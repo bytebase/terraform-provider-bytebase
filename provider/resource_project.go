@@ -46,12 +46,6 @@ func resourceProjct() *schema.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The project title.",
 			},
-			"key": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The project unique key.",
-			},
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -111,7 +105,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	projectName := fmt.Sprintf("%s%s", internal.ProjectNamePrefix, projectID)
 
 	title := d.Get("title").(string)
-	key := d.Get("key").(string)
 	allowModifyStatement := d.Get("allow_modify_statement").(bool)
 	autoResolveIssue := d.Get("auto_resolve_issue").(bool)
 	enforceIssueTitle := d.Get("enforce_issue_title").(bool)
@@ -152,9 +145,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		if title != "" && title != existedProject.Title {
 			updateMasks = append(updateMasks, "title")
 		}
-		if key != "" && key != existedProject.Key && existedProject.Key != "" {
-			updateMasks = append(updateMasks, "key")
-		}
 		if allowModifyStatement != existedProject.AllowModifyStatement {
 			updateMasks = append(updateMasks, "allow_modify_statement")
 		}
@@ -178,7 +168,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 			if _, err := c.UpdateProject(ctx, &v1pb.Project{
 				Name:                       projectName,
 				Title:                      title,
-				Key:                        key,
 				State:                      v1pb.State_ACTIVE,
 				Workflow:                   existedProject.Workflow,
 				AllowModifyStatement:       allowModifyStatement,
@@ -200,7 +189,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		if _, err := c.CreateProject(ctx, projectID, &v1pb.Project{
 			Name:                       projectName,
 			Title:                      title,
-			Key:                        key,
 			State:                      v1pb.State_ACTIVE,
 			Workflow:                   v1pb.Workflow_UI,
 			AllowModifyStatement:       allowModifyStatement,
@@ -276,9 +264,6 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("title") {
 		paths = append(paths, "title")
 	}
-	if d.HasChange("key") && existedProject.Key != "" {
-		paths = append(paths, "key")
-	}
 	if d.HasChange("allow_modify_statement") {
 		paths = append(paths, "allow_modify_statement")
 	}
@@ -309,7 +294,6 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		if _, err := c.UpdateProject(ctx, &v1pb.Project{
 			Name:                       projectName,
 			Title:                      d.Get("title").(string),
-			Key:                        d.Get("key").(string),
 			State:                      v1pb.State_ACTIVE,
 			Workflow:                   existedProject.Workflow,
 			AllowModifyStatement:       allowModifyStatement,
