@@ -25,8 +25,6 @@ The group data source list.
 
 Read-Only:
 
-- `create_time` (String)
-- `creator` (String)
 - `description` (String)
 - `members` (Set of Object) (see [below for nested schema](#nestedobjatt--groups--members))
 - `name` (String)

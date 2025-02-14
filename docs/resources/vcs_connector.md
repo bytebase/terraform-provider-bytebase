@@ -33,11 +33,7 @@ The vcs connector resource.
 
 ### Read-Only
 
-- `create_time` (String) The vcs connector create time in YYYY-MM-DDThh:mm:ss.000Z format
-- `creator` (String) The vcs connector creator in users/{email} format.
 - `id` (String) The ID of this resource.
 - `name` (String) The vcs connector full name in projects/{project}/vcsConnector/{resource id} format.
-- `update_time` (String) The vcs connector update time in YYYY-MM-DDThh:mm:ss.000Z format
-- `updater` (String) The vcs connector updater in users/{email} format.
 
 

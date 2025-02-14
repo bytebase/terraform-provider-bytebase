@@ -9,7 +9,6 @@ resource "bytebase_project" "sample_project" {
 
   resource_id = local.project_id
   title       = "Sample project"
-  key         = "SAMM"
 
   members {
     member = format("user:%s", bytebase_user.workspace_dba.email)

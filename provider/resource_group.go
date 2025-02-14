@@ -55,16 +55,6 @@ func resourceGroup() *schema.Resource {
 				Computed:    true,
 				Description: "Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.",
 			},
-			"creator": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The group creator in users/{email} format.",
-			},
-			"create_time": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The group create time in YYYY-MM-DDThh:mm:ss.000Z format",
-			},
 			"members": {
 				Type:        schema.TypeSet,
 				Required:    true,

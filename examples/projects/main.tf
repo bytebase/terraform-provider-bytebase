@@ -1,8 +1,8 @@
-# Examples for query the instances
+# Examples for query the projects
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.16"
+      version = "1.0.17"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }

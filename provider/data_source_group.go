@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -42,16 +41,6 @@ func dataSourceGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.",
-			},
-			"creator": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The group creator in users/{email} format.",
-			},
-			"create_time": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The group create time in YYYY-MM-DDThh:mm:ss.000Z format",
 			},
 			"members": {
 				Type:        schema.TypeSet,
@@ -98,12 +87,6 @@ func setGroup(d *schema.ResourceData, group *v1pb.Group) diag.Diagnostics {
 	}
 	if err := d.Set("description", group.Description); err != nil {
 		return diag.Errorf("cannot set description for group: %s", err.Error())
-	}
-	if err := d.Set("creator", group.Creator); err != nil {
-		return diag.Errorf("cannot set creator for group: %s", err.Error())
-	}
-	if err := d.Set("create_time", group.CreateTime.AsTime().UTC().Format(time.RFC3339)); err != nil {
-		return diag.Errorf("cannot set create_time for group: %s", err.Error())
 	}
 	if err := d.Set("source", group.Source); err != nil {
 		return diag.Errorf("cannot set source for group: %s", err.Error())

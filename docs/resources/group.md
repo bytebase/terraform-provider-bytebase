@@ -27,8 +27,6 @@ The group resource. Workspace domain is required for creating groups.
 
 ### Read-Only
 
-- `create_time` (String) The group create time in YYYY-MM-DDThh:mm:ss.000Z format
-- `creator` (String) The group creator in users/{email} format.
 - `id` (String) The ID of this resource.
 - `name` (String) The group name in groups/{email} format.
 - `source` (String) Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.

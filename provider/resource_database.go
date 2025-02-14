@@ -183,7 +183,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.Errorf("failed to convert database catalog %v with error: %v", databaseName, err.Error())
 	}
 	if catalog != nil {
-		if _, err := c.UpdateDatabaseCatalog(ctx, catalog, []string{}); err != nil {
+		if _, err := c.UpdateDatabaseCatalog(ctx, catalog); err != nil {
 			return diag.Errorf("failed to update database catalog %v with error: %v", databaseName, err.Error())
 		}
 	}
@@ -274,7 +274,9 @@ func setDatabase(
 func flattenDatabaseCatalog(catalog *v1pb.DatabaseCatalog) []interface{} {
 	schemaList := []interface{}{}
 	for _, schemaCatalog := range catalog.Schemas {
-		rawSchema := map[string]interface{}{}
+		rawSchema := map[string]interface{}{
+			"name": schemaCatalog.Name,
+		}
 
 		tableList := []interface{}{}
 		for _, table := range schemaCatalog.Tables {

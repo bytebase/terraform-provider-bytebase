@@ -50,26 +50,6 @@ func resourceVCSConnector() *schema.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The vcs connector title.",
 			},
-			"creator": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The vcs connector creator in users/{email} format.",
-			},
-			"create_time": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The vcs connector create time in YYYY-MM-DDThh:mm:ss.000Z format",
-			},
-			"updater": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The vcs connector updater in users/{email} format.",
-			},
-			"update_time": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The vcs connector update time in YYYY-MM-DDThh:mm:ss.000Z format",
-			},
 			"vcs_provider": {
 				Type:             schema.TypeString,
 				Required:         true,

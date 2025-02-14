@@ -448,7 +448,7 @@ func (c *mockClient) GetDatabaseCatalog(_ context.Context, databaseName string) 
 }
 
 // UpdateDatabaseCatalog patches the database catalog.
-func (c *mockClient) UpdateDatabaseCatalog(_ context.Context, patch *v1pb.DatabaseCatalog, _ []string) (*v1pb.DatabaseCatalog, error) {
+func (c *mockClient) UpdateDatabaseCatalog(_ context.Context, patch *v1pb.DatabaseCatalog) (*v1pb.DatabaseCatalog, error) {
 	c.databaseCatalogMap[patch.Name] = patch
 	return patch, nil
 }
@@ -484,7 +484,6 @@ func (c *mockClient) CreateProject(_ context.Context, projectID string, project 
 		Name:     fmt.Sprintf("%s%s", ProjectNamePrefix, projectID),
 		State:    v1pb.State_ACTIVE,
 		Title:    project.Title,
-		Key:      project.Key,
 		Workflow: v1pb.Workflow_UI,
 	}
 
@@ -501,9 +500,6 @@ func (c *mockClient) UpdateProject(ctx context.Context, patch *v1pb.Project, upd
 
 	if slices.Contains(updateMasks, "title") {
 		proj.Title = patch.Title
-	}
-	if slices.Contains(updateMasks, "key") {
-		proj.Key = patch.Key
 	}
 
 	c.projectMap[proj.Name] = proj

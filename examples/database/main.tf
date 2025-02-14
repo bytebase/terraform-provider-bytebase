@@ -1,4 +1,4 @@
-# Examples for query the environments
+# Examples for query the databases
 terraform {
   required_providers {
     bytebase = {
