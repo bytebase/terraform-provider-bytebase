@@ -25,6 +25,7 @@ var settingMap map[string]*v1pb.Setting
 var vcsProviderMap map[string]*v1pb.VCSProvider
 var vcsConnectorMap map[string]*v1pb.VCSConnector
 var userMap map[string]*v1pb.User
+var roleMap map[string]*v1pb.Role
 var groupMap map[string]*v1pb.Group
 
 func init() {
@@ -39,6 +40,7 @@ func init() {
 	vcsProviderMap = map[string]*v1pb.VCSProvider{}
 	vcsConnectorMap = map[string]*v1pb.VCSConnector{}
 	userMap = map[string]*v1pb.User{}
+	roleMap = map[string]*v1pb.Role{}
 	groupMap = map[string]*v1pb.Group{}
 }
 
@@ -54,6 +56,7 @@ type mockClient struct {
 	vcsProviderMap     map[string]*v1pb.VCSProvider
 	vcsConnectorMap    map[string]*v1pb.VCSConnector
 	userMap            map[string]*v1pb.User
+	roleMap            map[string]*v1pb.Role
 	groupMap           map[string]*v1pb.Group
 	workspaceIAMPolicy *v1pb.IamPolicy
 }
@@ -72,6 +75,7 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		vcsProviderMap:     vcsProviderMap,
 		vcsConnectorMap:    vcsConnectorMap,
 		userMap:            userMap,
+		roleMap:            roleMap,
 		groupMap:           groupMap,
 		workspaceIAMPolicy: &v1pb.IamPolicy{},
 	}, nil
@@ -841,4 +845,59 @@ func (c *mockClient) SetWorkspaceIAMPolicy(_ context.Context, update *v1pb.SetIa
 		c.workspaceIAMPolicy = v
 	}
 	return c.workspaceIAMPolicy, nil
+}
+
+// ListRole will returns all roles.
+func (c *mockClient) ListRole(_ context.Context) (*v1pb.ListRolesResponse, error) {
+	roles := make([]*v1pb.Role, 0)
+	for _, role := range c.roleMap {
+		roles = append(roles, role)
+	}
+
+	return &v1pb.ListRolesResponse{
+		Roles: roles,
+	}, nil
+}
+
+// GetRole gets the role by full name.
+func (c *mockClient) GetRole(_ context.Context, roleName string) (*v1pb.Role, error) {
+	role, ok := c.roleMap[roleName]
+	if !ok {
+		return nil, errors.Errorf("Cannot found role %s", roleName)
+	}
+
+	return role, nil
+}
+
+// CreateRole creates the role.
+func (c *mockClient) CreateRole(_ context.Context, roleID string, role *v1pb.Role) (*v1pb.Role, error) {
+	roleName := fmt.Sprintf("%s%s", RoleNamePrefix, roleID)
+	role.Name = roleName
+	c.roleMap[roleName] = role
+	return role, nil
+}
+
+// UpdateRole updates the role.
+func (c *mockClient) UpdateRole(ctx context.Context, role *v1pb.Role, updateMasks []string) (*v1pb.Role, error) {
+	existed, err := c.GetRole(ctx, role.Name)
+	if err != nil {
+		return nil, err
+	}
+	if slices.Contains(updateMasks, "title") {
+		existed.Title = role.Title
+	}
+	if slices.Contains(updateMasks, "description") {
+		existed.Description = role.Description
+	}
+	if slices.Contains(updateMasks, "permissions") {
+		existed.Permissions = role.Permissions
+	}
+	c.roleMap[existed.Name] = existed
+	return c.roleMap[existed.Name], nil
+}
+
+// DeleteRole deletes the role by name.
+func (c *mockClient) DeleteRole(_ context.Context, roleName string) error {
+	delete(c.roleMap, roleName)
+	return nil
 }

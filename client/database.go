@@ -69,7 +69,7 @@ func (c *client) listDatabasePerPage(ctx context.Context, parent, filter, pageTo
 		parent,
 		url.QueryEscape(filter),
 		pageSize,
-		pageToken,
+		url.QueryEscape(pageToken),
 	)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)

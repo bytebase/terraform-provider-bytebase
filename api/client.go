@@ -134,6 +134,18 @@ type Client interface {
 	// UndeleteUser undeletes the user by name.
 	UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error)
 
+	// Role
+	// ListRole will returns all roles.
+	ListRole(ctx context.Context) (*v1pb.ListRolesResponse, error)
+	// DeleteRole deletes the role by name.
+	DeleteRole(ctx context.Context, name string) error
+	// CreateRole creates the role.
+	CreateRole(ctx context.Context, roleID string, role *v1pb.Role) (*v1pb.Role, error)
+	// GetRole gets the role by full name.
+	GetRole(ctx context.Context, name string) (*v1pb.Role, error)
+	// UpdateRole updates the role.
+	UpdateRole(ctx context.Context, patch *v1pb.Role, updateMasks []string) (*v1pb.Role, error)
+
 	// Group
 	// ListGroup list all groups.
 	ListGroup(ctx context.Context) (*v1pb.ListGroupsResponse, error)

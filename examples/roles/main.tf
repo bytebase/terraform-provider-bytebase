@@ -1,4 +1,3 @@
-# Examples for query the instances
 terraform {
   required_providers {
     bytebase = {
@@ -18,31 +17,9 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
-locals {
-  instance_id_test = "test-sample-instance"
-  instance_id_prod = "prod-sample-instance"
+data "bytebase_role_list" "all" {
 }
 
-# List all instances in all environments
-data "bytebase_instance_list" "all" {}
-
-output "all_instances" {
-  value = data.bytebase_instance_list.all
-}
-
-# Find a specific instance by name
-data "bytebase_instance" "test" {
-  resource_id = local.instance_id_test
-}
-
-output "test_instance" {
-  value = data.bytebase_instance.test
-}
-
-data "bytebase_instance" "prod" {
-  resource_id = local.instance_id_prod
-}
-
-output "prod_instance" {
-  value = data.bytebase_instance.prod
+output "all_roles" {
+  value = data.bytebase_role_list.all
 }
