@@ -8,6 +8,18 @@ resource "bytebase_user" "workspace_dba" {
 }
 
 # Create or update the user.
+resource "bytebase_user" "workspace_auditor" {
+  depends_on = [
+    bytebase_role.auditor
+  ]
+  title = "Auditor"
+  email = "auditor@bytebase.com"
+
+  # Grant workspace level roles.
+  roles = [bytebase_role.auditor.name]
+}
+
+# Create or update the user.
 resource "bytebase_user" "project_developer" {
   depends_on = [
     bytebase_user.workspace_dba
