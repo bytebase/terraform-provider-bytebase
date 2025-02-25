@@ -448,7 +448,7 @@ func updateMembersInProject(ctx context.Context, d *schema.ResourceData, client 
 const batchSize = 100
 
 func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
-	databases, err := client.ListDatabase(ctx, projectName, "")
+	databases, err := client.ListDatabase(ctx, projectName, "", true)
 	if err != nil {
 		return diag.Errorf("failed to list database with error: %v", err.Error())
 	}

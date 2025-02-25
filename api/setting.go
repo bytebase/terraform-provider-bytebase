@@ -8,8 +8,6 @@ const (
 	SettingWorkspaceApproval SettingName = "bb.workspace.approval"
 	// SettingWorkspaceProfile is the setting name for workspace profile settings.
 	SettingWorkspaceProfile SettingName = "bb.workspace.profile"
-	// SettingWorkspaceExternalApproval is the setting name for workspace external approval config.
-	SettingWorkspaceExternalApproval SettingName = "bb.workspace.approval.external"
 	// SettingDataClassification is the setting name for data classification.
 	SettingDataClassification SettingName = "bb.workspace.data-classification"
 	// SettingSemanticTypes is the setting name for semantic types.

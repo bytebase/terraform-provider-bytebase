@@ -29,7 +29,7 @@ func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Da
 }
 
 // ListDatabase list all databases.
-func (c *client) ListDatabase(ctx context.Context, parent, filter string) ([]*v1pb.Database, error) {
+func (c *client) ListDatabase(ctx context.Context, parent, filter string, listAll bool) ([]*v1pb.Database, error) {
 	res := []*v1pb.Database{}
 	pageToken := ""
 	startTime := time.Now()
@@ -47,7 +47,7 @@ func (c *client) ListDatabase(ctx context.Context, parent, filter string) ([]*v1
 		})
 
 		pageToken = resp.NextPageToken
-		if pageToken == "" {
+		if pageToken == "" || !listAll {
 			break
 		}
 	}

@@ -23,7 +23,6 @@ The setting resource.
 
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
-- `external_approval_nodes` (Block List) Configure external nodes in the approval flow. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--external_approval_nodes))
 - `semantic_types` (Block Set) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
@@ -116,24 +115,6 @@ Optional:
 - `description` (String) The classification level description.
 - `id` (String) The classification level unique uuid.
 - `title` (String) The classification level title.
-
-
-
-<a id="nestedblock--external_approval_nodes"></a>
-### Nested Schema for `external_approval_nodes`
-
-Required:
-
-- `nodes` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--external_approval_nodes--nodes))
-
-<a id="nestedblock--external_approval_nodes--nodes"></a>
-### Nested Schema for `external_approval_nodes.nodes`
-
-Required:
-
-- `endpoint` (String) The endpoint URL to receive the approval message. Learn more: https://www.bytebase.com/docs/api/external-approval
-- `id` (String) The unique external node id.
-- `title` (String) The external node title.
 
 
 

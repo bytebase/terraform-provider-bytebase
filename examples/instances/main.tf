@@ -2,7 +2,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.18"
+      version = "1.0.19"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -32,7 +32,8 @@ output "all_instances" {
 
 # Find a specific instance by name
 data "bytebase_instance" "test" {
-  resource_id = local.instance_id_test
+  resource_id        = local.instance_id_test
+  list_all_databases = true
 }
 
 output "test_instance" {
@@ -40,7 +41,8 @@ output "test_instance" {
 }
 
 data "bytebase_instance" "prod" {
-  resource_id = local.instance_id_prod
+  resource_id        = local.instance_id_prod
+  list_all_databases = false
 }
 
 output "prod_instance" {

@@ -117,7 +117,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["skip_backup_errors"] = project.AllowModifyStatement
 		proj["postgres_database_tenant_mode"] = project.PostgresDatabaseTenantMode
 
-		databases, err := c.ListDatabase(ctx, project.Name, "")
+		databases, err := c.ListDatabase(ctx, project.Name, "", false)
 		if err != nil {
 			return diag.FromErr(err)
 		}

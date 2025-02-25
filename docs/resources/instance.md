@@ -25,7 +25,9 @@ The instance resource.
 
 ### Optional
 
+- `activation` (Boolean) Whether assign license for this instance or not.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
+- `list_all_databases` (Boolean) List all databases in this instance. If false, will only list 500 databases.
 - `maximum_connections` (Number) The maximum number of connections.
 - `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync.
 
@@ -44,15 +46,66 @@ Required:
 - `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.
 - `id` (String) The unique data source id in this instance.
 - `port` (String) The port for your instance.
-- `type` (String) The data source type. Should be ADMIN or RO.
+- `type` (String) The data source type. Should be ADMIN or READ_ONLY.
 
 Optional:
 
 - `database` (String) The database for the instance, you can set this if the engine type is POSTGRES.
+- `external_secret` (Block List, Max: 1) The external secret to get the database password. (see [below for nested schema](#nestedblock--data_sources--external_secret))
 - `password` (String, Sensitive) The connection user password used by Bytebase to perform DDL and DML operations.
 - `ssl_ca` (String, Sensitive) The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `ssl_key` (String, Sensitive) The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
+
+<a id="nestedblock--data_sources--external_secret"></a>
+### Nested Schema for `data_sources.external_secret`
+
+Optional:
+
+- `aws_secrets_manager` (Block List, Max: 1) The AWS Secrets Manager to get the database password. Reference doc https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html (see [below for nested schema](#nestedblock--data_sources--external_secret--aws_secrets_manager))
+- `gcp_secret_manager` (Block List, Max: 1) The GCP Secret Manager to get the database password. Reference doc https://cloud.google.com/secret-manager/docs (see [below for nested schema](#nestedblock--data_sources--external_secret--gcp_secret_manager))
+- `vault` (Block List, Max: 1) The Valut to get the database password. Reference doc https://developer.hashicorp.com/vault/api-docs/secret/kv/kv-v2 (see [below for nested schema](#nestedblock--data_sources--external_secret--vault))
+
+<a id="nestedblock--data_sources--external_secret--aws_secrets_manager"></a>
+### Nested Schema for `data_sources.external_secret.aws_secrets_manager`
+
+Required:
+
+- `password_key_name` (String) The key name for the password.
+- `secret_name` (String) The secret name to store the password.
+
+
+<a id="nestedblock--data_sources--external_secret--gcp_secret_manager"></a>
+### Nested Schema for `data_sources.external_secret.gcp_secret_manager`
+
+Required:
+
+- `secret_name` (String) The secret name should be like "projects/{project-id}/secrets/{secret-id}".
+
+
+<a id="nestedblock--data_sources--external_secret--vault"></a>
+### Nested Schema for `data_sources.external_secret.vault`
+
+Required:
+
+- `engine_name` (String) The name for secret engine.
+- `password_key_name` (String) The key name for the password.
+- `secret_name` (String) The secret name in the engine to store the password.
+- `url` (String) The Vault URL.
+
+Optional:
+
+- `app_role` (Block List, Max: 1) The Vault app role to get the password. (see [below for nested schema](#nestedblock--data_sources--external_secret--vault--app_role))
+- `root_token` (String, Sensitive) The root token without TTL. Learn more: https://developer.hashicorp.com/vault/docs/commands/operator/generate-root
+
+<a id="nestedblock--data_sources--external_secret--vault--app_role"></a>
+### Nested Schema for `data_sources.external_secret.vault.app_role`
+
+Required:
+
+- `role_id` (String, Sensitive) The app role id.
+- `secret` (String, Sensitive) The secret id for the role without ttl.
+- `secret_type` (String) The secret id type, can be PLAIN (plain text for the secret) or ENVIRONMENT (envirionment name for the secret).
 
 

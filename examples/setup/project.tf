@@ -4,7 +4,7 @@ resource "bytebase_project" "sample_project" {
     bytebase_user.workspace_dba,
     bytebase_user.project_developer,
     bytebase_group.developers,
-    bytebase_instance.prod
+    bytebase_instance.test
   ]
 
   resource_id = local.project_id
@@ -31,5 +31,5 @@ resource "bytebase_project" "sample_project" {
     }
   }
 
-  databases = bytebase_instance.prod.databases
+  databases = bytebase_instance.test.databases
 }

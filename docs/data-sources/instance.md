@@ -19,8 +19,13 @@ The instance data source.
 
 - `resource_id` (String) The instance unique resource id.
 
+### Optional
+
+- `list_all_databases` (Boolean) List all databases in this instance. If false, will only list 500 databases.
+
 ### Read-Only
 
+- `activation` (Boolean) Whether assign license for this instance or not.
 - `data_sources` (Set of Object) (see [below for nested schema](#nestedatt--data_sources))
 - `databases` (Set of String) The databases full name in the resource.
 - `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.
@@ -39,6 +44,7 @@ The instance data source.
 Read-Only:
 
 - `database` (String)
+- `external_secret` (List of Object) (see [below for nested schema](#nestedobjatt--data_sources--external_secret))
 - `host` (String)
 - `id` (String)
 - `password` (String)
@@ -48,5 +54,52 @@ Read-Only:
 - `ssl_key` (String)
 - `type` (String)
 - `username` (String)
+
+<a id="nestedobjatt--data_sources--external_secret"></a>
+### Nested Schema for `data_sources.external_secret`
+
+Read-Only:
+
+- `aws_secrets_manager` (List of Object) (see [below for nested schema](#nestedobjatt--data_sources--external_secret--aws_secrets_manager))
+- `gcp_secret_manager` (List of Object) (see [below for nested schema](#nestedobjatt--data_sources--external_secret--gcp_secret_manager))
+- `vault` (List of Object) (see [below for nested schema](#nestedobjatt--data_sources--external_secret--vault))
+
+<a id="nestedobjatt--data_sources--external_secret--aws_secrets_manager"></a>
+### Nested Schema for `data_sources.external_secret.aws_secrets_manager`
+
+Read-Only:
+
+- `password_key_name` (String)
+- `secret_name` (String)
+
+
+<a id="nestedobjatt--data_sources--external_secret--gcp_secret_manager"></a>
+### Nested Schema for `data_sources.external_secret.gcp_secret_manager`
+
+Read-Only:
+
+- `secret_name` (String)
+
+
+<a id="nestedobjatt--data_sources--external_secret--vault"></a>
+### Nested Schema for `data_sources.external_secret.vault`
+
+Read-Only:
+
+- `app_role` (List of Object) (see [below for nested schema](#nestedobjatt--data_sources--external_secret--vault--app_role))
+- `engine_name` (String)
+- `password_key_name` (String)
+- `root_token` (String)
+- `secret_name` (String)
+- `url` (String)
+
+<a id="nestedobjatt--data_sources--external_secret--vault--app_role"></a>
+### Nested Schema for `data_sources.external_secret.vault.url`
+
+Read-Only:
+
+- `role_id` (String)
+- `secret` (String)
+- `secret_type` (String)
 
 
