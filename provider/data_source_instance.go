@@ -146,7 +146,7 @@ func getExternalSecretSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Computed:    true,
-		Description: "The external secret to get the database password.",
+		Description: "The external secret to get the database password. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"vault": {

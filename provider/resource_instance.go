@@ -148,7 +148,7 @@ func resourceInstance() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "The external secret to get the database password.",
+							Description: "The external secret to get the database password. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"vault": {
