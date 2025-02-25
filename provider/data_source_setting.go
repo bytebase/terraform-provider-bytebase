@@ -618,22 +618,6 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 	return []interface{}{approvalSetting}, nil
 }
 
-func flattenExternalApprovalSetting(setting *v1pb.ExternalApprovalSetting) []interface{} {
-	nodeList := []interface{}{}
-	for _, node := range setting.Nodes {
-		rawNode := map[string]interface{}{}
-		rawNode["id"] = node.Id
-		rawNode["title"] = node.Title
-		rawNode["endpoint"] = node.Endpoint
-		nodeList = append(nodeList, rawNode)
-	}
-
-	approvalSetting := map[string]interface{}{
-		"nodes": nodeList,
-	}
-	return []interface{}{approvalSetting}
-}
-
 func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []interface{} {
 	raw := map[string]interface{}{}
 
