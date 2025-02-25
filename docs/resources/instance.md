@@ -97,7 +97,7 @@ Required:
 Optional:
 
 - `app_role` (Block List, Max: 1) The Vault app role to get the password. (see [below for nested schema](#nestedblock--data_sources--external_secret--vault--app_role))
-- `root_token` (String, Sensitive) The root token without TTL. Learn more: https://developer.hashicorp.com/vault/docs/commands/operator/generate-root
+- `token` (String, Sensitive) The root token without TTL. Learn more: https://developer.hashicorp.com/vault/docs/commands/operator/generate-root
 
 <a id="nestedblock--data_sources--external_secret--vault--app_role"></a>
 ### Nested Schema for `data_sources.external_secret.vault.app_role`

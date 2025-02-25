@@ -89,8 +89,8 @@ Read-Only:
 - `app_role` (List of Object) (see [below for nested schema](#nestedobjatt--data_sources--external_secret--vault--app_role))
 - `engine_name` (String)
 - `password_key_name` (String)
-- `root_token` (String)
 - `secret_name` (String)
+- `token` (String)
 - `url` (String)
 
 <a id="nestedobjatt--data_sources--external_secret--vault--app_role"></a>
