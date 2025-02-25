@@ -48,6 +48,11 @@ func dataSourceInstanceList() *schema.Resource {
 							Computed:    true,
 							Description: "The instance title.",
 						},
+						"activation": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether assign license for this instance or not.",
+						},
 						"engine": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -86,7 +91,7 @@ func dataSourceInstanceList() *schema.Resource {
 									"type": {
 										Type:        schema.TypeString,
 										Computed:    true,
-										Description: "The data source type. Should be ADMIN or RO.",
+										Description: "The data source type. Should be ADMIN or READ_ONLY.",
 									},
 									"username": {
 										Type:        schema.TypeString,
@@ -96,12 +101,12 @@ func dataSourceInstanceList() *schema.Resource {
 									"host": {
 										Type:        schema.TypeString,
 										Computed:    true,
-										Description: "The Read-replica Host. Only works for RO type data source",
+										Description: "Host or socket for your instance, or the account name if the instance type is Snowflake.",
 									},
 									"port": {
 										Type:        schema.TypeString,
 										Computed:    true,
-										Description: "The Read-replica Port. Only works for RO type data source",
+										Description: "The port for your instance.",
 									},
 									"database": {
 										Type:        schema.TypeString,
@@ -114,6 +119,7 @@ func dataSourceInstanceList() *schema.Resource {
 										Sensitive:   true,
 										Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
 									},
+									"external_secret": getExternalSecretSchema(),
 									"ssl_ca": {
 										Type:        schema.TypeString,
 										Computed:    true,
@@ -136,7 +142,6 @@ func dataSourceInstanceList() *schema.Resource {
 							},
 							Set: dataSourceHash,
 						},
-						"databases": getDatabasesSchema(true),
 					},
 				},
 			},
@@ -166,14 +171,15 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		ins["resource_id"] = instanceID
 		ins["title"] = instance.Title
 		ins["name"] = instance.Name
+		ins["activation"] = instance.Activation
 		ins["engine"] = instance.Engine.String()
 		ins["engine_version"] = instance.EngineVersion
 		ins["external_link"] = instance.ExternalLink
 		ins["environment"] = instance.Environment
 
 		if op := instance.Options; op != nil {
-			ins["sync_interval"] = op.SyncInterval.GetSeconds()
-			ins["maximum_connections"] = op.MaximumConnections
+			ins["sync_interval"] = op.GetSyncInterval().GetSeconds()
+			ins["maximum_connections"] = op.GetMaximumConnections()
 		}
 
 		dataSources, err := flattenDataSourceList(d, instance.DataSources)
@@ -181,12 +187,6 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 			return diag.FromErr(err)
 		}
 		ins["data_sources"] = schema.NewSet(dataSourceHash, dataSources)
-
-		databases, err := c.ListDatabase(ctx, instance.Name, "")
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		ins["databases"] = flattenDatabaseList(databases)
 
 		instances = append(instances, ins)
 	}

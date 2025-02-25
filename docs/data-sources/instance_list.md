@@ -29,8 +29,8 @@ The instance data source list.
 
 Read-Only:
 
+- `activation` (Boolean)
 - `data_sources` (Set of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources))
-- `databases` (Set of String)
 - `engine` (String)
 - `engine_version` (String)
 - `environment` (String)
@@ -47,6 +47,7 @@ Read-Only:
 Read-Only:
 
 - `database` (String)
+- `external_secret` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--external_secret))
 - `host` (String)
 - `id` (String)
 - `password` (String)
@@ -56,5 +57,52 @@ Read-Only:
 - `ssl_key` (String)
 - `type` (String)
 - `username` (String)
+
+<a id="nestedobjatt--instances--data_sources--external_secret"></a>
+### Nested Schema for `instances.data_sources.external_secret`
+
+Read-Only:
+
+- `aws_secrets_manager` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--external_secret--aws_secrets_manager))
+- `gcp_secret_manager` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--external_secret--gcp_secret_manager))
+- `vault` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--external_secret--vault))
+
+<a id="nestedobjatt--instances--data_sources--external_secret--aws_secrets_manager"></a>
+### Nested Schema for `instances.data_sources.external_secret.vault`
+
+Read-Only:
+
+- `password_key_name` (String)
+- `secret_name` (String)
+
+
+<a id="nestedobjatt--instances--data_sources--external_secret--gcp_secret_manager"></a>
+### Nested Schema for `instances.data_sources.external_secret.vault`
+
+Read-Only:
+
+- `secret_name` (String)
+
+
+<a id="nestedobjatt--instances--data_sources--external_secret--vault"></a>
+### Nested Schema for `instances.data_sources.external_secret.vault`
+
+Read-Only:
+
+- `app_role` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--external_secret--vault--app_role))
+- `engine_name` (String)
+- `password_key_name` (String)
+- `secret_name` (String)
+- `token` (String)
+- `url` (String)
+
+<a id="nestedobjatt--instances--data_sources--external_secret--vault--app_role"></a>
+### Nested Schema for `instances.data_sources.external_secret.vault.app_role`
+
+Read-Only:
+
+- `role_id` (String)
+- `secret` (String)
+- `secret_type` (String)
 
 

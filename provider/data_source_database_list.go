@@ -81,7 +81,7 @@ func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m i
 	client := m.(api.Client)
 	parent := d.Get("parent").(string)
 
-	databases, err := client.ListDatabase(ctx, parent, "")
+	databases, err := client.ListDatabase(ctx, parent, "", true)
 	if err != nil {
 		return diag.FromErr(err)
 	}

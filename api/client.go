@@ -56,7 +56,7 @@ type Client interface {
 	// GetDatabase gets the database by instance resource id and the database name.
 	GetDatabase(ctx context.Context, databaseName string) (*v1pb.Database, error)
 	// ListDatabase list the databases.
-	ListDatabase(ctx context.Context, instanceID, filter string) ([]*v1pb.Database, error)
+	ListDatabase(ctx context.Context, instanceID, filter string, listAll bool) ([]*v1pb.Database, error)
 	// UpdateDatabase patches the database.
 	UpdateDatabase(ctx context.Context, patch *v1pb.Database, updateMasks []string) (*v1pb.Database, error)
 	// BatchUpdateDatabases batch updates databases.

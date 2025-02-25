@@ -33,17 +33,15 @@ func resourceSetting() *schema.Resource {
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.SettingWorkspaceApproval),
-					string(api.SettingWorkspaceExternalApproval),
 					string(api.SettingWorkspaceProfile),
 					string(api.SettingDataClassification),
 					string(api.SettingSemanticTypes),
 				}, false),
 			},
-			"approval_flow":           getWorkspaceApprovalSetting(false),
-			"external_approval_nodes": getExternalApprovalSetting(false),
-			"workspace_profile":       getWorkspaceProfileSetting(false),
-			"classification":          getClassificationSetting(false),
-			"semantic_types":          getSemanticTypesSetting(false),
+			"approval_flow":     getWorkspaceApprovalSetting(false),
+			"workspace_profile": getWorkspaceProfileSetting(false),
+			"classification":    getClassificationSetting(false),
+			"semantic_types":    getSemanticTypesSetting(false),
 		},
 	}
 }
@@ -69,16 +67,6 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		setting.Value = &v1pb.Value{
 			Value: &v1pb.Value_WorkspaceApprovalSettingValue{
 				WorkspaceApprovalSettingValue: workspaceApproval,
-			},
-		}
-	case api.SettingWorkspaceExternalApproval:
-		externalApproval, err := convertToV1ExternalNodesSetting(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_ExternalApprovalSettingValue{
-				ExternalApprovalSettingValue: externalApproval,
 			},
 		}
 	case api.SettingWorkspaceProfile:
@@ -238,31 +226,6 @@ func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassif
 			dataClassificationConfig,
 		},
 	}, nil
-}
-
-func convertToV1ExternalNodesSetting(d *schema.ResourceData) (*v1pb.ExternalApprovalSetting, error) {
-	rawList, ok := d.Get("external_approval_nodes").([]interface{})
-	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid external_approval_nodes")
-	}
-
-	raw := rawList[0].(map[string]interface{})
-	nodes, ok := raw["nodes"].(*schema.Set)
-	if !ok {
-		return nil, errors.Errorf("missing nodes")
-	}
-
-	externalApprovalSetting := &v1pb.ExternalApprovalSetting{}
-
-	for _, node := range nodes.List() {
-		rawNode := node.(map[string]interface{})
-		externalApprovalSetting.Nodes = append(externalApprovalSetting.Nodes, &v1pb.ExternalApprovalSetting_Node{
-			Id:       rawNode["id"].(string),
-			Title:    rawNode["title"].(string),
-			Endpoint: rawNode["endpoint"].(string),
-		})
-	}
-	return externalApprovalSetting, nil
 }
 
 func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApprovalSetting, error) {

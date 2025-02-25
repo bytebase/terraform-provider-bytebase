@@ -390,7 +390,7 @@ func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*v1pb.
 }
 
 // ListDatabase list the databases.
-func (c *mockClient) ListDatabase(_ context.Context, instaceID, filter string) ([]*v1pb.Database, error) {
+func (c *mockClient) ListDatabase(_ context.Context, instaceID, filter string, _ bool) ([]*v1pb.Database, error) {
 	projectID := "-"
 	if strings.HasPrefix(filter, "project == ") {
 		projectID = strings.Split(filter, "project == ")[1]

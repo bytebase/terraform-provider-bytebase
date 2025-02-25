@@ -28,7 +28,6 @@ The setting data source.
 ### Read-Only
 
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
-- `external_approval_nodes` (Block List) Configure external nodes in the approval flow. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--external_approval_nodes))
 - `id` (String) The ID of this resource.
 
 <a id="nestedblock--classification"></a>
@@ -184,25 +183,5 @@ Read-Only:
 
 - `node` (String)
 - `type` (String)
-
-
-
-
-
-<a id="nestedblock--external_approval_nodes"></a>
-### Nested Schema for `external_approval_nodes`
-
-Read-Only:
-
-- `nodes` (Set of Object) (see [below for nested schema](#nestedatt--external_approval_nodes--nodes))
-
-<a id="nestedatt--external_approval_nodes--nodes"></a>
-### Nested Schema for `external_approval_nodes.nodes`
-
-Read-Only:
-
-- `endpoint` (String)
-- `id` (String)
-- `title` (String)
 
 

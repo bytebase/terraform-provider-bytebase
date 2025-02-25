@@ -47,6 +47,12 @@ func resourceInstance() *schema.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The instance title.",
 			},
+			"activation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether assign license for this instance or not.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -123,7 +129,7 @@ func resourceInstance() *schema.Resource {
 								v1pb.DataSourceType_ADMIN.String(),
 								v1pb.DataSourceType_READ_ONLY.String(),
 							}, false),
-							Description: "The data source type. Should be ADMIN or RO.",
+							Description: "The data source type. Should be ADMIN or READ_ONLY.",
 						},
 						"username": {
 							Type:        schema.TypeString,
@@ -137,6 +143,118 @@ func resourceInstance() *schema.Resource {
 							Sensitive:   true,
 							Default:     "",
 							Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
+						},
+						"external_secret": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "The external secret to get the database password. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"vault": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										MaxItems:    1,
+										Description: "The Valut to get the database password. Reference doc https://developer.hashicorp.com/vault/api-docs/secret/kv/kv-v2",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"url": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The Vault URL.",
+												},
+												"token": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Sensitive:   true,
+													Description: "The root token without TTL. Learn more: https://developer.hashicorp.com/vault/docs/commands/operator/generate-root",
+												},
+												"app_role": {
+													Type:        schema.TypeList,
+													Optional:    true,
+													MaxItems:    1,
+													Description: "The Vault app role to get the password.",
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"role_id": {
+																Type:        schema.TypeString,
+																Required:    true,
+																Sensitive:   true,
+																Description: "The app role id.",
+															},
+															"secret": {
+																Type:        schema.TypeString,
+																Required:    true,
+																Sensitive:   true,
+																Description: "The secret id for the role without ttl.",
+															},
+															"secret_type": {
+																Type:        schema.TypeString,
+																Required:    true,
+																Description: "The secret id type, can be PLAIN (plain text for the secret) or ENVIRONMENT (envirionment name for the secret).",
+																ValidateFunc: validation.StringInSlice([]string{
+																	v1pb.DataSourceExternalSecret_AppRoleAuthOption_PLAIN.String(),
+																	v1pb.DataSourceExternalSecret_AppRoleAuthOption_ENVIRONMENT.String(),
+																}, false),
+															},
+														},
+													},
+												},
+												"engine_name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The name for secret engine.",
+												},
+												"secret_name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The secret name in the engine to store the password.",
+												},
+												"password_key_name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The key name for the password.",
+												},
+											},
+										},
+									},
+									"aws_secrets_manager": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										MaxItems:    1,
+										Description: "The AWS Secrets Manager to get the database password. Reference doc https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"secret_name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The secret name to store the password.",
+												},
+												"password_key_name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The key name for the password.",
+												},
+											},
+										},
+									},
+									"gcp_secret_manager": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										MaxItems:    1,
+										Description: "The GCP Secret Manager to get the database password. Reference doc https://cloud.google.com/secret-manager/docs",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"secret_name": {
+													Type:        schema.TypeString,
+													Required:    true,
+													Description: "The secret name should be like \"projects/{project-id}/secrets/{secret-id}\".",
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 						"ssl_ca": {
 							Type:        schema.TypeString,
@@ -181,6 +299,12 @@ func resourceInstance() *schema.Resource {
 				},
 				Set: dataSourceHash,
 			},
+			"list_all_databases": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "List all databases in this instance. If false, will only list 500 databases.",
+			},
 			"databases": getDatabasesSchema(true),
 		},
 	}
@@ -198,6 +322,8 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	instanceName := fmt.Sprintf("%s%s", internal.InstanceNamePrefix, instanceID)
 	title := d.Get("title").(string)
 	externalLink := d.Get("external_link").(string)
+	environment := d.Get("environment").(string)
+	activation := d.Get("activation").(bool)
 	instanceOptions := &v1pb.InstanceOptions{
 		SyncInterval: &durationpb.Duration{
 			Seconds: int64(d.Get("sync_interval").(int)),
@@ -257,6 +383,12 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		if externalLink != "" && externalLink != existedInstance.ExternalLink {
 			updateMasks = append(updateMasks, "external_link")
 		}
+		if environment != existedInstance.Environment {
+			updateMasks = append(updateMasks, "environment")
+		}
+		if activation != existedInstance.Activation {
+			updateMasks = append(updateMasks, "activation")
+		}
 		if op := existedInstance.Options; op != nil {
 			if instanceOptions.SyncInterval.GetSeconds() != op.SyncInterval.GetSeconds() {
 				updateMasks = append(updateMasks, "options.sync_interval")
@@ -275,6 +407,8 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 				Title:        title,
 				ExternalLink: externalLink,
 				DataSources:  dataSourceList,
+				Environment:  environment,
+				Activation:   activation,
 				State:        v1pb.State_ACTIVE,
 				Options:      instanceOptions,
 			}, updateMasks); err != nil {
@@ -289,12 +423,13 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	} else {
 		if _, err := c.CreateInstance(ctx, instanceID, &v1pb.Instance{
 			Name:         instanceName,
-			Title:        d.Get("title").(string),
+			Title:        title,
 			Engine:       engine,
-			ExternalLink: d.Get("external_link").(string),
+			ExternalLink: externalLink,
 			State:        v1pb.State_ACTIVE,
 			DataSources:  dataSourceList,
-			Environment:  d.Get("environment").(string),
+			Environment:  environment,
+			Activation:   activation,
 			Options:      instanceOptions,
 		}); err != nil {
 			return diag.FromErr(err)
@@ -350,9 +485,6 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if d.HasChange("resource_id") {
 		return diag.Errorf("cannot change the resource id")
 	}
-	if d.HasChange("environment") {
-		return diag.Errorf("cannot change the environment in instance")
-	}
 	if d.HasChange("engine") {
 		return diag.Errorf("cannot change the engine in instance")
 	}
@@ -394,6 +526,12 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if d.HasChange("external_link") {
 		paths = append(paths, "external_link")
 	}
+	if d.HasChange("environment") {
+		paths = append(paths, "environment")
+	}
+	if d.HasChange("activation") {
+		paths = append(paths, "activation")
+	}
 	if d.HasChange("data_sources") {
 		paths = append(paths, "data_sources")
 	}
@@ -409,6 +547,8 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			Name:         instanceName,
 			Title:        d.Get("title").(string),
 			ExternalLink: d.Get("external_link").(string),
+			Environment:  d.Get("environment").(string),
+			Activation:   d.Get("activation").(bool),
 			DataSources:  dataSourceList,
 			State:        v1pb.State_ACTIVE,
 			Options: &v1pb.InstanceOptions{
@@ -479,6 +619,9 @@ func setInstanceMessage(
 	if err := d.Set("environment", instance.Environment); err != nil {
 		return diag.Errorf("cannot set environment for instance: %s", err.Error())
 	}
+	if err := d.Set("activation", instance.Activation); err != nil {
+		return diag.Errorf("cannot set activation for instance: %s", err.Error())
+	}
 	if err := d.Set("engine", instance.Engine.String()); err != nil {
 		return diag.Errorf("cannot set engine for instance: %s", err.Error())
 	}
@@ -489,10 +632,10 @@ func setInstanceMessage(
 		return diag.Errorf("cannot set external_link for instance: %s", err.Error())
 	}
 	if op := instance.Options; op != nil {
-		if err := d.Set("sync_interval", op.SyncInterval.GetSeconds()); err != nil {
+		if err := d.Set("sync_interval", op.GetSyncInterval().GetSeconds()); err != nil {
 			return diag.Errorf("cannot set sync_interval for instance: %s", err.Error())
 		}
-		if err := d.Set("maximum_connections", op.MaximumConnections); err != nil {
+		if err := d.Set("maximum_connections", op.GetMaximumConnections()); err != nil {
 			return diag.Errorf("cannot set maximum_connections for instance: %s", err.Error())
 		}
 	}
@@ -509,7 +652,8 @@ func setInstanceMessage(
 		"instance": instance.Name,
 	})
 
-	databases, err := client.ListDatabase(ctx, instance.Name, "")
+	listAllDatabases := d.Get("list_all_databases").(bool)
+	databases, err := client.ListDatabase(ctx, instance.Name, "", listAllDatabases)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -548,6 +692,57 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 			raw["ssl_cert"] = ds.SslCert
 			raw["ssl_key"] = ds.SslKey
 		}
+
+		if v := dataSource.ExternalSecret; v != nil {
+			switch v.SecretType {
+			case v1pb.DataSourceExternalSecret_GCP_SECRET_MANAGER:
+				gcp := map[string]interface{}{
+					"secret_name": v.SecretName,
+				}
+				raw["external_secret"] = []any{
+					map[string]interface{}{
+						"gcp_secret_manager": []any{gcp},
+					},
+				}
+			case v1pb.DataSourceExternalSecret_AWS_SECRETS_MANAGER:
+				aws := map[string]interface{}{
+					"secret_name":       v.SecretName,
+					"password_key_name": v.PasswordKeyName,
+				}
+				raw["external_secret"] = []any{
+					map[string]interface{}{
+						"aws_secrets_manager": []any{aws},
+					},
+				}
+			case v1pb.DataSourceExternalSecret_VAULT_KV_V2:
+				vault := map[string]interface{}{
+					"url":               v.Url,
+					"engine_name":       v.EngineName,
+					"secret_name":       v.SecretName,
+					"password_key_name": v.PasswordKeyName,
+				}
+				switch v.AuthType {
+				case v1pb.DataSourceExternalSecret_TOKEN:
+					if ds, ok := oldDataSourceMap[dataSource.Id]; ok && ds.GetExternalSecret() != nil {
+						vault["token"] = ds.GetExternalSecret().GetToken()
+					}
+				case v1pb.DataSourceExternalSecret_VAULT_APP_ROLE:
+					appRole := map[string]interface{}{
+						"secret_type": v.GetAppRole().Type.String(),
+					}
+					if ds, ok := oldDataSourceMap[dataSource.Id]; ok && ds.GetExternalSecret() != nil {
+						appRole["role_id"] = ds.GetExternalSecret().GetAppRole().GetRoleId()
+						appRole["secret"] = ds.GetExternalSecret().GetAppRole().GetSecretId()
+					}
+					vault["app_role"] = []any{appRole}
+				}
+				raw["external_secret"] = []any{
+					map[string]interface{}{
+						"vault": []any{vault},
+					},
+				}
+			}
+		}
 		res = append(res, raw)
 	}
 	return res, nil
@@ -583,6 +778,53 @@ func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb
 		if v, ok := obj["password"].(string); ok && v != "" {
 			dataSource.Password = v
 		}
+		if v, ok := obj["external_secret"].([]interface{}); ok && len(v) == 1 {
+			externalSecret := &v1pb.DataSourceExternalSecret{}
+			rawExternalSecret := v[0].(map[string]interface{})
+			if v, ok := rawExternalSecret["vault"].([]interface{}); ok && len(v) == 1 {
+				rawVault := v[0].(map[string]interface{})
+				externalSecret.SecretType = v1pb.DataSourceExternalSecret_VAULT_KV_V2
+				externalSecret.Url = rawVault["url"].(string)
+				externalSecret.EngineName = rawVault["engine_name"].(string)
+				externalSecret.SecretName = rawVault["secret_name"].(string)
+				externalSecret.PasswordKeyName = rawVault["password_key_name"].(string)
+
+				if token, ok := rawVault["token"].(string); ok && token != "" {
+					externalSecret.AuthType = v1pb.DataSourceExternalSecret_TOKEN
+					externalSecret.AuthOption = &v1pb.DataSourceExternalSecret_Token{
+						Token: token,
+					}
+				} else if v, ok := rawVault["app_role"].([]interface{}); ok && len(v) == 1 {
+					rawAppRole := v[0].(map[string]interface{})
+					externalSecret.AuthType = v1pb.DataSourceExternalSecret_VAULT_APP_ROLE
+					externalSecret.AuthOption = &v1pb.DataSourceExternalSecret_AppRole{
+						AppRole: &v1pb.DataSourceExternalSecret_AppRoleAuthOption{
+							RoleId:   rawAppRole["role_id"].(string),
+							SecretId: rawAppRole["secret"].(string),
+							Type:     v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType(v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType_value[rawAppRole["secret_type"].(string)]),
+						},
+					}
+				} else {
+					return nil, errors.Errorf("require token or app_role for Vault")
+				}
+			} else if v, ok := rawExternalSecret["aws_secrets_manager"].([]interface{}); ok && len(v) == 1 {
+				rawAWS := v[0].(map[string]interface{})
+				externalSecret.SecretType = v1pb.DataSourceExternalSecret_AWS_SECRETS_MANAGER
+				externalSecret.SecretName = rawAWS["secret_name"].(string)
+				externalSecret.PasswordKeyName = rawAWS["password_key_name"].(string)
+			} else if v, ok := rawExternalSecret["gcp_secret_manager"].([]interface{}); ok && len(v) == 1 {
+				rawGCP := v[0].(map[string]interface{})
+				externalSecret.SecretType = v1pb.DataSourceExternalSecret_GCP_SECRET_MANAGER
+				externalSecret.SecretName = rawGCP["secret_name"].(string)
+			} else {
+				return nil, errors.Errorf("must set one of vault, aws_secrets_manager or gcp_secret_manager")
+			}
+			dataSource.ExternalSecret = externalSecret
+		}
+		if dataSource.Password != "" && dataSource.ExternalSecret != nil {
+			return nil, errors.Errorf("cannot set both password and external_secret")
+		}
+
 		if v, ok := obj["ssl_ca"].(string); ok {
 			dataSource.SslCa = v
 		}

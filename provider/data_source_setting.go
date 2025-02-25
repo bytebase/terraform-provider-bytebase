@@ -27,17 +27,15 @@ func dataSourceSetting() *schema.Resource {
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(api.SettingWorkspaceApproval),
-					string(api.SettingWorkspaceExternalApproval),
 					string(api.SettingWorkspaceProfile),
 					string(api.SettingDataClassification),
 					string(api.SettingSemanticTypes),
 				}, false),
 			},
-			"approval_flow":           getWorkspaceApprovalSetting(true),
-			"external_approval_nodes": getExternalApprovalSetting(true),
-			"workspace_profile":       getWorkspaceProfileSetting(true),
-			"classification":          getClassificationSetting(true),
-			"semantic_types":          getSemanticTypesSetting(true),
+			"approval_flow":     getWorkspaceApprovalSetting(true),
+			"workspace_profile": getWorkspaceProfileSetting(true),
+			"classification":    getClassificationSetting(true),
+			"semantic_types":    getSemanticTypesSetting(true),
 		},
 	}
 }
@@ -341,48 +339,6 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 	}
 }
 
-func getExternalApprovalSetting(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Computed:    computed,
-		Optional:    true,
-		Default:     nil,
-		Type:        schema.TypeList,
-		Description: "Configure external nodes in the approval flow. Require ENTERPRISE subscription.",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"nodes": {
-					Type:     schema.TypeSet,
-					Computed: computed,
-					Required: !computed,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"id": {
-								Type:        schema.TypeString,
-								Computed:    computed,
-								Required:    !computed,
-								Description: "The unique external node id.",
-							},
-							"title": {
-								Type:        schema.TypeString,
-								Computed:    computed,
-								Required:    !computed,
-								Description: "The external node title.",
-							},
-							"endpoint": {
-								Type:        schema.TypeString,
-								Computed:    computed,
-								Required:    !computed,
-								Description: "The endpoint URL to receive the approval message. Learn more: https://www.bytebase.com/docs/api/external-approval",
-							},
-						},
-					},
-					Set: itemIDHash,
-				},
-			},
-		},
-	}
-}
-
 func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Computed:    computed,
@@ -513,12 +469,6 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 		}
 		if err := d.Set("approval_flow", settingVal); err != nil {
 			return diag.Errorf("cannot set workspace_approval_setting: %s", err.Error())
-		}
-	}
-	if value := setting.Value.GetExternalApprovalSettingValue(); value != nil {
-		settingVal := flattenExternalApprovalSetting(value)
-		if err := d.Set("external_approval_nodes", settingVal); err != nil {
-			return diag.Errorf("cannot set external_approval_nodes: %s", err.Error())
 		}
 	}
 	if value := setting.Value.GetWorkspaceProfileSettingValue(); value != nil {
@@ -666,22 +616,6 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 		"rules": ruleList,
 	}
 	return []interface{}{approvalSetting}, nil
-}
-
-func flattenExternalApprovalSetting(setting *v1pb.ExternalApprovalSetting) []interface{} {
-	nodeList := []interface{}{}
-	for _, node := range setting.Nodes {
-		rawNode := map[string]interface{}{}
-		rawNode["id"] = node.Id
-		rawNode["title"] = node.Title
-		rawNode["endpoint"] = node.Endpoint
-		nodeList = append(nodeList, rawNode)
-	}
-
-	approvalSetting := map[string]interface{}{
-		"nodes": nodeList,
-	}
-	return []interface{}{approvalSetting}
 }
 
 func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []interface{} {
