@@ -8,13 +8,12 @@ using Terraform Bytebase Provider to prepare those instances ready for applicati
 
 # Real world example
 
-https://github.com/bytebase/terraform-example and https://tf.bytebase.com.
+[https://github.com/bytebase/terraform-example](https://github.com/bytebase/terraform-provider-bytebase/tree/main/examples) and https://tf.bytebase.com.
 
 ## Usage
 
-You can download this provider at [registry.terraform.io](https://registry.terraform.io/providers/bytebase/bytebase).
-
-Please follow [Manage Bytebase with Terraform](https://www.bytebase.com/docs/get-started/terraform) to use the provider.
+1. Download [provider](https://registry.terraform.io/providers/bytebase/bytebase).
+1. Follow [example](https://www.bytebase.com/docs/get-started/terraform).
 
 ## Development
 
