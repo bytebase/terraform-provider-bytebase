@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
@@ -37,7 +38,7 @@ func (c *client) CreateGroup(ctx context.Context, email string, group *v1pb.Grou
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/groups?groupEmail=%s", c.url, c.version, email), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/groups?groupEmail=%s", c.url, c.version, url.QueryEscape(email)), strings.NewReader(string(payload)))
 
 	if err != nil {
 		return nil, err

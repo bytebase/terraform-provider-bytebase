@@ -131,6 +131,11 @@ func setUser(ctx context.Context, client api.Client, d *schema.ResourceData, use
 	if err := d.Set("type", user.UserType.String()); err != nil {
 		return diag.Errorf("cannot set type for user: %s", err.Error())
 	}
+	if user.ServiceKey != "" {
+		if err := d.Set("service_key", user.ServiceKey); err != nil {
+			return diag.Errorf("cannot set the service_key: %s", err.Error())
+		}
+	}
 	if err := d.Set("mfa_enabled", user.MfaEnabled); err != nil {
 		return diag.Errorf("cannot set mfa_enabled for user: %s", err.Error())
 	}
