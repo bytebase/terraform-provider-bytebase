@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -51,6 +52,11 @@ func resourceUser() *schema.Resource {
 				Optional:    true,
 				Description: "The user login password.",
 			},
+			"service_key": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The service key for service account.",
+			},
 			"roles": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -61,8 +67,13 @@ func resourceUser() *schema.Resource {
 			},
 			"type": {
 				Type:        schema.TypeString,
-				Computed:    true,
+				Optional:    true,
 				Description: "The user type.",
+				Default:     v1pb.UserType_USER.String(),
+				ValidateFunc: validation.StringInSlice([]string{
+					v1pb.UserType_SERVICE_ACCOUNT.String(),
+					v1pb.UserType_USER.String(),
+				}, false),
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -198,13 +209,19 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 		}
 		d.SetId(existedUser.Name)
 	} else {
+		userType := v1pb.UserType(v1pb.UserType_value[d.Get("type").(string)])
+		if userType == v1pb.UserType_SERVICE_ACCOUNT {
+			if !strings.HasSuffix(email, "@service.bytebase.com") {
+				return diag.Errorf(`service account email must ends with "@service.bytebase.com"`)
+			}
+		}
 		user, err := c.CreateUser(ctx, &v1pb.User{
 			Name:     userName,
 			Title:    title,
 			Password: password,
 			Phone:    phone,
 			Email:    email,
-			UserType: v1pb.UserType_USER,
+			UserType: userType,
 			State:    v1pb.State_ACTIVE,
 		})
 		if err != nil {

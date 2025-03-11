@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -15,7 +16,7 @@ var ProtojsonUnmarshaler = protojson.UnmarshalOptions{DiscardUnknown: true}
 
 // deleteResource deletes the resource by name.
 func (c *client) deleteResource(ctx context.Context, name string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, name), nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, url.QueryEscape(name)), nil)
 	if err != nil {
 		return err
 	}
@@ -28,7 +29,7 @@ func (c *client) deleteResource(ctx context.Context, name string) error {
 
 // undeleteResource undeletes the resource by name.
 func (c *client) undeleteResource(ctx context.Context, name string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:undelete", c.url, c.version, name), nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:undelete", c.url, c.version, url.QueryEscape(name)), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func (c *client) updateResource(ctx context.Context, name string, patch protoref
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s&allow_missing=%v", c.url, c.version, name, strings.Join(updateMasks, ","), allowMissing), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, "PATCH", fmt.Sprintf("%s/%s/%s?update_mask=%s&allow_missing=%v", c.url, c.version, url.QueryEscape(name), strings.Join(updateMasks, ","), allowMissing), strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func (c *client) updateResource(ctx context.Context, name string, patch protoref
 
 // getResource gets the resource by name.
 func (c *client) getResource(ctx context.Context, name string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, name), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, url.QueryEscape(name)), nil)
 	if err != nil {
 		return nil, err
 	}
