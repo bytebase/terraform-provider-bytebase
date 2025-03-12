@@ -7,6 +7,13 @@ resource "bytebase_user" "workspace_dba" {
   roles = ["roles/workspaceDBA"]
 }
 
+resource "bytebase_user" "service_account" {
+  title = "CI Bot"
+  email = "ci-bot@service.bytebase.com"
+  type  = "SERVICE_ACCOUNT"
+  roles = ["roles/workspaceDBA"]
+}
+
 # Create or update the user.
 resource "bytebase_user" "workspace_auditor" {
   depends_on = [
@@ -42,7 +49,7 @@ resource "bytebase_group" "developers" {
     bytebase_setting.workspace_profile
   ]
 
-  email = "developers@bytebase.com"
+  email = "developers+dba@bytebase.com"
   title = "Bytebase Developers"
 
   members {

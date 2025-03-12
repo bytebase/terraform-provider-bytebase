@@ -37,6 +37,8 @@ const (
 	GroupNamePrefix = "groups/"
 	// RoleNamePrefix is the prefix for role name.
 	RoleNamePrefix = "roles/"
+	// ReviewConfigNamePrefix is the prefix for the review config name.
+	ReviewConfigNamePrefix = "reviewConfigs/"
 	// DatabaseCatalogNameSuffix is the suffix for the database catalog name.
 	DatabaseCatalogNameSuffix = "/catalog"
 	// ResourceIDPattern is the pattern for resource id.
@@ -79,6 +81,30 @@ func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateDiagF
 		return diags
 	}
 }
+
+var EngineValidation = validation.StringInSlice([]string{
+	v1pb.Engine_CLICKHOUSE.String(),
+	v1pb.Engine_MYSQL.String(),
+	v1pb.Engine_POSTGRES.String(),
+	v1pb.Engine_SNOWFLAKE.String(),
+	v1pb.Engine_SQLITE.String(),
+	v1pb.Engine_TIDB.String(),
+	v1pb.Engine_MONGODB.String(),
+	v1pb.Engine_REDIS.String(),
+	v1pb.Engine_ORACLE.String(),
+	v1pb.Engine_SPANNER.String(),
+	v1pb.Engine_MSSQL.String(),
+	v1pb.Engine_REDSHIFT.String(),
+	v1pb.Engine_MARIADB.String(),
+	v1pb.Engine_OCEANBASE.String(),
+	v1pb.Engine_DM.String(),
+	v1pb.Engine_RISINGWAVE.String(),
+	v1pb.Engine_OCEANBASE_ORACLE.String(),
+	v1pb.Engine_STARROCKS.String(),
+	v1pb.Engine_DORIS.String(),
+	v1pb.Engine_HIVE.String(),
+	v1pb.Engine_ELASTICSEARCH.String(),
+}, false)
 
 // GetPolicyParentAndType returns the policy parent and type by the name.
 func GetPolicyParentAndType(name string) (string, v1pb.PolicyType, error) {
@@ -147,6 +173,24 @@ func GetProjectID(name string) (string, error) {
 // GetRoleID will parse the role resource id.
 func GetRoleID(name string) (string, error) {
 	tokens, err := getNameParentTokens(name, RoleNamePrefix)
+	if err != nil {
+		return "", err
+	}
+	return tokens[0], nil
+}
+
+// GetGroupEmail will parse the email from group full name.
+func GetGroupEmail(name string) (string, error) {
+	tokens, err := getNameParentTokens(name, GroupNamePrefix)
+	if err != nil {
+		return "", err
+	}
+	return tokens[0], nil
+}
+
+// GetReviewConfigID will parse the id from review config full name.
+func GetReviewConfigID(name string) (string, error) {
+	tokens, err := getNameParentTokens(name, ReviewConfigNamePrefix)
 	if err != nil {
 		return "", err
 	}

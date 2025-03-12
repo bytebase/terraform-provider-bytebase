@@ -901,3 +901,23 @@ func (c *mockClient) DeleteRole(_ context.Context, roleName string) error {
 	delete(c.roleMap, roleName)
 	return nil
 }
+
+// ListReviewConfig will return review configs.
+func (*mockClient) ListReviewConfig(_ context.Context) (*v1pb.ListReviewConfigsResponse, error) {
+	return &v1pb.ListReviewConfigsResponse{}, nil
+}
+
+// GetReviewConfig gets the review config by full name.
+func (*mockClient) GetReviewConfig(_ context.Context, _ string) (*v1pb.ReviewConfig, error) {
+	return &v1pb.ReviewConfig{}, nil
+}
+
+// UpsertReviewConfig updates or creates the review config.
+func (*mockClient) UpsertReviewConfig(_ context.Context, _ *v1pb.ReviewConfig, _ []string) (*v1pb.ReviewConfig, error) {
+	return &v1pb.ReviewConfig{}, nil
+}
+
+// DeleteReviewConfig deletes the review config.
+func (*mockClient) DeleteReviewConfig(_ context.Context, _ string) error {
+	return nil
+}

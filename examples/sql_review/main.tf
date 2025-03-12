@@ -17,9 +17,9 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
-# List all users
-data "bytebase_user_list" "all" {}
+data "bytebase_review_config_list" "all" {
+}
 
-output "all_users" {
-  value = data.bytebase_user_list.all
+output "all_review_configs" {
+  value = data.bytebase_review_config_list.all
 }
