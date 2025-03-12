@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// ListInstance will return instances in environment.
+// ListInstance will return instances.
 func (c *client) ListInstance(ctx context.Context, showDeleted bool) (*v1pb.ListInstancesResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/instances?showDeleted=%v", c.url, c.version, showDeleted), nil)
 	if err != nil {

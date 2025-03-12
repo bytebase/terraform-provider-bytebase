@@ -33,16 +33,28 @@ resource "bytebase_user" "project_developer" {
   roles = ["roles/projectViewer"]
 }
 
+resource "bytebase_user" "service_account" {
+  depends_on = [
+    bytebase_user.project_developer
+  ]
+  title = "CI Bot"
+  email = "ci-bot@service.bytebase.com"
+  type  = "SERVICE_ACCOUNT"
+  roles = ["roles/workspaceDBA"]
+}
+
+
 # Create or update the group.
 resource "bytebase_group" "developers" {
   depends_on = [
     bytebase_user.workspace_dba,
     bytebase_user.project_developer,
+    bytebase_user.service_account,
     # group requires the domain.
     bytebase_setting.workspace_profile
   ]
 
-  email = "developers@bytebase.com"
+  email = "developers+dba@bytebase.com"
   title = "Bytebase Developers"
 
   members {
@@ -54,4 +66,6 @@ resource "bytebase_group" "developers" {
     member = format("users/%s", bytebase_user.project_developer.email)
     role   = "MEMBER"
   }
+
+  roles = ["roles/projectViewer"]
 }

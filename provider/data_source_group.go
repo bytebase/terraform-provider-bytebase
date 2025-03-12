@@ -42,6 +42,14 @@ func dataSourceGroup() *schema.Resource {
 				Computed:    true,
 				Description: "Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.",
 			},
+			"roles": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "The group's roles in the workspace level",
+			},
 			"members": {
 				Type:        schema.TypeSet,
 				Computed:    true,
@@ -75,10 +83,15 @@ func dataSourceGroupRead(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	d.SetId(group.Name)
-	return setGroup(d, group)
+	return setGroup(ctx, c, d, group)
 }
 
-func setGroup(d *schema.ResourceData, group *v1pb.Group) diag.Diagnostics {
+func setGroup(ctx context.Context, client api.Client, d *schema.ResourceData, group *v1pb.Group) diag.Diagnostics {
+	workspaceIAM, err := client.GetWorkspaceIAMPolicy(ctx)
+	if err != nil {
+		return diag.Errorf("cannot get workspace IAM with error: %s", err.Error())
+	}
+
 	if err := d.Set("name", group.Name); err != nil {
 		return diag.Errorf("cannot set name for group: %s", err.Error())
 	}
@@ -101,6 +114,13 @@ func setGroup(d *schema.ResourceData, group *v1pb.Group) diag.Diagnostics {
 	}
 	if err := d.Set("members", schema.NewSet(memberHash, memberList)); err != nil {
 		return diag.Errorf("cannot set members for group: %s", err.Error())
+	}
+	groupEmail, err := internal.GetGroupEmail(group.Name)
+	if err != nil {
+		return diag.Errorf("failed to parse group email: %v", err)
+	}
+	if err := d.Set("roles", getRolesInIAM(workspaceIAM, fmt.Sprintf("group:%s", groupEmail))); err != nil {
+		return diag.Errorf("cannot set roles for user: %s", err.Error())
 	}
 
 	return nil

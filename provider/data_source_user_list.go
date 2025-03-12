@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -120,7 +121,7 @@ func dataSourceUserListRead(ctx context.Context, d *schema.ResourceData, m inter
 			raw["last_login_time"] = p.LastLoginTime.AsTime().UTC().Format(time.RFC3339)
 			raw["last_change_password_time"] = p.LastChangePasswordTime.AsTime().UTC().Format(time.RFC3339)
 		}
-		raw["roles"] = getUserRoles(workspaceIAM, user.Email)
+		raw["roles"] = getRolesInIAM(workspaceIAM, fmt.Sprintf("user:%s", user.Email))
 		users = append(users, raw)
 	}
 	if err := d.Set("users", users); err != nil {

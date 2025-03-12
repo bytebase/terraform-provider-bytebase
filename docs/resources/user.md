@@ -25,6 +25,7 @@ The user resource.
 - `password` (String, Sensitive) The user login password.
 - `phone` (String) The user phone.
 - `roles` (Set of String) The user's roles in the workspace level
+- `type` (String) The user type.
 
 ### Read-Only
 
@@ -33,8 +34,8 @@ The user resource.
 - `last_login_time` (String) The user last login time.
 - `mfa_enabled` (Boolean) The mfa_enabled flag means if the user has enabled MFA.
 - `name` (String) The user name in users/{user id or email} format.
+- `service_key` (String) The service key for service account.
 - `source` (String) Source means where the user comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.
 - `state` (String) The user is deleted or not.
-- `type` (String) The user type.
 
 

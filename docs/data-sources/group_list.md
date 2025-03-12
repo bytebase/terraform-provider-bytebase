@@ -28,6 +28,7 @@ Read-Only:
 - `description` (String)
 - `members` (Set of Object) (see [below for nested schema](#nestedobjatt--groups--members))
 - `name` (String)
+- `roles` (Set of String)
 - `source` (String)
 - `title` (String)
 

@@ -166,11 +166,11 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 				Summary:  "User is deleted",
 				Detail:   fmt.Sprintf("User %s already deleted, try to undelete the user", userName),
 			})
-			if _, err := c.UndeleteUser(ctx, userName); err != nil {
+			if _, err := c.UndeleteUser(ctx, existedUser.Name); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to undelete user",
-					Detail:   fmt.Sprintf("Undelete user %s failed, error: %v", userName, err),
+					Detail:   fmt.Sprintf("Undelete user %s failed, error: %v", existedUser.Name, err),
 				})
 				return diags
 			}
@@ -230,7 +230,11 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 		d.SetId(user.Name)
 	}
 
-	if err := patchWorkspaceIAMPolicy(ctx, c, email, getRoles(d)); err != nil {
+	roles, diagnostic := getRoles(d)
+	if diagnostic != nil {
+		return diagnostic
+	}
+	if err := patchWorkspaceIAMPolicy(ctx, c, fmt.Sprintf("user:%s", email), roles); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to patch user roles",
@@ -316,7 +320,11 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	if d.HasChange("roles") {
-		if err := patchWorkspaceIAMPolicy(ctx, c, email, getRoles(d)); err != nil {
+		roles, diagnostic := getRoles(d)
+		if diagnostic != nil {
+			return diagnostic
+		}
+		if err := patchWorkspaceIAMPolicy(ctx, c, fmt.Sprintf("user:%s", email), roles); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to patch user roles",
@@ -334,36 +342,39 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	return diags
 }
 
-func getRoles(d *schema.ResourceData) []string {
+func getRoles(d *schema.ResourceData) ([]string, diag.Diagnostics) {
 	rawRoles := d.Get("roles").(*schema.Set)
 	roleList := []string{}
 
 	for _, rawRole := range rawRoles.List() {
+		role := rawRole.(string)
+		if !strings.HasPrefix(role, internal.RoleNamePrefix) {
+			return nil, diag.Errorf("role must in the roles/{id} format")
+		}
 		roleList = append(roleList, rawRole.(string))
 	}
-	return roleList
+	return roleList, nil
 }
 
-func patchWorkspaceIAMPolicy(ctx context.Context, client api.Client, email string, roles []string) error {
+func patchWorkspaceIAMPolicy(ctx context.Context, client api.Client, member string, roles []string) error {
 	workspaceIamPolicy, err := client.GetWorkspaceIAMPolicy(ctx)
 	if err != nil {
 		return errors.Errorf("cannot get workspace IAM with error: %s", err.Error())
 	}
-	patchMember := fmt.Sprintf("user:%s", email)
 	roleMap := map[string]bool{}
 	for _, role := range roles {
 		roleMap[role] = true
 	}
 
 	for _, binding := range workspaceIamPolicy.Bindings {
-		index := slices.Index(binding.Members, patchMember)
+		index := slices.Index(binding.Members, member)
 		if !roleMap[binding.Role] {
 			if index >= 0 {
 				binding.Members = slices.Delete(binding.Members, index, index+1)
 			}
 		} else {
 			if index < 0 {
-				binding.Members = append(binding.Members, patchMember)
+				binding.Members = append(binding.Members, member)
 			}
 		}
 
@@ -374,7 +385,7 @@ func patchWorkspaceIAMPolicy(ctx context.Context, client api.Client, email strin
 		workspaceIamPolicy.Bindings = append(workspaceIamPolicy.Bindings, &v1pb.Binding{
 			Role: role,
 			Members: []string{
-				patchMember,
+				member,
 			},
 		})
 	}

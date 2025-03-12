@@ -99,13 +99,12 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 	return setUser(ctx, c, d, user)
 }
 
-func getUserRoles(iamPolicy *v1pb.IamPolicy, email string) []string {
-	userBinding := fmt.Sprintf("user:%s", email)
+func getRolesInIAM(iamPolicy *v1pb.IamPolicy, memberBinding string) []string {
 	roles := []string{}
 
 	for _, binding := range iamPolicy.Bindings {
 		for _, member := range binding.Members {
-			if member == userBinding {
+			if member == memberBinding {
 				roles = append(roles, binding.Role)
 			}
 		}
@@ -153,7 +152,7 @@ func setUser(ctx context.Context, client api.Client, d *schema.ResourceData, use
 			return diag.Errorf("cannot set source for user: %s", err.Error())
 		}
 	}
-	if err := d.Set("roles", getUserRoles(workspaceIAM, user.Email)); err != nil {
+	if err := d.Set("roles", getRolesInIAM(workspaceIAM, fmt.Sprintf("user:%s", user.Email))); err != nil {
 		return diag.Errorf("cannot set roles for user: %s", err.Error())
 	}
 

@@ -163,4 +163,14 @@ type Client interface {
 	GetWorkspaceIAMPolicy(ctx context.Context) (*v1pb.IamPolicy, error)
 	// SetWorkspaceIAMPolicy sets the workspace IAM policy.
 	SetWorkspaceIAMPolicy(ctx context.Context, setIamPolicyRequest *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error)
+
+	// Review config
+	// ListReviewConfig will return review configs.
+	ListReviewConfig(ctx context.Context) (*v1pb.ListReviewConfigsResponse, error)
+	// GetReviewConfig gets the review config by full name.
+	GetReviewConfig(ctx context.Context, reviewName string) (*v1pb.ReviewConfig, error)
+	// UpsertReviewConfig updates or creates the review config.
+	UpsertReviewConfig(ctx context.Context, patch *v1pb.ReviewConfig, updateMasks []string) (*v1pb.ReviewConfig, error)
+	// DeleteReviewConfig deletes the review config.
+	DeleteReviewConfig(ctx context.Context, reviewName string) error
 }
