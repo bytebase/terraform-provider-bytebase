@@ -82,6 +82,7 @@ func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateDiagF
 	}
 }
 
+// EngineValidation validate the engine type.
 var EngineValidation = validation.StringInSlice([]string{
 	v1pb.Engine_CLICKHOUSE.String(),
 	v1pb.Engine_MYSQL.String(),

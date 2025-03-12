@@ -166,11 +166,11 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 				Summary:  "User is deleted",
 				Detail:   fmt.Sprintf("User %s already deleted, try to undelete the user", userName),
 			})
-			if _, err := c.UndeleteUser(ctx, userName); err != nil {
+			if _, err := c.UndeleteUser(ctx, existedUser.Name); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to undelete user",
-					Detail:   fmt.Sprintf("Undelete user %s failed, error: %v", userName, err),
+					Detail:   fmt.Sprintf("Undelete user %s failed, error: %v", existedUser.Name, err),
 				})
 				return diags
 			}

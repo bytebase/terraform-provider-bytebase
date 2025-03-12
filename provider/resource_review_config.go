@@ -167,7 +167,7 @@ func patchTagPolicy(ctx context.Context, client api.Client, d *schema.ResourceDa
 	}
 	for _, raw := range rawSet.List() {
 		resource := raw.(string)
-		if strings.HasPrefix(internal.ProjectNamePrefix, resource) && strings.HasPrefix(internal.EnvironmentNamePrefix, resource) {
+		if !strings.HasPrefix(internal.ProjectNamePrefix, resource) && !strings.HasPrefix(internal.EnvironmentNamePrefix, resource) {
 			return diag.Errorf("invalid resource, only support projects/{id} or environments/{id}")
 		}
 		policyName := fmt.Sprintf("%s/%s%s", resource, internal.PolicyNamePrefix, v1pb.PolicyType_TAG.String())
