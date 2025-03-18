@@ -32,7 +32,6 @@ The project data source.
 - `postgres_database_tenant_mode` (Boolean) Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended "set role <db_owner>" statement.
 - `skip_backup_errors` (Boolean) Whether to skip backup errors and continue the data migration.
 - `title` (String) The project title.
-- `workflow` (String) The project workflow.
 
 <a id="nestedatt--members"></a>
 ### Nested Schema for `members`

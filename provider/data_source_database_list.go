@@ -49,10 +49,10 @@ func dataSourceDatabaseList() *schema.Resource {
 							Computed:    true,
 							Description: "The database environment, will follow the instance environment by default",
 						},
-						"sync_state": {
+						"state": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The existence of a database on latest sync.",
+							Description: "The existence of a database.",
 						},
 						"successful_sync_time": {
 							Type:        schema.TypeString,
@@ -92,16 +92,10 @@ func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m i
 		db["name"] = database.Name
 		db["project"] = database.Project
 		db["environment"] = database.Environment
-		db["sync_state"] = database.SyncState.String()
+		db["state"] = database.State.String()
 		db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
 		db["schema_version"] = database.SchemaVersion
 		db["labels"] = database.Labels
-
-		// catalog, err := client.GetDatabaseCatalog(ctx, database.Name)
-		// if err != nil {
-		// 	return diag.Errorf("failed to get catalog for database %s with error: %v", database.Name, err.Error())
-		// }
-		// db["catalog"] = flattenDatabaseCatalog(catalog)
 
 		dbList = append(dbList, db)
 	}

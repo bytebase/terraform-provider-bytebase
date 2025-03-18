@@ -43,10 +43,10 @@ func resourceDatabase() *schema.Resource {
 				Computed:    true,
 				Description: "The database environment, will follow the instance environment by default",
 			},
-			"sync_state": {
+			"state": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The existence of a database on latest sync.",
+				Description: "The existence of a database.",
 			},
 			"successful_sync_time": {
 				Type:        schema.TypeString,
@@ -251,8 +251,8 @@ func setDatabase(
 	if err := d.Set("environment", database.EffectiveEnvironment); err != nil {
 		return diag.Errorf("cannot set environment for database: %s", err.Error())
 	}
-	if err := d.Set("sync_state", database.SyncState.String()); err != nil {
-		return diag.Errorf("cannot set sync_state for database: %s", err.Error())
+	if err := d.Set("state", database.State.String()); err != nil {
+		return diag.Errorf("cannot set state for database: %s", err.Error())
 	}
 	if err := d.Set("successful_sync_time", database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)); err != nil {
 		return diag.Errorf("cannot set successful_sync_time for database: %s", err.Error())

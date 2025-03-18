@@ -32,10 +32,10 @@ func dataSourceDatabase() *schema.Resource {
 				Computed:    true,
 				Description: "The database environment, will follow the instance environment by default",
 			},
-			"sync_state": {
+			"state": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The existence of a database on latest sync.",
+				Description: "The existence of a database.",
 			},
 			"successful_sync_time": {
 				Type:        schema.TypeString,

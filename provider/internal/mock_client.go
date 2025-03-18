@@ -22,8 +22,6 @@ var projectIAMMap map[string]*v1pb.IamPolicy
 var databaseMap map[string]*v1pb.Database
 var databaseCatalogMap map[string]*v1pb.DatabaseCatalog
 var settingMap map[string]*v1pb.Setting
-var vcsProviderMap map[string]*v1pb.VCSProvider
-var vcsConnectorMap map[string]*v1pb.VCSConnector
 var userMap map[string]*v1pb.User
 var roleMap map[string]*v1pb.Role
 var groupMap map[string]*v1pb.Group
@@ -37,8 +35,6 @@ func init() {
 	databaseMap = map[string]*v1pb.Database{}
 	databaseCatalogMap = map[string]*v1pb.DatabaseCatalog{}
 	settingMap = map[string]*v1pb.Setting{}
-	vcsProviderMap = map[string]*v1pb.VCSProvider{}
-	vcsConnectorMap = map[string]*v1pb.VCSConnector{}
 	userMap = map[string]*v1pb.User{}
 	roleMap = map[string]*v1pb.Role{}
 	groupMap = map[string]*v1pb.Group{}
@@ -53,8 +49,6 @@ type mockClient struct {
 	databaseMap        map[string]*v1pb.Database
 	databaseCatalogMap map[string]*v1pb.DatabaseCatalog
 	settingMap         map[string]*v1pb.Setting
-	vcsProviderMap     map[string]*v1pb.VCSProvider
-	vcsConnectorMap    map[string]*v1pb.VCSConnector
 	userMap            map[string]*v1pb.User
 	roleMap            map[string]*v1pb.Role
 	groupMap           map[string]*v1pb.Group
@@ -72,8 +66,6 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		databaseMap:        databaseMap,
 		databaseCatalogMap: databaseCatalogMap,
 		settingMap:         settingMap,
-		vcsProviderMap:     vcsProviderMap,
-		vcsConnectorMap:    vcsConnectorMap,
 		userMap:            userMap,
 		roleMap:            roleMap,
 		groupMap:           groupMap,
@@ -214,7 +206,6 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 		ExternalLink: instance.ExternalLink,
 		DataSources:  instance.DataSources,
 		Environment:  instance.Environment,
-		Options:      &v1pb.InstanceOptions{},
 	}
 
 	envID, err := GetEnvironmentID(ins.Environment)
@@ -223,8 +214,8 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 	}
 
 	database := &v1pb.Database{
-		Name:      fmt.Sprintf("%s/%sdefault", ins.Name, DatabaseIDPrefix),
-		SyncState: v1pb.State_ACTIVE,
+		Name:  fmt.Sprintf("%s/%sdefault", ins.Name, DatabaseIDPrefix),
+		State: v1pb.State_ACTIVE,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
@@ -251,11 +242,11 @@ func (c *mockClient) UpdateInstance(ctx context.Context, patch *v1pb.Instance, u
 	if slices.Contains(updateMasks, "data_sources") {
 		ins.DataSources = patch.DataSources
 	}
-	if slices.Contains(updateMasks, "options.sync_interval") {
-		ins.Options.SyncInterval = patch.Options.SyncInterval
+	if slices.Contains(updateMasks, "sync_interval") {
+		ins.SyncInterval = patch.SyncInterval
 	}
-	if slices.Contains(updateMasks, "options.maximum_connections") {
-		ins.Options.MaximumConnections = patch.Options.MaximumConnections
+	if slices.Contains(updateMasks, "maximum_connections") {
+		ins.MaximumConnections = patch.MaximumConnections
 	}
 
 	c.instanceMap[ins.Name] = ins
@@ -468,7 +459,7 @@ func (c *mockClient) GetProject(_ context.Context, projectName string) (*v1pb.Pr
 }
 
 // ListProject list the projects.
-func (c *mockClient) ListProject(_ context.Context, showDeleted bool) (*v1pb.ListProjectsResponse, error) {
+func (c *mockClient) ListProject(_ context.Context, showDeleted bool) ([]*v1pb.Project, error) {
 	projects := make([]*v1pb.Project, 0)
 	for _, proj := range c.projectMap {
 		if proj.State == v1pb.State_DELETED && !showDeleted {
@@ -477,18 +468,15 @@ func (c *mockClient) ListProject(_ context.Context, showDeleted bool) (*v1pb.Lis
 		projects = append(projects, proj)
 	}
 
-	return &v1pb.ListProjectsResponse{
-		Projects: projects,
-	}, nil
+	return projects, nil
 }
 
 // CreateProject creates the project.
 func (c *mockClient) CreateProject(_ context.Context, projectID string, project *v1pb.Project) (*v1pb.Project, error) {
 	proj := &v1pb.Project{
-		Name:     fmt.Sprintf("%s%s", ProjectNamePrefix, projectID),
-		State:    v1pb.State_ACTIVE,
-		Title:    project.Title,
-		Workflow: v1pb.Workflow_UI,
+		Name:  fmt.Sprintf("%s%s", ProjectNamePrefix, projectID),
+		State: v1pb.State_ACTIVE,
+		Title: project.Title,
 	}
 
 	c.projectMap[proj.Name] = proj
@@ -590,117 +578,8 @@ func (*mockClient) ParseExpression(_ context.Context, _ string) (*v1alpha1.Expr,
 	return &v1alpha1.Expr{}, nil
 }
 
-// ListVCSProvider will returns all vcs providers.
-func (c *mockClient) ListVCSProvider(_ context.Context) (*v1pb.ListVCSProvidersResponse, error) {
-	providers := make([]*v1pb.VCSProvider, 0)
-	for _, provider := range c.vcsProviderMap {
-		providers = append(providers, provider)
-	}
-
-	return &v1pb.ListVCSProvidersResponse{
-		VcsProviders: providers,
-	}, nil
-}
-
-// GetVCSProvider gets the vcs by id.
-func (c *mockClient) GetVCSProvider(_ context.Context, providerName string) (*v1pb.VCSProvider, error) {
-	provider, ok := c.vcsProviderMap[providerName]
-	if !ok {
-		return nil, errors.Errorf("Cannot found provider %s", providerName)
-	}
-
-	return provider, nil
-}
-
-// CreateVCSProvider creates the vcs provider.
-func (c *mockClient) CreateVCSProvider(_ context.Context, providerID string, provider *v1pb.VCSProvider) (*v1pb.VCSProvider, error) {
-	providerName := fmt.Sprintf("%s%s", VCSProviderNamePrefix, providerID)
-	provider.Name = providerName
-	c.vcsProviderMap[providerName] = provider
-	return provider, nil
-}
-
-// UpdateVCSProvider updates the vcs provider.
-func (c *mockClient) UpdateVCSProvider(ctx context.Context, provider *v1pb.VCSProvider, updateMasks []string) (*v1pb.VCSProvider, error) {
-	existed, err := c.GetVCSProvider(ctx, provider.Name)
-	if err != nil {
-		return nil, err
-	}
-	if slices.Contains(updateMasks, "title") {
-		existed.Title = provider.Title
-	}
-	if slices.Contains(updateMasks, "access_token") {
-		existed.AccessToken = provider.AccessToken
-	}
-	c.vcsProviderMap[provider.Name] = existed
-	return c.vcsProviderMap[provider.Name], nil
-}
-
-// DeleteVCSProvider deletes the vcs provider.
-func (c *mockClient) DeleteVCSProvider(_ context.Context, provider string) error {
-	delete(c.vcsProviderMap, provider)
-	return nil
-}
-
-// ListVCSConnector will returns all vcs connector in a project.
-func (c *mockClient) ListVCSConnector(_ context.Context, projectName string) (*v1pb.ListVCSConnectorsResponse, error) {
-	connectors := make([]*v1pb.VCSConnector, 0)
-	for _, connector := range c.vcsConnectorMap {
-		if strings.HasPrefix(connector.Name, fmt.Sprintf("%s/%s", projectName, VCSConnectorNamePrefix)) {
-			connectors = append(connectors, connector)
-		}
-	}
-
-	return &v1pb.ListVCSConnectorsResponse{
-		VcsConnectors: connectors,
-	}, nil
-}
-
-// GetVCSConnector gets the vcs connector by id.
-func (c *mockClient) GetVCSConnector(_ context.Context, connectorName string) (*v1pb.VCSConnector, error) {
-	connector, ok := c.vcsConnectorMap[connectorName]
-	if !ok {
-		return nil, errors.Errorf("Cannot found connector %s", connectorName)
-	}
-
-	return connector, nil
-}
-
-// CreateVCSConnector creates the vcs connector in a project.
-func (c *mockClient) CreateVCSConnector(_ context.Context, projectName, connectorID string, connector *v1pb.VCSConnector) (*v1pb.VCSConnector, error) {
-	connectorName := fmt.Sprintf("%s/%s%s", projectName, VCSProviderNamePrefix, connectorID)
-	connector.Name = connectorName
-	c.vcsConnectorMap[connectorName] = connector
-	return connector, nil
-}
-
-// UpdateVCSConnector updates the vcs connector.
-func (c *mockClient) UpdateVCSConnector(ctx context.Context, connector *v1pb.VCSConnector, updateMasks []string) (*v1pb.VCSConnector, error) {
-	existed, err := c.GetVCSConnector(ctx, connector.Name)
-	if err != nil {
-		return nil, err
-	}
-	if slices.Contains(updateMasks, "branch") {
-		existed.Branch = connector.Branch
-	}
-	if slices.Contains(updateMasks, "base_directory") {
-		existed.BaseDirectory = connector.BaseDirectory
-	}
-	if slices.Contains(updateMasks, "database_group") {
-		existed.DatabaseGroup = connector.DatabaseGroup
-	}
-	c.vcsConnectorMap[connector.Name] = existed
-	return c.vcsConnectorMap[connector.Name], nil
-}
-
-// DeleteVCSConnector deletes the vcs provider.
-func (c *mockClient) DeleteVCSConnector(_ context.Context, connectorName string) error {
-	delete(c.vcsConnectorMap, connectorName)
-	return nil
-}
-
 // ListUser list all users.
-func (c *mockClient) ListUser(_ context.Context, showDeleted bool) (*v1pb.ListUsersResponse, error) {
+func (c *mockClient) ListUser(_ context.Context, showDeleted bool) ([]*v1pb.User, error) {
 	users := make([]*v1pb.User, 0)
 	for _, user := range c.userMap {
 		if user.State == v1pb.State_DELETED && !showDeleted {
@@ -709,9 +588,7 @@ func (c *mockClient) ListUser(_ context.Context, showDeleted bool) (*v1pb.ListUs
 		users = append(users, user)
 	}
 
-	return &v1pb.ListUsersResponse{
-		Users: users,
-	}, nil
+	return users, nil
 }
 
 // GetUser gets the user by name.

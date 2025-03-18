@@ -40,11 +40,6 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "The project full name in projects/{resource id} format.",
 			},
-			"workflow": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The project workflow.",
-			},
 			"allow_modify_statement": {
 				Type:        schema.TypeBool,
 				Computed:    true,
@@ -284,9 +279,6 @@ func setProject(
 	}
 	if err := d.Set("title", project.Title); err != nil {
 		return diag.Errorf("cannot set title for project: %s", err.Error())
-	}
-	if err := d.Set("workflow", project.Workflow.String()); err != nil {
-		return diag.Errorf("cannot set workflow for project: %s", err.Error())
 	}
 	if err := d.Set("allow_modify_statement", project.AllowModifyStatement); err != nil {
 		return diag.Errorf("cannot set allow_modify_statement for project: %s", err.Error())

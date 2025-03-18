@@ -43,11 +43,6 @@ func dataSourceProjectList() *schema.Resource {
 							Computed:    true,
 							Description: "The project title.",
 						},
-						"workflow": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The project workflow.",
-						},
 						"allow_modify_statement": {
 							Type:        schema.TypeBool,
 							Computed:    true,
@@ -93,13 +88,13 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	response, err := c.ListProject(ctx, d.Get("show_deleted").(bool))
+	allProjects, err := c.ListProject(ctx, d.Get("show_deleted").(bool))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	projects := make([]map[string]interface{}, 0)
-	for _, project := range response.Projects {
+	for _, project := range allProjects {
 		projectID, err := internal.GetProjectID(project.Name)
 		if err != nil {
 			return diag.FromErr(err)
@@ -109,7 +104,6 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["resource_id"] = projectID
 		proj["name"] = project.Name
 		proj["title"] = project.Title
-		proj["workflow"] = project.Workflow.String()
 		proj["allow_modify_statement"] = project.AllowModifyStatement
 		proj["auto_resolve_issue"] = project.AutoResolveIssue
 		proj["enforce_issue_title"] = project.EnforceIssueTitle

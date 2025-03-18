@@ -27,8 +27,8 @@ The database data source.
 - `labels` (Map of String) The deployment and policy control labels.
 - `project` (String) The project full name for the database in projects/{project} format.
 - `schema_version` (String) The version of database schema.
+- `state` (String) The existence of a database.
 - `successful_sync_time` (String) The latest synchronization time.
-- `sync_state` (String) The existence of a database on latest sync.
 
 <a id="nestedatt--catalog"></a>
 ### Nested Schema for `catalog`

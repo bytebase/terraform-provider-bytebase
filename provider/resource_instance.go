@@ -302,12 +302,10 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	externalLink := d.Get("external_link").(string)
 	environment := d.Get("environment").(string)
 	activation := d.Get("activation").(bool)
-	instanceOptions := &v1pb.InstanceOptions{
-		SyncInterval: &durationpb.Duration{
-			Seconds: int64(d.Get("sync_interval").(int)),
-		},
-		MaximumConnections: int32(d.Get("maximum_connections").(int)),
+	syncInterval := &durationpb.Duration{
+		Seconds: int64(d.Get("sync_interval").(int)),
 	}
+	maximumConnections := int32(d.Get("maximum_connections").(int))
 
 	engineString := d.Get("engine").(string)
 	engineValue, ok := v1pb.Engine_value[engineString]
@@ -367,13 +365,11 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		if activation != existedInstance.Activation {
 			updateMasks = append(updateMasks, "activation")
 		}
-		if op := existedInstance.Options; op != nil {
-			if instanceOptions.SyncInterval.GetSeconds() != op.SyncInterval.GetSeconds() {
-				updateMasks = append(updateMasks, "options.sync_interval")
-			}
-			if instanceOptions.MaximumConnections != op.MaximumConnections {
-				updateMasks = append(updateMasks, "options.maximum_connections")
-			}
+		if syncInterval.GetSeconds() != existedInstance.GetSyncInterval().GetSeconds() {
+			updateMasks = append(updateMasks, "sync_interval")
+		}
+		if maximumConnections != existedInstance.GetMaximumConnections() {
+			updateMasks = append(updateMasks, "maximum_connections")
 		}
 		if len(dataSourceList) > 0 {
 			updateMasks = append(updateMasks, "data_sources")
@@ -381,14 +377,15 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 		if len(updateMasks) > 0 {
 			if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
-				Name:         instanceName,
-				Title:        title,
-				ExternalLink: externalLink,
-				DataSources:  dataSourceList,
-				Environment:  environment,
-				Activation:   activation,
-				State:        v1pb.State_ACTIVE,
-				Options:      instanceOptions,
+				Name:               instanceName,
+				Title:              title,
+				ExternalLink:       externalLink,
+				DataSources:        dataSourceList,
+				Environment:        environment,
+				Activation:         activation,
+				State:              v1pb.State_ACTIVE,
+				SyncInterval:       syncInterval,
+				MaximumConnections: maximumConnections,
 			}, updateMasks); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
@@ -400,15 +397,16 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 	} else {
 		if _, err := c.CreateInstance(ctx, instanceID, &v1pb.Instance{
-			Name:         instanceName,
-			Title:        title,
-			Engine:       engine,
-			ExternalLink: externalLink,
-			State:        v1pb.State_ACTIVE,
-			DataSources:  dataSourceList,
-			Environment:  environment,
-			Activation:   activation,
-			Options:      instanceOptions,
+			Name:               instanceName,
+			Title:              title,
+			Engine:             engine,
+			ExternalLink:       externalLink,
+			State:              v1pb.State_ACTIVE,
+			DataSources:        dataSourceList,
+			Environment:        environment,
+			Activation:         activation,
+			SyncInterval:       syncInterval,
+			MaximumConnections: maximumConnections,
 		}); err != nil {
 			return diag.FromErr(err)
 		}
@@ -514,10 +512,10 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		paths = append(paths, "data_sources")
 	}
 	if d.HasChange("sync_interval") {
-		paths = append(paths, "options.sync_interval")
+		paths = append(paths, "sync_interval")
 	}
 	if d.HasChange("maximum_connections") {
-		paths = append(paths, "options.maximum_connections")
+		paths = append(paths, "maximum_connections")
 	}
 
 	if len(paths) > 0 {
@@ -529,12 +527,10 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			Activation:   d.Get("activation").(bool),
 			DataSources:  dataSourceList,
 			State:        v1pb.State_ACTIVE,
-			Options: &v1pb.InstanceOptions{
-				SyncInterval: &durationpb.Duration{
-					Seconds: int64(d.Get("sync_interval").(int)),
-				},
-				MaximumConnections: int32(d.Get("maximum_connections").(int)),
+			SyncInterval: &durationpb.Duration{
+				Seconds: int64(d.Get("sync_interval").(int)),
 			},
+			MaximumConnections: int32(d.Get("maximum_connections").(int)),
 		}, paths); err != nil {
 			return diag.FromErr(err)
 		}
@@ -609,13 +605,11 @@ func setInstanceMessage(
 	if err := d.Set("external_link", instance.ExternalLink); err != nil {
 		return diag.Errorf("cannot set external_link for instance: %s", err.Error())
 	}
-	if op := instance.Options; op != nil {
-		if err := d.Set("sync_interval", op.GetSyncInterval().GetSeconds()); err != nil {
-			return diag.Errorf("cannot set sync_interval for instance: %s", err.Error())
-		}
-		if err := d.Set("maximum_connections", op.GetMaximumConnections()); err != nil {
-			return diag.Errorf("cannot set maximum_connections for instance: %s", err.Error())
-		}
+	if err := d.Set("sync_interval", instance.GetSyncInterval().GetSeconds()); err != nil {
+		return diag.Errorf("cannot set sync_interval for instance: %s", err.Error())
+	}
+	if err := d.Set("maximum_connections", instance.GetMaximumConnections()); err != nil {
+		return diag.Errorf("cannot set maximum_connections for instance: %s", err.Error())
 	}
 
 	dataSources, err := flattenDataSourceList(d, instance.DataSources)

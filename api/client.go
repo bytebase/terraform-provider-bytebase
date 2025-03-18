@@ -69,8 +69,8 @@ type Client interface {
 	// Project
 	// GetProject gets the project by project full name.
 	GetProject(ctx context.Context, projectName string) (*v1pb.Project, error)
-	// ListProject list the projects,
-	ListProject(ctx context.Context, showDeleted bool) (*v1pb.ListProjectsResponse, error)
+	// ListProject list all projects,
+	ListProject(ctx context.Context, showDeleted bool) ([]*v1pb.Project, error)
 	// CreateProject creates the project.
 	CreateProject(ctx context.Context, projectID string, project *v1pb.Project) (*v1pb.Project, error)
 	// UpdateProject updates the project.
@@ -96,33 +96,9 @@ type Client interface {
 	// ParseExpression parse the expression string.
 	ParseExpression(ctx context.Context, expression string) (*v1alpha1.Expr, error)
 
-	// VCS Provider
-	// ListVCSProvider will returns all vcs providers.
-	ListVCSProvider(ctx context.Context) (*v1pb.ListVCSProvidersResponse, error)
-	// GetVCSProvider gets the vcs by full name.
-	GetVCSProvider(ctx context.Context, name string) (*v1pb.VCSProvider, error)
-	// CreateVCSProvider creates the vcs provider.
-	CreateVCSProvider(ctx context.Context, vcsID string, vcs *v1pb.VCSProvider) (*v1pb.VCSProvider, error)
-	// UpdateVCSProvider updates the vcs provider.
-	UpdateVCSProvider(ctx context.Context, patch *v1pb.VCSProvider, updateMasks []string) (*v1pb.VCSProvider, error)
-	// DeleteVCSProvider deletes the vcs provider.
-	DeleteVCSProvider(ctx context.Context, name string) error
-
-	// VCS Connector
-	// ListVCSConnector will returns all vcs connector in a project.
-	ListVCSConnector(ctx context.Context, projectName string) (*v1pb.ListVCSConnectorsResponse, error)
-	// GetVCSConnector gets the vcs connector by full name.
-	GetVCSConnector(ctx context.Context, name string) (*v1pb.VCSConnector, error)
-	// CreateVCSConnector creates the vcs connector in a project.
-	CreateVCSConnector(ctx context.Context, projectName, connectorID string, connector *v1pb.VCSConnector) (*v1pb.VCSConnector, error)
-	// UpdateVCSConnector updates the vcs connector.
-	UpdateVCSConnector(ctx context.Context, patch *v1pb.VCSConnector, updateMasks []string) (*v1pb.VCSConnector, error)
-	// DeleteVCSConnector deletes the vcs provider.
-	DeleteVCSConnector(ctx context.Context, name string) error
-
 	// User
 	// ListUser list all users.
-	ListUser(ctx context.Context, showDeleted bool) (*v1pb.ListUsersResponse, error)
+	ListUser(ctx context.Context, showDeleted bool) ([]*v1pb.User, error)
 	// CreateUser creates the user.
 	CreateUser(ctx context.Context, user *v1pb.User) (*v1pb.User, error)
 	// GetUser gets the user by name.

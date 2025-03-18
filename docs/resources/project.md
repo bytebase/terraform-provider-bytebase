@@ -35,7 +35,6 @@ The project resource.
 
 - `id` (String) The ID of this resource.
 - `name` (String) The project full name in projects/{resource id} format.
-- `workflow` (String) The project workflow.
 
 <a id="nestedblock--members"></a>
 ### Nested Schema for `members`

@@ -40,7 +40,6 @@ Read-Only:
 - `resource_id` (String)
 - `skip_backup_errors` (Boolean)
 - `title` (String)
-- `workflow` (String)
 
 <a id="nestedobjatt--projects--members"></a>
 ### Nested Schema for `projects.members`

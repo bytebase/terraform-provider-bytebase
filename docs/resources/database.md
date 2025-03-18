@@ -30,8 +30,8 @@ The database resource.
 
 - `id` (String) The ID of this resource.
 - `schema_version` (String) The version of database schema.
+- `state` (String) The existence of a database.
 - `successful_sync_time` (String) The latest synchronization time.
-- `sync_state` (String) The existence of a database on latest sync.
 
 <a id="nestedblock--catalog"></a>
 ### Nested Schema for `catalog`
