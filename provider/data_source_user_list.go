@@ -96,7 +96,7 @@ func dataSourceUserList() *schema.Resource {
 func dataSourceUserListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	response, err := c.ListUser(ctx, d.Get("show_deleted").(bool))
+	allUsers, err := c.ListUser(ctx, d.Get("show_deleted").(bool))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -107,7 +107,7 @@ func dataSourceUserListRead(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	users := make([]map[string]interface{}, 0)
-	for _, user := range response.Users {
+	for _, user := range allUsers {
 		raw := make(map[string]interface{})
 		raw["name"] = user.Name
 		raw["email"] = user.Email

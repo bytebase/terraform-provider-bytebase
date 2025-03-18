@@ -176,11 +176,8 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		ins["engine_version"] = instance.EngineVersion
 		ins["external_link"] = instance.ExternalLink
 		ins["environment"] = instance.Environment
-
-		if op := instance.Options; op != nil {
-			ins["sync_interval"] = op.GetSyncInterval().GetSeconds()
-			ins["maximum_connections"] = op.GetMaximumConnections()
-		}
+		ins["sync_interval"] = instance.GetSyncInterval().GetSeconds()
+		ins["maximum_connections"] = instance.GetMaximumConnections()
 
 		dataSources, err := flattenDataSourceList(d, instance.DataSources)
 		if err != nil {

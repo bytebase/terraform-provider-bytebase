@@ -34,7 +34,7 @@ Read-Only:
 - `name` (String)
 - `project` (String)
 - `schema_version` (String)
+- `state` (String)
 - `successful_sync_time` (String)
-- `sync_state` (String)
 
 

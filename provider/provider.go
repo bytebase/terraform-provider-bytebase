@@ -58,10 +58,6 @@ func NewProvider() *schema.Provider {
 			"bytebase_project":            dataSourceProject(),
 			"bytebase_project_list":       dataSourceProjectList(),
 			"bytebase_setting":            dataSourceSetting(),
-			"bytebase_vcs_provider":       dataSourceVCSProvider(),
-			"bytebase_vcs_provider_list":  dataSourceVCSProviderList(),
-			"bytebase_vcs_connector":      dataSourceVCSConnector(),
-			"bytebase_vcs_connector_list": dataSourceVCSConnectorList(),
 			"bytebase_user":               dataSourceUser(),
 			"bytebase_user_list":          dataSourceUserList(),
 			"bytebase_role":               dataSourceRole(),
@@ -79,8 +75,6 @@ func NewProvider() *schema.Provider {
 			"bytebase_policy":        resourcePolicy(),
 			"bytebase_project":       resourceProjct(),
 			"bytebase_setting":       resourceSetting(),
-			"bytebase_vcs_provider":  resourceVCSProvider(),
-			"bytebase_vcs_connector": resourceVCSConnector(),
 			"bytebase_user":          resourceUser(),
 			"bytebase_role":          resourceRole(),
 			"bytebase_group":         resourceGroup(),
@@ -122,8 +116,8 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unable to create Bytebase client",
-			Detail:   err.Error(),
+			Summary:  "Unable to create the Bytebase client",
+			Detail:   fmt.Sprintf("failed to login with error: %v", err.Error()),
 		})
 
 		return nil, diags

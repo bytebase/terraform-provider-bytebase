@@ -4,15 +4,59 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // ListUser list all users.
-func (c *client) ListUser(ctx context.Context, showDeleted bool) (*v1pb.ListUsersResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/users?showDeleted=%v", c.url, c.version, showDeleted), nil)
+func (c *client) ListUser(ctx context.Context, showDeleted bool) ([]*v1pb.User, error) {
+	res := []*v1pb.User{}
+	pageToken := ""
+	startTime := time.Now()
+
+	for {
+		startTimePerPage := time.Now()
+		resp, err := c.listUserPerPage(ctx, showDeleted, pageToken, 500)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, resp.Users...)
+		tflog.Debug(ctx, "[list user per page]", map[string]interface{}{
+			"count": len(resp.Users),
+			"ms":    time.Since(startTimePerPage).Milliseconds(),
+		})
+
+		pageToken = resp.NextPageToken
+		if pageToken == "" {
+			break
+		}
+	}
+
+	tflog.Debug(ctx, "[list user]", map[string]interface{}{
+		"total": len(res),
+		"ms":    time.Since(startTime).Milliseconds(),
+	})
+
+	return res, nil
+}
+
+// listUserPerPage list the users.
+func (c *client) listUserPerPage(ctx context.Context, showDeleted bool, pageToken string, pageSize int) (*v1pb.ListUsersResponse, error) {
+	requestURL := fmt.Sprintf(
+		"%s/%s/users?showDeleted=%v&page_size=%d&page_token=%s",
+		c.url,
+		c.version,
+		showDeleted,
+		pageSize,
+		url.QueryEscape(pageToken),
+	)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
 		return nil, err
 	}

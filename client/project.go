@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -66,9 +69,50 @@ func (c *client) SetProjectIAMPolicy(ctx context.Context, projectName string, up
 	return &res, nil
 }
 
-// ListProject list the projects.
-func (c *client) ListProject(ctx context.Context, showDeleted bool) (*v1pb.ListProjectsResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/projects?showDeleted=%v", c.url, c.version, showDeleted), nil)
+// ListProject list all projects.
+func (c *client) ListProject(ctx context.Context, showDeleted bool) ([]*v1pb.Project, error) {
+	res := []*v1pb.Project{}
+	pageToken := ""
+	startTime := time.Now()
+
+	for {
+		startTimePerPage := time.Now()
+		resp, err := c.listProjectPerPage(ctx, showDeleted, pageToken, 500)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, resp.Projects...)
+		tflog.Debug(ctx, "[list project per page]", map[string]interface{}{
+			"count": len(resp.Projects),
+			"ms":    time.Since(startTimePerPage).Milliseconds(),
+		})
+
+		pageToken = resp.NextPageToken
+		if pageToken == "" {
+			break
+		}
+	}
+
+	tflog.Debug(ctx, "[list project]", map[string]interface{}{
+		"total": len(res),
+		"ms":    time.Since(startTime).Milliseconds(),
+	})
+
+	return res, nil
+}
+
+// listProjectPerPage list the projects.
+func (c *client) listProjectPerPage(ctx context.Context, showDeleted bool, pageToken string, pageSize int) (*v1pb.ListProjectsResponse, error) {
+	requestURL := fmt.Sprintf(
+		"%s/%s/projects?showDeleted=%v&page_size=%d&page_token=%s",
+		c.url,
+		c.version,
+		showDeleted,
+		pageSize,
+		url.QueryEscape(pageToken),
+	)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
 		return nil, err
 	}

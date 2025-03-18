@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -390,7 +389,6 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 														ValidateFunc: validation.StringInSlice([]string{
 															string(api.ApprovalNodeTypeGroup),
 															string(api.ApprovalNodeTypeRole),
-															string(api.ApprovalNodeTypeExternalNodeID),
 														}, false),
 													},
 													"node": {
@@ -485,13 +483,6 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 	}
 	if value := setting.Value.GetSemanticTypeSettingValue(); value != nil {
 		settingVal := flattenSemanticTypesSetting(value)
-		tflog.Debug(ctx, "flatten semantic types", map[string]interface{}{
-			"count": len(settingVal),
-		})
-		// 	semanticTypeSetting := map[string]interface{}{
-		// 	"semantic_types": schema.NewSet(itemIDHash, settingVal),
-		// }
-		// return []interface{}{approvalSetting}
 		if err := d.Set("semantic_types", schema.NewSet(itemIDHash, settingVal)); err != nil {
 			return diag.Errorf("cannot set semantic_types: %s", err.Error())
 		}
@@ -573,9 +564,6 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 				case *v1pb.ApprovalNode_Role:
 					rawNode["type"] = string(api.ApprovalNodeTypeRole)
 					rawNode["node"] = payload.Role
-				case *v1pb.ApprovalNode_ExternalNodeId:
-					rawNode["type"] = string(api.ApprovalNodeTypeExternalNodeID)
-					rawNode["node"] = payload.ExternalNodeId
 				case *v1pb.ApprovalNode_GroupValue_:
 					rawNode["type"] = string(api.ApprovalNodeTypeGroup)
 					rawNode["node"] = payload.GroupValue.String()

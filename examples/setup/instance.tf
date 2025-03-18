@@ -21,11 +21,11 @@ resource "bytebase_instance" "test" {
     username = "bytebase"
     external_secret {
       vault {
-        url         = "http://127.0.0.1:8200"
-        token       = "<root token>"
-        engine_name = "secret"
-        secret_name = "bytebase"
-        key_name    = "database_pwd"
+        url               = "http://127.0.0.1:8200"
+        token             = "<root token>"
+        engine_name       = "secret"
+        secret_name       = "bytebase"
+        password_key_name = "database_pwd"
       }
     }
   }
