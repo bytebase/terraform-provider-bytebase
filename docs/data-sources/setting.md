@@ -66,12 +66,15 @@ Optional:
 <a id="nestedblock--semantic_types"></a>
 ### Nested Schema for `semantic_types`
 
+Required:
+
+- `id` (String) The semantic type unique uuid.
+- `title` (String) The semantic type title. Required.
+
 Optional:
 
 - `algorithm` (Block List, Max: 1) The semantic type algorithm. Required. (see [below for nested schema](#nestedblock--semantic_types--algorithm))
 - `description` (String) The semantic type description. Optional.
-- `id` (String) The semantic type unique uuid.
-- `title` (String) The semantic type title. Required.
 
 <a id="nestedblock--semantic_types--algorithm"></a>
 ### Nested Schema for `semantic_types.algorithm`
@@ -86,7 +89,7 @@ Optional:
 <a id="nestedblock--semantic_types--algorithm--full_mask"></a>
 ### Nested Schema for `semantic_types.algorithm.full_mask`
 
-Optional:
+Required:
 
 - `substitution` (String) Substitution is the string used to replace the original value, the max length of the string is 16 bytes.
 
@@ -94,18 +97,18 @@ Optional:
 <a id="nestedblock--semantic_types--algorithm--inner_outer_mask"></a>
 ### Nested Schema for `semantic_types.algorithm.inner_outer_mask`
 
-Optional:
+Required:
 
-- `prefix_len` (Number)
-- `substitution` (String)
-- `suffix_len` (Number)
-- `type` (String)
+- `prefix_len` (Number) The length of prefix.
+- `substitution` (String) Substitution is the string used to replace the inner or outer substring.
+- `suffix_len` (Number) The length of suffix.
+- `type` (String) INNER or OUTER.
 
 
 <a id="nestedblock--semantic_types--algorithm--md5_mask"></a>
 ### Nested Schema for `semantic_types.algorithm.md5_mask`
 
-Optional:
+Required:
 
 - `salt` (String) Salt is the salt value to generate a different hash that with the word alone.
 
@@ -120,7 +123,7 @@ Optional:
 <a id="nestedblock--semantic_types--algorithm--range_mask--slices"></a>
 ### Nested Schema for `semantic_types.algorithm.range_mask.slices`
 
-Optional:
+Required:
 
 - `end` (Number) End is the stop index of the original value, should be less than the length of the original value.
 - `start` (Number) Start is the start index of the original value, start from 0 and should be less than stop.

@@ -50,14 +50,12 @@ func getSemanticTypesSetting(computed bool) *schema.Schema {
 			Schema: map[string]*schema.Schema{
 				"id": {
 					Type:        schema.TypeString,
-					Computed:    computed,
-					Optional:    true,
+					Required:    true,
 					Description: "The semantic type unique uuid.",
 				},
 				"title": {
 					Type:        schema.TypeString,
-					Computed:    computed,
-					Optional:    true,
+					Required:    true,
 					Description: "The semantic type title. Required.",
 				},
 				"description": {
@@ -85,8 +83,7 @@ func getSemanticTypesSetting(computed bool) *schema.Schema {
 									Schema: map[string]*schema.Schema{
 										"substitution": {
 											Type:        schema.TypeString,
-											Computed:    computed,
-											Optional:    true,
+											Required:    true,
 											Description: "Substitution is the string used to replace the original value, the max length of the string is 16 bytes.",
 										},
 									},
@@ -109,20 +106,17 @@ func getSemanticTypesSetting(computed bool) *schema.Schema {
 												Schema: map[string]*schema.Schema{
 													"start": {
 														Type:        schema.TypeInt,
-														Computed:    computed,
-														Optional:    true,
+														Required:    true,
 														Description: "Start is the start index of the original value, start from 0 and should be less than stop.",
 													},
 													"end": {
 														Type:        schema.TypeInt,
-														Computed:    computed,
-														Optional:    true,
+														Required:    true,
 														Description: "End is the stop index of the original value, should be less than the length of the original value.",
 													},
 													"substitution": {
 														Type:        schema.TypeString,
-														Computed:    computed,
-														Optional:    true,
+														Required:    true,
 														Description: "Substitution is the string used to replace the OriginalValue[start:end).",
 													},
 												},
@@ -141,8 +135,7 @@ func getSemanticTypesSetting(computed bool) *schema.Schema {
 									Schema: map[string]*schema.Schema{
 										"salt": {
 											Type:        schema.TypeString,
-											Computed:    computed,
-											Optional:    true,
+											Required:    true,
 											Description: "Salt is the salt value to generate a different hash that with the word alone.",
 										},
 									},
@@ -157,24 +150,24 @@ func getSemanticTypesSetting(computed bool) *schema.Schema {
 								Elem: &schema.Resource{
 									Schema: map[string]*schema.Schema{
 										"prefix_len": {
-											Type:     schema.TypeInt,
-											Computed: computed,
-											Optional: true,
+											Type:        schema.TypeInt,
+											Required:    true,
+											Description: "The length of prefix.",
 										},
 										"suffix_len": {
-											Type:     schema.TypeInt,
-											Computed: computed,
-											Optional: true,
+											Type:        schema.TypeInt,
+											Required:    true,
+											Description: "The length of suffix.",
 										},
 										"substitution": {
-											Type:     schema.TypeString,
-											Computed: computed,
-											Optional: true,
+											Type:        schema.TypeString,
+											Required:    true,
+											Description: "Substitution is the string used to replace the inner or outer substring.",
 										},
 										"type": {
-											Type:     schema.TypeString,
-											Computed: computed,
-											Optional: true,
+											Type:        schema.TypeString,
+											Required:    true,
+											Description: "INNER or OUTER.",
 											ValidateFunc: validation.StringInSlice([]string{
 												v1pb.Algorithm_InnerOuterMask_INNER.String(),
 												v1pb.Algorithm_InnerOuterMask_OUTER.String(),
