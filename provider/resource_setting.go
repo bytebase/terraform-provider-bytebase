@@ -387,6 +387,12 @@ func convertToV1SemanticTypeSetting(d *schema.ResourceData) (*v1pb.SemanticTypeS
 			}
 		} else if innerOuterMasks, ok := rawAlgorithm["inner_outer_mask"].([]interface{}); ok && len(innerOuterMasks) == 1 {
 			innerOuterMask := innerOuterMasks[0].(map[string]interface{})
+			t := v1pb.Algorithm_InnerOuterMask_MaskType(
+				v1pb.Algorithm_InnerOuterMask_MaskType_value[innerOuterMask["type"].(string)],
+			)
+			if t == v1pb.Algorithm_InnerOuterMask_MASK_TYPE_UNSPECIFIED {
+				return nil, errors.Errorf("invalid inner_outer_mask type: %s", innerOuterMask["type"].(string))
+			}
 			semanticType.Algorithm = &v1pb.Algorithm{
 				Mask: &v1pb.Algorithm_InnerOuterMask_{
 					InnerOuterMask: &v1pb.Algorithm_InnerOuterMask{
