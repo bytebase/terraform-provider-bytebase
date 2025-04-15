@@ -17,7 +17,13 @@ The instance data source list.
 
 ### Optional
 
-- `show_deleted` (Boolean) Including removed instance in the response.
+- `engines` (Set of String) Filter instances by engines.
+- `environment` (String) The environment full name. Filter instances by environment.
+- `host` (String) Filter instances by host.
+- `port` (String) Filter instances by port.
+- `project` (String) The project full name. Filter instances by project.
+- `query` (String) Filter instances by name or resource id with wildcard
+- `state` (String) Filter instances by state. Default ACTIVE.
 
 ### Read-Only
 

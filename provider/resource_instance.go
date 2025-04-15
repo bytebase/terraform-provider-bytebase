@@ -495,7 +495,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	paths := []string{}
+	paths := []string{"data_sources"}
 	if d.HasChange("title") {
 		paths = append(paths, "title")
 	}
@@ -625,7 +625,7 @@ func setInstanceMessage(
 	})
 
 	listAllDatabases := d.Get("list_all_databases").(bool)
-	databases, err := client.ListDatabase(ctx, instance.Name, "", listAllDatabases)
+	databases, err := client.ListDatabase(ctx, instance.Name, &api.DatabaseFilter{}, listAllDatabases)
 	if err != nil {
 		return diag.FromErr(err)
 	}

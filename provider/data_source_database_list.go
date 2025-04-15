@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
@@ -23,11 +25,53 @@ func dataSourceDatabaseList() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
-					// instance policy
+					regexp.MustCompile("^workspaces/-$"),
 					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern)),
-					// project policy
 					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern)),
 				),
+			},
+			"query": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filter databases by name with wildcard",
+			},
+			"exclude_unassigned": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "If not include unassigned databases in the response.",
+			},
+			"environment": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "The environment full name. Filter databases by environment.",
+				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern))),
+			},
+			"project": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "The project full name. Filter databases by project.",
+				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern))),
+			},
+			"instance": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "The instance full name. Filter databases by instance.",
+				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern))),
+			},
+			"engines": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: internal.EngineValidation,
+				},
+				Description: "Filter databases by engines.",
+			},
+			"labels": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "Filter databases by labels",
 			},
 			"databases": {
 				Type:     schema.TypeList,
@@ -81,7 +125,30 @@ func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m i
 	client := m.(api.Client)
 	parent := d.Get("parent").(string)
 
-	databases, err := client.ListDatabase(ctx, parent, "", true)
+	filter := &api.DatabaseFilter{
+		Query:             d.Get("query").(string),
+		Environment:       d.Get("environment").(string),
+		Project:           d.Get("project").(string),
+		Instance:          d.Get("instance").(string),
+		ExcludeUnassigned: d.Get("exclude_unassigned").(bool),
+	}
+
+	engines := d.Get("engines").(*schema.Set)
+	for _, engine := range engines.List() {
+		engineString := engine.(string)
+		engineValue, ok := v1pb.Engine_value[engineString]
+		if ok {
+			filter.Engines = append(filter.Engines, v1pb.Engine(engineValue))
+		}
+	}
+	for key, val := range d.Get("labels").(map[string]interface{}) {
+		filter.Labels = append(filter.Labels, &api.Label{
+			Key:   key,
+			Value: val.(string),
+		})
+	}
+
+	databases, err := client.ListDatabase(ctx, parent, filter, true)
 	if err != nil {
 		return diag.FromErr(err)
 	}

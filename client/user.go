@@ -11,17 +11,51 @@ import (
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
+func buildUserQuery(filter *api.UserFilter) string {
+	params := []string{}
+	showDeleted := v1pb.State_DELETED == filter.State
+
+	if v := filter.Name; v != "" {
+		params = append(params, fmt.Sprintf(`name == "%s"`, strings.ToLower(v)))
+	}
+	if v := filter.Email; v != "" {
+		params = append(params, fmt.Sprintf(`email == "%s"`, strings.ToLower(v)))
+	}
+	if v := filter.Project; v != "" {
+		params = append(params, fmt.Sprintf(`project == "%s"`, v))
+	}
+	if v := filter.UserTypes; len(v) > 0 {
+		userTypes := []string{}
+		for _, t := range v {
+			userTypes = append(userTypes, fmt.Sprintf(`"%s"`, t.String()))
+		}
+		params = append(params, fmt.Sprintf(`user_type in [%s]`, strings.Join(userTypes, ", ")))
+	}
+	if showDeleted {
+		params = append(params, fmt.Sprintf(`state == "%s"`, filter.State.String()))
+	}
+
+	if len(params) == 0 {
+		return fmt.Sprintf("showDeleted=%v", showDeleted)
+	}
+
+	return fmt.Sprintf("filter=%s&showDeleted=%v", url.QueryEscape(strings.Join(params, " && ")), showDeleted)
+}
+
 // ListUser list all users.
-func (c *client) ListUser(ctx context.Context, showDeleted bool) ([]*v1pb.User, error) {
+func (c *client) ListUser(ctx context.Context, filter *api.UserFilter) ([]*v1pb.User, error) {
 	res := []*v1pb.User{}
 	pageToken := ""
 	startTime := time.Now()
+	query := buildUserQuery(filter)
 
 	for {
 		startTimePerPage := time.Now()
-		resp, err := c.listUserPerPage(ctx, showDeleted, pageToken, 500)
+		resp, err := c.listUserPerPage(ctx, query, pageToken, 500)
 		if err != nil {
 			return nil, err
 		}
@@ -46,12 +80,12 @@ func (c *client) ListUser(ctx context.Context, showDeleted bool) ([]*v1pb.User, 
 }
 
 // listUserPerPage list the users.
-func (c *client) listUserPerPage(ctx context.Context, showDeleted bool, pageToken string, pageSize int) (*v1pb.ListUsersResponse, error) {
+func (c *client) listUserPerPage(ctx context.Context, query, pageToken string, pageSize int) (*v1pb.ListUsersResponse, error) {
 	requestURL := fmt.Sprintf(
-		"%s/%s/users?showDeleted=%v&page_size=%d&page_token=%s",
+		"%s/%s/users?%s&page_size=%d&page_token=%s",
 		c.url,
 		c.version,
-		showDeleted,
+		query,
 		pageSize,
 		url.QueryEscape(pageToken),
 	)

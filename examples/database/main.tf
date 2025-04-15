@@ -1,8 +1,8 @@
-# Examples for query the databases
+# Examples for query the database
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.8"
+      version = "1.0.22"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -18,7 +18,15 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
+data "bytebase_database_list" "all" {
+  parent      = "workspaces/-"
+  environment = "environments/test"
+  project     = "projects/sample-project"
+}
 
+output "all_databases" {
+  value = data.bytebase_database_list.all
+}
 
 data "bytebase_database_catalog" "employee" {
   database = "instances/test-sample-instance/databases/employee"

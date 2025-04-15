@@ -17,7 +17,11 @@ The user data source list.
 
 ### Optional
 
-- `show_deleted` (Boolean) Including removed users in the response.
+- `email` (String) Filter users by email with wildcard
+- `name` (String) Filter users by name with wildcard
+- `project` (String) The project full name. Filter users by project.
+- `state` (String) Filter users by state. Default ACTIVE.
+- `user_types` (Set of String) Filter users by types.
 
 ### Read-Only
 

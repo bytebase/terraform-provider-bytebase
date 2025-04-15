@@ -82,6 +82,19 @@ resource "bytebase_setting" "semantic_types" {
       }
     }
   }
+
+  semantic_types {
+    id    = "9c84e2a6-02e5-4031-89c5-13342b568f8b"
+    title = "Inner Outer mask"
+    algorithm {
+      inner_outer_mask {
+        prefix_len   = 1
+        suffix_len   = 1
+        substitution = "*"
+        type         = "INNER"
+      }
+    }
+  }
 }
 
 resource "bytebase_policy" "masking_exception_policy" {

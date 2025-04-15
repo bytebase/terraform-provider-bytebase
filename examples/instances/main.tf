@@ -1,8 +1,8 @@
-# Examples for query the instances
+# Examples for query the instance
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.21"
+      version = "1.0.22"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -24,7 +24,12 @@ locals {
 }
 
 # List all instances in all environments
-data "bytebase_instance_list" "all" {}
+data "bytebase_instance_list" "all" {
+  environment = "environments/test"
+  engines = [
+    "MYSQL"
+  ]
+}
 
 output "all_instances" {
   value = data.bytebase_instance_list.all

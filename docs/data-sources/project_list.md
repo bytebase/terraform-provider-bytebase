@@ -17,7 +17,9 @@ The project data source list.
 
 ### Optional
 
-- `show_deleted` (Boolean) Including removed project in the response.
+- `exclude_default` (Boolean) If not include the default project in the response.
+- `query` (String) Filter projects by name or resource id with wildcard.
+- `state` (String) Filter projects by state. Default ACTIVE.
 
 ### Read-Only
 

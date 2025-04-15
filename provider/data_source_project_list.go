@@ -7,6 +7,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -17,11 +20,25 @@ func dataSourceProjectList() *schema.Resource {
 		Description:        "The project data source list.",
 		ReadWithoutTimeout: dataSourceProjectListRead,
 		Schema: map[string]*schema.Schema{
-			"show_deleted": {
+			"query": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filter projects by name or resource id with wildcard.",
+			},
+			"exclude_default": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
-				Description: "Including removed project in the response.",
+				Description: "If not include the default project in the response.",
+			},
+			"state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  v1pb.State_ACTIVE.String(),
+				ValidateFunc: validation.StringInSlice([]string{
+					v1pb.State_ACTIVE.String(),
+					v1pb.State_DELETED.String(),
+				}, false),
+				Description: "Filter projects by state. Default ACTIVE.",
 			},
 			"projects": {
 				Type:     schema.TypeList,
@@ -88,7 +105,17 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	allProjects, err := c.ListProject(ctx, d.Get("show_deleted").(bool))
+	filter := &api.ProjectFilter{
+		Query:          d.Get("query").(string),
+		ExcludeDefault: d.Get("exclude_default").(bool),
+	}
+	stateString := d.Get("state").(string)
+	stateValue, ok := v1pb.State_value[stateString]
+	if ok {
+		filter.State = v1pb.State(stateValue)
+	}
+
+	allProjects, err := c.ListProject(ctx, filter)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -111,7 +138,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["skip_backup_errors"] = project.AllowModifyStatement
 		proj["postgres_database_tenant_mode"] = project.PostgresDatabaseTenantMode
 
-		databases, err := c.ListDatabase(ctx, project.Name, "", false)
+		databases, err := c.ListDatabase(ctx, project.Name, &api.DatabaseFilter{}, false)
 		if err != nil {
 			return diag.FromErr(err)
 		}
