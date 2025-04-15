@@ -7,6 +7,7 @@ import (
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
+// InstanceFilter is the filter for list instances API.
 type InstanceFilter struct {
 	Query       string
 	Environment string
@@ -17,17 +18,20 @@ type InstanceFilter struct {
 	Port        string
 }
 
+// ProjectFilter is the filter for list projects API.
 type ProjectFilter struct {
 	Query          string
 	ExcludeDefault bool
 	State          v1pb.State
 }
 
+// Label is the database label.
 type Label struct {
 	Key   string
 	Value string
 }
 
+// DatabaseFilter is the filter for list databases API.
 type DatabaseFilter struct {
 	Query             string
 	Environment       string

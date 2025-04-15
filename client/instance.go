@@ -34,7 +34,7 @@ func buildInstanceQuery(filter *api.InstanceFilter) string {
 	if v := filter.Port; v != "" {
 		params = append(params, fmt.Sprintf(`port == "%s"`, v))
 	}
-	if v := filter.Engines; v != nil && len(v) > 0 {
+	if v := filter.Engines; len(v) > 0 {
 		engines := []string{}
 		for _, e := range v {
 			engines = append(engines, fmt.Sprintf(`"%s"`, e.String()))
