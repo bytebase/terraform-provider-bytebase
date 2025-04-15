@@ -42,6 +42,7 @@ type DatabaseFilter struct {
 	ExcludeUnassigned bool
 }
 
+// UserFilter is the filter for list users API.
 type UserFilter struct {
 	Name      string
 	Email     string
