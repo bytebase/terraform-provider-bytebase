@@ -1,8 +1,8 @@
-# Examples for query the projects
+# Examples for query the project
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.21"
+      version = "1.0.22"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -23,7 +23,10 @@ locals {
 }
 
 # List all projects
-data "bytebase_project_list" "all" {}
+data "bytebase_project_list" "all" {
+  query           = "sample"
+  exclude_default = true
+}
 
 output "all_projects" {
   value = data.bytebase_project_list.all

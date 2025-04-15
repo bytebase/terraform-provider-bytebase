@@ -172,18 +172,16 @@ func (c *mockClient) UndeleteEnvironment(ctx context.Context, environmentName st
 }
 
 // ListInstance will return instances in environment.
-func (c *mockClient) ListInstance(_ context.Context, showDeleted bool) (*v1pb.ListInstancesResponse, error) {
+func (c *mockClient) ListInstance(_ context.Context, filter *api.InstanceFilter) ([]*v1pb.Instance, error) {
 	instances := make([]*v1pb.Instance, 0)
 	for _, ins := range c.instanceMap {
-		if ins.State == v1pb.State_DELETED && !showDeleted {
+		if ins.State == v1pb.State_DELETED && filter.State != v1pb.State_DELETED {
 			continue
 		}
 		instances = append(instances, ins)
 	}
 
-	return &v1pb.ListInstancesResponse{
-		Instances: instances,
-	}, nil
+	return instances, nil
 }
 
 // GetInstance gets the instance by id.
@@ -381,10 +379,10 @@ func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*v1pb.
 }
 
 // ListDatabase list the databases.
-func (c *mockClient) ListDatabase(_ context.Context, instaceID, filter string, _ bool) ([]*v1pb.Database, error) {
+func (c *mockClient) ListDatabase(_ context.Context, instaceID string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
 	projectID := "-"
-	if strings.HasPrefix(filter, "project == ") {
-		projectID = strings.Split(filter, "project == ")[1]
+	if filter.Project != "" {
+		projectID = filter.Project
 	}
 	databases := make([]*v1pb.Database, 0)
 	for _, db := range c.databaseMap {
@@ -459,10 +457,10 @@ func (c *mockClient) GetProject(_ context.Context, projectName string) (*v1pb.Pr
 }
 
 // ListProject list the projects.
-func (c *mockClient) ListProject(_ context.Context, showDeleted bool) ([]*v1pb.Project, error) {
+func (c *mockClient) ListProject(_ context.Context, filter *api.ProjectFilter) ([]*v1pb.Project, error) {
 	projects := make([]*v1pb.Project, 0)
 	for _, proj := range c.projectMap {
-		if proj.State == v1pb.State_DELETED && !showDeleted {
+		if proj.State == v1pb.State_DELETED && filter.State != v1pb.State_DELETED {
 			continue
 		}
 		projects = append(projects, proj)
@@ -579,10 +577,10 @@ func (*mockClient) ParseExpression(_ context.Context, _ string) (*v1alpha1.Expr,
 }
 
 // ListUser list all users.
-func (c *mockClient) ListUser(_ context.Context, showDeleted bool) ([]*v1pb.User, error) {
+func (c *mockClient) ListUser(_ context.Context, filter *api.UserFilter) ([]*v1pb.User, error) {
 	users := make([]*v1pb.User, 0)
 	for _, user := range c.userMap {
-		if user.State == v1pb.State_DELETED && !showDeleted {
+		if user.State == v1pb.State_DELETED && filter.State != v1pb.State_DELETED {
 			continue
 		}
 		users = append(users, user)

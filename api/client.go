@@ -7,6 +7,45 @@ import (
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
+type InstanceFilter struct {
+	Query       string
+	Environment string
+	Project     string
+	State       v1pb.State
+	Engines     []v1pb.Engine
+	Host        string
+	Port        string
+}
+
+type ProjectFilter struct {
+	Query          string
+	ExcludeDefault bool
+	State          v1pb.State
+}
+
+type Label struct {
+	Key   string
+	Value string
+}
+
+type DatabaseFilter struct {
+	Query             string
+	Environment       string
+	Project           string
+	Instance          string
+	Engines           []v1pb.Engine
+	Labels            []*Label
+	ExcludeUnassigned bool
+}
+
+type UserFilter struct {
+	Name      string
+	Email     string
+	Project   string
+	UserTypes []v1pb.UserType
+	State     v1pb.State
+}
+
 // Client is the API message for Bytebase OpenAPI client.
 type Client interface {
 	// GetCaller returns the API caller.
@@ -28,7 +67,7 @@ type Client interface {
 
 	// Instance
 	// ListInstance will return instances.
-	ListInstance(ctx context.Context, showDeleted bool) (*v1pb.ListInstancesResponse, error)
+	ListInstance(ctx context.Context, filter *InstanceFilter) ([]*v1pb.Instance, error)
 	// GetInstance gets the instance by full name.
 	GetInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error)
 	// CreateInstance creates the instance.
@@ -56,7 +95,7 @@ type Client interface {
 	// GetDatabase gets the database by instance resource id and the database name.
 	GetDatabase(ctx context.Context, databaseName string) (*v1pb.Database, error)
 	// ListDatabase list the databases.
-	ListDatabase(ctx context.Context, instanceID, filter string, listAll bool) ([]*v1pb.Database, error)
+	ListDatabase(ctx context.Context, instanceID string, filter *DatabaseFilter, listAll bool) ([]*v1pb.Database, error)
 	// UpdateDatabase patches the database.
 	UpdateDatabase(ctx context.Context, patch *v1pb.Database, updateMasks []string) (*v1pb.Database, error)
 	// BatchUpdateDatabases batch updates databases.
@@ -70,7 +109,7 @@ type Client interface {
 	// GetProject gets the project by project full name.
 	GetProject(ctx context.Context, projectName string) (*v1pb.Project, error)
 	// ListProject list all projects,
-	ListProject(ctx context.Context, showDeleted bool) ([]*v1pb.Project, error)
+	ListProject(ctx context.Context, filter *ProjectFilter) ([]*v1pb.Project, error)
 	// CreateProject creates the project.
 	CreateProject(ctx context.Context, projectID string, project *v1pb.Project) (*v1pb.Project, error)
 	// UpdateProject updates the project.
@@ -98,7 +137,7 @@ type Client interface {
 
 	// User
 	// ListUser list all users.
-	ListUser(ctx context.Context, showDeleted bool) ([]*v1pb.User, error)
+	ListUser(ctx context.Context, filter *UserFilter) ([]*v1pb.User, error)
 	// CreateUser creates the user.
 	CreateUser(ctx context.Context, user *v1pb.User) (*v1pb.User, error)
 	// GetUser gets the user by name.

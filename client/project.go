@@ -11,6 +11,8 @@ import (
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
 // GetProject gets the project by project full name.
@@ -69,15 +71,37 @@ func (c *client) SetProjectIAMPolicy(ctx context.Context, projectName string, up
 	return &res, nil
 }
 
+func buildProjectQuery(filter *api.ProjectFilter) string {
+	params := []string{}
+	showDeleted := v1pb.State_DELETED == filter.State
+
+	if v := filter.Query; v != "" {
+		params = append(params, fmt.Sprintf(`(name.matches("%s") || resource_id.matches("%s"))`, strings.ToLower(v), strings.ToLower(v)))
+	}
+	if filter.ExcludeDefault {
+		params = append(params, "exclude_default == true")
+	}
+	if showDeleted {
+		params = append(params, fmt.Sprintf(`state == "%s"`, filter.State.String()))
+	}
+
+	if len(params) == 0 {
+		return fmt.Sprintf("showDeleted=%v", showDeleted)
+	}
+
+	return fmt.Sprintf("filter=%s&showDeleted=%v", url.QueryEscape(strings.Join(params, " && ")), showDeleted)
+}
+
 // ListProject list all projects.
-func (c *client) ListProject(ctx context.Context, showDeleted bool) ([]*v1pb.Project, error) {
+func (c *client) ListProject(ctx context.Context, filter *api.ProjectFilter) ([]*v1pb.Project, error) {
 	res := []*v1pb.Project{}
 	pageToken := ""
 	startTime := time.Now()
+	query := buildProjectQuery(filter)
 
 	for {
 		startTimePerPage := time.Now()
-		resp, err := c.listProjectPerPage(ctx, showDeleted, pageToken, 500)
+		resp, err := c.listProjectPerPage(ctx, query, pageToken, 500)
 		if err != nil {
 			return nil, err
 		}
@@ -102,12 +126,12 @@ func (c *client) ListProject(ctx context.Context, showDeleted bool) ([]*v1pb.Pro
 }
 
 // listProjectPerPage list the projects.
-func (c *client) listProjectPerPage(ctx context.Context, showDeleted bool, pageToken string, pageSize int) (*v1pb.ListProjectsResponse, error) {
+func (c *client) listProjectPerPage(ctx context.Context, query, pageToken string, pageSize int) (*v1pb.ListProjectsResponse, error) {
 	requestURL := fmt.Sprintf(
-		"%s/%s/projects?showDeleted=%v&page_size=%d&page_token=%s",
+		"%s/%s/projects?%s&page_size=%d&page_token=%s",
 		c.url,
 		c.version,
-		showDeleted,
+		query,
 		pageSize,
 		url.QueryEscape(pageToken),
 	)

@@ -1,7 +1,8 @@
+# Examples for query the user
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.21"
+      version = "1.0.22"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -18,7 +19,9 @@ provider "bytebase" {
 }
 
 # List all users
-data "bytebase_user_list" "all" {}
+data "bytebase_user_list" "all" {
+  name = "ed"
+}
 
 output "all_users" {
   value = data.bytebase_user_list.all

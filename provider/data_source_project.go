@@ -252,7 +252,7 @@ func setProject(
 		"project": project.Name,
 	})
 
-	databases, err := client.ListDatabase(ctx, project.Name, "", true)
+	databases, err := client.ListDatabase(ctx, project.Name, &api.DatabaseFilter{}, true)
 	if err != nil {
 		return diag.FromErr(err)
 	}

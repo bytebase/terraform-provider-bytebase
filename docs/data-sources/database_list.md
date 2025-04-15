@@ -19,6 +19,16 @@ The database data source list.
 
 - `parent` (String)
 
+### Optional
+
+- `engines` (Set of String) Filter databases by engines.
+- `environment` (String) The environment full name. Filter databases by environment.
+- `exclude_unassigned` (Boolean) If not include unassigned databases in the response.
+- `instance` (String) The instance full name. Filter databases by instance.
+- `labels` (Map of String) Filter databases by labels
+- `project` (String) The project full name. Filter databases by project.
+- `query` (String) Filter databases by name with wildcard
+
 ### Read-Only
 
 - `databases` (List of Object) (see [below for nested schema](#nestedatt--databases))

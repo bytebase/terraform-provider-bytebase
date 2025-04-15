@@ -2,11 +2,16 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -17,11 +22,51 @@ func dataSourceInstanceList() *schema.Resource {
 		Description:        "The instance data source list.",
 		ReadWithoutTimeout: dataSourceInstanceListRead,
 		Schema: map[string]*schema.Schema{
-			"show_deleted": {
-				Type:        schema.TypeBool,
+			"query": {
+				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     false,
-				Description: "Including removed instance in the response.",
+				Description: "Filter instances by name or resource id with wildcard",
+			},
+			"environment": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "The environment full name. Filter instances by environment.",
+				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern))),
+			},
+			"project": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "The project full name. Filter instances by project.",
+				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern))),
+			},
+			"host": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filter instances by host.",
+			},
+			"port": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filter instances by port.",
+			},
+			"state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  v1pb.State_ACTIVE.String(),
+				ValidateFunc: validation.StringInSlice([]string{
+					v1pb.State_ACTIVE.String(),
+					v1pb.State_DELETED.String(),
+				}, false),
+				Description: "Filter instances by state. Default ACTIVE.",
+			},
+			"engines": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: internal.EngineValidation,
+				},
+				Description: "Filter instances by engines.",
 			},
 			"instances": {
 				Type:     schema.TypeList,
@@ -155,13 +200,35 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	response, err := c.ListInstance(ctx, d.Get("show_deleted").(bool))
+	filter := &api.InstanceFilter{
+		Query:       d.Get("query").(string),
+		Environment: d.Get("environment").(string),
+		Project:     d.Get("project").(string),
+		Host:        d.Get("host").(string),
+		Port:        d.Get("port").(string),
+	}
+	stateString := d.Get("state").(string)
+	stateValue, ok := v1pb.State_value[stateString]
+	if ok {
+		filter.State = v1pb.State(stateValue)
+	}
+
+	engines := d.Get("engines").(*schema.Set)
+	for _, engine := range engines.List() {
+		engineString := engine.(string)
+		engineValue, ok := v1pb.Engine_value[engineString]
+		if ok {
+			filter.Engines = append(filter.Engines, v1pb.Engine(engineValue))
+		}
+	}
+
+	response, err := c.ListInstance(ctx, filter)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	instances := make([]map[string]interface{}, 0)
-	for _, instance := range response.Instances {
+	for _, instance := range response {
 		instanceID, err := internal.GetInstanceID(instance.Name)
 		if err != nil {
 			return diag.FromErr(err)
