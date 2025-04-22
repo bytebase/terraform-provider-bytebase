@@ -406,8 +406,10 @@ func updateMembersInProject(ctx context.Context, d *schema.ResourceData, client 
 			existProjectOwner = true
 		}
 
-		if err := internal.ValidateMemberBinding(member); err != nil {
-			return diag.FromErr(err)
+		if member != "allUsers" {
+			if err := internal.ValidateMemberBinding(member); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 		if !strings.HasPrefix(role, internal.RoleNamePrefix) {
 			return diag.Errorf("invalid role format")

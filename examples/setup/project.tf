@@ -16,6 +16,11 @@ resource "bytebase_project" "sample_project" {
   }
 
   members {
+    member = "allUsers"
+    role   = "roles/projectDeveloper"
+  }
+
+  members {
     member = format("group:%s", bytebase_group.developers.email)
     role   = "roles/projectDeveloper"
   }

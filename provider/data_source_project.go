@@ -100,7 +100,7 @@ func getProjectMembersSchema(computed bool) *schema.Schema {
 					Type:        schema.TypeString,
 					Computed:    computed,
 					Optional:    !computed,
-					Description: "The member in user:{email} or group:{email} format.",
+					Description: `The member can be "allUsers", "user:{email}" or "group:{email}".`,
 				},
 				"role": {
 					Type:        schema.TypeString,
