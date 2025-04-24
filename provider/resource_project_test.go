@@ -72,11 +72,6 @@ func testAccCheckProjectResource(identifier, resourceID, title string) string {
 	resource "bytebase_project" "%s" {
 		resource_id    = "%s"
 		title          = "%s"
-
-		members {
-			member = "user:mock@bytebase.com"
-			role = "roles/projectOwner"
-		}
 	}
 	`, identifier, resourceID, title)
 }
