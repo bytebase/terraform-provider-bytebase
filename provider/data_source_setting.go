@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -29,12 +30,14 @@ func dataSourceSetting() *schema.Resource {
 					string(api.SettingWorkspaceProfile),
 					string(api.SettingDataClassification),
 					string(api.SettingSemanticTypes),
+					string(api.SettingEnvironment),
 				}, false),
 			},
-			"approval_flow":     getWorkspaceApprovalSetting(true),
-			"workspace_profile": getWorkspaceProfileSetting(true),
-			"classification":    getClassificationSetting(true),
-			"semantic_types":    getSemanticTypesSetting(true),
+			"approval_flow":       getWorkspaceApprovalSetting(true),
+			"workspace_profile":   getWorkspaceProfileSetting(true),
+			"classification":      getClassificationSetting(true),
+			"semantic_types":      getSemanticTypesSetting(true),
+			"environment_setting": getEnvironmentSetting(true),
 		},
 	}
 }
@@ -198,14 +201,12 @@ func getClassificationSetting(computed bool) *schema.Schema {
 			Schema: map[string]*schema.Schema{
 				"id": {
 					Type:        schema.TypeString,
-					Computed:    computed,
-					Optional:    true,
+					Required:    true,
 					Description: "The classification unique uuid.",
 				},
 				"title": {
 					Type:        schema.TypeString,
-					Computed:    computed,
-					Optional:    true,
+					Required:    true,
 					Description: "The classification title. Optional.",
 				},
 				"classification_from_config": {
@@ -215,22 +216,19 @@ func getClassificationSetting(computed bool) *schema.Schema {
 					Description: "If true, we will only store the classification in the config. Otherwise we will get the classification from table/column comment, and write back to the schema metadata.",
 				},
 				"levels": {
-					Computed: computed,
-					Optional: true,
+					Required: true,
 					Type:     schema.TypeSet,
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"id": {
 								Type:        schema.TypeString,
-								Computed:    computed,
-								Optional:    true,
+								Required:    true,
 								Description: "The classification level unique uuid.",
 							},
 							"title": {
 								Type:        schema.TypeString,
-								Computed:    computed,
-								Optional:    true,
+								Required:    true,
 								Description: "The classification level title.",
 							},
 							"description": {
@@ -244,22 +242,19 @@ func getClassificationSetting(computed bool) *schema.Schema {
 					Set: itemIDHash,
 				},
 				"classifications": {
-					Computed: computed,
-					Optional: true,
+					Required: true,
 					Type:     schema.TypeSet,
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"id": {
 								Type:        schema.TypeString,
-								Computed:    computed,
-								Optional:    true,
+								Required:    true,
 								Description: "The classification unique id, must in {number}-{number} format.",
 							},
 							"title": {
 								Type:        schema.TypeString,
-								Computed:    computed,
-								Optional:    true,
+								Required:    true,
 								Description: "The classification title.",
 							},
 							"description": {
@@ -331,7 +326,55 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 	}
 }
 
-// TODO(ed): API changed.
+func getEnvironmentSetting(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		Description: "The environment",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"environment": {
+					Type:     schema.TypeList,
+					Computed: computed,
+					Required: !computed,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"id": {
+								Type:         schema.TypeString,
+								Required:     true,
+								ValidateFunc: internal.ResourceIDValidation,
+								Description:  "The environment unique id.",
+							},
+							"name": {
+								Type:        schema.TypeString,
+								Computed:    true,
+								Description: "The environment readonly name in environments/{id} format.",
+							},
+							"title": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "The environment display name.",
+							},
+							"color": {
+								Type:        schema.TypeString,
+								Optional:    true,
+								Description: "The environment color.",
+							},
+							"protected": {
+								Type:        schema.TypeBool,
+								Optional:    true,
+								Description: "The environment is protected or not.",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Computed:    computed,
@@ -376,20 +419,13 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 											Description: "Approval flow following the step order.",
 											Elem: &schema.Resource{
 												Schema: map[string]*schema.Schema{
-													"type": {
+													"role": {
 														Type:     schema.TypeString,
-														Computed: computed,
-														Optional: true,
-														ValidateFunc: validation.StringInSlice([]string{
-															string(api.ApprovalNodeTypeGroup),
-															string(api.ApprovalNodeTypeRole),
-														}, false),
-													},
-													"node": {
-														Required: !computed,
-														Default:  nil,
-														Computed: computed,
-														Type:     schema.TypeString,
+														Required: true,
+														ValidateDiagFunc: internal.ResourceNameValidation(
+															regexp.MustCompile(fmt.Sprintf("^%s", internal.RoleNamePrefix)),
+														),
+														Description: "The role require to review in this step",
 													},
 												},
 											},
@@ -454,7 +490,7 @@ func dataSourceSettingRead(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.Client, setting *v1pb.Setting) diag.Diagnostics {
-	if value := setting.Value.GetWorkspaceApprovalSettingValue(); value != nil {
+	if value := setting.GetValue().GetWorkspaceApprovalSettingValue(); value != nil {
 		settingVal, err := flattenWorkspaceApprovalSetting(ctx, client, value)
 		if err != nil {
 			return diag.Errorf("failed to parse workspace_approval_setting: %s", err.Error())
@@ -463,26 +499,52 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 			return diag.Errorf("cannot set workspace_approval_setting: %s", err.Error())
 		}
 	}
-	if value := setting.Value.GetWorkspaceProfileSettingValue(); value != nil {
+	if value := setting.GetValue().GetWorkspaceProfileSettingValue(); value != nil {
 		settingVal := flattenWorkspaceProfileSetting(value)
 		if err := d.Set("workspace_profile", settingVal); err != nil {
 			return diag.Errorf("cannot set workspace_profile: %s", err.Error())
 		}
 	}
-	if value := setting.Value.GetDataClassificationSettingValue(); value != nil {
+	if value := setting.GetValue().GetDataClassificationSettingValue(); value != nil {
 		settingVal := flattenClassificationSetting(value)
 		if err := d.Set("classification", settingVal); err != nil {
 			return diag.Errorf("cannot set classification: %s", err.Error())
 		}
 	}
-	if value := setting.Value.GetSemanticTypeSettingValue(); value != nil {
+	if value := setting.GetValue().GetSemanticTypeSettingValue(); value != nil {
 		settingVal := flattenSemanticTypesSetting(value)
 		if err := d.Set("semantic_types", schema.NewSet(itemIDHash, settingVal)); err != nil {
 			return diag.Errorf("cannot set semantic_types: %s", err.Error())
 		}
 	}
+	if value := setting.GetValue().GetEnvironmentSetting(); value != nil {
+		settingVal := flattenEnvironmentSetting(value)
+		if err := d.Set("environment_setting", settingVal); err != nil {
+			return diag.Errorf("cannot set environment_setting: %s", err.Error())
+		}
+	}
 
 	return nil
+}
+
+func flattenEnvironmentSetting(setting *v1pb.EnvironmentSetting) []interface{} {
+	environmentList := []interface{}{}
+
+	for _, environment := range setting.GetEnvironments() {
+		raw := map[string]interface{}{
+			"id":        environment.Id,
+			"name":      environment.Name,
+			"color":     environment.Color,
+			"title":     environment.Title,
+			"protected": environment.Tags["protected"] == "protected",
+		}
+		environmentList = append(environmentList, raw)
+	}
+
+	environmentSetting := map[string]interface{}{
+		"environment": environmentList,
+	}
+	return []interface{}{environmentSetting}
 }
 
 func parseApprovalExpression(callExpr *v1alpha1.Expr_Call) ([]map[string]interface{}, error) {
@@ -552,18 +614,12 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 	for _, rule := range setting.Rules {
 		stepList := []interface{}{}
 		for _, step := range rule.Template.Flow.Steps {
+			rawStep := map[string]interface{}{}
 			for _, node := range step.Nodes {
-				rawNode := map[string]interface{}{}
-				switch payload := node.Payload.(type) {
-				case *v1pb.ApprovalNode_Role:
-					rawNode["type"] = string(api.ApprovalNodeTypeRole)
-					rawNode["node"] = payload.Role
-				case *v1pb.ApprovalNode_GroupValue_:
-					rawNode["type"] = string(api.ApprovalNodeTypeGroup)
-					rawNode["node"] = payload.GroupValue.String()
-				}
-				stepList = append(stepList, rawNode)
+				rawStep["role"] = node.Role
+				break
 			}
+			stepList = append(stepList, rawStep)
 		}
 
 		conditionList := []map[string]interface{}{}

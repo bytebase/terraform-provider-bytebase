@@ -29,7 +29,7 @@ func dataSourcePolicy() *schema.Resource {
 				Default:  "",
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					regexp.MustCompile("^workspaces/-$"),
+					regexp.MustCompile(fmt.Sprintf("^%s$", internal.WorkspaceName)),
 					// environment policy
 					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern)),
 					// instance policy
@@ -91,8 +91,7 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 						Schema: map[string]*schema.Schema{
 							"database": {
 								Type:         schema.TypeString,
-								Computed:     computed,
-								Optional:     true,
+								Required:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
 								Description:  "The database full name in instances/{instance resource id}/databases/{database name} format",
 							},
@@ -115,15 +114,13 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 							},
 							"member": {
 								Type:         schema.TypeString,
-								Computed:     computed,
-								Optional:     true,
+								Required:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
 								Description:  "The member in user:{email} or group:{email} format.",
 							},
 							"action": {
 								Type:     schema.TypeString,
-								Computed: computed,
-								Optional: true,
+								Required: true,
 								ValidateFunc: validation.StringInSlice([]string{
 									v1pb.MaskingExceptionPolicy_MaskingException_QUERY.String(),
 									v1pb.MaskingExceptionPolicy_MaskingException_EXPORT.String(),
@@ -164,22 +161,19 @@ func getGlobalMaskingPolicySchema(computed bool) *schema.Schema {
 						Schema: map[string]*schema.Schema{
 							"id": {
 								Type:         schema.TypeString,
-								Computed:     computed,
-								Optional:     true,
+								Required:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
 								Description:  "The unique rule id",
 							},
 							"semantic_type": {
 								Type:         schema.TypeString,
-								Computed:     computed,
-								Optional:     true,
+								Required:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
 								Description:  "The semantic type id",
 							},
 							"condition": {
 								Type:         schema.TypeString,
-								Computed:     computed,
-								Optional:     true,
+								Required:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
 								Description:  "The condition expression",
 							},
@@ -195,6 +189,10 @@ func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interfa
 	c := m.(api.Client)
 
 	policyName := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
+	if strings.HasPrefix(policyName, internal.WorkspaceName) {
+		policyName = strings.TrimPrefix(policyName, fmt.Sprintf("%s/", internal.WorkspaceName))
+	}
+
 	policy, err := c.GetPolicy(ctx, policyName)
 	if err != nil {
 		return diag.FromErr(err)

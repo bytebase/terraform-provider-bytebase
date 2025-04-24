@@ -35,7 +35,7 @@ func resourcePolicy() *schema.Resource {
 				Required: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					regexp.MustCompile("^workspaces/-$"),
+					regexp.MustCompile(fmt.Sprintf("^%s$", internal.WorkspaceName)),
 					// environment policy
 					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern)),
 					// instance policy
@@ -82,8 +82,11 @@ func resourcePolicy() *schema.Resource {
 func resourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	parent := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
-	policy, err := c.GetPolicy(ctx, parent)
+	policyName := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
+	if strings.HasPrefix(policyName, internal.WorkspaceName) {
+		policyName = strings.TrimPrefix(policyName, fmt.Sprintf("%s/", internal.WorkspaceName))
+	}
+	policy, err := c.GetPolicy(ctx, policyName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -109,6 +112,9 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	c := m.(api.Client)
 
 	policyName := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
+	if strings.HasPrefix(policyName, internal.WorkspaceName) {
+		policyName = strings.TrimPrefix(policyName, fmt.Sprintf("%s/", internal.WorkspaceName))
+	}
 
 	inheritFromParent := d.Get("inherit_from_parent").(bool)
 	enforce := d.Get("enforce").(bool)

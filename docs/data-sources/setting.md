@@ -28,38 +28,48 @@ The setting data source.
 ### Read-Only
 
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
+- `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
 - `id` (String) The ID of this resource.
 
 <a id="nestedblock--classification"></a>
 ### Nested Schema for `classification`
 
+Required:
+
+- `classifications` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--classifications))
+- `id` (String) The classification unique uuid.
+- `levels` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--levels))
+- `title` (String) The classification title. Optional.
+
 Optional:
 
 - `classification_from_config` (Boolean) If true, we will only store the classification in the config. Otherwise we will get the classification from table/column comment, and write back to the schema metadata.
-- `classifications` (Block Set) (see [below for nested schema](#nestedblock--classification--classifications))
-- `id` (String) The classification unique uuid.
-- `levels` (Block Set) (see [below for nested schema](#nestedblock--classification--levels))
-- `title` (String) The classification title. Optional.
 
 <a id="nestedblock--classification--classifications"></a>
 ### Nested Schema for `classification.classifications`
 
+Required:
+
+- `id` (String) The classification unique id, must in {number}-{number} format.
+- `title` (String) The classification title.
+
 Optional:
 
 - `description` (String) The classification description.
-- `id` (String) The classification unique id, must in {number}-{number} format.
 - `level` (String) The classification level id.
-- `title` (String) The classification title.
 
 
 <a id="nestedblock--classification--levels"></a>
 ### Nested Schema for `classification.levels`
 
+Required:
+
+- `id` (String) The classification level unique uuid.
+- `title` (String) The classification level title.
+
 Optional:
 
 - `description` (String) The classification level description.
-- `id` (String) The classification level unique uuid.
-- `title` (String) The classification level title.
 
 
 
@@ -184,7 +194,28 @@ Read-Only:
 
 Read-Only:
 
-- `node` (String)
-- `type` (String)
+- `role` (String)
+
+
+
+
+
+<a id="nestedblock--environment_setting"></a>
+### Nested Schema for `environment_setting`
+
+Read-Only:
+
+- `environment` (List of Object) (see [below for nested schema](#nestedatt--environment_setting--environment))
+
+<a id="nestedatt--environment_setting--environment"></a>
+### Nested Schema for `environment_setting.environment`
+
+Read-Only:
+
+- `color` (String)
+- `id` (String)
+- `name` (String)
+- `protected` (Boolean)
+- `title` (String)
 
 

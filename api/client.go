@@ -56,20 +56,6 @@ type Client interface {
 	// GetCaller returns the API caller.
 	GetCaller() *v1pb.User
 
-	// Environment
-	// CreateEnvironment creates the environment.
-	CreateEnvironment(ctx context.Context, environmentID string, create *v1pb.Environment) (*v1pb.Environment, error)
-	// GetEnvironment gets the environment by full name.
-	GetEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error)
-	// ListEnvironment finds all environments.
-	ListEnvironment(ctx context.Context, showDeleted bool) (*v1pb.ListEnvironmentsResponse, error)
-	// UpdateEnvironment updates the environment.
-	UpdateEnvironment(ctx context.Context, patch *v1pb.Environment, updateMask []string) (*v1pb.Environment, error)
-	// DeleteEnvironment deletes the environment.
-	DeleteEnvironment(ctx context.Context, environmentName string) error
-	// UndeleteEnvironment undeletes the environment.
-	UndeleteEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error)
-
 	// Instance
 	// ListInstance will return instances.
 	ListInstance(ctx context.Context, filter *InstanceFilter) ([]*v1pb.Instance, error)

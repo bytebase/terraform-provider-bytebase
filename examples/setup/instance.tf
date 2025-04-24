@@ -3,10 +3,11 @@
 # You can replace the parameters with your real instance
 resource "bytebase_instance" "test" {
   depends_on = [
-    bytebase_environment.test
+    bytebase_setting.environments
   ]
+
   resource_id = local.instance_id_test
-  environment = bytebase_environment.test.name
+  environment = bytebase_setting.environments.environment_setting[0].environment[0].name
   title       = "test instance"
   engine      = "MYSQL"
   activation  = true
@@ -44,11 +45,11 @@ resource "bytebase_instance" "test" {
 # Create a new instance named "prod instance"
 resource "bytebase_instance" "prod" {
   depends_on = [
-    bytebase_environment.prod
+    bytebase_setting.environments
   ]
 
   resource_id = local.instance_id_prod
-  environment = bytebase_environment.prod.name
+  environment = bytebase_setting.environments.environment_setting[0].environment[1].name
   title       = "prod instance"
   engine      = "POSTGRES"
 

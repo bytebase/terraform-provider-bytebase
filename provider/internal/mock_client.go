@@ -14,7 +14,6 @@ import (
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
-var environmentMap map[string]*v1pb.Environment
 var instanceMap map[string]*v1pb.Instance
 var policyMap map[string]*v1pb.Policy
 var projectMap map[string]*v1pb.Project
@@ -27,7 +26,6 @@ var roleMap map[string]*v1pb.Role
 var groupMap map[string]*v1pb.Group
 
 func init() {
-	environmentMap = map[string]*v1pb.Environment{}
 	instanceMap = map[string]*v1pb.Instance{}
 	policyMap = map[string]*v1pb.Policy{}
 	projectMap = map[string]*v1pb.Project{}
@@ -41,7 +39,6 @@ func init() {
 }
 
 type mockClient struct {
-	environmentMap     map[string]*v1pb.Environment
 	instanceMap        map[string]*v1pb.Instance
 	policyMap          map[string]*v1pb.Policy
 	projectMap         map[string]*v1pb.Project
@@ -58,7 +55,6 @@ type mockClient struct {
 // newMockClient returns the new Bytebase API mock client.
 func newMockClient(_, _, _ string) (api.Client, error) {
 	return &mockClient{
-		environmentMap:     environmentMap,
 		instanceMap:        instanceMap,
 		policyMap:          policyMap,
 		projectMap:         projectMap,
@@ -79,96 +75,6 @@ func (*mockClient) GetCaller() *v1pb.User {
 		Name:  "users/mock@bytease.com",
 		Email: "mock@bytease.com",
 	}
-}
-
-// CreateEnvironment creates the environment.
-func (c *mockClient) CreateEnvironment(_ context.Context, environmentID string, create *v1pb.Environment) (*v1pb.Environment, error) {
-	env := &v1pb.Environment{
-		Name:  fmt.Sprintf("%s%s", EnvironmentNamePrefix, environmentID),
-		Order: create.Order,
-		Title: create.Title,
-		State: v1pb.State_ACTIVE,
-		Tier:  create.Tier,
-	}
-
-	if _, ok := c.environmentMap[env.Name]; ok {
-		return nil, errors.Errorf("Environment %s already exists", env.Name)
-	}
-
-	c.environmentMap[env.Name] = env
-
-	return env, nil
-}
-
-// GetEnvironment gets the environment by id.
-func (c *mockClient) GetEnvironment(_ context.Context, environmentName string) (*v1pb.Environment, error) {
-	env, ok := c.environmentMap[environmentName]
-	if !ok {
-		return nil, errors.Errorf("Cannot found environment %s", environmentName)
-	}
-
-	return env, nil
-}
-
-// ListEnvironment finds all environments.
-func (c *mockClient) ListEnvironment(_ context.Context, showDeleted bool) (*v1pb.ListEnvironmentsResponse, error) {
-	environments := make([]*v1pb.Environment, 0)
-	for _, env := range c.environmentMap {
-		if env.State == v1pb.State_DELETED && !showDeleted {
-			continue
-		}
-		environments = append(environments, env)
-	}
-
-	return &v1pb.ListEnvironmentsResponse{
-		Environments: environments,
-	}, nil
-}
-
-// UpdateEnvironment updates the environment.
-func (c *mockClient) UpdateEnvironment(ctx context.Context, patch *v1pb.Environment, updateMasks []string) (*v1pb.Environment, error) {
-	env, err := c.GetEnvironment(ctx, patch.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	if slices.Contains(updateMasks, "title") {
-		env.Title = patch.Title
-	}
-	if slices.Contains(updateMasks, "order") {
-		env.Order = patch.Order
-	}
-	if slices.Contains(updateMasks, "tier") {
-		env.Tier = patch.Tier
-	}
-
-	c.environmentMap[env.Name] = env
-
-	return env, nil
-}
-
-// DeleteEnvironment deletes the environment.
-func (c *mockClient) DeleteEnvironment(ctx context.Context, environmentName string) error {
-	env, err := c.GetEnvironment(ctx, environmentName)
-	if err != nil {
-		return err
-	}
-
-	env.State = v1pb.State_DELETED
-	c.environmentMap[env.Name] = env
-	return nil
-}
-
-// UndeleteEnvironment undeletes the environment.
-func (c *mockClient) UndeleteEnvironment(ctx context.Context, environmentName string) (*v1pb.Environment, error) {
-	env, err := c.GetEnvironment(ctx, environmentName)
-	if err != nil {
-		return nil, err
-	}
-
-	env.State = v1pb.State_ACTIVE
-	c.environmentMap[env.Name] = env
-	return env, nil
 }
 
 // ListInstance will return instances in environment.

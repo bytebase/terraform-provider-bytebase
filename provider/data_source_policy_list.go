@@ -27,7 +27,7 @@ func dataSourcePolicyList() *schema.Resource {
 				Default:  "",
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					regexp.MustCompile("^workspaces/-$"),
+					regexp.MustCompile(fmt.Sprintf("^%s$", internal.WorkspaceName)),
 					// environment policy
 					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern)),
 					// instance policy
@@ -76,7 +76,12 @@ func dataSourcePolicyList() *schema.Resource {
 func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	response, err := c.ListPolicies(ctx, d.Get("parent").(string))
+	parent := d.Get("parent").(string)
+	if parent == internal.WorkspaceName {
+		parent = ""
+	}
+
+	response, err := c.ListPolicies(ctx, parent)
 	if err != nil {
 		return diag.FromErr(err)
 	}

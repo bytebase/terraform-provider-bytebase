@@ -3,19 +3,21 @@ resource "bytebase_setting" "approval_flow" {
   approval_flow {
     rules {
       flow {
-        title       = "DBA -> OWNER"
-        description = "Need DBA and workspace owner approval"
+        title       = "Project Owner -> DBA -> Admin"
+        description = "Need DBA and workspace admin approval"
         creator     = "users/support@bytebase.com"
 
         # Approval flow following the step order.
         steps {
-          type = "GROUP"
-          node = "WORKSPACE_DBA"
+          role = "roles/projectOwner"
         }
 
         steps {
-          type = "GROUP"
-          node = "WORKSPACE_OWNER"
+          role = "roles/workspaceDBA"
+        }
+
+        steps {
+          role = "roles/workspaceAdmin"
         }
       }
 

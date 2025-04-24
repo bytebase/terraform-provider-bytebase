@@ -12,6 +12,8 @@ const (
 	SettingDataClassification SettingName = "bb.workspace.data-classification"
 	// SettingSemanticTypes is the setting name for semantic types.
 	SettingSemanticTypes SettingName = "bb.workspace.semantic-types"
+	// SettingEnvironment is the setting name for environments.
+	SettingEnvironment SettingName = "bb.workspace.environment"
 )
 
 // RiskLevel is the approval risk level.
@@ -41,13 +43,3 @@ func (r RiskLevel) Int() int {
 		return 0
 	}
 }
-
-// ApprovalNodeType is the type for approval node.
-type ApprovalNodeType string
-
-const (
-	// ApprovalNodeTypeGroup means the approval node is a group.
-	ApprovalNodeTypeGroup ApprovalNodeType = "GROUP"
-	// ApprovalNodeTypeRole means the approval node is a role, the value should be role fullname.
-	ApprovalNodeTypeRole ApprovalNodeType = "ROLE"
-)

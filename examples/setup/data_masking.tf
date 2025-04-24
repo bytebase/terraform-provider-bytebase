@@ -129,10 +129,10 @@ resource "bytebase_policy" "masking_exception_policy" {
 resource "bytebase_policy" "global_masking_policy" {
   depends_on = [
     bytebase_instance.prod,
-    bytebase_environment.test
+    bytebase_setting.environments
   ]
 
-  parent              = ""
+  parent              = "workspaces/-"
   type                = "MASKING_RULE"
   enforce             = true
   inherit_from_parent = false
