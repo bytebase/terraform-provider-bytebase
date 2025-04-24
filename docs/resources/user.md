@@ -24,7 +24,6 @@ The user resource.
 
 - `password` (String, Sensitive) The user login password.
 - `phone` (String) The user phone.
-- `roles` (Set of String) The user's roles in the workspace level
 - `type` (String) The user type.
 
 ### Read-Only

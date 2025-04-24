@@ -43,14 +43,6 @@ func dataSourceUser() *schema.Resource {
 				Computed:    true,
 				Description: "The user phone.",
 			},
-			"roles": {
-				Type:     schema.TypeSet,
-				Computed: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Description: "The user's roles in the workspace level",
-			},
 			"type": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -113,11 +105,6 @@ func getRolesInIAM(iamPolicy *v1pb.IamPolicy, memberBinding string) []string {
 }
 
 func setUser(ctx context.Context, client api.Client, d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
-	workspaceIAM, err := client.GetWorkspaceIAMPolicy(ctx)
-	if err != nil {
-		return diag.Errorf("cannot get workspace IAM with error: %s", err.Error())
-	}
-
 	if err := d.Set("title", user.Title); err != nil {
 		return diag.Errorf("cannot set title for user: %s", err.Error())
 	}
@@ -152,9 +139,5 @@ func setUser(ctx context.Context, client api.Client, d *schema.ResourceData, use
 			return diag.Errorf("cannot set source for user: %s", err.Error())
 		}
 	}
-	if err := d.Set("roles", getRolesInIAM(workspaceIAM, fmt.Sprintf("user:%s", user.Email))); err != nil {
-		return diag.Errorf("cannot set roles for user: %s", err.Error())
-	}
-
 	return nil
 }

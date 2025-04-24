@@ -24,7 +24,6 @@ The group resource. Workspace domain is required for creating groups.
 ### Optional
 
 - `description` (String) The group description.
-- `roles` (Set of String) The group's roles in the workspace level
 
 ### Read-Only
 

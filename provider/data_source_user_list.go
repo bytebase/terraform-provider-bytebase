@@ -91,14 +91,6 @@ func dataSourceUserList() *schema.Resource {
 							Computed:    true,
 							Description: "The user type.",
 						},
-						"roles": {
-							Type:     schema.TypeSet,
-							Computed: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-							},
-							Description: "The user's roles in the workspace level",
-						},
 						"mfa_enabled": {
 							Type:        schema.TypeBool,
 							Computed:    true,
@@ -159,11 +151,6 @@ func dataSourceUserListRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	workspaceIAM, err := c.GetWorkspaceIAMPolicy(ctx)
-	if err != nil {
-		return diag.Errorf("cannot get workspace IAM with error: %s", err.Error())
-	}
-
 	users := make([]map[string]interface{}, 0)
 	for _, user := range allUsers {
 		raw := make(map[string]interface{})
@@ -179,7 +166,6 @@ func dataSourceUserListRead(ctx context.Context, d *schema.ResourceData, m inter
 			raw["last_login_time"] = p.LastLoginTime.AsTime().UTC().Format(time.RFC3339)
 			raw["last_change_password_time"] = p.LastChangePasswordTime.AsTime().UTC().Format(time.RFC3339)
 		}
-		raw["roles"] = getRolesInIAM(workspaceIAM, fmt.Sprintf("user:%s", user.Email))
 		users = append(users, raw)
 	}
 	if err := d.Set("users", users); err != nil {

@@ -331,6 +331,7 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 	}
 }
 
+// TODO(ed): change changed.
 func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Computed:    computed,

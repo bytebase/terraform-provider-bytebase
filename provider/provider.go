@@ -68,6 +68,7 @@ func NewProvider() *schema.Provider {
 			"bytebase_database_list":      dataSourceDatabaseList(),
 			"bytebase_review_config":      dataSourceReviewConfig(),
 			"bytebase_review_config_list": dataSourceReviewConfigList(),
+			"bytebase_iam_policy":         dataSourceIAMPolicy(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"bytebase_environment":   resourceEnvironment(),
@@ -80,6 +81,7 @@ func NewProvider() *schema.Provider {
 			"bytebase_group":         resourceGroup(),
 			"bytebase_database":      resourceDatabase(),
 			"bytebase_review_config": resourceReviewConfig(),
+			"bytebase_iam_policy":    resourceIAMPolicy(),
 		},
 	}
 }

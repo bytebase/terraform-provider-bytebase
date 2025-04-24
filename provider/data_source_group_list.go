@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
-	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func dataSourceGroupList() *schema.Resource {
@@ -42,14 +40,6 @@ func dataSourceGroupList() *schema.Resource {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.",
-						},
-						"roles": {
-							Type:     schema.TypeSet,
-							Computed: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-							},
-							Description: "The group's roles in the workspace level",
 						},
 						"members": {
 							Type:        schema.TypeSet,
@@ -86,11 +76,6 @@ func dataSourceGroupListRead(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	workspaceIAM, err := c.GetWorkspaceIAMPolicy(ctx)
-	if err != nil {
-		return diag.Errorf("cannot get workspace IAM with error: %s", err.Error())
-	}
-
 	groups := make([]map[string]interface{}, 0)
 	for _, group := range response.Groups {
 		raw := make(map[string]interface{})
@@ -108,11 +93,6 @@ func dataSourceGroupListRead(ctx context.Context, d *schema.ResourceData, m inte
 		}
 		raw["members"] = schema.NewSet(memberHash, memberList)
 
-		groupEmail, err := internal.GetGroupEmail(group.Name)
-		if err != nil {
-			return diag.Errorf("failed to parse group email: %v", err)
-		}
-		raw["roles"] = getRolesInIAM(workspaceIAM, fmt.Sprintf("group:%s", groupEmail))
 		groups = append(groups, raw)
 	}
 

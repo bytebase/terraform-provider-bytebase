@@ -18,6 +18,7 @@ import (
 
 var environmentTitleRegex = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
 
+// TODO(ed): API change
 func resourceEnvironment() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The environment resource.",

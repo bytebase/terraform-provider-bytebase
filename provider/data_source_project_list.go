@@ -90,7 +90,6 @@ func dataSourceProjectList() *schema.Resource {
 							Computed:    true,
 							Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 						},
-						"members":   getProjectMembersSchema(true),
 						"databases": getDatabasesSchema(true),
 					},
 				},
@@ -145,16 +144,6 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 
 		databaseList := flattenDatabaseList(databases)
 		proj["databases"] = databaseList
-
-		iamPolicy, err := c.GetProjectIAMPolicy(ctx, project.Name)
-		if err != nil {
-			return diag.Errorf("failed to get project iam with error: %v", err)
-		}
-		memberList, err := flattenMemberList(iamPolicy)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		proj["members"] = schema.NewSet(memberHash, memberList)
 
 		projects = append(projects, proj)
 	}
