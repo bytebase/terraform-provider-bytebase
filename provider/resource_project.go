@@ -3,15 +3,12 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/pkg/errors"
-	"google.golang.org/genproto/googleapis/type/expr"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
@@ -87,7 +84,6 @@ func resourceProjct() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
-			"members":   getProjectMembersSchema(false),
 			"databases": getDatabasesSchema(false),
 		},
 	}
@@ -202,11 +198,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		return diags
 	}
 
-	if diag := updateMembersInProject(ctx, d, c, d.Id()); diag != nil {
-		diags = append(diags, diag...)
-		return diags
-	}
-
 	tflog.Debug(ctx, "[upsert project] start reading project", map[string]interface{}{
 		"project": projectName,
 	})
@@ -307,13 +298,6 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		}
 	}
 
-	if d.HasChange("members") {
-		if diag := updateMembersInProject(ctx, d, c, d.Id()); diag != nil {
-			diags = append(diags, diag...)
-			return diags
-		}
-	}
-
 	diag := resourceProjectRead(ctx, d, m)
 	if diag != nil {
 		diags = append(diags, diag...)
@@ -353,88 +337,6 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 	d.SetId("")
 
 	return diags
-}
-
-func updateMembersInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
-	memberSet, ok := d.Get("members").(*schema.Set)
-	if !ok {
-		return nil
-	}
-
-	iamPolicy := &v1pb.IamPolicy{}
-	existProjectOwner := false
-
-	for _, m := range memberSet.List() {
-		rawMember := m.(map[string]interface{})
-		expressions := []string{}
-
-		if condition, ok := rawMember["condition"].(*schema.Set); ok {
-			if condition.Len() > 1 {
-				return diag.Errorf("should only set one condition")
-			}
-			if condition.Len() == 1 && condition.List()[0] != nil {
-				rawCondition := condition.List()[0].(map[string]interface{})
-				if database, ok := rawCondition["database"].(string); ok && database != "" {
-					expressions = append(expressions, fmt.Sprintf(`resource.database == "%s"`, database))
-				}
-				if schema, ok := rawCondition["schema"].(string); ok {
-					expressions = append(expressions, fmt.Sprintf(`resource.schema == "%s"`, schema))
-				}
-				if tables, ok := rawCondition["tables"].(*schema.Set); ok && tables.Len() > 0 {
-					tableList := []string{}
-					for _, table := range tables.List() {
-						tableList = append(tableList, fmt.Sprintf(`"%s"`, table.(string)))
-					}
-					expressions = append(expressions, fmt.Sprintf(`resource.table in [%s]`, strings.Join(tableList, ",")))
-				}
-				if rowLimit, ok := rawCondition["row_limit"].(int); ok && rowLimit > 0 {
-					expressions = append(expressions, fmt.Sprintf(`request.row_limit <= %d`, rowLimit))
-				}
-				if expire, ok := rawCondition["expire_timestamp"].(string); ok && expire != "" {
-					formattedTime, err := time.Parse(time.RFC3339, expire)
-					if err != nil {
-						return diag.FromErr(errors.Wrapf(err, "invalid time: %v", expire))
-					}
-					expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
-				}
-			}
-		}
-
-		member := rawMember["member"].(string)
-		role := rawMember["role"].(string)
-		if role == "roles/projectOwner" {
-			existProjectOwner = true
-		}
-
-		if err := internal.ValidateMemberBinding(member); err != nil {
-			return diag.FromErr(err)
-		}
-		if !strings.HasPrefix(role, internal.RoleNamePrefix) {
-			return diag.Errorf("invalid role format")
-		}
-
-		iamPolicy.Bindings = append(iamPolicy.Bindings, &v1pb.Binding{
-			Members: []string{member},
-			Role:    role,
-			Condition: &expr.Expr{
-				Expression: strings.Join(expressions, " && "),
-			},
-		})
-	}
-
-	if len(iamPolicy.Bindings) > 0 {
-		if !existProjectOwner {
-			return diag.Errorf("require at least 1 member with roles/projectOwner role")
-		}
-
-		if _, err := client.SetProjectIAMPolicy(ctx, projectName, &v1pb.SetIamPolicyRequest{
-			Policy: iamPolicy,
-			Etag:   iamPolicy.Etag,
-		}); err != nil {
-			return diag.Errorf("failed to update iam for project %s with error: %v", projectName, err.Error())
-		}
-	}
-	return nil
 }
 
 const batchSize = 100

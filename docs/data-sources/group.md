@@ -24,7 +24,6 @@ The group data source.
 - `description` (String) The group description.
 - `id` (String) The ID of this resource.
 - `members` (Set of Object) The members in the group. (see [below for nested schema](#nestedatt--members))
-- `roles` (Set of String) The group's roles in the workspace level
 - `source` (String) Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.
 - `title` (String) The group title.
 

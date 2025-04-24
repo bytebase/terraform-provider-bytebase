@@ -2,54 +2,31 @@
 resource "bytebase_user" "workspace_dba" {
   title = "DBA"
   email = "dba@bytebase.com"
-
-  # Grant workspace level roles.
-  roles = ["roles/workspaceDBA"]
 }
 
 # Create or update the user.
 resource "bytebase_user" "workspace_auditor" {
-  depends_on = [
-    bytebase_user.workspace_dba,
-    bytebase_role.auditor
-  ]
   title = "Auditor"
   email = "auditor@bytebase.com"
-
-  # Grant workspace level roles.
-  roles = [bytebase_role.auditor.name]
 }
 
 # Create or update the user.
 resource "bytebase_user" "project_developer" {
-  depends_on = [
-    bytebase_user.workspace_auditor
-  ]
-
   title = "Developer"
   email = "developer@bytebase.com"
-
-  # Grant workspace level roles, will grant projectViewer for this user in all
-  roles = ["roles/projectViewer"]
 }
 
 resource "bytebase_user" "service_account" {
-  depends_on = [
-    bytebase_user.project_developer
-  ]
   title = "CI Bot"
   email = "ci-bot@service.bytebase.com"
   type  = "SERVICE_ACCOUNT"
-  roles = ["roles/workspaceDBA"]
 }
-
 
 # Create or update the group.
 resource "bytebase_group" "developers" {
   depends_on = [
     bytebase_user.workspace_dba,
     bytebase_user.project_developer,
-    bytebase_user.service_account,
     # group requires the domain.
     bytebase_setting.workspace_profile
   ]
@@ -66,6 +43,4 @@ resource "bytebase_group" "developers" {
     member = format("users/%s", bytebase_user.project_developer.email)
     role   = "MEMBER"
   }
-
-  roles = ["roles/projectViewer"]
 }

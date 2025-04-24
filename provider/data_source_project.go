@@ -1,17 +1,13 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -70,7 +66,6 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
-			"members":   getProjectMembersSchema(true),
 			"databases": getDatabasesSchema(true),
 		},
 	}
@@ -88,79 +83,6 @@ func getDatabasesSchema(computed bool) *schema.Schema {
 	}
 }
 
-func getProjectMembersSchema(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Type:        schema.TypeSet,
-		Computed:    computed,
-		Optional:    !computed,
-		Description: "The members in the project.",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"member": {
-					Type:        schema.TypeString,
-					Computed:    computed,
-					Optional:    !computed,
-					Description: "The member in user:{email} or group:{email} format.",
-				},
-				"role": {
-					Type:        schema.TypeString,
-					Computed:    computed,
-					Optional:    !computed,
-					Description: "The role full name in roles/{id} format.",
-				},
-				"condition": {
-					Type:        schema.TypeSet,
-					Computed:    computed,
-					Optional:    true,
-					Description: "Match the condition limit.",
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"database": {
-								Type:        schema.TypeString,
-								Computed:    computed,
-								Optional:    true,
-								Description: "The accessible database full name in instances/{instance resource id}/databases/{database name} format",
-							},
-							"schema": {
-								Type:        schema.TypeString,
-								Computed:    computed,
-								Optional:    true,
-								Description: "The accessible schema in the database",
-							},
-							"tables": {
-								Type:     schema.TypeSet,
-								Computed: computed,
-								Optional: true,
-								Elem: &schema.Schema{
-									Type: schema.TypeString,
-								},
-								Set:         schema.HashString,
-								Description: "The accessible table list",
-							},
-							"row_limit": {
-								Type:        schema.TypeInt,
-								Computed:    computed,
-								Optional:    true,
-								Description: "The export row limit for exporter role",
-							},
-							"expire_timestamp": {
-								Type:        schema.TypeString,
-								Computed:    computed,
-								Optional:    true,
-								Description: "The expiration timestamp in YYYY-MM-DDThh:mm:ssZ format",
-							},
-						},
-					},
-					Set: func(i interface{}) int {
-						return internal.ToHashcodeInt(conditionHash(i))
-					},
-				},
-			},
-		},
-		Set: memberHash,
-	}
-}
-
 func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 	projectName := fmt.Sprintf("%s%s", internal.ProjectNamePrefix, d.Get("resource_id").(string))
@@ -171,67 +93,6 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	d.SetId(project.Name)
 	return setProject(ctx, c, d, project)
-}
-
-func flattenMemberList(iamPolicy *v1pb.IamPolicy) ([]interface{}, error) {
-	memberList := []interface{}{}
-	for _, binding := range iamPolicy.Bindings {
-		rawCondition := map[string]interface{}{}
-		if condition := binding.Condition; condition != nil && condition.Expression != "" {
-			expressions := strings.Split(condition.Expression, " && ")
-			for _, expression := range expressions {
-				if strings.HasPrefix(expression, `resource.database == "`) {
-					rawCondition["database"] = strings.TrimSuffix(
-						strings.TrimPrefix(expression, `resource.database == "`),
-						`"`,
-					)
-				}
-				if strings.HasPrefix(expression, `resource.schema == "`) {
-					rawCondition["schema"] = strings.TrimSuffix(
-						strings.TrimPrefix(expression, `resource.schema == "`),
-						`"`,
-					)
-				}
-				if strings.HasPrefix(expression, `resource.table in [`) {
-					tableStr := strings.TrimSuffix(
-						strings.TrimPrefix(expression, `resource.table in [`),
-						`]`,
-					)
-					rawTableList := []string{}
-					for _, t := range strings.Split(tableStr, ",") {
-						rawTableList = append(rawTableList, strings.TrimSuffix(
-							strings.TrimPrefix(t, `"`),
-							`"`,
-						))
-					}
-					rawCondition["tables"] = rawTableList
-				}
-				if strings.HasPrefix(expression, `request.row_limit <= `) {
-					i, err := strconv.Atoi(strings.TrimPrefix(expression, `request.row_limit <= `))
-					if err != nil {
-						return nil, errors.Errorf("cannot convert %s to int with error: %s", expression, err.Error())
-					}
-					rawCondition["row_limit"] = i
-				}
-				if strings.HasPrefix(expression, "request.time < ") {
-					rawCondition["expire_timestamp"] = strings.TrimSuffix(
-						strings.TrimPrefix(expression, `request.time < timestamp("`),
-						`")`,
-					)
-				}
-			}
-		}
-		for _, member := range binding.Members {
-			rawMember := map[string]interface{}{}
-			rawMember["member"] = member
-			rawMember["role"] = binding.Role
-			rawMember["condition"] = schema.NewSet(func(i interface{}) int {
-				return internal.ToHashcodeInt(conditionHash(i))
-			}, []interface{}{rawCondition})
-			memberList = append(memberList, rawMember)
-		}
-	}
-	return memberList, nil
 }
 
 func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
@@ -255,11 +116,6 @@ func setProject(
 	databases, err := client.ListDatabase(ctx, project.Name, &api.DatabaseFilter{}, true)
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	iamPolicy, err := client.GetProjectIAMPolicy(ctx, project.Name)
-	if err != nil {
-		return diag.Errorf("failed to get project iam with error: %v", err)
 	}
 
 	d.SetId(project.Name)
@@ -310,64 +166,5 @@ func setProject(
 		"ms":        time.Since(startTime).Milliseconds(),
 	})
 
-	startTime = time.Now()
-	memberList, err := flattenMemberList(iamPolicy)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("members", schema.NewSet(memberHash, memberList)); err != nil {
-		return diag.Errorf("cannot set members for project: %s", err.Error())
-	}
-
-	tflog.Debug(ctx, "[read project] set project members", map[string]interface{}{
-		"project": project.Name,
-		"members": len(memberList),
-		"ms":      time.Since(startTime).Milliseconds(),
-	})
-
 	return nil
-}
-
-func memberHash(rawMember interface{}) int {
-	var buf bytes.Buffer
-	member := rawMember.(map[string]interface{})
-
-	if v, ok := member["member"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := member["role"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-
-	if condition, ok := member["condition"].(*schema.Set); ok && condition.Len() > 0 && condition.List()[0] != nil {
-		rawCondition := condition.List()[0].(map[string]interface{})
-		_, _ = buf.WriteString(conditionHash(rawCondition))
-	}
-
-	return internal.ToHashcodeInt(buf.String())
-}
-
-func conditionHash(rawCondition interface{}) string {
-	var buf bytes.Buffer
-	condition := rawCondition.(map[string]interface{})
-
-	if v, ok := condition["database"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := condition["schema"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := condition["tables"].(*schema.Set); ok {
-		for _, t := range v.List() {
-			_, _ = buf.WriteString(fmt.Sprintf("table.%s-", t.(string)))
-		}
-	}
-	if v, ok := condition["row_limit"].(int); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%d-", v))
-	}
-	if v, ok := condition["expire_timestamp"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-
-	return buf.String()
 }

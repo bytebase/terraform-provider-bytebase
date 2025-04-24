@@ -29,7 +29,7 @@ func dataSourcePolicy() *schema.Resource {
 				Default:  "",
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					regexp.MustCompile("^$"),
+					regexp.MustCompile("^workspaces/-$"),
 					// environment policy
 					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern)),
 					// instance policy

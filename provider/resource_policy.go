@@ -35,7 +35,7 @@ func resourcePolicy() *schema.Resource {
 				Required: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					regexp.MustCompile("^$"),
+					regexp.MustCompile("^workspaces/-$"),
 					// environment policy
 					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern)),
 					// instance policy
@@ -303,6 +303,9 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 			expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
 		}
 		member := rawException["member"].(string)
+		if member == "allUsers" {
+			return nil, errors.Errorf("not support allUsers in masking_exception_policy")
+		}
 		if err := internal.ValidateMemberBinding(member); err != nil {
 			return nil, err
 		}

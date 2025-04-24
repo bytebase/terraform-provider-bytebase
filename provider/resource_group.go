@@ -55,14 +55,6 @@ func resourceGroup() *schema.Resource {
 				Computed:    true,
 				Description: "Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.",
 			},
-			"roles": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Description: "The group's roles in the workspace level",
-			},
 			"members": {
 				Type:        schema.TypeSet,
 				Required:    true,
@@ -104,7 +96,7 @@ func resourceGroupRead(ctx context.Context, d *schema.ResourceData, m interface{
 		return diag.FromErr(err)
 	}
 
-	return setGroup(ctx, c, d, group)
+	return setGroup(d, group)
 }
 
 func resourceGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -180,19 +172,6 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, m interfac
 		}
 	}
 
-	roles, diagnostic := getRoles(d)
-	if diagnostic != nil {
-		return diagnostic
-	}
-	if err := patchWorkspaceIAMPolicy(ctx, c, fmt.Sprintf("group:%s", groupEmail), roles); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to patch group roles",
-			Detail:   fmt.Sprintf("Update roles for group %s failed, error: %v", groupName, err),
-		})
-		return diags
-	}
-
 	d.SetId(groupName)
 
 	diag := resourceGroupRead(ctx, d, m)
@@ -241,22 +220,6 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 				Severity: diag.Error,
 				Summary:  "Failed to update group",
 				Detail:   fmt.Sprintf("Update group %s failed, error: %v", groupName, err),
-			})
-			return diags
-		}
-	}
-
-	if d.HasChange("roles") {
-		roles, diagnostic := getRoles(d)
-		if diagnostic != nil {
-			return diagnostic
-		}
-		groupEmail := d.Get("email").(string)
-		if err := patchWorkspaceIAMPolicy(ctx, c, fmt.Sprintf("group:%s", groupEmail), roles); err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Failed to patch group roles",
-				Detail:   fmt.Sprintf("Update roles for group %s failed, error: %v", groupName, err),
 			})
 			return diags
 		}

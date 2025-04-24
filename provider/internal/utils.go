@@ -229,6 +229,9 @@ func getNameParentTokens(name string, tokenPrefixes ...string) ([]string, error)
 
 // ValidateMemberBinding checks the member binding format.
 func ValidateMemberBinding(member string) error {
+	if member == "allUsers" {
+		return nil
+	}
 	if !strings.HasPrefix(member, "user:") && !strings.HasPrefix(member, "group:") {
 		return errors.Errorf("invalid member format")
 	}
