@@ -88,23 +88,10 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	d.SetId(user.Name)
 
-	return setUser(ctx, c, d, user)
+	return setUser(c, d, user)
 }
 
-func getRolesInIAM(iamPolicy *v1pb.IamPolicy, memberBinding string) []string {
-	roles := []string{}
-
-	for _, binding := range iamPolicy.Bindings {
-		for _, member := range binding.Members {
-			if member == memberBinding {
-				roles = append(roles, binding.Role)
-			}
-		}
-	}
-	return roles
-}
-
-func setUser(ctx context.Context, client api.Client, d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
+func setUser(client api.Client, d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
 	if err := d.Set("title", user.Title); err != nil {
 		return diag.Errorf("cannot set title for user: %s", err.Error())
 	}
