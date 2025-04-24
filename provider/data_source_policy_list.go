@@ -81,7 +81,7 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 		parent = ""
 	}
 
-	response, err := c.ListPolicies(ctx, d.Get("parent").(string))
+	response, err := c.ListPolicies(ctx, parent)
 	if err != nil {
 		return diag.FromErr(err)
 	}
