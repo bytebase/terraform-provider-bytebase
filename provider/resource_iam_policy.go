@@ -70,7 +70,7 @@ func resourceIAMPolicyUpsert(ctx context.Context, d *schema.ResourceData, m inte
 	return dataSourceIAMPolicyRead(ctx, d, m)
 }
 
-func resourceIAMPolicyDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceIAMPolicyDelete(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	diags = append(diags, diag.Diagnostic{

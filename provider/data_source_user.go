@@ -88,10 +88,10 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	d.SetId(user.Name)
 
-	return setUser(c, d, user)
+	return setUser(d, user)
 }
 
-func setUser(client api.Client, d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
+func setUser(d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
 	if err := d.Set("title", user.Title); err != nil {
 		return diag.Errorf("cannot set title for user: %s", err.Error())
 	}

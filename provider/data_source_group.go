@@ -76,10 +76,10 @@ func dataSourceGroupRead(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	d.SetId(group.Name)
-	return setGroup(c, d, group)
+	return setGroup(d, group)
 }
 
-func setGroup(client api.Client, d *schema.ResourceData, group *v1pb.Group) diag.Diagnostics {
+func setGroup(d *schema.ResourceData, group *v1pb.Group) diag.Diagnostics {
 	if err := d.Set("name", group.Name); err != nil {
 		return diag.Errorf("cannot set name for group: %s", err.Error())
 	}
