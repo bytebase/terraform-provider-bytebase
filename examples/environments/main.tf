@@ -1,8 +1,7 @@
-# Examples for query the environments
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.23"
+      version = "1.0.24"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -18,31 +17,11 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
-locals {
-  environment_id_test = "test"
-  environment_id_prod = "prod"
-}
-
 # List all environment
-data "bytebase_environment_list" "all" {}
+data "bytebase_setting" "environments" {
+  name = "bb.workspace.environment"
+}
 
 output "all_environments" {
-  value = data.bytebase_environment_list.all
-}
-
-// Find a specific environment by the name
-data "bytebase_environment" "test" {
-  resource_id = local.environment_id_test
-}
-
-output "test_environment" {
-  value = data.bytebase_environment.test
-}
-
-data "bytebase_environment" "prod" {
-  resource_id = local.environment_id_prod
-}
-
-output "prod_environment" {
-  value = data.bytebase_environment.prod
+  value = data.bytebase_setting.environments
 }

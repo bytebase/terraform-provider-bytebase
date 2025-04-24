@@ -42,7 +42,7 @@ Optional:
 <a id="nestedblock--global_masking_policy--rules"></a>
 ### Nested Schema for `global_masking_policy.rules`
 
-Optional:
+Required:
 
 - `condition` (String) The condition expression
 - `id` (String) The unique rule id
@@ -60,13 +60,16 @@ Optional:
 <a id="nestedblock--masking_exception_policy--exceptions"></a>
 ### Nested Schema for `masking_exception_policy.exceptions`
 
-Optional:
+Required:
 
 - `action` (String)
-- `column` (String)
 - `database` (String) The database full name in instances/{instance resource id}/databases/{database name} format
-- `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format
 - `member` (String) The member in user:{email} or group:{email} format.
+
+Optional:
+
+- `column` (String)
+- `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format
 - `schema` (String)
 - `table` (String)
 

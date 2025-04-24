@@ -43,14 +43,17 @@ const (
 	DatabaseCatalogNameSuffix = "/catalog"
 	// ResourceIDPattern is the pattern for resource id.
 	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
+	// WorkspaceName is the name for workspace resource.
+	WorkspaceName = "workspaces/-"
 )
 
 var (
-	resourceIDRegex = regexp.MustCompile(fmt.Sprintf("^%s$", ResourceIDPattern))
+	// ResourceIDRegex is the regex for resource id.
+	ResourceIDRegex = regexp.MustCompile(fmt.Sprintf("^%s$", ResourceIDPattern))
 )
 
 // ResourceIDValidation is the resource id regexp validation.
-var ResourceIDValidation = validation.StringMatch(resourceIDRegex, fmt.Sprintf("resource id must matches %v", resourceIDRegex))
+var ResourceIDValidation = validation.StringMatch(ResourceIDRegex, fmt.Sprintf("resource id must matches %v", ResourceIDRegex))
 
 // ResourceNameValidation validate the resource name with prefix.
 func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateDiagFunc {

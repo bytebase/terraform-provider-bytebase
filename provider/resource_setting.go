@@ -36,12 +36,14 @@ func resourceSetting() *schema.Resource {
 					string(api.SettingWorkspaceProfile),
 					string(api.SettingDataClassification),
 					string(api.SettingSemanticTypes),
+					string(api.SettingEnvironment),
 				}, false),
 			},
-			"approval_flow":     getWorkspaceApprovalSetting(false),
-			"workspace_profile": getWorkspaceProfileSetting(false),
-			"classification":    getClassificationSetting(false),
-			"semantic_types":    getSemanticTypesSetting(false),
+			"approval_flow":       getWorkspaceApprovalSetting(false),
+			"workspace_profile":   getWorkspaceProfileSetting(false),
+			"classification":      getClassificationSetting(false),
+			"semantic_types":      getSemanticTypesSetting(false),
+			"environment_setting": getEnvironmentSetting(false),
 		},
 	}
 }
@@ -98,6 +100,16 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		setting.Value = &v1pb.Value{
 			Value: &v1pb.Value_SemanticTypeSettingValue{
 				SemanticTypeSettingValue: classificationSetting,
+			},
+		}
+	case api.SettingEnvironment:
+		environmentSetting, err := convertToV1EnvironmentSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_EnvironmentSetting{
+				EnvironmentSetting: environmentSetting,
 			},
 		}
 	default:
@@ -280,42 +292,19 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 		}
 
 		for _, step := range stepList {
-			rawStep := step.(map[string]interface{})
-			stepType := api.ApprovalNodeType(rawStep["type"].(string))
-			node := rawStep["node"].(string)
-
-			approvalNode := &v1pb.ApprovalNode{
-				Type: v1pb.ApprovalNode_ANY_IN_GROUP,
-			}
-			switch stepType {
-			case api.ApprovalNodeTypeRole:
-				if !strings.HasPrefix(node, "roles/") {
-					return nil, errors.Errorf("invalid role name: %v, role name should in roles/{role} format", node)
-				}
-				approvalNode.Payload = &v1pb.ApprovalNode_Role{
-					Role: node,
-				}
-			case api.ApprovalNodeTypeGroup:
-				group, ok := v1pb.ApprovalNode_GroupValue_value[node]
-				if !ok {
-					return nil, errors.Errorf(
-						"invalid group: %v, group should be one of: %s, %s, %s, %s",
-						node,
-						v1pb.ApprovalNode_WORKSPACE_OWNER.String(),
-						v1pb.ApprovalNode_WORKSPACE_DBA.String(),
-						v1pb.ApprovalNode_PROJECT_OWNER.String(),
-						v1pb.ApprovalNode_PROJECT_MEMBER.String(),
-					)
-				}
-				approvalNode.Payload = &v1pb.ApprovalNode_GroupValue_{
-					GroupValue: v1pb.ApprovalNode_GroupValue(group),
-				}
-			}
-
 			approvalStep := &v1pb.ApprovalStep{
-				Type:  v1pb.ApprovalStep_ANY,
-				Nodes: []*v1pb.ApprovalNode{approvalNode},
+				Type: v1pb.ApprovalStep_ANY,
 			}
+
+			rawStep := step.(map[string]interface{})
+			role := rawStep["role"].(string)
+			if !strings.HasPrefix(role, "roles/") {
+				return nil, errors.Errorf("invalid role name: %v, role name should in roles/{role} format", role)
+			}
+			approvalStep.Nodes = append(approvalStep.Nodes, &v1pb.ApprovalNode{
+				Type: v1pb.ApprovalNode_ANY_IN_GROUP,
+				Role: role,
+			})
 
 			approvalRule.Template.Flow.Steps = append(approvalRule.Template.Flow.Steps, approvalStep)
 		}
@@ -324,6 +313,39 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 	}
 
 	return workspaceApprovalSetting, nil
+}
+
+func convertToV1EnvironmentSetting(d *schema.ResourceData) (*v1pb.EnvironmentSetting, error) {
+	rawList, ok := d.Get("environment_setting").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid environment_setting")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+	environments := raw["environment"].([]interface{})
+
+	environmentSetting := &v1pb.EnvironmentSetting{}
+	for _, environment := range environments {
+		rawEnv := environment.(map[string]interface{})
+		id := rawEnv["id"].(string)
+		protected := rawEnv["protected"].(bool)
+		if !internal.ResourceIDRegex.MatchString(id) {
+			return nil, errors.Errorf("invalid environment id")
+		}
+		v1Env := &v1pb.EnvironmentSetting_Environment{
+			Id:    id,
+			Title: rawEnv["title"].(string),
+			Color: rawEnv["color"].(string),
+			Tags: map[string]string{
+				"protected": "protected",
+			},
+		}
+		if !protected {
+			v1Env.Tags["protected"] = "unprotected"
+		}
+		environmentSetting.Environments = append(environmentSetting.Environments, v1Env)
+	}
+	return environmentSetting, nil
 }
 
 func convertToV1SemanticTypeSetting(d *schema.ResourceData) (*v1pb.SemanticTypeSetting, error) {

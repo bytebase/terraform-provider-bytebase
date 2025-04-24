@@ -51,8 +51,6 @@ func NewProvider() *schema.Provider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"bytebase_instance":           dataSourceInstance(),
 			"bytebase_instance_list":      dataSourceInstanceList(),
-			"bytebase_environment":        dataSourceEnvironment(),
-			"bytebase_environment_list":   dataSourceEnvironmentList(),
 			"bytebase_policy":             dataSourcePolicy(),
 			"bytebase_policy_list":        dataSourcePolicyList(),
 			"bytebase_project":            dataSourceProject(),
@@ -71,7 +69,6 @@ func NewProvider() *schema.Provider {
 			"bytebase_iam_policy":         dataSourceIAMPolicy(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"bytebase_environment":   resourceEnvironment(),
 			"bytebase_instance":      resourceInstance(),
 			"bytebase_policy":        resourcePolicy(),
 			"bytebase_project":       resourceProjct(),

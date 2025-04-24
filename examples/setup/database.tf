@@ -2,12 +2,12 @@ resource "bytebase_database" "database" {
   depends_on = [
     bytebase_instance.test,
     bytebase_project.sample_project,
-    bytebase_environment.test
+    bytebase_setting.environments
   ]
 
   name        = "instances/test-sample-instance/databases/employee"
   project     = bytebase_project.sample_project.name
-  environment = bytebase_environment.test.name
+  environment = bytebase_setting.environments.environment_setting[0].environment[0].name
 
   catalog {
     schemas {

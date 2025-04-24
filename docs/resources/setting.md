@@ -23,6 +23,7 @@ The setting resource.
 
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
+- `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
 - `semantic_types` (Block Set) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
@@ -66,11 +67,7 @@ Optional:
 
 Required:
 
-- `node` (String)
-
-Optional:
-
-- `type` (String)
+- `role` (String) The role require to review in this step
 
 
 
@@ -88,33 +85,68 @@ Optional:
 <a id="nestedblock--classification"></a>
 ### Nested Schema for `classification`
 
+Required:
+
+- `classifications` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--classifications))
+- `id` (String) The classification unique uuid.
+- `levels` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--levels))
+- `title` (String) The classification title. Optional.
+
 Optional:
 
 - `classification_from_config` (Boolean) If true, we will only store the classification in the config. Otherwise we will get the classification from table/column comment, and write back to the schema metadata.
-- `classifications` (Block Set) (see [below for nested schema](#nestedblock--classification--classifications))
-- `id` (String) The classification unique uuid.
-- `levels` (Block Set) (see [below for nested schema](#nestedblock--classification--levels))
-- `title` (String) The classification title. Optional.
 
 <a id="nestedblock--classification--classifications"></a>
 ### Nested Schema for `classification.classifications`
 
+Required:
+
+- `id` (String) The classification unique id, must in {number}-{number} format.
+- `title` (String) The classification title.
+
 Optional:
 
 - `description` (String) The classification description.
-- `id` (String) The classification unique id, must in {number}-{number} format.
 - `level` (String) The classification level id.
-- `title` (String) The classification title.
 
 
 <a id="nestedblock--classification--levels"></a>
 ### Nested Schema for `classification.levels`
 
+Required:
+
+- `id` (String) The classification level unique uuid.
+- `title` (String) The classification level title.
+
 Optional:
 
 - `description` (String) The classification level description.
-- `id` (String) The classification level unique uuid.
-- `title` (String) The classification level title.
+
+
+
+<a id="nestedblock--environment_setting"></a>
+### Nested Schema for `environment_setting`
+
+Required:
+
+- `environment` (Block List, Min: 1) (see [below for nested schema](#nestedblock--environment_setting--environment))
+
+<a id="nestedblock--environment_setting--environment"></a>
+### Nested Schema for `environment_setting.environment`
+
+Required:
+
+- `id` (String) The environment unique id.
+- `title` (String) The environment display name.
+
+Optional:
+
+- `color` (String) The environment color.
+- `protected` (Boolean) The environment is protected or not.
+
+Read-Only:
+
+- `name` (String) The environment readonly name in environments/{id} format.
 
 
 
