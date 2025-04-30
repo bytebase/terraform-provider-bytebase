@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "1.0.23"
+      version = "3.6.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }

@@ -353,9 +353,10 @@ func getEnvironmentSetting(computed bool) *schema.Schema {
 								Description: "The environment readonly name in environments/{id} format.",
 							},
 							"title": {
-								Type:        schema.TypeString,
-								Required:    true,
-								Description: "The environment display name.",
+								Type:         schema.TypeString,
+								Required:     true,
+								ValidateFunc: validation.StringIsNotEmpty,
+								Description:  "The environment display name.",
 							},
 							"color": {
 								Type:        schema.TypeString,
