@@ -12,7 +12,7 @@ import (
 func dataSourceRisk() *schema.Resource {
 	return &schema.Resource{
 		Description: "The risk data source.",
-		ReadContext: dataSourceRoleRead,
+		ReadContext: dataSourceRiskRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,

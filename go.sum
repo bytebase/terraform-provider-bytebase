@@ -30,8 +30,6 @@ github.com/armon/go-radix v1.0.0/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgI
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/bgentry/speakeasy v0.1.0 h1:ByYyxL9InA1OWqxJqqp2A5pYHUrCiAL6K3J+LKSsQkY=
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
-github.com/bytebase/bytebase v0.0.0-20250424073126-d57cbba37d61 h1:+ptgPqM2aSzlPjeauecETOwbuGcoSKd5wUsNLLtMuCQ=
-github.com/bytebase/bytebase v0.0.0-20250424073126-d57cbba37d61/go.mod h1:Gu5A9lSsc8OMJ5nUbKAxOn5X8gDj1Rxuzy0NwxVt90k=
 github.com/bytebase/bytebase v0.0.0-20250513033606-5479107aeeb3 h1:D60aM1+dFti+VTqhmjt6zDXSwStc99OUAUowmfFY5uI=
 github.com/bytebase/bytebase v0.0.0-20250513033606-5479107aeeb3/go.mod h1:HHRGRkJYb2FKv2Iyl1feFzaadoXc14t2iMk4z+Xc/Kg=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
