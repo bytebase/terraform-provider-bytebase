@@ -179,4 +179,16 @@ type Client interface {
 	UpsertReviewConfig(ctx context.Context, patch *v1pb.ReviewConfig, updateMasks []string) (*v1pb.ReviewConfig, error)
 	// DeleteReviewConfig deletes the review config.
 	DeleteReviewConfig(ctx context.Context, reviewName string) error
+
+	// Risk
+	// ListRisk lists the risk.
+	ListRisk(ctx context.Context) ([]*v1pb.Risk, error)
+	// GetRisk gets the risk by full name.
+	GetRisk(ctx context.Context, name string) (*v1pb.Risk, error)
+	// CreateRisk creates the risk.
+	CreateRisk(ctx context.Context, risk *v1pb.Risk) (*v1pb.Risk, error)
+	// UpdateRisk updates the risk.
+	UpdateRisk(ctx context.Context, patch *v1pb.Risk, updateMasks []string) (*v1pb.Risk, error)
+	// DeleteRisk deletes the risk by name.
+	DeleteRisk(ctx context.Context, name string) error
 }

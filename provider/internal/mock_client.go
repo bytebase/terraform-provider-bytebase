@@ -702,3 +702,28 @@ func (*mockClient) UpsertReviewConfig(_ context.Context, _ *v1pb.ReviewConfig, _
 func (*mockClient) DeleteReviewConfig(_ context.Context, _ string) error {
 	return nil
 }
+
+// ListRisk lists the risk.
+func (*mockClient) ListRisk(_ context.Context) ([]*v1pb.Risk, error) {
+	return []*v1pb.Risk{}, nil
+}
+
+// GetRisk gets the risk by full name.
+func (*mockClient) GetRisk(_ context.Context, _ string) (*v1pb.Risk, error) {
+	return &v1pb.Risk{}, nil
+}
+
+// CreateRisk creates the risk.
+func (*mockClient) CreateRisk(_ context.Context, _ *v1pb.Risk) (*v1pb.Risk, error) {
+	return &v1pb.Risk{}, nil
+}
+
+// UpdateRisk updates the risk.
+func (*mockClient) UpdateRisk(_ context.Context, _ *v1pb.Risk, _ []string) (*v1pb.Risk, error) {
+	return &v1pb.Risk{}, nil
+}
+
+// DeleteRisk deletes the risk by name.
+func (*mockClient) DeleteRisk(_ context.Context, _ string) error {
+	return nil
+}

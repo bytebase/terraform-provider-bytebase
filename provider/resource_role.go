@@ -205,24 +205,36 @@ func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	c := m.(api.Client)
 	roleName := d.Id()
 
+	permissions, diagnostic := getRolePermissions(d)
+	if diagnostic != nil {
+		return diagnostic
+	}
+
 	existedRole, err := c.GetRole(ctx, roleName)
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get role %s failed with error: %v", roleName, err))
+	}
+	if existedRole == nil {
+		// Allow missing.
+		existedRole = &v1pb.Role{
+			Name:        roleName,
+			Title:       d.Get("title").(string),
+			Description: d.Get("description").(string),
+			Permissions: permissions,
+		}
 	}
 
 	updateMasks := []string{}
 	if d.HasChange("title") {
 		updateMasks = append(updateMasks, "title")
+		existedRole.Title = d.Get("title").(string)
 	}
 	if d.HasChange("description") {
 		updateMasks = append(updateMasks, "description")
+		existedRole.Description = d.Get("description").(string)
 	}
 	if d.HasChange("permissions") {
 		updateMasks = append(updateMasks, "permissions")
-		permissions, diagnostic := getRolePermissions(d)
-		if err != nil {
-			return diagnostic
-		}
 		existedRole.Permissions = permissions
 	}
 
