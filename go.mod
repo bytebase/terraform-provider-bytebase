@@ -3,7 +3,7 @@ module github.com/bytebase/terraform-provider-bytebase
 go 1.24.2
 
 require (
-	github.com/bytebase/bytebase v0.0.0-20250424073126-d57cbba37d61
+	github.com/bytebase/bytebase v0.0.0-20250513033606-5479107aeeb3
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
 	github.com/hashicorp/terraform-plugin-log v0.7.0
