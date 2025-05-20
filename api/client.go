@@ -191,4 +191,15 @@ type Client interface {
 	UpdateRisk(ctx context.Context, patch *v1pb.Risk, updateMasks []string) (*v1pb.Risk, error)
 	// DeleteRisk deletes the risk by name.
 	DeleteRisk(ctx context.Context, name string) error
+
+	// ListDatabaseGroup list all database groups in a project.
+	ListDatabaseGroup(ctx context.Context, project string) (*v1pb.ListDatabaseGroupsResponse, error)
+	// CreateDatabaseGroup creates the database group.
+	CreateDatabaseGroup(ctx context.Context, project, groupID string, group *v1pb.DatabaseGroup) (*v1pb.DatabaseGroup, error)
+	// GetDatabaseGroup gets the database group by name.
+	GetDatabaseGroup(ctx context.Context, name string, view v1pb.DatabaseGroupView) (*v1pb.DatabaseGroup, error)
+	// UpdateDatabaseGroup updates the database group.
+	UpdateDatabaseGroup(ctx context.Context, patch *v1pb.DatabaseGroup, updateMasks []string) (*v1pb.DatabaseGroup, error)
+	// DeleteDatabaseGroup deletes the database group by name.
+	DeleteDatabaseGroup(ctx context.Context, name string) error
 }

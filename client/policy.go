@@ -36,7 +36,7 @@ func (c *client) ListPolicies(ctx context.Context, parent string) (*v1pb.ListPol
 
 // GetPolicy gets a policy in a specific resource.
 func (c *client) GetPolicy(ctx context.Context, policyName string) (*v1pb.Policy, error) {
-	body, err := c.getResource(ctx, policyName)
+	body, err := c.getResource(ctx, policyName, "")
 	if err != nil {
 		return nil, err
 	}

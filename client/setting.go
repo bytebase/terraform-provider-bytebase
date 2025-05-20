@@ -30,7 +30,7 @@ func (c *client) ListSettings(ctx context.Context) (*v1pb.ListSettingsResponse, 
 
 // GetSetting gets the setting by the name.
 func (c *client) GetSetting(ctx context.Context, settingName string) (*v1pb.Setting, error) {
-	body, err := c.getResource(ctx, settingName)
+	body, err := c.getResource(ctx, settingName, "")
 	if err != nil {
 		return nil, err
 	}

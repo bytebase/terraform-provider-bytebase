@@ -136,7 +136,7 @@ func (c *client) CreateUser(ctx context.Context, user *v1pb.User) (*v1pb.User, e
 
 // GetUser gets the user by name.
 func (c *client) GetUser(ctx context.Context, userName string) (*v1pb.User, error) {
-	body, err := c.getResource(ctx, userName)
+	body, err := c.getResource(ctx, userName, "")
 	if err != nil {
 		return nil, err
 	}

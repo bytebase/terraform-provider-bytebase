@@ -32,6 +32,10 @@ github.com/bgentry/speakeasy v0.1.0 h1:ByYyxL9InA1OWqxJqqp2A5pYHUrCiAL6K3J+LKSsQ
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
 github.com/bytebase/bytebase v0.0.0-20250513033606-5479107aeeb3 h1:D60aM1+dFti+VTqhmjt6zDXSwStc99OUAUowmfFY5uI=
 github.com/bytebase/bytebase v0.0.0-20250513033606-5479107aeeb3/go.mod h1:HHRGRkJYb2FKv2Iyl1feFzaadoXc14t2iMk4z+Xc/Kg=
+github.com/bytebase/bytebase v0.0.0-20250519080146-4475c86a6084 h1:UXPkEmokeZO+BE6xMvYypY2sH+gdKKuGos+WVq8ACD0=
+github.com/bytebase/bytebase v0.0.0-20250519080146-4475c86a6084/go.mod h1:HHRGRkJYb2FKv2Iyl1feFzaadoXc14t2iMk4z+Xc/Kg=
+github.com/bytebase/bytebase v0.0.0-20250519144720-22dc39c1fd08 h1:CEU+1Waq1qiJFC2LJYT/VxN3XhFyXbS9DC2gUnqILd4=
+github.com/bytebase/bytebase v0.0.0-20250519144720-22dc39c1fd08/go.mod h1:HHRGRkJYb2FKv2Iyl1feFzaadoXc14t2iMk4z+Xc/Kg=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -727,3 +727,28 @@ func (*mockClient) UpdateRisk(_ context.Context, _ *v1pb.Risk, _ []string) (*v1p
 func (*mockClient) DeleteRisk(_ context.Context, _ string) error {
 	return nil
 }
+
+// ListDatabaseGroup list all database groups in a project.
+func (*mockClient) ListDatabaseGroup(_ context.Context, _ string) (*v1pb.ListDatabaseGroupsResponse, error) {
+	return &v1pb.ListDatabaseGroupsResponse{}, nil
+}
+
+// GetDatabaseGroup gets the database group by name.
+func (*mockClient) GetDatabaseGroup(_ context.Context, _ string, _ v1pb.DatabaseGroupView) (*v1pb.DatabaseGroup, error) {
+	return &v1pb.DatabaseGroup{}, nil
+}
+
+// CreateDatabaseGroup creates the database group.
+func (*mockClient) CreateDatabaseGroup(_ context.Context, _, _ string, _ *v1pb.DatabaseGroup) (*v1pb.DatabaseGroup, error) {
+	return &v1pb.DatabaseGroup{}, nil
+}
+
+// UpdateDatabaseGroup updates the database group.
+func (*mockClient) UpdateDatabaseGroup(_ context.Context, _ *v1pb.DatabaseGroup, _ []string) (*v1pb.DatabaseGroup, error) {
+	return &v1pb.DatabaseGroup{}, nil
+}
+
+// DeleteDatabaseGroup deletes the database group by name.
+func (*mockClient) DeleteDatabaseGroup(_ context.Context, _ string) error {
+	return nil
+}

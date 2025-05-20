@@ -12,7 +12,7 @@ import (
 
 // GetWorkspaceIAMPolicy gets the workspace IAM policy.
 func (c *client) GetWorkspaceIAMPolicy(ctx context.Context) (*v1pb.IamPolicy, error) {
-	body, err := c.getResource(ctx, "workspaces/-:getIamPolicy")
+	body, err := c.getResource(ctx, "workspaces/-:getIamPolicy", "")
 	if err != nil {
 		return nil, err
 	}

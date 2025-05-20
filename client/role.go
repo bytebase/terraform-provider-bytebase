@@ -12,7 +12,7 @@ import (
 
 // GetRole gets the role by full name.
 func (c *client) GetRole(ctx context.Context, name string) (*v1pb.Role, error) {
-	body, err := c.getResource(ctx, name)
+	body, err := c.getResource(ctx, name, "")
 	if err != nil {
 		return nil, err
 	}

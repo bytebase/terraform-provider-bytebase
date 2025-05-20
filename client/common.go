@@ -63,8 +63,8 @@ func (c *client) updateResource(ctx context.Context, name string, patch protoref
 }
 
 // getResource gets the resource by name.
-func (c *client) getResource(ctx context.Context, name string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s", c.url, c.version, url.QueryEscape(name)), nil)
+func (c *client) getResource(ctx context.Context, name, query string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/%s?%s", c.url, c.version, url.QueryEscape(name), query), nil)
 	if err != nil {
 		return nil, err
 	}
