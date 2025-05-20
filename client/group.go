@@ -59,7 +59,7 @@ func (c *client) CreateGroup(ctx context.Context, email string, group *v1pb.Grou
 
 // GetGroup gets the group by name.
 func (c *client) GetGroup(ctx context.Context, name string) (*v1pb.Group, error) {
-	body, err := c.getResource(ctx, name)
+	body, err := c.getResource(ctx, name, "")
 	if err != nil {
 		return nil, err
 	}

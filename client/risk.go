@@ -32,7 +32,7 @@ func (c *client) ListRisk(ctx context.Context) ([]*v1pb.Risk, error) {
 
 // GetRisk gets the risk by full name.
 func (c *client) GetRisk(ctx context.Context, name string) (*v1pb.Risk, error) {
-	body, err := c.getResource(ctx, name)
+	body, err := c.getResource(ctx, name, "")
 	if err != nil {
 		return nil, err
 	}

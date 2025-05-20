@@ -66,7 +66,7 @@ func resourceRisk() *schema.Resource {
 			"condition": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The risk condition.",
+				Description: "The risk condition. Check the proto message https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/risk_service.proto#L210 for details.",
 			},
 		},
 	}

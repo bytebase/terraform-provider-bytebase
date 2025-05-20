@@ -116,7 +116,7 @@ func (c *client) listInstancePerPage(ctx context.Context, query, pageToken strin
 
 // GetInstance gets the instance by full name.
 func (c *client) GetInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
-	body, err := c.getResource(ctx, instanceName)
+	body, err := c.getResource(ctx, instanceName, "")
 	if err != nil {
 		return nil, err
 	}

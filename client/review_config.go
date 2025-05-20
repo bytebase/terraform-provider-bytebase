@@ -30,7 +30,7 @@ func (c *client) ListReviewConfig(ctx context.Context) (*v1pb.ListReviewConfigsR
 
 // GetReviewConfig gets the review config by full name.
 func (c *client) GetReviewConfig(ctx context.Context, reviewName string) (*v1pb.ReviewConfig, error) {
-	body, err := c.getResource(ctx, reviewName)
+	body, err := c.getResource(ctx, reviewName, "")
 	if err != nil {
 		return nil, err
 	}

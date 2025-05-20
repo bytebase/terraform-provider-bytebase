@@ -17,7 +17,7 @@ import (
 
 // GetDatabase gets the database by the database full name.
 func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Database, error) {
-	body, err := c.getResource(ctx, databaseName)
+	body, err := c.getResource(ctx, databaseName, "")
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (c *client) BatchUpdateDatabases(ctx context.Context, request *v1pb.BatchUp
 
 // GetDatabaseCatalog gets the database catalog by the database full name.
 func (c *client) GetDatabaseCatalog(ctx context.Context, databaseName string) (*v1pb.DatabaseCatalog, error) {
-	body, err := c.getResource(ctx, fmt.Sprintf("%s/catalog", databaseName))
+	body, err := c.getResource(ctx, fmt.Sprintf("%s/catalog", databaseName), "")
 	if err != nil {
 		return nil, err
 	}

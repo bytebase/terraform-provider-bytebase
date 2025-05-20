@@ -17,7 +17,7 @@ import (
 
 // GetProject gets the project by project full name.
 func (c *client) GetProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
-	body, err := c.getResource(ctx, projectName)
+	body, err := c.getResource(ctx, projectName, "")
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (c *client) GetProject(ctx context.Context, projectName string) (*v1pb.Proj
 
 // GetProjectIAMPolicy gets the project IAM policy by project full name.
 func (c *client) GetProjectIAMPolicy(ctx context.Context, projectName string) (*v1pb.IamPolicy, error) {
-	body, err := c.getResource(ctx, fmt.Sprintf("%s:getIamPolicy", projectName))
+	body, err := c.getResource(ctx, fmt.Sprintf("%s:getIamPolicy", projectName), "")
 	if err != nil {
 		return nil, err
 	}

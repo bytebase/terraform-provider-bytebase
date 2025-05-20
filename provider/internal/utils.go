@@ -27,16 +27,14 @@ const (
 	PolicyNamePrefix = "policies/"
 	// SettingNamePrefix is the prefix for setting unique name.
 	SettingNamePrefix = "settings/"
-	// VCSProviderNamePrefix is the prefix for vcs provider unique name.
-	VCSProviderNamePrefix = "vcsProviders/"
-	// VCSConnectorNamePrefix is the prefix for vcs connector unique name.
-	VCSConnectorNamePrefix = "vcsConnectors/"
 	// UserNamePrefix is the prefix for user name.
 	UserNamePrefix = "users/"
 	// GroupNamePrefix is the prefix for group name.
 	GroupNamePrefix = "groups/"
 	// RoleNamePrefix is the prefix for role name.
 	RoleNamePrefix = "roles/"
+	// DatabaseGroupNamePrefix is the prefix for database group name.
+	DatabaseGroupNamePrefix = "databaseGroups/"
 	// ReviewConfigNamePrefix is the prefix for the review config name.
 	ReviewConfigNamePrefix = "reviewConfigs/"
 	// DatabaseCatalogNameSuffix is the suffix for the database catalog name.
@@ -135,26 +133,6 @@ func GetEnvironmentID(name string) (string, error) {
 	return tokens[0], nil
 }
 
-// GetVCSProviderID will parse the vcs provider resource id.
-func GetVCSProviderID(name string) (string, error) {
-	// the vcs provider name should be vcsProviders/{resource-id}
-	tokens, err := getNameParentTokens(name, VCSProviderNamePrefix)
-	if err != nil {
-		return "", err
-	}
-	return tokens[0], nil
-}
-
-// GetVCSConnectorID will parse the vcs connector resource id.
-func GetVCSConnectorID(name string) (string, string, error) {
-	// the vcs connector name should be projects/{project}/vcsConnectors/{resource-id}
-	tokens, err := getNameParentTokens(name, ProjectNamePrefix, VCSConnectorNamePrefix)
-	if err != nil {
-		return "", "", err
-	}
-	return tokens[0], tokens[1], nil
-}
-
 // GetInstanceID will parse the environment resource id and instance resource id.
 func GetInstanceID(name string) (string, error) {
 	// the instance request should be instances/{instance-id}
@@ -205,6 +183,16 @@ func GetReviewConfigID(name string) (string, error) {
 func GetInstanceDatabaseID(name string) (string, string, error) {
 	// the instance request should be instances/{instance-id}/databases/{database-id}
 	tokens, err := getNameParentTokens(name, InstanceNamePrefix, DatabaseIDPrefix)
+	if err != nil {
+		return "", "", err
+	}
+	return tokens[0], tokens[1], nil
+}
+
+// GetProjectDatabaseGroupID will parse the project resource id and database group resource id.
+func GetProjectDatabaseGroupID(name string) (string, string, error) {
+	// the instance request should be projects/{id}/databaseGroups/{id}
+	tokens, err := getNameParentTokens(name, ProjectNamePrefix, DatabaseGroupNamePrefix)
 	if err != nil {
 		return "", "", err
 	}
