@@ -53,9 +53,9 @@ Optional:
 - `database` (String) The database for the instance, you can set this if the engine type is POSTGRES.
 - `external_secret` (Block List, Max: 1) The external secret to get the database password. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager (see [below for nested schema](#nestedblock--data_sources--external_secret))
 - `password` (String, Sensitive) The connection user password used by Bytebase to perform DDL and DML operations.
-- `ssl_ca` (String, Sensitive) The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
-- `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
-- `ssl_key` (String, Sensitive) The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
+- `ssl_ca` (String, Sensitive) The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.
+- `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.
+- `ssl_key` (String, Sensitive) The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
 
 <a id="nestedblock--data_sources--external_secret"></a>
