@@ -101,7 +101,7 @@ func dataSourceInstanceList() *schema.Resource {
 						"engine": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.",
+							Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, COCKROACHDB.",
 						},
 						"engine_version": {
 							Type:        schema.TypeString,
@@ -169,19 +169,19 @@ func dataSourceInstanceList() *schema.Resource {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Sensitive:   true,
-										Description: "The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
+										Description: "The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.",
 									},
 									"ssl_cert": {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Sensitive:   true,
-										Description: "The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
+										Description: "The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.",
 									},
 									"ssl_key": {
 										Type:        schema.TypeString,
 										Computed:    true,
 										Sensitive:   true,
-										Description: "The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
+										Description: "The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.",
 									},
 								},
 							},
