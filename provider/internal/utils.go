@@ -76,7 +76,7 @@ func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateDiagF
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       "Resource id not match",
-			Detail:        fmt.Sprintf("resource id must matches %s pattern", ResourceIDPattern),
+			Detail:        fmt.Sprintf(`resource id "%s" must matches "%s" pattern`, v, ResourceIDPattern),
 			AttributePath: path,
 		})
 		return diags
