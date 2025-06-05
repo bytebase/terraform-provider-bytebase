@@ -184,7 +184,6 @@ Read-Only:
 
 Read-Only:
 
-- `creator` (String)
 - `description` (String)
 - `steps` (List of Object) (see [below for nested schema](#nestedobjatt--approval_flow--rules--flow--steps))
 - `title` (String)

@@ -134,6 +134,16 @@ func GetEnvironmentID(name string) (string, error) {
 	return tokens[0], nil
 }
 
+// GetSettingName will parse the setting name.
+func GetSettingName(name string) (v1pb.Setting_SettingName, error) {
+	// the environment request should be environments/{environment-id}
+	tokens, err := getNameParentTokens(name, SettingNamePrefix)
+	if err != nil {
+		return v1pb.Setting_SETTING_NAME_UNSPECIFIED, err
+	}
+	return v1pb.Setting_SettingName(v1pb.Setting_SettingName_value[tokens[0]]), nil
+}
+
 // GetInstanceID will parse the environment resource id and instance resource id.
 func GetInstanceID(name string) (string, error) {
 	// the instance request should be instances/{instance-id}

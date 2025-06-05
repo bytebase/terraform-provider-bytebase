@@ -28,7 +28,7 @@ The instance data source.
 - `activation` (Boolean) Whether assign license for this instance or not.
 - `data_sources` (Set of Object) (see [below for nested schema](#nestedatt--data_sources))
 - `databases` (Set of String) The databases full name in the resource.
-- `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.
+- `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, COCKROACHDB.
 - `engine_version` (String) The engine version.
 - `environment` (String) The environment name for your instance in "environments/{resource id}" format.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)

@@ -54,7 +54,6 @@ Optional:
 
 Required:
 
-- `creator` (String) The creator name in users/{email} format
 - `steps` (Block List, Min: 1) Approval flow following the step order. (see [below for nested schema](#nestedblock--approval_flow--rules--flow--steps))
 - `title` (String)
 

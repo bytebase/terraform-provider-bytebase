@@ -1,5 +1,5 @@
 resource "bytebase_setting" "classification" {
-  name = "bb.workspace.data-classification"
+  name = "settings/DATA_CLASSIFICATION"
 
   classification {
     id    = "unique-id"
@@ -41,7 +41,7 @@ resource "bytebase_setting" "classification" {
 }
 
 resource "bytebase_setting" "semantic_types" {
-  name = "bb.workspace.semantic-types"
+  name = "settings/SEMANTIC_TYPES"
 
   semantic_types {
     id    = "bb.default"

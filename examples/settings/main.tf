@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.6.0"
+      version = "3.7.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -18,19 +18,19 @@ provider "bytebase" {
 }
 
 data "bytebase_setting" "approval_flow" {
-  name = "bb.workspace.approval"
+  name = "settings/WORKSPACE_APPROVAL"
 }
 
 data "bytebase_setting" "workspace_profile" {
-  name = "bb.workspace.profile"
+  name = "settings/WORKSPACE_PROFILE"
 }
 
 data "bytebase_setting" "classification" {
-  name = "bb.workspace.data-classification"
+  name = "settings/DATA_CLASSIFICATION"
 }
 
 data "bytebase_setting" "semantic_types" {
-  name = "bb.workspace.semantic-types"
+  name = "settings/SEMANTIC_TYPES"
 }
 
 output "approval_flow" {

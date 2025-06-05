@@ -1,21 +1,5 @@
 package api
 
-// SettingName is the Bytebase setting name without settings/ prefix.
-type SettingName string
-
-const (
-	// SettingWorkspaceApproval is the setting name for workspace approval config.
-	SettingWorkspaceApproval SettingName = "bb.workspace.approval"
-	// SettingWorkspaceProfile is the setting name for workspace profile settings.
-	SettingWorkspaceProfile SettingName = "bb.workspace.profile"
-	// SettingDataClassification is the setting name for data classification.
-	SettingDataClassification SettingName = "bb.workspace.data-classification"
-	// SettingSemanticTypes is the setting name for semantic types.
-	SettingSemanticTypes SettingName = "bb.workspace.semantic-types"
-	// SettingEnvironment is the setting name for environments.
-	SettingEnvironment SettingName = "bb.workspace.environment"
-)
-
 // RiskLevel is the approval risk level.
 type RiskLevel string
 
