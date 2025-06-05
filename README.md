@@ -17,7 +17,7 @@ using Terraform Bytebase Provider to prepare those instances ready for applicati
 
 - [Go](https://golang.org/doc/install) (1.19 or later)
 - [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform) (1.3.5 or later)
-- [Bytebase](https://github.com/bytebase/bytebase) (3.6.0 or later)
+- [Bytebase](https://github.com/bytebase/bytebase) (3.7.0 or later)
 
 > If you have problems running `terraform` in MacOS with Apple Silicon, you can following https://stackoverflow.com/questions/66281882/how-can-i-get-terraform-init-to-run-on-my-apple-silicon-macbook-pro-for-the-go and use the `tfenv`.
 

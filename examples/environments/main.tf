@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.6.0"
+      version = "3.7.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -19,7 +19,7 @@ provider "bytebase" {
 
 # List all environment
 data "bytebase_setting" "environments" {
-  name = "bb.workspace.environment"
+  name = "ENVIRONMENT"
 }
 
 output "all_environments" {

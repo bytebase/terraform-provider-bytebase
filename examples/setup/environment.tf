@@ -1,5 +1,5 @@
 resource "bytebase_setting" "environments" {
-  name = "bb.workspace.environment"
+  name = "ENVIRONMENT"
   environment_setting {
     environment {
       id        = local.environment_id_prod

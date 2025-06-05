@@ -18,7 +18,7 @@ The instance resource.
 ### Required
 
 - `data_sources` (Block Set, Min: 1) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_sources))
-- `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE.
+- `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, COCKROACHDB.
 - `environment` (String) The environment full name for the instance in environments/{environment id} format.
 - `resource_id` (String) The instance unique resource id.
 - `title` (String) The instance title.
@@ -53,9 +53,9 @@ Optional:
 - `database` (String) The database for the instance, you can set this if the engine type is POSTGRES.
 - `external_secret` (Block List, Max: 1) The external secret to get the database password. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager (see [below for nested schema](#nestedblock--data_sources--external_secret))
 - `password` (String, Sensitive) The connection user password used by Bytebase to perform DDL and DML operations.
-- `ssl_ca` (String, Sensitive) The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.
-- `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.
-- `ssl_key` (String, Sensitive) The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.
+- `ssl_ca` (String, Sensitive) The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
+- `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
+- `ssl_key` (String, Sensitive) The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
 
 <a id="nestedblock--data_sources--external_secret"></a>

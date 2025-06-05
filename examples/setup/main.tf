@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.6.0"
+      version = "3.7.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -29,7 +29,7 @@ provider "bytebase" {
 }
 
 resource "bytebase_setting" "workspace_profile" {
-  name = "bb.workspace.profile"
+  name = "settings/WORKSPACE_PROFILE"
 
   workspace_profile {
     external_url = "https://bytebase.example.com"

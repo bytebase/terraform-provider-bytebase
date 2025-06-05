@@ -25,13 +25,13 @@ func dataSourceSetting() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					string(api.SettingWorkspaceApproval),
-					string(api.SettingWorkspaceProfile),
-					string(api.SettingDataClassification),
-					string(api.SettingSemanticTypes),
-					string(api.SettingEnvironment),
-				}, false),
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String())),
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String())),
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String())),
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String())),
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String())),
+				),
 			},
 			"approval_flow":       getWorkspaceApprovalSetting(true),
 			"workspace_profile":   getWorkspaceProfileSetting(true),
@@ -407,12 +407,6 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 											Computed: computed,
 											Optional: true,
 										},
-										"creator": {
-											Type:        schema.TypeString,
-											Computed:    computed,
-											Required:    !computed,
-											Description: "The creator name in users/{email} format",
-										},
 										"steps": {
 											Type:        schema.TypeList,
 											Computed:    computed,
@@ -451,8 +445,7 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 												v1pb.Risk_DML.String(),
 												v1pb.Risk_CREATE_DATABASE.String(),
 												v1pb.Risk_DATA_EXPORT.String(),
-												v1pb.Risk_REQUEST_QUERY.String(),
-												v1pb.Risk_REQUEST_EXPORT.String(),
+												v1pb.Risk_REQUEST_ROLE.String(),
 											}, false),
 										},
 										"level": {
@@ -480,7 +473,7 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 func dataSourceSettingRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	settingName := fmt.Sprintf("%s%s", internal.SettingNamePrefix, d.Get("name").(string))
+	settingName := d.Get("name").(string)
 	setting, err := c.GetSetting(ctx, settingName)
 	if err != nil {
 		return diag.FromErr(err)
@@ -642,7 +635,6 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 				map[string]interface{}{
 					"title":       rule.Template.Title,
 					"description": rule.Template.Description,
-					"creator":     rule.Template.Creator,
 					"steps":       stepList,
 				},
 			},

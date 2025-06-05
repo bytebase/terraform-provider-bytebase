@@ -3,11 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
 
@@ -31,13 +31,13 @@ func resourceSetting() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					string(api.SettingWorkspaceApproval),
-					string(api.SettingWorkspaceProfile),
-					string(api.SettingDataClassification),
-					string(api.SettingSemanticTypes),
-					string(api.SettingEnvironment),
-				}, false),
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String())),
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String())),
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String())),
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String())),
+					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String())),
+				),
 			},
 			"approval_flow":       getWorkspaceApprovalSetting(false),
 			"workspace_profile":   getWorkspaceProfileSetting(false),
@@ -52,8 +52,11 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	c := m.(api.Client)
 	var diags diag.Diagnostics
 
-	name := api.SettingName(d.Get("name").(string))
-	settingName := fmt.Sprintf("%s%s", internal.SettingNamePrefix, string(name))
+	settingName := d.Get("name").(string)
+	name, err := internal.GetSettingName(settingName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	setting := &v1pb.Setting{
 		Name: settingName,
@@ -61,7 +64,7 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	updateMasks := []string{}
 
 	switch name {
-	case api.SettingWorkspaceApproval:
+	case v1pb.Setting_WORKSPACE_APPROVAL:
 		workspaceApproval, err := convertToV1ApprovalSetting(d)
 		if err != nil {
 			return diag.FromErr(err)
@@ -71,7 +74,7 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 				WorkspaceApprovalSettingValue: workspaceApproval,
 			},
 		}
-	case api.SettingWorkspaceProfile:
+	case v1pb.Setting_WORKSPACE_PROFILE:
 		workspaceProfile, updatePathes, err := convertToV1WorkspaceProfileSetting(d)
 		if err != nil {
 			return diag.FromErr(err)
@@ -82,7 +85,7 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 			},
 		}
 		updateMasks = updatePathes
-	case api.SettingDataClassification:
+	case v1pb.Setting_DATA_CLASSIFICATION:
 		classificationSetting, err := convertToV1ClassificationSetting(d)
 		if err != nil {
 			return diag.FromErr(err)
@@ -92,7 +95,7 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 				DataClassificationSettingValue: classificationSetting,
 			},
 		}
-	case api.SettingSemanticTypes:
+	case v1pb.Setting_SEMANTIC_TYPES:
 		classificationSetting, err := convertToV1SemanticTypeSetting(d)
 		if err != nil {
 			return diag.FromErr(err)
@@ -102,7 +105,7 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 				SemanticTypeSettingValue: classificationSetting,
 			},
 		}
-	case api.SettingEnvironment:
+	case v1pb.Setting_ENVIRONMENT:
 		environmentSetting, err := convertToV1EnvironmentSetting(d)
 		if err != nil {
 			return diag.FromErr(err)
@@ -270,15 +273,10 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 			return nil, errors.Errorf("invalid flow")
 		}
 		rawFlow := flowList[0].(map[string]interface{})
-		creator := rawFlow["creator"].(string)
-		if !strings.HasPrefix(creator, "users/") {
-			return nil, errors.Errorf("creator should in users/{email} format")
-		}
 		approvalRule := &v1pb.WorkspaceApprovalSetting_Rule{
 			Template: &v1pb.ApprovalTemplate{
 				Title:       rawFlow["title"].(string),
 				Description: rawFlow["description"].(string),
-				Creator:     rawFlow["creator"].(string),
 				Flow:        &v1pb.ApprovalFlow{},
 			},
 			Condition: &expr.Expr{
