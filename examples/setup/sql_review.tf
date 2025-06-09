@@ -16,8 +16,26 @@ resource "bytebase_review_config" "sample" {
     level  = "WARNING"
   }
   rules {
+    type    = "column.required"
+    engine  = "MYSQL"
+    level   = "ERROR"
+    payload = "{\"list\":[\"id\",\"created_ts\",\"updated_ts\",\"creator_id\",\"updater_id\"]}"
+  }
+  rules {
     type   = "table.require-pk"
     engine = "MYSQL"
     level  = "ERROR"
+  }
+  rules {
+    type    = "naming.column"
+    engine  = "MYSQL"
+    level   = "ERROR"
+    payload = "{\"format\":\"^[a-z]+(_[a-z]+)*$\",\"maxLength\":64}"
+  }
+  rules {
+    type    = "statement.maximum-limit-value"
+    engine  = "MYSQL"
+    level   = "ERROR"
+    payload = "{\"number\":1000}"
   }
 }
