@@ -62,7 +62,7 @@ func resourceReviewConfig() *schema.Resource {
 						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "The rule unique type. Check https://www.bytebase.com/docs/sql-review/review-rules for all rules",
+							Description: "The rule unique type. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#rule-categories for all rules",
 						},
 						"engine": {
 							Type:         schema.TypeString,
@@ -84,7 +84,7 @@ func resourceReviewConfig() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Computed:    true,
-							Description: "The payload for the rule.",
+							Description: "The payload is a JSON string that varies by rule type. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#payload-structure-types for all details",
 						},
 						"comment": {
 							Type:        schema.TypeString,

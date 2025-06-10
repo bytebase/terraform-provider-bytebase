@@ -37,11 +37,11 @@ Required:
 
 - `engine` (String) The rule for the database engine.
 - `level` (String) The rule level.
-- `type` (String) The rule unique type. Check https://www.bytebase.com/docs/sql-review/review-rules for all rules
+- `type` (String) The rule unique type. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#rule-categories for all rules
 
 Optional:
 
 - `comment` (String) The comment for the rule.
-- `payload` (String) The payload for the rule.
+- `payload` (String) The payload is a JSON string that varies by rule type. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#payload-structure-types for all details
 
 
