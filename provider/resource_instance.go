@@ -295,7 +295,6 @@ func resourceInstance() *schema.Resource {
 			},
 			"databases": getDatabasesSchema(true),
 		},
-		CustomizeDiff: validateSSLFieldsCustomDiff,
 	}
 }
 
@@ -308,32 +307,6 @@ func suppressSensitiveFieldDiff(_ string, oldValue, newValue string, _ *schema.R
 	}
 	// If both are equal, suppress the diff
 	return oldValue == newValue
-}
-
-// validateSSLFieldsCustomDiff ensures SSL cert and key are both provided or both empty.
-func validateSSLFieldsCustomDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
-	dataSources := d.Get("data_sources").(*schema.Set).List()
-
-	for i, ds := range dataSources {
-		dsMap := ds.(map[string]interface{})
-
-		sslCert := ""
-		sslKey := ""
-
-		if v, ok := dsMap["ssl_cert"].(string); ok {
-			sslCert = v
-		}
-		if v, ok := dsMap["ssl_key"].(string); ok {
-			sslKey = v
-		}
-
-		// Validate that both cert and key are provided or both are empty
-		if (sslCert != "" && sslKey == "") || (sslCert == "" && sslKey != "") {
-			return errors.Errorf("data_sources.%d: ssl_cert and ssl_key must both be provided or both be empty", i)
-		}
-	}
-
-	return nil
 }
 
 func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
