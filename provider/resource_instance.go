@@ -238,6 +238,7 @@ func resourceInstance() *schema.Resource {
 						"use_ssl": {
 							Type:        schema.TypeBool,
 							Optional:    true,
+							Default:     false,
 							Description: "Enable SSL connection. Required to use SSL certificates.",
 						},
 						"ssl_ca": {
