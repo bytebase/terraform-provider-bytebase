@@ -43,3 +43,6 @@ terraform.rc
 
 # Ignore docs overview
 docs/assets/overview.webp
+
+# Ignore compiled binary
+terraform-provider-bytebase

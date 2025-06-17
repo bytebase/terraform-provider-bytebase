@@ -116,11 +116,12 @@ func resourceInstance() *schema.Resource {
 							Description: "The connection user name used by Bytebase to perform DDL and DML operations.",
 						},
 						"password": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Sensitive:   true,
-							Default:     "",
-							Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
+							Type:             schema.TypeString,
+							Optional:         true,
+							Sensitive:        true,
+							Computed:         true,
+							DiffSuppressFunc: suppressSensitiveFieldDiff,
+							Description:      "The connection user password used by Bytebase to perform DDL and DML operations.",
 						},
 						"external_secret": {
 							Type:        schema.TypeList,
@@ -234,26 +235,35 @@ func resourceInstance() *schema.Resource {
 								},
 							},
 						},
-						"ssl_ca": {
-							Type:        schema.TypeString,
+						"use_ssl": {
+							Type:        schema.TypeBool,
 							Optional:    true,
-							Default:     "",
-							Sensitive:   true,
-							Description: "The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
+							Default:     false,
+							Description: "Enable SSL connection. Required to use SSL certificates.",
+						},
+						"ssl_ca": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Sensitive:        true,
+							Computed:         true,
+							DiffSuppressFunc: suppressSensitiveFieldDiff,
+							Description:      "The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 						},
 						"ssl_cert": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "",
-							Sensitive:   true,
-							Description: "The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
+							Type:             schema.TypeString,
+							Optional:         true,
+							Sensitive:        true,
+							Computed:         true,
+							DiffSuppressFunc: suppressSensitiveFieldDiff,
+							Description:      "The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 						},
 						"ssl_key": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "",
-							Sensitive:   true,
-							Description: "The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
+							Type:             schema.TypeString,
+							Optional:         true,
+							Sensitive:        true,
+							Computed:         true,
+							DiffSuppressFunc: suppressSensitiveFieldDiff,
+							Description:      "The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
 						},
 						"host": {
 							Type:         schema.TypeString,
@@ -286,6 +296,17 @@ func resourceInstance() *schema.Resource {
 			"databases": getDatabasesSchema(true),
 		},
 	}
+}
+
+// suppressSensitiveFieldDiff suppresses diffs for write-only sensitive fields.
+func suppressSensitiveFieldDiff(_ string, oldValue, newValue string, _ *schema.ResourceData) bool {
+	// If the field was previously set (exists in state) and the new value is empty,
+	// suppress the diff because the API doesn't return these fields
+	if oldValue != "" && newValue == "" {
+		return true
+	}
+	// If both are equal, suppress the diff
+	return oldValue == newValue
 }
 
 func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -656,6 +677,7 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 		raw["host"] = dataSource.Host
 		raw["port"] = dataSource.Port
 		raw["database"] = dataSource.Database
+		raw["use_ssl"] = dataSource.UseSsl
 
 		// These sensitive fields won't returned in the API. Propagate state value.
 		if ds, ok := oldDataSourceMap[dataSource.Id]; ok {
@@ -722,7 +744,26 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 
 func dataSourceHash(rawDataSource interface{}) int {
 	dataSource := rawDataSource.(map[string]interface{})
-	return internal.ToHashcodeInt(dataSource["id"].(string))
+	// Include id and SSL-related field presence to detect configuration changes
+	hashStr := dataSource["id"].(string)
+
+	// Include use_ssl in hash to detect SSL enablement changes
+	if v, ok := dataSource["use_ssl"].(bool); ok {
+		hashStr = fmt.Sprintf("%s-ssl_%t", hashStr, v)
+	}
+
+	// Include whether SSL certificates are present (not the values themselves)
+	if v, ok := dataSource["ssl_ca"].(string); ok && v != "" {
+		hashStr = fmt.Sprintf("%s-ca_present", hashStr)
+	}
+	if v, ok := dataSource["ssl_cert"].(string); ok && v != "" {
+		hashStr = fmt.Sprintf("%s-cert_present", hashStr)
+	}
+	if v, ok := dataSource["ssl_key"].(string); ok && v != "" {
+		hashStr = fmt.Sprintf("%s-key_present", hashStr)
+	}
+
+	return internal.ToHashcodeInt(hashStr)
 }
 
 func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb.DataSource, error) {
@@ -797,6 +838,9 @@ func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb
 			return nil, errors.Errorf("cannot set both password and external_secret")
 		}
 
+		if v, ok := obj["use_ssl"].(bool); ok {
+			dataSource.UseSsl = v
+		}
 		if v, ok := obj["ssl_ca"].(string); ok {
 			dataSource.SslCa = v
 		}

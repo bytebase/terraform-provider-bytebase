@@ -109,6 +109,11 @@ func dataSourceInstance() *schema.Resource {
 							Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
 						},
 						"external_secret": getExternalSecretSchema(),
+						"use_ssl": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Enable SSL connection. Required to use SSL certificates.",
+						},
 						"ssl_ca": {
 							Type:        schema.TypeString,
 							Computed:    true,
