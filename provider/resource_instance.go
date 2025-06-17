@@ -298,19 +298,19 @@ func resourceInstance() *schema.Resource {
 	}
 }
 
-// suppressSensitiveFieldDiff suppresses diffs for write-only sensitive fields
-func suppressSensitiveFieldDiff(k, old, new string, d *schema.ResourceData) bool {
+// suppressSensitiveFieldDiff suppresses diffs for write-only sensitive fields.
+func suppressSensitiveFieldDiff(_ string, oldValue, newValue string, _ *schema.ResourceData) bool {
 	// If the field was previously set (exists in state) and the new value is empty,
 	// suppress the diff because the API doesn't return these fields
-	if old != "" && new == "" {
+	if oldValue != "" && newValue == "" {
 		return true
 	}
 	// If both are equal, suppress the diff
-	return old == new
+	return oldValue == newValue
 }
 
-// validateSSLFieldsCustomDiff ensures SSL cert and key are both provided or both empty
-func validateSSLFieldsCustomDiff(ctx context.Context, d *schema.ResourceDiff, m interface{}) error {
+// validateSSLFieldsCustomDiff ensures SSL cert and key are both provided or both empty.
+func validateSSLFieldsCustomDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	dataSources := d.Get("data_sources").(*schema.Set).List()
 
 	for i, ds := range dataSources {
