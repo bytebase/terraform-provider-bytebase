@@ -312,26 +312,26 @@ func suppressSensitiveFieldDiff(k, old, new string, d *schema.ResourceData) bool
 // validateSSLFieldsCustomDiff ensures SSL cert and key are both provided or both empty
 func validateSSLFieldsCustomDiff(ctx context.Context, d *schema.ResourceDiff, m interface{}) error {
 	dataSources := d.Get("data_sources").(*schema.Set).List()
-	
+
 	for i, ds := range dataSources {
 		dsMap := ds.(map[string]interface{})
-		
+
 		sslCert := ""
 		sslKey := ""
-		
+
 		if v, ok := dsMap["ssl_cert"].(string); ok {
 			sslCert = v
 		}
 		if v, ok := dsMap["ssl_key"].(string); ok {
 			sslKey = v
 		}
-		
+
 		// Validate that both cert and key are provided or both are empty
 		if (sslCert != "" && sslKey == "") || (sslCert == "" && sslKey != "") {
-			return fmt.Errorf("data_sources.%d: ssl_cert and ssl_key must both be provided or both be empty", i)
+			return errors.Errorf("data_sources.%d: ssl_cert and ssl_key must both be provided or both be empty", i)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -772,12 +772,12 @@ func dataSourceHash(rawDataSource interface{}) int {
 	dataSource := rawDataSource.(map[string]interface{})
 	// Include id and SSL-related field presence to detect configuration changes
 	hashStr := dataSource["id"].(string)
-	
+
 	// Include use_ssl in hash to detect SSL enablement changes
 	if v, ok := dataSource["use_ssl"].(bool); ok {
 		hashStr = fmt.Sprintf("%s-ssl_%t", hashStr, v)
 	}
-	
+
 	// Include whether SSL certificates are present (not the values themselves)
 	if v, ok := dataSource["ssl_ca"].(string); ok && v != "" {
 		hashStr = fmt.Sprintf("%s-ca_present", hashStr)
@@ -788,7 +788,7 @@ func dataSourceHash(rawDataSource interface{}) int {
 	if v, ok := dataSource["ssl_key"].(string); ok && v != "" {
 		hashStr = fmt.Sprintf("%s-key_present", hashStr)
 	}
-	
+
 	return internal.ToHashcodeInt(hashStr)
 }
 

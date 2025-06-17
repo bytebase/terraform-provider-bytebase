@@ -42,4 +42,7 @@ override.tf.json
 terraform.rc
 
 # Ignore docs overview
-docs/assets/overview.webpterraform-provider-bytebase
+docs/assets/overview.webp
+
+# Ignore compiled binary
+terraform-provider-bytebase
