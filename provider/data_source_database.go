@@ -144,8 +144,24 @@ func dataSourceDatabaseRead(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func columnHash(rawColumn interface{}) string {
+	var buf bytes.Buffer
 	column := rawColumn.(map[string]interface{})
-	return column["name"].(string)
+
+	if v, ok := column["name"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := column["semantic_type"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := column["classification"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := column["classification"].(map[string]interface{}); ok {
+		for key, val := range v {
+			_, _ = buf.WriteString(fmt.Sprintf("[%s:%s]-", key, val.(string)))
+		}
+	}
+	return buf.String()
 }
 
 func tableHash(rawTable interface{}) string {
@@ -153,6 +169,9 @@ func tableHash(rawTable interface{}) string {
 	table := rawTable.(map[string]interface{})
 
 	if v, ok := table["name"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := table["classification"].(string); ok {
 		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
 	}
 	if columns, ok := table["columns"].(*schema.Set); ok {
