@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -33,10 +32,12 @@ func dataSourceUserList() *schema.Resource {
 				Description: "Filter users by email with wildcard",
 			},
 			"project": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "The project full name. Filter users by project.",
-				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern))),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The project full name. Filter users by project.",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
+				),
 			},
 			"state": {
 				Type:     schema.TypeString,

@@ -1,5 +1,6 @@
 resource "bytebase_setting" "environments" {
-  name = "ENVIRONMENT"
+  name = "settings/ENVIRONMENT"
+
   environment_setting {
     environment {
       id        = local.environment_id_prod

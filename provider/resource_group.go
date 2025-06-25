@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"regexp"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -66,7 +65,7 @@ func resourceGroup() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ValidateDiagFunc: internal.ResourceNameValidation(
-								regexp.MustCompile(fmt.Sprintf("^%s", internal.UserNamePrefix)),
+								fmt.Sprintf("^%s", internal.UserNamePrefix),
 							),
 							Description: "The member in users/{email} format.",
 						},

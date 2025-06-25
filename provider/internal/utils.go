@@ -54,7 +54,7 @@ var (
 var ResourceIDValidation = validation.StringMatch(ResourceIDRegex, fmt.Sprintf("resource id must matches %v", ResourceIDRegex))
 
 // ResourceNameValidation validate the resource name with prefix.
-func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateDiagFunc {
+func ResourceNameValidation(stringPatterns ...string) schema.SchemaValidateDiagFunc {
 	return func(i interface{}, path cty.Path) diag.Diagnostics {
 		var diags diag.Diagnostics
 
@@ -68,15 +68,17 @@ func ResourceNameValidation(regexs ...*regexp.Regexp) schema.SchemaValidateDiagF
 			})
 			return diags
 		}
-		for _, regex := range regexs {
+		for _, stringPattern := range stringPatterns {
+			regex := regexp.MustCompile(stringPattern)
 			if ok := regex.MatchString(v); ok {
 				return diags
 			}
 		}
+
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
 			Summary:       "Resource id not match",
-			Detail:        fmt.Sprintf(`resource id "%s" must matches "%s" pattern`, v, ResourceIDPattern),
+			Detail:        fmt.Sprintf(`The resource value "%s" doesn't must any patterns: %v`, v, strings.Join(stringPatterns, ",")),
 			AttributePath: path,
 		})
 		return diags

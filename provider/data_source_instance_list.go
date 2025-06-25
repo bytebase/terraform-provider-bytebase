@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -28,16 +27,20 @@ func dataSourceInstanceList() *schema.Resource {
 				Description: "Filter instances by name or resource id with wildcard",
 			},
 			"environment": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "The environment full name. Filter instances by environment.",
-				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern))),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The environment full name. Filter instances by environment.",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern),
+				),
 			},
 			"project": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "The project full name. Filter instances by project.",
-				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern))),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The project full name. Filter instances by project.",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
+				),
 			},
 			"host": {
 				Type:        schema.TypeString,

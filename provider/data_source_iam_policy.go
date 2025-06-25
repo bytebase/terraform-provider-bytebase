@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -28,9 +27,9 @@ func dataSourceIAMPolicy() *schema.Resource {
 				Required: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					regexp.MustCompile("^workspaces/-$"),
+					fmt.Sprintf("^%s$", internal.WorkspaceName),
 					// project policy
-					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern)),
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
 				),
 				Description: `The IAM policy parent name for the policy, support "projects/{resource id}" or "workspaces/-"`,
 			},

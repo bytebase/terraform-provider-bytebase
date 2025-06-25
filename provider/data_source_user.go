@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -24,7 +23,7 @@ func dataSourceUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
-					regexp.MustCompile(fmt.Sprintf("^%s", internal.UserNamePrefix)),
+					fmt.Sprintf("^%s", internal.UserNamePrefix),
 				),
 				Description: "The user name in users/{user id or email} format.",
 			},

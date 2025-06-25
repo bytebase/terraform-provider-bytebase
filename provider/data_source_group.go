@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -24,7 +23,7 @@ func dataSourceGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
-					regexp.MustCompile(fmt.Sprintf("^%s", internal.GroupNamePrefix)),
+					fmt.Sprintf("^%s", internal.GroupNamePrefix),
 				),
 				Description: "The group name in groups/{email} format.",
 			},
