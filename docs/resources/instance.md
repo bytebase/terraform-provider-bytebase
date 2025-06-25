@@ -56,6 +56,7 @@ Optional:
 - `ssl_ca` (String, Sensitive) The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `ssl_key` (String, Sensitive) The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
+- `use_ssl` (Boolean) Enable SSL connection. Required to use SSL certificates.
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
 
 <a id="nestedblock--data_sources--external_secret"></a>

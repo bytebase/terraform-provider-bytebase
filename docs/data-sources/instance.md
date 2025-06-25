@@ -53,6 +53,7 @@ Read-Only:
 - `ssl_cert` (String)
 - `ssl_key` (String)
 - `type` (String)
+- `use_ssl` (Boolean)
 - `username` (String)
 
 <a id="nestedobjatt--data_sources--external_secret"></a>

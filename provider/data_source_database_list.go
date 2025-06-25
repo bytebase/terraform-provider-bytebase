@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -25,9 +24,9 @@ func dataSourceDatabaseList() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
-					regexp.MustCompile("^workspaces/-$"),
-					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern)),
-					regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern)),
+					fmt.Sprintf("^%s$", internal.WorkspaceName),
+					fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern),
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
 				),
 			},
 			"query": {
@@ -41,22 +40,28 @@ func dataSourceDatabaseList() *schema.Resource {
 				Description: "If not include unassigned databases in the response.",
 			},
 			"environment": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "The environment full name. Filter databases by environment.",
-				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern))),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The environment full name. Filter databases by environment.",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern),
+				),
 			},
 			"project": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "The project full name. Filter databases by project.",
-				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern))),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The project full name. Filter databases by project.",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
+				),
 			},
 			"instance": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "The instance full name. Filter databases by instance.",
-				ValidateDiagFunc: internal.ResourceNameValidation(regexp.MustCompile(fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern))),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The instance full name. Filter databases by instance.",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern),
+				),
 			},
 			"engines": {
 				Type:     schema.TypeSet,

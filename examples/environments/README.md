@@ -8,6 +8,6 @@ You should replace the provider initial variables with your own and exec the [se
 
 ```terraform
 data "bytebase_setting" "environments" {
-  name = "ENVIRONMENT"
+  name = "settings/ENVIRONMENT"
 }
 ```
