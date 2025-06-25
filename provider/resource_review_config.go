@@ -239,6 +239,12 @@ func reviewRuleHash(rawRule interface{}) int {
 	if v, ok := raw["engine"].(string); ok {
 		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
 	}
+	if v, ok := raw["payload"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := raw["level"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
 
 	return internal.ToHashcodeInt(buf.String())
 }

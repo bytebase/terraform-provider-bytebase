@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"regexp"
@@ -743,27 +744,44 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 }
 
 func dataSourceHash(rawDataSource interface{}) int {
-	dataSource := rawDataSource.(map[string]interface{})
-	// Include id and SSL-related field presence to detect configuration changes
-	hashStr := dataSource["id"].(string)
+	var buf bytes.Buffer
+	raw := rawDataSource.(map[string]interface{})
+
+	if v, ok := raw["id"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := raw["username"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := raw["password"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := raw["host"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := raw["port"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+	if v, ok := raw["database"].(string); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	}
 
 	// Include use_ssl in hash to detect SSL enablement changes
-	if v, ok := dataSource["use_ssl"].(bool); ok {
-		hashStr = fmt.Sprintf("%s-ssl_%t", hashStr, v)
+	if v, ok := raw["use_ssl"].(bool); ok {
+		_, _ = buf.WriteString(fmt.Sprintf("ssl_%v-", v))
 	}
-
 	// Include whether SSL certificates are present (not the values themselves)
-	if v, ok := dataSource["ssl_ca"].(string); ok && v != "" {
-		hashStr = fmt.Sprintf("%s-ca_present", hashStr)
+	if v, ok := raw["ssl_ca"].(string); ok && v != "" {
+		_, _ = buf.WriteString(fmt.Sprintf("ca_present_%s-", v))
 	}
-	if v, ok := dataSource["ssl_cert"].(string); ok && v != "" {
-		hashStr = fmt.Sprintf("%s-cert_present", hashStr)
+	if v, ok := raw["ssl_cert"].(string); ok && v != "" {
+		_, _ = buf.WriteString(fmt.Sprintf("cert_present_%s-", v))
 	}
-	if v, ok := dataSource["ssl_key"].(string); ok && v != "" {
-		hashStr = fmt.Sprintf("%s-key_present", hashStr)
+	if v, ok := raw["ssl_key"].(string); ok && v != "" {
+		_, _ = buf.WriteString(fmt.Sprintf("key_present_%s-", v))
 	}
 
-	return internal.ToHashcodeInt(hashStr)
+	return internal.ToHashcodeInt(buf.String())
 }
 
 func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb.DataSource, error) {
