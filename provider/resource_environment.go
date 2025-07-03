@@ -42,7 +42,7 @@ func resourceEnvironment() *schema.Resource {
 			},
 			"order": {
 				Type:         schema.TypeInt,
-				Required:     true,
+				Optional:     true,
 				Description:  "The environment sorting order.",
 				ValidateFunc: validation.IntAtLeast(0),
 			},
@@ -67,10 +67,14 @@ func resourceEnvironment() *schema.Resource {
 
 func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	existedName := d.Id()
 
-	newOrder := d.Get("order").(int)
 	environmentID := d.Get("resource_id").(string)
 	environmentName := fmt.Sprintf("%s%s", internal.EnvironmentNamePrefix, environmentID)
+
+	if existedName != "" && existedName != environmentName {
+		return diag.Errorf("cannot change the resource id")
+	}
 	v1Env := &v1pb.EnvironmentSetting_Environment{
 		Id:    environmentID,
 		Title: d.Get("title").(string),
@@ -83,7 +87,7 @@ func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m in
 		v1Env.Tags["protected"] = "unprotected"
 	}
 
-	existedEnv, order, enironmentList, err := findEnvironment(ctx, c, environmentName)
+	existedEnv, oldOrder, enironmentList, err := findEnvironment(ctx, c, environmentName)
 	if err != nil {
 		if !strings.HasPrefix(err.Error(), "cannot found the environment") {
 			return diag.FromErr(err)
@@ -93,8 +97,16 @@ func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m in
 		return diag.Errorf("cannot found environment setting")
 	}
 
-	if newOrder >= len(enironmentList) {
-		return diag.Errorf("the new order %v out of range %v", newOrder, len(enironmentList)-1)
+	var newOrder int
+	order, ok := d.GetOk("order")
+	if !ok {
+		if existedEnv != nil {
+			newOrder = oldOrder
+		} else {
+			newOrder = len(enironmentList)
+		}
+	} else {
+		newOrder = order.(int)
 	}
 
 	var diags diag.Diagnostics
@@ -105,10 +117,14 @@ func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m in
 			Detail:   fmt.Sprintf("Environment %s already exists, try to exec the update operation", environmentID),
 		})
 
-		if order == newOrder {
-			enironmentList[order] = v1Env
+		if newOrder >= len(enironmentList) {
+			return diag.Errorf("the new order %v out of range %v", newOrder, len(enironmentList)-1)
+		}
+
+		if oldOrder == newOrder {
+			enironmentList[oldOrder] = v1Env
 		} else {
-			enironmentList = slices.Delete(enironmentList, order, order+1)
+			enironmentList = slices.Delete(enironmentList, oldOrder, oldOrder+1)
 			enironmentList = slices.Insert(enironmentList, newOrder, v1Env)
 		}
 	} else {
