@@ -130,9 +130,14 @@ func resourceReviewConfigDelete(ctx context.Context, d *schema.ResourceData, m i
 
 func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	existedName := d.Id()
 
 	reviewID := d.Get("resource_id").(string)
 	reviewName := fmt.Sprintf("%s%s", internal.ReviewConfigNamePrefix, reviewID)
+
+	if existedName != "" && existedName != reviewName {
+		return diag.Errorf("cannot change the resource id")
+	}
 
 	rules, err := convertToV1RuleList(d)
 	if err != nil {
