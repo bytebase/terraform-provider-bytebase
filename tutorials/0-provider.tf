@@ -10,6 +10,6 @@ terraform {
 
 provider "bytebase" {
   service_account = "tf@service.bytebase.com"
-  service_key     = "bbs_EttGNSWLLGCqWB9Yev0I"
-  url = "https://valid-just-tadpole.ngrok-free.app"
+  service_key     = "bbs_xxxx"
+  url = "https://xxx.xxx.xxx"
 }
