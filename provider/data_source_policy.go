@@ -368,12 +368,8 @@ func setPolicyMessage(d *schema.ResourceData, policy *v1pb.Policy) diag.Diagnost
 
 func flattenRolloutPolicy(p *v1pb.RolloutPolicy) []interface{} {
 	roles := []string{}
-	for _, role := range p.Roles {
-		roles = append(roles, role)
-	}
-	for _, role := range p.IssueRoles {
-		roles = append(roles, role)
-	}
+	roles = append(roles, p.Roles...)
+	roles = append(roles, p.IssueRoles...)
 	policy := map[string]interface{}{
 		"automatic": p.Automatic,
 		"roles":     roles,
