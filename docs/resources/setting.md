@@ -24,7 +24,7 @@ The setting resource.
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
-- `semantic_types` (Block Set) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
+- `semantic_types` (Block List) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
 ### Read-Only
@@ -88,7 +88,7 @@ Required:
 
 - `classifications` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--classifications))
 - `id` (String) The classification unique uuid.
-- `levels` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--levels))
+- `levels` (Block List, Min: 1) (see [below for nested schema](#nestedblock--classification--levels))
 - `title` (String) The classification title. Optional.
 
 Optional:

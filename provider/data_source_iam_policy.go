@@ -67,6 +67,9 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 					Computed:    computed,
 					Optional:    !computed,
 					Description: "The role full name in roles/{id} format.",
+					ValidateDiagFunc: internal.ResourceNameValidation(
+						fmt.Sprintf("^%s", internal.RoleNamePrefix),
+					),
 				},
 				"members": {
 					Type:        schema.TypeSet,
@@ -75,6 +78,11 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 					Description: `A set of memebers. The value can be "allUsers", "user:{email}" or "group:{email}".`,
 					Elem: &schema.Schema{
 						Type: schema.TypeString,
+						ValidateDiagFunc: internal.ResourceNameValidation(
+							"allUsers",
+							"^user:",
+							"^group:",
+						),
 					},
 				},
 				"condition": {
@@ -240,6 +248,12 @@ func bindingHash(rawBinding interface{}) int {
 	if condition, ok := binding["condition"].(*schema.Set); ok && condition.Len() > 0 && condition.List()[0] != nil {
 		rawCondition := condition.List()[0].(map[string]interface{})
 		_, _ = buf.WriteString(conditionHash(rawCondition))
+	}
+
+	if members, ok := binding["members"].(*schema.Set); ok && members.Len() > 0 {
+		for _, member := range members.List() {
+			_, _ = buf.WriteString(fmt.Sprintf("[member] %s", member))
+		}
 	}
 
 	return internal.ToHashcodeInt(buf.String())
