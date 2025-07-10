@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -115,10 +116,12 @@ func resourceReviewConfigRead(ctx context.Context, d *schema.ResourceData, m int
 func resourceReviewConfigDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 	fullName := d.Id()
+	resources := getReviewConfigRelatedResources(d)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
+	removeReviewConfigTag(ctx, c, resources)
 	if err := c.DeleteReviewConfig(ctx, fullName); err != nil {
 		return diag.FromErr(err)
 	}
@@ -135,8 +138,18 @@ func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m i
 	reviewID := d.Get("resource_id").(string)
 	reviewName := fmt.Sprintf("%s%s", internal.ReviewConfigNamePrefix, reviewID)
 
-	if existedName != "" && existedName != reviewName {
-		return diag.Errorf("cannot change the resource id")
+	oldAttachedResources := []string{}
+	if existedName != "" {
+		if existedName != reviewName {
+			return diag.Errorf("cannot change the resource id")
+		}
+
+		existedReview, err := c.GetReviewConfig(ctx, existedName)
+		if err != nil {
+			tflog.Debug(ctx, fmt.Sprintf("get review config %s failed with error: %v", existedName, err))
+		} else if existedReview != nil {
+			oldAttachedResources = existedReview.Resources
+		}
 	}
 
 	rules, err := convertToV1RuleList(d)
@@ -159,10 +172,32 @@ func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
+	removeReviewConfigTag(ctx, c, oldAttachedResources)
 	patchTagPolicy(ctx, c, d, review.Name)
 	d.SetId(review.Name)
 
 	return resourceReviewConfigRead(ctx, d, m)
+}
+
+func getReviewConfigRelatedResources(d *schema.ResourceData) []string {
+	resources := []string{}
+	rawSet, ok := d.Get("resources").(*schema.Set)
+	if !ok || rawSet.Len() == 0 {
+		return resources
+	}
+	for _, raw := range rawSet.List() {
+		resources = append(resources, raw.(string))
+	}
+	return resources
+}
+
+func removeReviewConfigTag(ctx context.Context, client api.Client, resources []string) {
+	for _, resource := range resources {
+		policyName := fmt.Sprintf("%s/%s%s", resource, internal.PolicyNamePrefix, v1pb.PolicyType_TAG.String())
+		if err := client.DeletePolicy(ctx, policyName); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("failed to delete %v policy with error: %v", policyName, err.Error()))
+		}
+	}
 }
 
 func patchTagPolicy(ctx context.Context, client api.Client, d *schema.ResourceData, reviewName string) diag.Diagnostics {

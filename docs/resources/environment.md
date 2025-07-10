@@ -17,13 +17,13 @@ The environment resource.
 
 ### Required
 
-- `order` (Number) The environment sorting order.
 - `resource_id` (String) The environment unique id.
 - `title` (String) The environment display name.
 
 ### Optional
 
 - `color` (String) The environment color.
+- `order` (Number) The environment sorting order.
 - `protected` (Boolean) The environment is protected or not.
 
 ### Read-Only

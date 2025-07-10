@@ -52,6 +52,9 @@ func resourcePolicy() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					v1pb.PolicyType_MASKING_EXCEPTION.String(),
 					v1pb.PolicyType_MASKING_RULE.String(),
+					v1pb.PolicyType_DISABLE_COPY_DATA.String(),
+					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
+					v1pb.PolicyType_ROLLOUT_POLICY.String(),
 				}, false),
 				Description: "The policy type.",
 			},
@@ -74,23 +77,22 @@ func resourcePolicy() *schema.Resource {
 			},
 			"masking_exception_policy": getMaskingExceptionPolicySchema(false),
 			"global_masking_policy":    getGlobalMaskingPolicySchema(false),
+			"disable_copy_data_policy": getDisableCopyDataPolicySchema(false),
+			"data_source_query_policy": getDataSourceQueryPolicySchema(false),
+			"rollout_policy":           getRolloutPolicySchema(false),
 		},
 	}
 }
 
 func resourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
+	policyName := d.Id()
 
-	policyName := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
-	if strings.HasPrefix(policyName, internal.WorkspaceName) {
-		policyName = strings.TrimPrefix(policyName, fmt.Sprintf("%s/", internal.WorkspaceName))
-	}
 	policy, err := c.GetPolicy(ctx, policyName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(policy.Name)
 	return setPolicyMessage(d, policy)
 }
 
@@ -147,6 +149,39 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.Policy = &v1pb.Policy_MaskingRulePolicy{
 			MaskingRulePolicy: maskingRulePolicy,
 		}
+	case v1pb.PolicyType_DISABLE_COPY_DATA:
+		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
+			return diag.Errorf("policy %v only support environment or project resource", policyName)
+		}
+		disableCopyDataPolicy, err := convertToDisableCopyDataPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_DisableCopyDataPolicy{
+			DisableCopyDataPolicy: disableCopyDataPolicy,
+		}
+	case v1pb.PolicyType_DATA_SOURCE_QUERY:
+		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
+			return diag.Errorf("policy %v only support environment or project resource", policyName)
+		}
+		dataSourceQueryPolicy, err := convertToDataSourceQueryPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_DataSourceQueryPolicy{
+			DataSourceQueryPolicy: dataSourceQueryPolicy,
+		}
+	case v1pb.PolicyType_ROLLOUT_POLICY:
+		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) {
+			return diag.Errorf("policy %v only support environment resource", policyName)
+		}
+		rolloutPolicy, err := convertToRolloutPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_RolloutPolicy{
+			RolloutPolicy: rolloutPolicy,
+		}
 	default:
 		return diag.Errorf("unsupport policy type: %v", policyName)
 	}
@@ -175,9 +210,14 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 	policyName := d.Id()
+
 	_, policyType, err := internal.GetPolicyParentAndType(policyName)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if d.HasChange("type") || d.HasChange("parent") {
+		return diag.Errorf("cannot change policy type or parent")
 	}
 
 	patch := &v1pb.Policy{
@@ -213,6 +253,26 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		patch.Policy = &v1pb.Policy_MaskingRulePolicy{
 			MaskingRulePolicy: maskingRulePolicy,
+		}
+	}
+	if d.HasChange("disable_copy_data_policy") {
+		updateMasks = append(updateMasks, "payload")
+		disableCopyDataPolicy, err := convertToDisableCopyDataPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_DisableCopyDataPolicy{
+			DisableCopyDataPolicy: disableCopyDataPolicy,
+		}
+	}
+	if d.HasChange("data_source_query_policy") {
+		updateMasks = append(updateMasks, "payload")
+		dataSourceQueryPolicy, err := convertToDataSourceQueryPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_DataSourceQueryPolicy{
+			DataSourceQueryPolicy: dataSourceQueryPolicy,
 		}
 	}
 
@@ -325,4 +385,60 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 		})
 	}
 	return policy, nil
+}
+
+func convertToRolloutPolicy(d *schema.ResourceData) (*v1pb.RolloutPolicy, error) {
+	rawList, ok := d.Get("rollout_policy").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid rollout_policy")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+	policy := &v1pb.RolloutPolicy{
+		Automatic: raw["automatic"].(bool),
+	}
+
+	roles, ok := raw["roles"].(*schema.Set)
+	if !ok {
+		return policy, nil
+	}
+
+	for _, rawRole := range roles.List() {
+		role := rawRole.(string)
+		if role == issueLastApproverRole || role == issueCreatorRole {
+			policy.IssueRoles = append(policy.IssueRoles, role)
+		} else {
+			policy.Roles = append(policy.Roles, role)
+		}
+	}
+
+	return policy, nil
+}
+
+func convertToDisableCopyDataPolicy(d *schema.ResourceData) (*v1pb.DisableCopyDataPolicy, error) {
+	rawList, ok := d.Get("disable_copy_data_policy").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid disable_copy_data_policy")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+	return &v1pb.DisableCopyDataPolicy{
+		Active: raw["enable"].(bool),
+	}, nil
+}
+
+func convertToDataSourceQueryPolicy(d *schema.ResourceData) (*v1pb.DataSourceQueryPolicy, error) {
+	rawList, ok := d.Get("data_source_query_policy").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid data_source_query_policy")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+	return &v1pb.DataSourceQueryPolicy{
+		AdminDataSourceRestriction: v1pb.DataSourceQueryPolicy_Restriction(
+			v1pb.DataSourceQueryPolicy_Restriction_value[raw["restriction"].(string)],
+		),
+		DisallowDdl: raw["disallow_ddl"].(bool),
+		DisallowDml: raw["disallow_dml"].(bool),
+	}, nil
 }

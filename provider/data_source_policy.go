@@ -24,8 +24,7 @@ func dataSourcePolicy() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"parent": {
 				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Required: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
 					fmt.Sprintf("^%s$", internal.WorkspaceName),
@@ -46,6 +45,9 @@ func dataSourcePolicy() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					v1pb.PolicyType_MASKING_EXCEPTION.String(),
 					v1pb.PolicyType_MASKING_RULE.String(),
+					v1pb.PolicyType_DISABLE_COPY_DATA.String(),
+					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
+					v1pb.PolicyType_ROLLOUT_POLICY.String(),
 				}, false),
 				Description: "The policy type.",
 			},
@@ -66,6 +68,9 @@ func dataSourcePolicy() *schema.Resource {
 			},
 			"masking_exception_policy": getMaskingExceptionPolicySchema(true),
 			"global_masking_policy":    getGlobalMaskingPolicySchema(true),
+			"disable_copy_data_policy": getDisableCopyDataPolicySchema(true),
+			"data_source_query_policy": getDataSourceQueryPolicySchema(true),
+			"rollout_policy":           getRolloutPolicySchema(true),
 		},
 	}
 }
@@ -184,6 +189,104 @@ func getGlobalMaskingPolicySchema(computed bool) *schema.Schema {
 	}
 }
 
+func getDisableCopyDataPolicySchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		MinItems:    0,
+		MaxItems:    1,
+		Description: "Restrict data copying in SQL Editor (Admins/DBAs allowed)",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"enable": {
+					Type:        schema.TypeBool,
+					Required:    true,
+					Description: "Restrict data copying",
+				},
+			},
+		},
+	}
+}
+
+func getDataSourceQueryPolicySchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		MinItems:    0,
+		MaxItems:    1,
+		Description: "Restrict querying admin data sources",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"restriction": {
+					Type:     schema.TypeString,
+					Optional: true,
+					ValidateFunc: validation.StringInSlice([]string{
+						v1pb.DataSourceQueryPolicy_FALLBACK.String(),
+						v1pb.DataSourceQueryPolicy_DISALLOW.String(),
+						v1pb.DataSourceQueryPolicy_RESTRICTION_UNSPECIFIED.String(),
+					}, false),
+					Description: "RESTRICTION_UNSPECIFIED means no restriction; FALLBACK will allows to query admin data sources when there is no read-only data source; DISALLOW will always disallow to query admin data sources.",
+				},
+				"disallow_ddl": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Disallow running DDL statements in the SQL editor.",
+				},
+				"disallow_dml": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Disallow running DML statements in the SQL editor.",
+				},
+			},
+		},
+	}
+}
+
+const (
+	issueLastApproverRole = "roles/LAST_APPROVER"
+	issueCreatorRole      = "roles/CREATOR"
+)
+
+func getRolloutPolicySchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		MinItems:    0,
+		MaxItems:    1,
+		Description: "Control issue rollout. Learn more: https://docs.bytebase.com/administration/environment-policy/rollout-policy",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"automatic": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "If all check pass, the change will be rolled out and executed automatically.",
+				},
+				"roles": {
+					Optional:    true,
+					Type:        schema.TypeSet,
+					MinItems:    0,
+					Description: "If any roles are specified, Bytebase requires users with those roles to manually roll out the change.",
+					Elem: &schema.Schema{
+						Type:        schema.TypeString,
+						Description: fmt.Sprintf(`Role full name in roles/{id} format. You can also use the "%s" for the last approver of the issue, or "%s" for the creator of the issue.`, issueLastApproverRole, issueCreatorRole),
+						ValidateDiagFunc: internal.ResourceNameValidation(
+							fmt.Sprintf("^%s$", issueLastApproverRole),
+							fmt.Sprintf("^%s$", issueCreatorRole),
+							fmt.Sprintf("^%s", internal.RoleNamePrefix),
+						),
+					},
+				},
+			},
+		},
+	}
+}
+
 func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
@@ -202,15 +305,12 @@ func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func setPolicyMessage(d *schema.ResourceData, policy *v1pb.Policy) diag.Diagnostics {
-	parent, _, err := internal.GetPolicyParentAndType(policy.Name)
+	_, policyType, err := internal.GetPolicyParentAndType(policy.Name)
 	if err != nil {
 		return diag.Errorf("cannot parse name for policy: %s", err.Error())
 	}
 	if err := d.Set("name", policy.Name); err != nil {
 		return diag.Errorf("cannot set name for policy: %s", err.Error())
-	}
-	if err := d.Set("parent", parent); err != nil {
-		return diag.Errorf("cannot set parent for policy: %s", err.Error())
 	}
 	if err := d.Set("inherit_from_parent", policy.InheritFromParent); err != nil {
 		return diag.Errorf("cannot set inherit_from_parent for policy: %s", err.Error())
@@ -219,27 +319,82 @@ func setPolicyMessage(d *schema.ResourceData, policy *v1pb.Policy) diag.Diagnost
 		return diag.Errorf("cannot set enforce for policy: %s", err.Error())
 	}
 
-	if p := policy.GetMaskingExceptionPolicy(); p != nil {
-		exceptionPolicy, err := flattenMaskingExceptionPolicy(p)
-		if err != nil {
-			return diag.FromErr(err)
+	switch policyType {
+	case v1pb.PolicyType_MASKING_EXCEPTION:
+		if p := policy.GetMaskingExceptionPolicy(); p != nil {
+			exceptionPolicy, err := flattenMaskingExceptionPolicy(p)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			if err := d.Set("masking_exception_policy", exceptionPolicy); err != nil {
+				return diag.Errorf("cannot set masking_exception_policy: %s", err.Error())
+			}
 		}
-		if err := d.Set("masking_exception_policy", exceptionPolicy); err != nil {
-			return diag.Errorf("cannot set masking_exception_policy: %s", err.Error())
+	case v1pb.PolicyType_MASKING_RULE:
+		if p := policy.GetMaskingRulePolicy(); p != nil {
+			maskingPolicy, err := flattenGlobalMaskingPolicy(p)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			if err := d.Set("global_masking_policy", maskingPolicy); err != nil {
+				return diag.Errorf("cannot set global_masking_policy: %s", err.Error())
+			}
 		}
-	}
-
-	if p := policy.GetMaskingRulePolicy(); p != nil {
-		maskingPolicy, err := flattenGlobalMaskingPolicy(p)
-		if err != nil {
-			return diag.FromErr(err)
+	case v1pb.PolicyType_DISABLE_COPY_DATA:
+		if p := policy.GetDisableCopyDataPolicy(); p != nil {
+			disableCopyDataPolicy := flattenDisableCopyDataPolicy(p)
+			if err := d.Set("disable_copy_data_policy", disableCopyDataPolicy); err != nil {
+				return diag.Errorf("cannot set disable_copy_data_policy: %s", err.Error())
+			}
 		}
-		if err := d.Set("global_masking_policy", maskingPolicy); err != nil {
-			return diag.Errorf("cannot set global_masking_policy: %s", err.Error())
+	case v1pb.PolicyType_DATA_SOURCE_QUERY:
+		if p := policy.GetDataSourceQueryPolicy(); p != nil {
+			dataSourceQueryPolicy := flattenDataSourceQueryPolicy(p)
+			if err := d.Set("data_source_query_policy", dataSourceQueryPolicy); err != nil {
+				return diag.Errorf("cannot set data_source_query_policy: %s", err.Error())
+			}
+		}
+	case v1pb.PolicyType_ROLLOUT_POLICY:
+		if p := policy.GetRolloutPolicy(); p != nil {
+			rolloutPolicy := flattenRolloutPolicy(p)
+			if err := d.Set("rollout_policy", rolloutPolicy); err != nil {
+				return diag.Errorf("cannot set rollout_policy: %s", err.Error())
+			}
 		}
 	}
 
 	return nil
+}
+
+func flattenRolloutPolicy(p *v1pb.RolloutPolicy) []interface{} {
+	roles := []string{}
+	for _, role := range p.Roles {
+		roles = append(roles, role)
+	}
+	for _, role := range p.IssueRoles {
+		roles = append(roles, role)
+	}
+	policy := map[string]interface{}{
+		"automatic": p.Automatic,
+		"roles":     roles,
+	}
+	return []interface{}{policy}
+}
+
+func flattenDataSourceQueryPolicy(p *v1pb.DataSourceQueryPolicy) []interface{} {
+	policy := map[string]interface{}{
+		"restriction":  p.AdminDataSourceRestriction.String(),
+		"disallow_ddl": p.DisallowDdl,
+		"disallow_dml": p.DisallowDml,
+	}
+	return []interface{}{policy}
+}
+
+func flattenDisableCopyDataPolicy(p *v1pb.DisableCopyDataPolicy) []interface{} {
+	policy := map[string]interface{}{
+		"enable": p.Active,
+	}
+	return []interface{}{policy}
 }
 
 func flattenGlobalMaskingPolicy(p *v1pb.MaskingRulePolicy) ([]interface{}, error) {

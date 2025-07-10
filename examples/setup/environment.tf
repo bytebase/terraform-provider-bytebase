@@ -37,3 +37,41 @@ resource "bytebase_environment" "prod" {
   order       = 1 // change order to 1
   protected   = true
 }
+
+resource "bytebase_policy" "rollout_policy" {
+  depends_on = [bytebase_environment.test]
+  parent     = bytebase_environment.test.name
+  type       = "ROLLOUT_POLICY"
+
+  rollout_policy {
+    automatic = true
+    roles = [
+      "roles/workspaceAdmin",
+      "roles/projectOwner",
+      "roles/LAST_APPROVER",
+      "roles/CREATOR"
+    ]
+  }
+}
+
+resource "bytebase_policy" "disable_copy_data_policy" {
+  depends_on = [bytebase_environment.test]
+  parent     = bytebase_environment.test.name
+  type       = "DISABLE_COPY_DATA"
+
+  disable_copy_data_policy {
+    enable = true
+  }
+}
+
+resource "bytebase_policy" "data_source_query_policy" {
+  depends_on = [bytebase_environment.test]
+  parent     = bytebase_environment.test.name
+  type       = "DATA_SOURCE_QUERY"
+
+  data_source_query_policy {
+    restriction  = "FALLBACK"
+    disallow_ddl = false
+    disallow_dml = false
+  }
+}
