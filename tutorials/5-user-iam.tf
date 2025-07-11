@@ -175,7 +175,7 @@ resource "bytebase_iam_policy" "project_iam" {
       condition {
         database         = "instances/prod-sample-instance/databases/hr_prod"
         schema           = "public"
-        tables           = ["employee","department"]
+        tables           = ["employee","salary"]
         expire_timestamp = "2027-07-10T16:17:49Z"
       }
     }
