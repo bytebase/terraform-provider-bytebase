@@ -46,7 +46,7 @@ resource "bytebase_policy" "data_source_query_policy_prod" {
   type       = "DATA_SOURCE_QUERY"
 
   data_source_query_policy {
-    restriction  = "FALLBACK" # or DISALLOW or RESTRICTION_UNSPECIFIED
+    restriction  = "RESTRICTION_UNSPECIFIED" # or DISALLOW or FALLBACK
     disallow_ddl = true
     disallow_dml = true
   }
