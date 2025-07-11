@@ -241,7 +241,7 @@ func getClassificationSetting(computed bool) *schema.Schema {
 				},
 				"classifications": {
 					Required: true,
-					Type:     schema.TypeSet,
+					Type:     schema.TypeList,
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{

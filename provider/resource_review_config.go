@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -54,7 +53,7 @@ func resourceReviewConfig() *schema.Resource {
 				Description: "Resources using the config. We support attach the review config for environments or projects with format {resurce}/{resource id}. For example, environments/test, projects/sample.",
 			},
 			"rules": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Required:    true,
 				MinItems:    1,
 				Description: "The SQL review rules.",
@@ -95,7 +94,6 @@ func resourceReviewConfig() *schema.Resource {
 						},
 					},
 				},
-				Set: reviewRuleHash,
 			},
 		},
 	}
@@ -248,7 +246,7 @@ func setReviewConfig(d *schema.ResourceData, review *v1pb.ReviewConfig) diag.Dia
 	if err := d.Set("resources", review.Resources); err != nil {
 		return diag.Errorf("cannot set resources for review: %s", err.Error())
 	}
-	if err := d.Set("rules", schema.NewSet(reviewRuleHash, flattenReviewRules(review.Rules))); err != nil {
+	if err := d.Set("rules", flattenReviewRules(review.Rules)); err != nil {
 		return diag.Errorf("cannot set rules for review: %s", err.Error())
 	}
 
@@ -269,35 +267,15 @@ func flattenReviewRules(rules []*v1pb.SQLReviewRule) []interface{} {
 	return ruleList
 }
 
-func reviewRuleHash(rawRule interface{}) int {
-	var buf bytes.Buffer
-	raw := rawRule.(map[string]interface{})
-
-	if v, ok := raw["type"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["engine"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["payload"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["level"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-
-	return internal.ToHashcodeInt(buf.String())
-}
-
 func convertToV1RuleList(d *schema.ResourceData) ([]*v1pb.SQLReviewRule, error) {
-	ruleSet, ok := d.Get("rules").(*schema.Set)
-	if !ok || ruleSet.Len() == 0 {
+	ruleRawList, ok := d.Get("rules").([]interface{})
+	if !ok || len(ruleRawList) == 0 {
 		return nil, errors.Errorf("rules is required")
 	}
 
 	ruleList := []*v1pb.SQLReviewRule{}
 
-	for _, r := range ruleSet.List() {
+	for _, r := range ruleRawList {
 		rawRule := r.(map[string]interface{})
 		payload := rawRule["payload"].(string)
 		if payload == "" {

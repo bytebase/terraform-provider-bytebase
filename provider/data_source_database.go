@@ -156,7 +156,7 @@ func columnHash(rawColumn interface{}) string {
 	if v, ok := column["classification"].(string); ok {
 		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
 	}
-	if v, ok := column["classification"].(map[string]interface{}); ok {
+	if v, ok := column["labels"].(map[string]interface{}); ok {
 		for key, val := range v {
 			_, _ = buf.WriteString(fmt.Sprintf("[%s:%s]-", key, val.(string)))
 		}

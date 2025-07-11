@@ -86,7 +86,7 @@ Optional:
 
 Required:
 
-- `classifications` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--classifications))
+- `classifications` (Block List, Min: 1) (see [below for nested schema](#nestedblock--classification--classifications))
 - `id` (String) The classification unique uuid.
 - `levels` (Block List, Min: 1) (see [below for nested schema](#nestedblock--classification--levels))
 - `title` (String) The classification title. Optional.
