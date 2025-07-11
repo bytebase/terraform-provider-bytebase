@@ -136,17 +136,9 @@ func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m i
 	reviewID := d.Get("resource_id").(string)
 	reviewName := fmt.Sprintf("%s%s", internal.ReviewConfigNamePrefix, reviewID)
 
-	oldAttachedResources := []string{}
 	if existedName != "" {
 		if existedName != reviewName {
 			return diag.Errorf("cannot change the resource id")
-		}
-
-		existedReview, err := c.GetReviewConfig(ctx, existedName)
-		if err != nil {
-			tflog.Debug(ctx, fmt.Sprintf("get review config %s failed with error: %v", existedName, err))
-		} else if existedReview != nil {
-			oldAttachedResources = existedReview.Resources
 		}
 	}
 
@@ -170,11 +162,51 @@ func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	removeReviewConfigTag(ctx, c, oldAttachedResources)
-	patchTagPolicy(ctx, c, d, review.Name)
+	pendingDelete, pendingAdd := getResourceDiff(ctx, c, d)
+	removeReviewConfigTag(ctx, c, pendingDelete)
+	patchTagPolicy(ctx, c, review.Name, pendingAdd)
 	d.SetId(review.Name)
 
 	return resourceReviewConfigRead(ctx, d, m)
+}
+
+// getResourceDiff returns pending delete list and pending add list.
+func getResourceDiff(ctx context.Context, client api.Client, d *schema.ResourceData) ([]string, []string) {
+	existedName := d.Id()
+	oldAttachedResources := []string{}
+	if existedName != "" {
+		existedReview, err := client.GetReviewConfig(ctx, existedName)
+		if err != nil {
+			tflog.Debug(ctx, fmt.Sprintf("get review config %s failed with error: %v", existedName, err))
+		} else if existedReview != nil {
+			oldAttachedResources = existedReview.Resources
+		}
+	}
+
+	oldResourceMap := map[string]bool{}
+	for _, resource := range oldAttachedResources {
+		oldResourceMap[resource] = true
+	}
+
+	newAttachedResources := getReviewConfigRelatedResources(d)
+	newResourceMap := map[string]bool{}
+	for _, resource := range newAttachedResources {
+		newResourceMap[resource] = true
+	}
+
+	pendingDelete := []string{}
+	pendingAdd := []string{}
+	for old := range oldResourceMap {
+		if !newResourceMap[old] {
+			pendingDelete = append(pendingDelete, old)
+		}
+	}
+	for new := range newResourceMap {
+		if !oldResourceMap[new] {
+			pendingAdd = append(pendingAdd, new)
+		}
+	}
+	return pendingDelete, pendingAdd
 }
 
 func getReviewConfigRelatedResources(d *schema.ResourceData) []string {
@@ -198,13 +230,8 @@ func removeReviewConfigTag(ctx context.Context, client api.Client, resources []s
 	}
 }
 
-func patchTagPolicy(ctx context.Context, client api.Client, d *schema.ResourceData, reviewName string) diag.Diagnostics {
-	rawSet, ok := d.Get("resources").(*schema.Set)
-	if !ok || rawSet.Len() == 0 {
-		return nil
-	}
-	for _, raw := range rawSet.List() {
-		resource := raw.(string)
+func patchTagPolicy(ctx context.Context, client api.Client, reviewName string, resources []string) diag.Diagnostics {
+	for _, resource := range resources {
 		if !strings.HasPrefix(resource, internal.ProjectNamePrefix) && !strings.HasPrefix(resource, internal.EnvironmentNamePrefix) {
 			return diag.Errorf("invalid resource, only support projects/{id} or environments/{id}")
 		}
