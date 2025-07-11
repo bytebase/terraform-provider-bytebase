@@ -11,5 +11,5 @@ terraform {
 provider "bytebase" {
   service_account = "tf@service.bytebase.com"
   service_key     = "bbs_xxxx"
-  url = "https://xxx.xxx.xxx"
+  url             = "https://xxx.xxx.xxx"
 }

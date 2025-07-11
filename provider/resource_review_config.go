@@ -1,12 +1,12 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
 
 	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -53,7 +53,7 @@ func resourceReviewConfig() *schema.Resource {
 				Description: "Resources using the config. We support attach the review config for environments or projects with format {resurce}/{resource id}. For example, environments/test, projects/sample.",
 			},
 			"rules": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Required:    true,
 				MinItems:    1,
 				Description: "The SQL review rules.",
@@ -94,7 +94,6 @@ func resourceReviewConfig() *schema.Resource {
 						},
 					},
 				},
-				Set: reviewRuleHash,
 			},
 		},
 	}
@@ -115,10 +114,12 @@ func resourceReviewConfigRead(ctx context.Context, d *schema.ResourceData, m int
 func resourceReviewConfigDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 	fullName := d.Id()
+	resources := getReviewConfigRelatedResources(d)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
+	removeReviewConfigTag(ctx, c, resources)
 	if err := c.DeleteReviewConfig(ctx, fullName); err != nil {
 		return diag.FromErr(err)
 	}
@@ -135,8 +136,10 @@ func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m i
 	reviewID := d.Get("resource_id").(string)
 	reviewName := fmt.Sprintf("%s%s", internal.ReviewConfigNamePrefix, reviewID)
 
-	if existedName != "" && existedName != reviewName {
-		return diag.Errorf("cannot change the resource id")
+	if existedName != "" {
+		if existedName != reviewName {
+			return diag.Errorf("cannot change the resource id")
+		}
 	}
 
 	rules, err := convertToV1RuleList(d)
@@ -159,19 +162,76 @@ func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	patchTagPolicy(ctx, c, d, review.Name)
+	pendingDelete, pendingAdd := getResourceDiff(ctx, c, d)
+	removeReviewConfigTag(ctx, c, pendingDelete)
+	patchTagPolicy(ctx, c, review.Name, pendingAdd)
 	d.SetId(review.Name)
 
 	return resourceReviewConfigRead(ctx, d, m)
 }
 
-func patchTagPolicy(ctx context.Context, client api.Client, d *schema.ResourceData, reviewName string) diag.Diagnostics {
+// getResourceDiff returns pending delete list and pending add list.
+func getResourceDiff(ctx context.Context, client api.Client, d *schema.ResourceData) ([]string, []string) {
+	existedName := d.Id()
+	oldAttachedResources := []string{}
+	if existedName != "" {
+		existedReview, err := client.GetReviewConfig(ctx, existedName)
+		if err != nil {
+			tflog.Debug(ctx, fmt.Sprintf("get review config %s failed with error: %v", existedName, err))
+		} else if existedReview != nil {
+			oldAttachedResources = existedReview.Resources
+		}
+	}
+
+	oldResourceMap := map[string]bool{}
+	for _, resource := range oldAttachedResources {
+		oldResourceMap[resource] = true
+	}
+
+	newAttachedResources := getReviewConfigRelatedResources(d)
+	newResourceMap := map[string]bool{}
+	for _, resource := range newAttachedResources {
+		newResourceMap[resource] = true
+	}
+
+	pendingDelete := []string{}
+	pendingAdd := []string{}
+	for old := range oldResourceMap {
+		if !newResourceMap[old] {
+			pendingDelete = append(pendingDelete, old)
+		}
+	}
+	for new := range newResourceMap {
+		if !oldResourceMap[new] {
+			pendingAdd = append(pendingAdd, new)
+		}
+	}
+	return pendingDelete, pendingAdd
+}
+
+func getReviewConfigRelatedResources(d *schema.ResourceData) []string {
+	resources := []string{}
 	rawSet, ok := d.Get("resources").(*schema.Set)
 	if !ok || rawSet.Len() == 0 {
-		return nil
+		return resources
 	}
 	for _, raw := range rawSet.List() {
-		resource := raw.(string)
+		resources = append(resources, raw.(string))
+	}
+	return resources
+}
+
+func removeReviewConfigTag(ctx context.Context, client api.Client, resources []string) {
+	for _, resource := range resources {
+		policyName := fmt.Sprintf("%s/%s%s", resource, internal.PolicyNamePrefix, v1pb.PolicyType_TAG.String())
+		if err := client.DeletePolicy(ctx, policyName); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("failed to delete %v policy with error: %v", policyName, err.Error()))
+		}
+	}
+}
+
+func patchTagPolicy(ctx context.Context, client api.Client, reviewName string, resources []string) diag.Diagnostics {
+	for _, resource := range resources {
 		if !strings.HasPrefix(resource, internal.ProjectNamePrefix) && !strings.HasPrefix(resource, internal.EnvironmentNamePrefix) {
 			return diag.Errorf("invalid resource, only support projects/{id} or environments/{id}")
 		}
@@ -213,7 +273,7 @@ func setReviewConfig(d *schema.ResourceData, review *v1pb.ReviewConfig) diag.Dia
 	if err := d.Set("resources", review.Resources); err != nil {
 		return diag.Errorf("cannot set resources for review: %s", err.Error())
 	}
-	if err := d.Set("rules", schema.NewSet(reviewRuleHash, flattenReviewRules(review.Rules))); err != nil {
+	if err := d.Set("rules", flattenReviewRules(review.Rules)); err != nil {
 		return diag.Errorf("cannot set rules for review: %s", err.Error())
 	}
 
@@ -234,35 +294,15 @@ func flattenReviewRules(rules []*v1pb.SQLReviewRule) []interface{} {
 	return ruleList
 }
 
-func reviewRuleHash(rawRule interface{}) int {
-	var buf bytes.Buffer
-	raw := rawRule.(map[string]interface{})
-
-	if v, ok := raw["type"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["engine"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["payload"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["level"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-
-	return internal.ToHashcodeInt(buf.String())
-}
-
 func convertToV1RuleList(d *schema.ResourceData) ([]*v1pb.SQLReviewRule, error) {
-	ruleSet, ok := d.Get("rules").(*schema.Set)
-	if !ok || ruleSet.Len() == 0 {
+	ruleRawList, ok := d.Get("rules").([]interface{})
+	if !ok || len(ruleRawList) == 0 {
 		return nil, errors.Errorf("rules is required")
 	}
 
 	ruleList := []*v1pb.SQLReviewRule{}
 
-	for _, r := range ruleSet.List() {
+	for _, r := range ruleRawList {
 		rawRule := r.(map[string]interface{})
 		payload := rawRule["payload"].(string)
 		if payload == "" {

@@ -47,7 +47,7 @@ func getSemanticTypesSetting(computed bool) *schema.Schema {
 		Computed:    computed,
 		Optional:    true,
 		Default:     nil,
-		Type:        schema.TypeSet,
+		Type:        schema.TypeList,
 		Description: "Semantic types for data masking. Require ENTERPRISE subscription.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
@@ -184,7 +184,6 @@ func getSemanticTypesSetting(computed bool) *schema.Schema {
 				},
 			},
 		},
-		Set: itemIDHash,
 	}
 }
 
@@ -217,7 +216,7 @@ func getClassificationSetting(computed bool) *schema.Schema {
 				},
 				"levels": {
 					Required: true,
-					Type:     schema.TypeSet,
+					Type:     schema.TypeList,
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -239,11 +238,10 @@ func getClassificationSetting(computed bool) *schema.Schema {
 							},
 						},
 					},
-					Set: itemIDHash,
 				},
 				"classifications": {
 					Required: true,
-					Type:     schema.TypeSet,
+					Type:     schema.TypeList,
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -271,7 +269,6 @@ func getClassificationSetting(computed bool) *schema.Schema {
 							},
 						},
 					},
-					Set: itemIDHash,
 				},
 			},
 		},
@@ -507,7 +504,7 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 	}
 	if value := setting.GetValue().GetSemanticTypeSettingValue(); value != nil {
 		settingVal := flattenSemanticTypesSetting(value)
-		if err := d.Set("semantic_types", schema.NewSet(itemIDHash, settingVal)); err != nil {
+		if err := d.Set("semantic_types", settingVal); err != nil {
 			return diag.Errorf("cannot set semantic_types: %s", err.Error())
 		}
 	}
@@ -678,7 +675,7 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 			rawLevel["description"] = level.Description
 			rawLevels = append(rawLevels, rawLevel)
 		}
-		raw["levels"] = schema.NewSet(itemIDHash, rawLevels)
+		raw["levels"] = rawLevels
 
 		rawClassifications := []interface{}{}
 		for _, classification := range config.GetClassification() {
@@ -689,7 +686,7 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 			rawClassification["level"] = classification.LevelId
 			rawClassifications = append(rawClassifications, rawClassification)
 		}
-		raw["classifications"] = schema.NewSet(itemIDHash, rawClassifications)
+		raw["classifications"] = rawClassifications
 	}
 
 	return []interface{}{raw}
@@ -768,9 +765,4 @@ func flattenSemanticTypesSetting(setting *v1pb.SemanticTypeSetting) []interface{
 	}
 
 	return raw
-}
-
-func itemIDHash(rawItem interface{}) int {
-	item := rawItem.(map[string]interface{})
-	return internal.ToHashcodeInt(item["id"].(string))
 }

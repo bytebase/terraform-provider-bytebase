@@ -19,7 +19,7 @@ The review config resource.
 
 - `enabled` (Boolean) Enable the SQL review config
 - `resource_id` (String) The unique resource id for the review config.
-- `rules` (Block Set, Min: 1) The SQL review rules. (see [below for nested schema](#nestedblock--rules))
+- `rules` (Block List, Min: 1) The SQL review rules. (see [below for nested schema](#nestedblock--rules))
 - `title` (String) The title for the review config.
 
 ### Optional

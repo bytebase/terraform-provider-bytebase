@@ -192,11 +192,11 @@ func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassif
 		return nil, errors.Errorf("id is required for classification config")
 	}
 
-	rawLevels := raw["levels"].(*schema.Set)
+	rawLevels := raw["levels"].([]interface{})
 	if !ok {
 		return nil, errors.Errorf("levels is required for classification config")
 	}
-	for _, level := range rawLevels.List() {
+	for _, level := range rawLevels {
 		rawLevel := level.(map[string]interface{})
 		classificationLevel := &v1pb.DataClassificationSetting_DataClassificationConfig_Level{
 			Id:          rawLevel["id"].(string),
@@ -212,11 +212,11 @@ func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassif
 		dataClassificationConfig.Levels = append(dataClassificationConfig.Levels, classificationLevel)
 	}
 
-	rawClassificationss := raw["classifications"].(*schema.Set)
+	rawClassificationss := raw["classifications"].([]interface{})
 	if !ok {
 		return nil, errors.Errorf("classifications is required for classification config")
 	}
-	for _, classification := range rawClassificationss.List() {
+	for _, classification := range rawClassificationss {
 		rawClassification := classification.(map[string]interface{})
 		classificationData := &v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification{
 			Id:          rawClassification["id"].(string),
@@ -347,13 +347,13 @@ func convertToV1EnvironmentSetting(d *schema.ResourceData) (*v1pb.EnvironmentSet
 }
 
 func convertToV1SemanticTypeSetting(d *schema.ResourceData) (*v1pb.SemanticTypeSetting, error) {
-	set, ok := d.Get("semantic_types").(*schema.Set)
+	set, ok := d.Get("semantic_types").([]interface{})
 	if !ok {
 		return nil, errors.Errorf("invalid semantic_types")
 	}
 
 	setting := &v1pb.SemanticTypeSetting{}
-	for _, s := range set.List() {
+	for _, s := range set {
 		rawSemanticType := s.(map[string]interface{})
 		semanticType := &v1pb.SemanticTypeSetting_SemanticType{
 			Id:          rawSemanticType["id"].(string),

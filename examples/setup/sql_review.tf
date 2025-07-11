@@ -1,6 +1,7 @@
 resource "bytebase_review_config" "sample" {
   depends_on = [
-    bytebase_setting.environments
+    bytebase_setting.environments,
+    bytebase_project.sample_project
   ]
 
   resource_id = "review-config-sample"
@@ -8,7 +9,8 @@ resource "bytebase_review_config" "sample" {
   enabled     = true
   resources = toset([
     bytebase_setting.environments.environment_setting[0].environment[0].name,
-    bytebase_setting.environments.environment_setting[0].environment[1].name
+    bytebase_setting.environments.environment_setting[0].environment[1].name,
+    bytebase_project.sample_project.name
   ])
   rules {
     type   = "column.no-null"
