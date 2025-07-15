@@ -5,9 +5,3 @@ data "bytebase_setting" "environments" {
 output "all_environments" {
    value = data.bytebase_setting.environments
 }
-
-# List all instances
-data "bytebase_instance_list" "all" {}
-output "all_instances" {
-   value = data.bytebase_instance_list.all
-}
