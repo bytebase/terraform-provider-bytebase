@@ -69,6 +69,10 @@ Required:
 - `id` (String) The unique rule id
 - `semantic_type` (String) The semantic type id
 
+Optional:
+
+- `title` (String) The title for the rule
+
 
 
 <a id="nestedblock--masking_exception_policy"></a>
@@ -91,6 +95,7 @@ Optional:
 
 - `column` (String)
 - `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format
+- `reason` (String) The reason for the masking exemption
 - `schema` (String)
 - `table` (String)
 

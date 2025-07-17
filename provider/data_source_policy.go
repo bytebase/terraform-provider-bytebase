@@ -130,6 +130,11 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 									v1pb.MaskingExceptionPolicy_MaskingException_EXPORT.String(),
 								}, false),
 							},
+							"reason": {
+								Type:        schema.TypeString,
+								Optional:    true,
+								Description: "The reason for the masking exemption",
+							},
 							"expire_timestamp": {
 								Type:        schema.TypeString,
 								Computed:    computed,
@@ -168,6 +173,11 @@ func getGlobalMaskingPolicySchema(computed bool) *schema.Schema {
 								Required:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
 								Description:  "The unique rule id",
+							},
+							"title": {
+								Type:        schema.TypeString,
+								Optional:    true,
+								Description: "The title for the rule",
 							},
 							"semantic_type": {
 								Type:         schema.TypeString,
@@ -404,6 +414,7 @@ func flattenGlobalMaskingPolicy(p *v1pb.MaskingRulePolicy) ([]interface{}, error
 		raw["id"] = rule.Id
 		raw["semantic_type"] = rule.SemanticType
 		raw["condition"] = rule.Condition.Expression
+		raw["title"] = rule.Condition.Title
 
 		ruleList = append(ruleList, raw)
 	}
@@ -424,6 +435,7 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 		if exception.Condition == nil || exception.Condition.Expression == "" {
 			return nil, errors.Errorf("invalid exception policy condition")
 		}
+		raw["reason"] = exception.Condition.Description
 
 		expressions := strings.Split(exception.Condition.Expression, " && ")
 		instanceID := ""

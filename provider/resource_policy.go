@@ -312,10 +312,12 @@ func convertToMaskingRulePolicy(d *schema.ResourceData) (*v1pb.MaskingRulePolicy
 
 	for _, rule := range ruleList {
 		rawRule := rule.(map[string]interface{})
+		title := rawRule["title"].(string)
 		policy.Rules = append(policy.Rules, &v1pb.MaskingRulePolicy_MaskingRule{
 			Id:           rawRule["id"].(string),
 			SemanticType: rawRule["semantic_type"].(string),
 			Condition: &expr.Expr{
+				Title:      title,
 				Expression: rawRule["condition"].(string),
 			},
 		})
@@ -380,7 +382,8 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 				v1pb.MaskingExceptionPolicy_MaskingException_Action_value[rawException["action"].(string)],
 			),
 			Condition: &expr.Expr{
-				Expression: strings.Join(expressions, " && "),
+				Description: rawException["reason"].(string),
+				Expression:  strings.Join(expressions, " && "),
 			},
 		})
 	}
