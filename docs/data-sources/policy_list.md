@@ -51,6 +51,7 @@ Read-Only:
 - `condition` (String)
 - `id` (String)
 - `semantic_type` (String)
+- `title` (String)
 
 
 
@@ -71,6 +72,7 @@ Read-Only:
 - `database` (String)
 - `expire_timestamp` (String)
 - `member` (String)
+- `reason` (String)
 - `schema` (String)
 - `table` (String)
 

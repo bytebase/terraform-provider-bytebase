@@ -115,6 +115,7 @@ resource "bytebase_policy" "masking_exception_policy" {
       column   = "amount"
       member   = "user:ed@bytebase.com"
       action   = "EXPORT"
+      reason   = "Grant access to ed for export"
     }
     exceptions {
       database = "instances/test-sample-instance/databases/employee"
@@ -142,11 +143,13 @@ resource "bytebase_policy" "global_masking_policy" {
       condition     = "environment_id in [\"test\"]"
       id            = "69df1d15-abe5-4bc9-be38-f2a4bef3f7e0"
       semantic_type = "bb.default-partial"
+      title         = "Partial masking for test environment"
     }
     rules {
       condition     = "instance_id in [\"prod-sample-instance\"]"
       id            = "90adb734-0808-4c9f-b281-1f76f7a1a29a"
       semantic_type = "bb.default"
+      title         = "Default masking for prod instance"
     }
   }
 }
