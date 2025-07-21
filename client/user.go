@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"google.golang.org/protobuf/encoding/protojson"
 

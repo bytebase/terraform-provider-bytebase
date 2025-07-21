@@ -24,7 +24,7 @@ The user resource.
 
 - `password` (String, Sensitive) The user login password.
 - `phone` (String) The user phone.
-- `type` (String) The user type.
+- `type` (String) The user type, should be USER or SERVICE_ACCOUNT. Cannot change after creation.
 
 ### Read-Only
 

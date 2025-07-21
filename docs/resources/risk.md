@@ -18,8 +18,8 @@ The risk resource. Require ENTERPRISE subscription. Check the docs https://www.b
 ### Required
 
 - `condition` (String) The risk condition. Check the proto message https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/risk_service.proto#L210 for details.
-- `level` (Number) The risk level.
-- `source` (String) The risk source.
+- `level` (Number) The risk level, should be 300, 200 or 100. Higher number means higher level.
+- `source` (String) The risk source. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/risk_service.proto#L138 for details
 - `title` (String) The risk title.
 
 ### Optional

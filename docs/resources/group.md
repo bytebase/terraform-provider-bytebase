@@ -37,6 +37,6 @@ The group resource. Workspace domain is required for creating groups.
 Required:
 
 - `member` (String) The member in users/{email} format.
-- `role` (String) The member's role in the group.
+- `role` (String) The member's role in the group, should be OWNER or MEMBER.
 
 

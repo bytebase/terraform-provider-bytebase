@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -43,6 +43,8 @@ const (
 	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
 	// WorkspaceName is the name for workspace resource.
 	WorkspaceName = "workspaces/-"
+	// WebhookNamePrefix is the prefix for webhook name.
+	WebhookNamePrefix = "webhooks/"
 )
 
 var (

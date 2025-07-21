@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
@@ -113,6 +113,12 @@ type Client interface {
 	GetProjectIAMPolicy(ctx context.Context, projectName string) (*v1pb.IamPolicy, error)
 	// SetProjectIAMPolicy sets the project IAM policy.
 	SetProjectIAMPolicy(ctx context.Context, projectName string, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error)
+	// CreateProjectWebhook creates the webhook in the project.
+	CreateProjectWebhook(ctx context.Context, projectName string, webhook *v1pb.Webhook) (*v1pb.Webhook, error)
+	// UpdateProjectWebhook updates the webhook.
+	UpdateProjectWebhook(ctx context.Context, patch *v1pb.Webhook, updateMasks []string) (*v1pb.Webhook, error)
+	// DeleteProjectWebhook deletes the webhook.
+	DeleteProjectWebhook(ctx context.Context, webhookName string) error
 
 	// Setting
 	// ListSettings lists all settings.

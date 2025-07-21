@@ -3,9 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -58,7 +57,7 @@ func resourceUser() *schema.Resource {
 			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The user type.",
+				Description: "The user type, should be USER or SERVICE_ACCOUNT. Cannot change after creation.",
 				Default:     v1pb.UserType_USER.String(),
 				ValidateFunc: validation.StringInSlice([]string{
 					v1pb.UserType_SERVICE_ACCOUNT.String(),
@@ -138,9 +137,15 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 		tflog.Debug(ctx, fmt.Sprintf("get user %s failed with error: %v", userName, err))
 	}
 
-	title := d.Get("title").(string)
-	phone := d.Get("phone").(string)
-	password := d.Get("password").(string)
+	user := &v1pb.User{
+		Name:     existedUser.Name,
+		Title:    d.Get("title").(string),
+		Password: d.Get("password").(string),
+		Phone:    d.Get("phone").(string),
+		Email:    email,
+		UserType: v1pb.UserType(v1pb.UserType_value[d.Get("type").(string)]),
+		State:    v1pb.State_ACTIVE,
+	}
 
 	var diags diag.Diagnostics
 	if existedUser != nil && err == nil {
@@ -149,6 +154,15 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 			Summary:  "User already exists",
 			Detail:   fmt.Sprintf("User %s already exists, try to exec the update operation", userName),
 		})
+
+		if user.UserType != existedUser.UserType {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Cannot change the user type",
+				Detail:   fmt.Sprintf("User %s should be %v type", userName, existedUser.UserType.String()),
+			})
+			return diags
+		}
 
 		if existedUser.State == v1pb.State_DELETED {
 			diags = append(diags, diag.Diagnostic{
@@ -170,25 +184,18 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 		if email != "" && email != existedUser.Email {
 			updateMasks = append(updateMasks, "email")
 		}
-		if title != "" && title != existedUser.Title {
+		if user.Title != existedUser.Title {
 			updateMasks = append(updateMasks, "title")
 		}
-		if password != "" {
+		if user.Password != "" {
 			updateMasks = append(updateMasks, "password")
 		}
-		if phone != "" && phone != existedUser.Phone {
+		rawConfig := d.GetRawConfig()
+		if config := rawConfig.GetAttr("phone"); !config.IsNull() && user.Phone != existedUser.Phone {
 			updateMasks = append(updateMasks, "phone")
 		}
 		if len(updateMasks) > 0 {
-			if _, err := c.UpdateUser(ctx, &v1pb.User{
-				Name:     existedUser.Name,
-				Title:    title,
-				Password: password,
-				Phone:    phone,
-				Email:    email,
-				UserType: existedUser.UserType,
-				State:    v1pb.State_ACTIVE,
-			}, updateMasks); err != nil {
+			if _, err := c.UpdateUser(ctx, user, updateMasks); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to update user",
@@ -199,21 +206,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 		}
 		d.SetId(existedUser.Name)
 	} else {
-		userType := v1pb.UserType(v1pb.UserType_value[d.Get("type").(string)])
-		if userType == v1pb.UserType_SERVICE_ACCOUNT {
-			if !strings.HasSuffix(email, "@service.bytebase.com") {
-				return diag.Errorf(`service account email must ends with "@service.bytebase.com"`)
-			}
-		}
-		user, err := c.CreateUser(ctx, &v1pb.User{
-			Name:     userName,
-			Title:    title,
-			Password: password,
-			Phone:    phone,
-			Email:    email,
-			UserType: userType,
-			State:    v1pb.State_ACTIVE,
-		})
+		user, err := c.CreateUser(ctx, user)
 		if err != nil {
 			return diag.FromErr(err)
 		}

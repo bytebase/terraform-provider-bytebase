@@ -22,6 +22,7 @@ The project data source.
 ### Read-Only
 
 - `allow_modify_statement` (Boolean) Allow modifying statement after issue is created.
+- `allow_self_approval` (Boolean) Whether to allow the issue creator to self-approve the issue.
 - `auto_enable_backup` (Boolean) Whether to automatically enable backup.
 - `auto_resolve_issue` (Boolean) Enable auto resolve issue.
 - `databases` (Set of String) The databases full name in the resource.
@@ -31,5 +32,18 @@ The project data source.
 - `postgres_database_tenant_mode` (Boolean) Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended "set role <db_owner>" statement.
 - `skip_backup_errors` (Boolean) Whether to skip backup errors and continue the data migration.
 - `title` (String) The project title.
+- `webhooks` (List of Object) The webhooks in the project. (see [below for nested schema](#nestedatt--webhooks))
+
+<a id="nestedatt--webhooks"></a>
+### Nested Schema for `webhooks`
+
+Read-Only:
+
+- `direct_message` (Boolean)
+- `name` (String)
+- `notification_types` (Set of String)
+- `title` (String)
+- `type` (String)
+- `url` (String)
 
 

@@ -8,11 +8,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 )
 
 func dataSourceProject() *schema.Resource {
@@ -61,12 +62,90 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to skip backup errors and continue the data migration.",
 			},
+			"allow_self_approval": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether to allow the issue creator to self-approve the issue.",
+			},
 			"postgres_database_tenant_mode": {
 				Type:        schema.TypeBool,
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
 			"databases": getDatabasesSchema(true),
+			"webhooks":  getWebhooksSchema(true),
+		},
+	}
+}
+
+func getWebhooksSchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    !computed,
+		Computed:    computed,
+		Description: "The webhooks in the project.",
+		MinItems:    0,
+		ConfigMode:  schema.SchemaConfigModeAttr,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"type": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Description: "The webhook type. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/project_service.proto#L449 for support types.",
+					ValidateFunc: validation.StringInSlice([]string{
+						v1pb.Webhook_SLACK.String(),
+						v1pb.Webhook_DISCORD.String(),
+						v1pb.Webhook_TEAMS.String(),
+						v1pb.Webhook_DINGTALK.String(),
+						v1pb.Webhook_FEISHU.String(),
+						v1pb.Webhook_WECOM.String(),
+						v1pb.Webhook_LARK.String(),
+					}, false),
+				},
+				"title": {
+					Type:         schema.TypeString,
+					Required:     true,
+					Description:  "The webhook title",
+					ValidateFunc: validation.StringIsNotEmpty,
+				},
+				"name": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The webhook full name in projects/{resource id}/webhooks/{id} format.",
+				},
+				"url": {
+					Type:         schema.TypeString,
+					Required:     true,
+					Description:  "The webhook URL",
+					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+				},
+				"direct_message": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "If direct_message is set, the notification is sent directly to the persons and url will be ignored. Require IM integration for this function to work.",
+				},
+				"notification_types": {
+					Type:        schema.TypeSet,
+					Required:    true,
+					MinItems:    1,
+					Description: "notification_types is the list of activities types that the webhook is interested in. Bytebase will only send notifications to the webhook if the activity type is in the list.",
+					Elem: &schema.Schema{
+						Type:        schema.TypeString,
+						Description: "Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/project_service.proto#L486 for support types.",
+						ValidateFunc: validation.StringInSlice([]string{
+							v1pb.Activity_NOTIFY_ISSUE_APPROVED.String(),
+							v1pb.Activity_NOTIFY_PIPELINE_ROLLOUT.String(),
+							v1pb.Activity_ISSUE_CREATE.String(),
+							v1pb.Activity_ISSUE_COMMENT_CREATE.String(),
+							v1pb.Activity_ISSUE_FIELD_UPDATE.String(),
+							v1pb.Activity_ISSUE_STATUS_UPDATE.String(),
+							v1pb.Activity_ISSUE_APPROVAL_NOTIFY.String(),
+							v1pb.Activity_ISSUE_PIPELINE_STAGE_STATUS_UPDATE.String(),
+							v1pb.Activity_ISSUE_PIPELINE_TASK_RUN_STATUS_UPDATE.String(),
+						}, false),
+					},
+				},
+			},
 		},
 	}
 }
@@ -101,6 +180,26 @@ func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
 		dbList = append(dbList, database.Name)
 	}
 	return dbList
+}
+
+func flattenWebhookList(webhooks []*v1pb.Webhook) []map[string]interface{} {
+	rawWebhooks := []map[string]interface{}{}
+	for _, webhook := range webhooks {
+		rawWebhook := make(map[string]interface{})
+		rawWebhook["title"] = webhook.Title
+		rawWebhook["type"] = webhook.Type.String()
+		rawWebhook["url"] = webhook.Url
+		rawWebhook["name"] = webhook.Name
+		rawWebhook["direct_message"] = webhook.DirectMessage
+		rawWebhooks = append(rawWebhooks, rawWebhook)
+
+		notificationTypes := []string{}
+		for _, notificationType := range webhook.NotificationTypes {
+			notificationTypes = append(notificationTypes, notificationType.String())
+		}
+		rawWebhook["notification_types"] = notificationTypes
+	}
+	return rawWebhooks
 }
 
 func setProject(
@@ -151,6 +250,9 @@ func setProject(
 	if err := d.Set("skip_backup_errors", project.SkipBackupErrors); err != nil {
 		return diag.Errorf("cannot set skip_backup_errors for project: %s", err.Error())
 	}
+	if err := d.Set("allow_self_approval", project.AllowSelfApproval); err != nil {
+		return diag.Errorf("cannot set allow_self_approval for project: %s", err.Error())
+	}
 	if err := d.Set("postgres_database_tenant_mode", project.PostgresDatabaseTenantMode); err != nil {
 		return diag.Errorf("cannot set postgres_database_tenant_mode for project: %s", err.Error())
 	}
@@ -165,6 +267,10 @@ func setProject(
 		"databases": len(databases),
 		"ms":        time.Since(startTime).Milliseconds(),
 	})
+
+	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks)); err != nil {
+		return diag.Errorf("cannot set webhooks for project: %s", err.Error())
+	}
 
 	return nil
 }

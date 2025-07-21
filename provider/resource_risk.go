@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"google.golang.org/genproto/googleapis/type/expr"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
@@ -46,7 +46,7 @@ func resourceRisk() *schema.Resource {
 					v1pb.Risk_REQUEST_ROLE.String(),
 					v1pb.Risk_DATA_EXPORT.String(),
 				}, false),
-				Description: "The risk source.",
+				Description: "The risk source. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/risk_service.proto#L138 for details",
 			},
 			"level": {
 				Type:     schema.TypeInt,
@@ -54,7 +54,7 @@ func resourceRisk() *schema.Resource {
 				ValidateFunc: validation.IntInSlice([]int{
 					300, 200, 100,
 				}),
-				Description: "The risk level.",
+				Description: "The risk level, should be 300, 200 or 100. Higher number means higher level.",
 			},
 			"active": {
 				Type:        schema.TypeBool,
@@ -125,22 +125,15 @@ func resourceRiskDelete(ctx context.Context, d *schema.ResourceData, m interface
 func resourceRiskCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	title := d.Get("title").(string)
-	active := d.Get("active").(bool)
-	level := int32(d.Get("level").(int))
-	source := v1pb.Risk_Source(v1pb.Risk_Source_value[d.Get("source").(string)])
-
-	risk := &v1pb.Risk{
-		Title:  title,
-		Active: active,
-		Level:  level,
-		Source: source,
+	created, err := c.CreateRisk(ctx, &v1pb.Risk{
+		Title:  d.Get("title").(string),
+		Active: d.Get("active").(bool),
+		Level:  int32(d.Get("level").(int)),
+		Source: v1pb.Risk_Source(v1pb.Risk_Source_value[d.Get("source").(string)]),
 		Condition: &expr.Expr{
 			Expression: d.Get("condition").(string),
 		},
-	}
-
-	created, err := c.CreateRisk(ctx, risk)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
