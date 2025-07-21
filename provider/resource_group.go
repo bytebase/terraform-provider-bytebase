@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -72,7 +72,7 @@ func resourceGroup() *schema.Resource {
 						"role": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "The member's role in the group.",
+							Description: "The member's role in the group, should be OWNER or MEMBER.",
 							ValidateFunc: validation.StringInSlice([]string{
 								v1pb.GroupMember_OWNER.String(),
 								v1pb.GroupMember_MEMBER.String(),
@@ -119,11 +119,16 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, m interfac
 	groupEmail := d.Get("email").(string)
 	groupName := fmt.Sprintf("%s%s", internal.GroupNamePrefix, groupEmail)
 
-	title := d.Get("title").(string)
-	description := d.Get("description").(string)
 	members, err := convertToMemberList(d)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	group := &v1pb.Group{
+		Name:        groupName,
+		Title:       d.Get("title").(string),
+		Description: d.Get("description").(string),
+		Members:     members,
 	}
 
 	existedGroup, err := c.GetGroup(ctx, groupName)
@@ -140,19 +145,15 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, m interfac
 		})
 
 		updateMasks := []string{"members"}
-		if title != existedGroup.Title {
+		if group.Title != existedGroup.Title {
 			updateMasks = append(updateMasks, "title")
 		}
-		if description != existedGroup.Description {
+		rawConfig := d.GetRawConfig()
+		if config := rawConfig.GetAttr("description"); !config.IsNull() && group.Description != existedGroup.Description {
 			updateMasks = append(updateMasks, "description")
 		}
 
-		if _, err := c.UpdateGroup(ctx, &v1pb.Group{
-			Name:        groupName,
-			Title:       title,
-			Description: description,
-			Members:     members,
-		}, updateMasks); err != nil {
+		if _, err := c.UpdateGroup(ctx, group, updateMasks); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update group",
@@ -161,12 +162,7 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, m interfac
 			return diags
 		}
 	} else {
-		if _, err := c.CreateGroup(ctx, groupEmail, &v1pb.Group{
-			Name:        groupName,
-			Title:       title,
-			Description: description,
-			Members:     members,
-		}); err != nil {
+		if _, err := c.CreateGroup(ctx, groupEmail, group); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -196,7 +192,7 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
-	updateMasks := []string{"members"}
+	updateMasks := []string{}
 	if d.HasChange("title") {
 		updateMasks = append(updateMasks, "title")
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
@@ -301,7 +301,7 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					Type:        schema.TypeBool,
 					Computed:    computed,
 					Optional:    true,
-					Description: "Whether to disallow password signin. (Except workspace admins). Require ENTERPRISE subscription",
+					Description: "Whether to disallow password signin (except workspace admins). Require ENTERPRISE subscription",
 				},
 				"domains": {
 					Type:        schema.TypeList,
@@ -317,6 +317,61 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					Computed:    computed,
 					Optional:    true,
 					Description: "Only user and group from the domains can be created and login.",
+				},
+				"database_change_mode": {
+					Type:     schema.TypeString,
+					Computed: computed,
+					Optional: true,
+					ValidateFunc: validation.StringInSlice([]string{
+						v1pb.DatabaseChangeMode_EDITOR.String(),
+						v1pb.DatabaseChangeMode_PIPELINE.String(),
+					}, false),
+					Description: "The workspace database change mode, support EDITOR or PIPELINE. Default PIPELINE",
+				},
+				"token_duration_in_seconds": {
+					Type:         schema.TypeInt,
+					Computed:     computed,
+					Optional:     true,
+					ValidateFunc: validation.IntAtLeast(3600),
+					Description:  "The duration for login token in seconds. The duration should be at least 3600 (one hour).",
+				},
+				"maximum_role_expiration_in_seconds": {
+					Type:        schema.TypeInt,
+					Computed:    computed,
+					Optional:    true,
+					Description: "The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
+				},
+				"announcement": {
+					Type:        schema.TypeList,
+					Computed:    computed,
+					Optional:    true,
+					MinItems:    0,
+					MaxItems:    1,
+					Description: "Custom announcement. Will show as a banner in the Bytebase UI. Require ENTERPRISE subscription.",
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"text": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "The text of announcement. Leave it as empty string can clear the announcement",
+							},
+							"link": {
+								Type:        schema.TypeString,
+								Optional:    true,
+								Description: "The optional link, user can follow the link to check extra details",
+							},
+							"level": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "The alert level of announcement",
+								ValidateFunc: validation.StringInSlice([]string{
+									v1pb.Announcement_INFO.String(),
+									v1pb.Announcement_WARNING.String(),
+									v1pb.Announcement_CRITICAL.String(),
+								}, false),
+							},
+						},
+					},
 				},
 			},
 		},
@@ -654,6 +709,16 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	raw["disallow_password_signin"] = setting.DisallowPasswordSignin
 	raw["enforce_identity_domain"] = setting.EnforceIdentityDomain
 	raw["domains"] = setting.Domains
+	raw["database_change_mode"] = setting.DatabaseChangeMode.String()
+	raw["token_duration_in_seconds"] = int(setting.GetTokenDuration().Seconds)
+	raw["maximum_role_expiration_in_seconds"] = int(setting.GetMaximumRoleExpiration().Seconds)
+	raw["announcement"] = []any{
+		map[string]any{
+			"text":  setting.GetAnnouncement().Text,
+			"link":  setting.GetAnnouncement().Link,
+			"level": setting.GetAnnouncement().Level.String(),
+		},
+	}
 
 	return []interface{}{raw}
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -321,25 +321,27 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	instanceID := d.Get("resource_id").(string)
 	instanceName := fmt.Sprintf("%s%s", internal.InstanceNamePrefix, instanceID)
-	title := d.Get("title").(string)
-	externalLink := d.Get("external_link").(string)
-	environment := d.Get("environment").(string)
-	activation := d.Get("activation").(bool)
-	syncInterval := &durationpb.Duration{
-		Seconds: int64(d.Get("sync_interval").(int)),
-	}
-	maximumConnections := int32(d.Get("maximum_connections").(int))
-
-	engineString := d.Get("engine").(string)
-	engineValue, ok := v1pb.Engine_value[engineString]
-	if !ok {
-		return diag.Errorf("invalid engine type %v", engineString)
-	}
-	engine := v1pb.Engine(engineValue)
-
 	existedInstance, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get instance %s failed with error: %v", instanceName, err))
+	}
+
+	instance := &v1pb.Instance{
+		Name:               instanceName,
+		Title:              d.Get("title").(string),
+		ExternalLink:       d.Get("external_link").(string),
+		DataSources:        dataSourceList,
+		Environment:        d.Get("environment").(string),
+		Activation:         d.Get("activation").(bool),
+		State:              v1pb.State_ACTIVE,
+		MaximumConnections: int32(d.Get("maximum_connections").(int)),
+		Engine:             v1pb.Engine(v1pb.Engine_value[d.Get("engine").(string)]),
+	}
+	rawConfig := d.GetRawConfig()
+	if config := rawConfig.GetAttr("sync_interval"); !config.IsNull() {
+		instance.SyncInterval = &durationpb.Duration{
+			Seconds: int64(d.Get("sync_interval").(int)),
+		}
 	}
 
 	var diags diag.Diagnostics
@@ -350,11 +352,11 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			Detail:   fmt.Sprintf("Instance %s already exists, try to exec the update operation", instanceName),
 		})
 
-		if existedInstance.Engine != engine {
+		if existedInstance.Engine != instance.Engine {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Invalid argument",
-				Detail:   fmt.Sprintf("cannot update instance %s engine to %s", instanceName, engine),
+				Detail:   fmt.Sprintf("cannot update instance %s engine to %s", instanceName, instance.Engine),
 			})
 			return diags
 		}
@@ -376,22 +378,22 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 
 		updateMasks := []string{}
-		if title != "" && title != existedInstance.Title {
+		if instance.Title != existedInstance.Title {
 			updateMasks = append(updateMasks, "title")
 		}
-		if externalLink != "" && externalLink != existedInstance.ExternalLink {
+		if config := rawConfig.GetAttr("external_link"); !config.IsNull() && instance.ExternalLink != existedInstance.ExternalLink {
 			updateMasks = append(updateMasks, "external_link")
 		}
-		if environment != existedInstance.Environment {
+		if instance.Environment != existedInstance.Environment {
 			updateMasks = append(updateMasks, "environment")
 		}
-		if activation != existedInstance.Activation {
+		if config := rawConfig.GetAttr("activation"); !config.IsNull() && instance.Activation != existedInstance.Activation {
 			updateMasks = append(updateMasks, "activation")
 		}
-		if syncInterval.GetSeconds() != existedInstance.GetSyncInterval().GetSeconds() {
+		if config := rawConfig.GetAttr("sync_interval"); !config.IsNull() && instance.SyncInterval.GetSeconds() != existedInstance.GetSyncInterval().GetSeconds() {
 			updateMasks = append(updateMasks, "sync_interval")
 		}
-		if maximumConnections != existedInstance.GetMaximumConnections() {
+		if config := rawConfig.GetAttr("maximum_connections"); !config.IsNull() && instance.MaximumConnections != existedInstance.GetMaximumConnections() {
 			updateMasks = append(updateMasks, "maximum_connections")
 		}
 		if len(dataSourceList) > 0 {
@@ -399,17 +401,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 
 		if len(updateMasks) > 0 {
-			if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
-				Name:               instanceName,
-				Title:              title,
-				ExternalLink:       externalLink,
-				DataSources:        dataSourceList,
-				Environment:        environment,
-				Activation:         activation,
-				State:              v1pb.State_ACTIVE,
-				SyncInterval:       syncInterval,
-				MaximumConnections: maximumConnections,
-			}, updateMasks); err != nil {
+			if _, err := c.UpdateInstance(ctx, instance, updateMasks); err != nil {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Failed to update instance",
@@ -419,18 +411,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			}
 		}
 	} else {
-		if _, err := c.CreateInstance(ctx, instanceID, &v1pb.Instance{
-			Name:               instanceName,
-			Title:              title,
-			Engine:             engine,
-			ExternalLink:       externalLink,
-			State:              v1pb.State_ACTIVE,
-			DataSources:        dataSourceList,
-			Environment:        environment,
-			Activation:         activation,
-			SyncInterval:       syncInterval,
-			MaximumConnections: maximumConnections,
-		}); err != nil {
+		if _, err := c.CreateInstance(ctx, instanceID, instance); err != nil {
 			return diag.FromErr(err)
 		}
 	}

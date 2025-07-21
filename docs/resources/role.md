@@ -17,7 +17,7 @@ The role resource. Require ENTERPRISE subscription. Check the docs https://www.b
 
 ### Required
 
-- `permissions` (Set of String) The role permissions. All permissions should start with "bb." prefix.
+- `permissions` (Set of String) The role permissions. Permissions should start with "bb." prefix. Check https://github.com/bytebase/bytebase/blob/main/backend/component/iam/permission.yaml for all permissions.
 - `resource_id` (String) The role unique resource id.
 - `title` (String) The role title.
 

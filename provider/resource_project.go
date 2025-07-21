@@ -14,7 +14,7 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 )
 
 // defaultProj is the default project name.
@@ -78,13 +78,38 @@ func resourceProjct() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to skip backup errors and continue the data migration.",
 			},
+			"allow_self_approval": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether to allow the issue creator to self-approve the issue.",
+			},
 			"postgres_database_tenant_mode": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
+			"execution_retry_policy": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: "The maximum number of retries for the lock timeout issue.",
+			},
+			"ci_sampling_size": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: "The maximum databases of rows to sample during CI data validation. Without specification, sampling is disabled, resulting in a full validation.",
+			},
+			"parallel_tasks_per_rollout": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Computed:    true,
+				Description: "The maximum number of parallel tasks to run during the rollout.",
+			},
 			"databases": getDatabasesSchema(false),
+			"webhooks":  getWebhooksSchema(false),
 		},
 	}
 }
@@ -94,18 +119,60 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	projectID := d.Get("resource_id").(string)
 	projectName := fmt.Sprintf("%s%s", internal.ProjectNamePrefix, projectID)
-
-	title := d.Get("title").(string)
-	allowModifyStatement := d.Get("allow_modify_statement").(bool)
-	autoResolveIssue := d.Get("auto_resolve_issue").(bool)
-	enforceIssueTitle := d.Get("enforce_issue_title").(bool)
-	autoEnableBackup := d.Get("auto_enable_backup").(bool)
-	skipBackupErrors := d.Get("skip_backup_errors").(bool)
-	postgresDatabaseTenantMode := d.Get("postgres_database_tenant_mode").(bool)
+	project := &v1pb.Project{
+		Name:                       projectName,
+		Title:                      d.Get("title").(string),
+		State:                      v1pb.State_ACTIVE,
+		AllowModifyStatement:       d.Get("allow_modify_statement").(bool),
+		AutoResolveIssue:           d.Get("auto_resolve_issue").(bool),
+		EnforceIssueTitle:          d.Get("enforce_issue_title").(bool),
+		AutoEnableBackup:           d.Get("auto_enable_backup").(bool),
+		SkipBackupErrors:           d.Get("skip_backup_errors").(bool),
+		AllowSelfApproval:          d.Get("allow_self_approval").(bool),
+		PostgresDatabaseTenantMode: d.Get("postgres_database_tenant_mode").(bool),
+		ExecutionRetryPolicy: &v1pb.Project_ExecutionRetryPolicy{
+			MaximumRetries: int32(d.Get("execution_retry_policy").(int)),
+		},
+		CiSamplingSize:          int32(d.Get("ci_sampling_size").(int)),
+		ParallelTasksPerRollout: int32(d.Get("parallel_tasks_per_rollout").(int)),
+	}
 
 	existedProject, err := c.GetProject(ctx, projectName)
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get project %s failed with error: %v", projectName, err))
+	}
+
+	rawConfig := d.GetRawConfig()
+	updateMasks := []string{}
+	if config := rawConfig.GetAttr("allow_modify_statement"); !config.IsNull() {
+		updateMasks = append(updateMasks, "allow_modify_statement")
+	}
+	if config := rawConfig.GetAttr("auto_resolve_issue"); !config.IsNull() {
+		updateMasks = append(updateMasks, "auto_resolve_issue")
+	}
+	if config := rawConfig.GetAttr("enforce_issue_title"); !config.IsNull() {
+		updateMasks = append(updateMasks, "enforce_issue_title")
+	}
+	if config := rawConfig.GetAttr("auto_enable_backup"); !config.IsNull() {
+		updateMasks = append(updateMasks, "auto_enable_backup")
+	}
+	if config := rawConfig.GetAttr("skip_backup_errors"); !config.IsNull() {
+		updateMasks = append(updateMasks, "skip_backup_errors")
+	}
+	if config := rawConfig.GetAttr("allow_self_approval"); !config.IsNull() {
+		updateMasks = append(updateMasks, "allow_self_approval")
+	}
+	if config := rawConfig.GetAttr("postgres_database_tenant_mode"); !config.IsNull() {
+		updateMasks = append(updateMasks, "postgres_database_tenant_mode")
+	}
+	if config := rawConfig.GetAttr("execution_retry_policy"); !config.IsNull() {
+		updateMasks = append(updateMasks, "execution_retry_policy")
+	}
+	if config := rawConfig.GetAttr("ci_sampling_size"); !config.IsNull() {
+		updateMasks = append(updateMasks, "ci_sampling_size")
+	}
+	if config := rawConfig.GetAttr("parallel_tasks_per_rollout"); !config.IsNull() {
+		updateMasks = append(updateMasks, "parallel_tasks_per_rollout")
 	}
 
 	var diags diag.Diagnostics
@@ -132,68 +199,34 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 			}
 		}
 
-		updateMasks := []string{}
-		if title != "" && title != existedProject.Title {
+		if project.Title != existedProject.Title {
 			updateMasks = append(updateMasks, "title")
 		}
-		if allowModifyStatement != existedProject.AllowModifyStatement {
-			updateMasks = append(updateMasks, "allow_modify_statement")
-		}
-		if autoResolveIssue != existedProject.AutoResolveIssue {
-			updateMasks = append(updateMasks, "auto_resolve_issue")
-		}
-		if enforceIssueTitle != existedProject.EnforceIssueTitle {
-			updateMasks = append(updateMasks, "enforce_issue_title")
-		}
-		if autoEnableBackup != existedProject.AutoEnableBackup {
-			updateMasks = append(updateMasks, "auto_enable_backup")
-		}
-		if skipBackupErrors != existedProject.SkipBackupErrors {
-			updateMasks = append(updateMasks, "skip_backup_errors")
-		}
-		if postgresDatabaseTenantMode != existedProject.PostgresDatabaseTenantMode {
-			updateMasks = append(updateMasks, "postgres_database_tenant_mode")
-		}
-
-		if len(updateMasks) > 0 {
-			if _, err := c.UpdateProject(ctx, &v1pb.Project{
-				Name:                       projectName,
-				Title:                      title,
-				State:                      v1pb.State_ACTIVE,
-				AllowModifyStatement:       allowModifyStatement,
-				AutoResolveIssue:           autoResolveIssue,
-				EnforceIssueTitle:          enforceIssueTitle,
-				AutoEnableBackup:           autoEnableBackup,
-				SkipBackupErrors:           skipBackupErrors,
-				PostgresDatabaseTenantMode: postgresDatabaseTenantMode,
-			}, updateMasks); err != nil {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Failed to update project",
-					Detail:   fmt.Sprintf("Update project %s failed, error: %v", projectName, err),
-				})
-				return diags
-			}
-		}
 	} else {
-		if _, err := c.CreateProject(ctx, projectID, &v1pb.Project{
-			Name:                       projectName,
-			Title:                      title,
-			State:                      v1pb.State_ACTIVE,
-			AllowModifyStatement:       allowModifyStatement,
-			AutoResolveIssue:           autoResolveIssue,
-			EnforceIssueTitle:          enforceIssueTitle,
-			AutoEnableBackup:           autoEnableBackup,
-			SkipBackupErrors:           skipBackupErrors,
-			PostgresDatabaseTenantMode: postgresDatabaseTenantMode,
-		}); err != nil {
+		if _, err := c.CreateProject(ctx, projectID, project); err != nil {
 			return diag.FromErr(err)
+		}
+	}
+
+	if len(updateMasks) > 0 {
+		if _, err := c.UpdateProject(ctx, project, updateMasks); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to update project",
+				Detail:   fmt.Sprintf("Update project %s failed, error: %v", projectName, err),
+			})
+			return diags
 		}
 	}
 
 	d.SetId(projectName)
 
 	if diag := updateDatabasesInProject(ctx, d, c, d.Id()); diag != nil {
+		diags = append(diags, diag...)
+		return diags
+	}
+
+	if diag := updateWebhooksInProject(ctx, d, c, d.Id()); diag != nil {
 		diags = append(diags, diag...)
 		return diags
 	}
@@ -263,28 +296,39 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("skip_backup_errors") {
 		paths = append(paths, "skip_backup_errors")
 	}
+	if d.HasChange("allow_self_approval") {
+		paths = append(paths, "allow_self_approval")
+	}
 	if d.HasChange("postgres_database_tenant_mode") {
 		paths = append(paths, "postgres_database_tenant_mode")
 	}
-
-	allowModifyStatement := d.Get("allow_modify_statement").(bool)
-	autoResolveIssue := d.Get("auto_resolve_issue").(bool)
-	enforceIssueTitle := d.Get("enforce_issue_title").(bool)
-	autoEnableBackup := d.Get("auto_enable_backup").(bool)
-	skipBackupErrors := d.Get("skip_backup_errors").(bool)
-	postgresDatabaseTenantMode := d.Get("postgres_database_tenant_mode").(bool)
+	if d.HasChange("execution_retry_policy") {
+		paths = append(paths, "execution_retry_policy")
+	}
+	if d.HasChange("ci_sampling_size") {
+		paths = append(paths, "ci_sampling_size")
+	}
+	if d.HasChange("parallel_tasks_per_rollout") {
+		paths = append(paths, "parallel_tasks_per_rollout")
+	}
 
 	if len(paths) > 0 {
 		if _, err := c.UpdateProject(ctx, &v1pb.Project{
 			Name:                       projectName,
 			Title:                      d.Get("title").(string),
 			State:                      v1pb.State_ACTIVE,
-			AllowModifyStatement:       allowModifyStatement,
-			AutoResolveIssue:           autoResolveIssue,
-			EnforceIssueTitle:          enforceIssueTitle,
-			AutoEnableBackup:           autoEnableBackup,
-			SkipBackupErrors:           skipBackupErrors,
-			PostgresDatabaseTenantMode: postgresDatabaseTenantMode,
+			AllowModifyStatement:       d.Get("allow_modify_statement").(bool),
+			AutoResolveIssue:           d.Get("auto_resolve_issue").(bool),
+			EnforceIssueTitle:          d.Get("enforce_issue_title").(bool),
+			AutoEnableBackup:           d.Get("auto_enable_backup").(bool),
+			SkipBackupErrors:           d.Get("skip_backup_errors").(bool),
+			AllowSelfApproval:          d.Get("allow_self_approval").(bool),
+			PostgresDatabaseTenantMode: d.Get("postgres_database_tenant_mode").(bool),
+			ExecutionRetryPolicy: &v1pb.Project_ExecutionRetryPolicy{
+				MaximumRetries: int32(d.Get("execution_retry_policy").(int)),
+			},
+			CiSamplingSize:          int32(d.Get("ci_sampling_size").(int)),
+			ParallelTasksPerRollout: int32(d.Get("parallel_tasks_per_rollout").(int)),
 		}, paths); err != nil {
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
@@ -293,6 +337,12 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 
 	if d.HasChange("databases") {
 		if diag := updateDatabasesInProject(ctx, d, c, d.Id()); diag != nil {
+			diags = append(diags, diag...)
+			return diags
+		}
+	}
+	if d.HasChange("webhooks") {
+		if diag := updateWebhooksInProject(ctx, d, c, d.Id()); diag != nil {
 			diags = append(diags, diag...)
 			return diags
 		}
@@ -342,6 +392,11 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 const batchSize = 100
 
 func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
+	rawConfig := d.GetRawConfig()
+	if config := rawConfig.GetAttr("databases"); config.IsNull() {
+		return nil
+	}
+
 	databases, err := client.ListDatabase(ctx, projectName, &api.DatabaseFilter{}, true)
 	if err != nil {
 		return diag.Errorf("failed to list database with error: %v", err.Error())
@@ -436,6 +491,60 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 			"count": len(unassignDatabases),
 			"ms":    time.Since(startTime).Milliseconds(),
 		})
+	}
+
+	return nil
+}
+
+func updateWebhooksInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
+	rawConfig := d.GetRawConfig()
+	if config := rawConfig.GetAttr("webhooks"); config.IsNull() {
+		return nil
+	}
+
+	project, err := client.GetProject(ctx, projectName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	existedWebhookMap := map[string]*v1pb.Webhook{}
+	for _, webhook := range project.Webhooks {
+		existedWebhookMap[webhook.Name] = webhook
+	}
+
+	for _, w := range d.Get("webhooks").([]interface{}) {
+		rawWebhook := w.(map[string]interface{})
+		webhook := &v1pb.Webhook{
+			Name:          rawWebhook["name"].(string),
+			Title:         rawWebhook["title"].(string),
+			Url:           rawWebhook["url"].(string),
+			DirectMessage: rawWebhook["direct_message"].(bool),
+			Type:          v1pb.Webhook_Type(v1pb.Webhook_Type_value[rawWebhook["type"].(string)]),
+		}
+		notificationTypes := rawWebhook["notification_types"].(*schema.Set)
+		for _, n := range notificationTypes.List() {
+			webhook.NotificationTypes = append(webhook.NotificationTypes, v1pb.Activity_Type(v1pb.Activity_Type_value[n.(string)]))
+		}
+
+		if v, ok := existedWebhookMap[webhook.Name]; ok && v.Type == webhook.Type {
+			// Not support change the webhook type.
+			if _, err := client.UpdateProjectWebhook(ctx, webhook, []string{
+				"title", "url", "notification_type", "direct_message",
+			}); err != nil {
+				return diag.Errorf("failed to update webhook %s with error: %v", webhook.Name, err.Error())
+			}
+			delete(existedWebhookMap, webhook.Name)
+		} else {
+			if _, err := client.CreateProjectWebhook(ctx, project.Name, webhook); err != nil {
+				return diag.Errorf("failed to create webhook in project %s with error: %v", project.Name, err.Error())
+			}
+		}
+	}
+
+	for webhookName := range existedWebhookMap {
+		if err := client.DeleteProjectWebhook(ctx, webhookName); err != nil {
+			return diag.Errorf("failed to delete webhook %s with error: %v", webhookName, err.Error())
+		}
 	}
 
 	return nil

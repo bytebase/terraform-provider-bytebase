@@ -10,7 +10,7 @@ import (
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
@@ -750,5 +750,20 @@ func (*mockClient) UpdateDatabaseGroup(_ context.Context, _ *v1pb.DatabaseGroup,
 
 // DeleteDatabaseGroup deletes the database group by name.
 func (*mockClient) DeleteDatabaseGroup(_ context.Context, _ string) error {
+	return nil
+}
+
+// CreateProjectWebhook creates the webhook in the project.
+func (*mockClient) CreateProjectWebhook(_ context.Context, _ string, _ *v1pb.Webhook) (*v1pb.Webhook, error) {
+	return &v1pb.Webhook{}, nil
+}
+
+// UpdateProjectWebhook updates the webhook.
+func (*mockClient) UpdateProjectWebhook(_ context.Context, _ *v1pb.Webhook, _ []string) (*v1pb.Webhook, error) {
+	return &v1pb.Webhook{}, nil
+}
+
+// DeleteProjectWebhook deletes the webhook.
+func (*mockClient) DeleteProjectWebhook(_ context.Context, _ string) error {
 	return nil
 }

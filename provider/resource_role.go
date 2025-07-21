@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -58,7 +58,7 @@ func resourceRole() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				MinItems:    1,
-				Description: "The role permissions. All permissions should start with \"bb.\" prefix.",
+				Description: "The role permissions. Permissions should start with \"bb.\" prefix. Check https://github.com/bytebase/bytebase/blob/main/backend/component/iam/permission.yaml for all permissions.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -157,7 +157,13 @@ func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface
 			Detail:   fmt.Sprintf("Role %s already exists, try to exec the update operation", roleName),
 		})
 
-		if _, err := c.UpdateRole(ctx, role, []string{"title", "description", "permissions"}); err != nil {
+		updateMasks := []string{"title", "permissions"}
+		rawConfig := d.GetRawConfig()
+		if config := rawConfig.GetAttr("description"); !config.IsNull() && role.Description != existedRole.Description {
+			updateMasks = append(updateMasks, "description")
+		}
+
+		if _, err := c.UpdateRole(ctx, role, updateMasks); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Failed to update role",

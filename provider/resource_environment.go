@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -77,14 +77,12 @@ func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m in
 	}
 	v1Env := &v1pb.EnvironmentSetting_Environment{
 		Id:    environmentID,
+		Name:  environmentName,
 		Title: d.Get("title").(string),
 		Color: d.Get("color").(string),
 		Tags: map[string]string{
-			"protected": "protected",
+			"protected": "unprotected",
 		},
-	}
-	if !d.Get("protected").(bool) {
-		v1Env.Tags["protected"] = "unprotected"
 	}
 
 	existedEnv, oldOrder, enironmentList, err := findEnvironment(ctx, c, environmentName)
@@ -93,20 +91,35 @@ func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m in
 			return diag.FromErr(err)
 		}
 	}
-	if enironmentList == nil {
-		return diag.Errorf("cannot found environment setting")
-	}
 
 	var newOrder int
-	order, ok := d.GetOk("order")
-	if !ok {
+	rawConfig := d.GetRawConfig()
+
+	if config := rawConfig.GetAttr("order"); !config.IsNull() {
+		newOrder = d.Get("order").(int)
+	} else {
+		// not configure the order field
 		if existedEnv != nil {
 			newOrder = oldOrder
 		} else {
 			newOrder = len(enironmentList)
 		}
-	} else {
-		newOrder = order.(int)
+	}
+
+	if config := rawConfig.GetAttr("protected"); !config.IsNull() {
+		if d.Get("protected").(bool) {
+			v1Env.Tags["protected"] = "protected"
+		}
+	} else if existedEnv != nil {
+		// not configure the protected field
+		v1Env.Tags = existedEnv.Tags
+	}
+
+	if config := rawConfig.GetAttr("color"); !config.IsNull() {
+		v1Env.Color = d.Get("color").(string)
+	} else if existedEnv != nil {
+		// not configure the color field
+		v1Env.Color = existedEnv.Color
 	}
 
 	var diags diag.Diagnostics

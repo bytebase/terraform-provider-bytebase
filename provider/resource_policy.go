@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -117,9 +117,6 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		policyName = strings.TrimPrefix(policyName, fmt.Sprintf("%s/", internal.WorkspaceName))
 	}
 
-	inheritFromParent := d.Get("inherit_from_parent").(bool)
-	enforce := d.Get("enforce").(bool)
-
 	_, policyType, err := internal.GetPolicyParentAndType(policyName)
 	if err != nil {
 		return diag.FromErr(err)
@@ -127,8 +124,8 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	patch := &v1pb.Policy{
 		Name:              policyName,
-		InheritFromParent: inheritFromParent,
-		Enforce:           enforce,
+		InheritFromParent: d.Get("inherit_from_parent").(bool),
+		Enforce:           d.Get("enforce").(bool),
 		Type:              policyType,
 	}
 
@@ -186,8 +183,17 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.Errorf("unsupport policy type: %v", policyName)
 	}
 
+	updateMasks := []string{"payload"}
+	rawConfig := d.GetRawConfig()
+	if config := rawConfig.GetAttr("inherit_from_parent"); !config.IsNull() {
+		updateMasks = append(updateMasks, "inherit_from_parent")
+	}
+	if config := rawConfig.GetAttr("enforce"); !config.IsNull() {
+		updateMasks = append(updateMasks, "enforce")
+	}
+
 	var diags diag.Diagnostics
-	p, err := c.UpsertPolicy(ctx, patch, []string{"inherit_from_parent", "enforce", "payload"})
+	p, err := c.UpsertPolicy(ctx, patch, updateMasks)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,

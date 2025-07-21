@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

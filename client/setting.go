@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 )
 
 // ListSettings lists all settings.

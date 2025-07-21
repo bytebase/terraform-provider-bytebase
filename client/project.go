@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
@@ -69,6 +70,78 @@ func (c *client) SetProjectIAMPolicy(ctx context.Context, projectName string, up
 	}
 
 	return &res, nil
+}
+
+// CreateProjectWebhook creates the webhook in the project.
+func (c *client) CreateProjectWebhook(ctx context.Context, projectName string, webhook *v1pb.Webhook) (*v1pb.Webhook, error) {
+	payload, err := protojson.Marshal(&v1pb.AddWebhookRequest{
+		Project: projectName,
+		Webhook: webhook,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:addWebhook", c.url, c.version, projectName), strings.NewReader(string(payload)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var res v1pb.Webhook
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+// UpdateProjectWebhook updates the webhook.
+func (c *client) UpdateProjectWebhook(ctx context.Context, patch *v1pb.Webhook, updateMasks []string) (*v1pb.Webhook, error) {
+	payload, err := protojson.Marshal(&v1pb.UpdateWebhookRequest{
+		Webhook: patch,
+		UpdateMask: &fieldmaskpb.FieldMask{
+			Paths: updateMasks,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:updateWebhook", c.url, c.version, patch.Name), strings.NewReader(string(payload)))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var res v1pb.Webhook
+	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+// DeleteProjectWebhook deletes the webhook.
+func (c *client) DeleteProjectWebhook(ctx context.Context, webhookName string) error {
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:removeWebhook", c.url, c.version, url.QueryEscape(webhookName)), nil)
+	if err != nil {
+		return err
+	}
+
+	if _, err := c.doRequest(req); err != nil {
+		return err
+	}
+	return nil
 }
 
 func buildProjectQuery(filter *api.ProjectFilter) string {

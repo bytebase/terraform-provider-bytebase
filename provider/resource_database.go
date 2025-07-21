@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -153,38 +153,39 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	c := m.(api.Client)
 	databaseName := d.Get("name").(string)
 	projectName := d.Get("project").(string)
-	environmentName := d.Get("environment").(string)
-
-	labels := map[string]string{}
-	for key, val := range d.Get("labels").(map[string]interface{}) {
-		labels[key] = val.(string)
-	}
 
 	database := &v1pb.Database{
-		Name:        databaseName,
-		Project:     projectName,
-		Labels:      labels,
-		Environment: environmentName,
+		Name:    databaseName,
+		Project: projectName,
 	}
-	updateMasks := []string{
-		"project",
-		"labels",
-	}
-	if environmentName != "" {
+	updateMasks := []string{"project"}
+	rawConfig := d.GetRawConfig()
+	if config := rawConfig.GetAttr("environment"); !config.IsNull() {
+		database.Environment = d.Get("environment").(string)
 		updateMasks = append(updateMasks, "environment")
+	}
+	if config := rawConfig.GetAttr("labels"); !config.IsNull() {
+		labels := map[string]string{}
+		for key, val := range d.Get("labels").(map[string]interface{}) {
+			labels[key] = val.(string)
+		}
+		database.Labels = labels
+		updateMasks = append(updateMasks, "labels")
 	}
 
 	if _, err := c.UpdateDatabase(ctx, database, updateMasks); err != nil {
 		return diag.Errorf("failed to update the database %s with error: %v", databaseName, err.Error())
 	}
 
-	catalog, err := convertToV1DatabaseCatalog(d, databaseName)
-	if err != nil {
-		return diag.Errorf("failed to convert database catalog %v with error: %v", databaseName, err.Error())
-	}
-	if catalog != nil {
-		if _, err := c.UpdateDatabaseCatalog(ctx, catalog); err != nil {
-			return diag.Errorf("failed to update database catalog %v with error: %v", databaseName, err.Error())
+	if config := rawConfig.GetAttr("catalog"); !config.IsNull() {
+		catalog, err := convertToV1DatabaseCatalog(d, databaseName)
+		if err != nil {
+			return diag.Errorf("failed to convert database catalog %v with error: %v", databaseName, err.Error())
+		}
+		if catalog != nil {
+			if _, err := c.UpdateDatabaseCatalog(ctx, catalog); err != nil {
+				return diag.Errorf("failed to update database catalog %v with error: %v", databaseName, err.Error())
+			}
 		}
 	}
 

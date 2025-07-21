@@ -9,8 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
+	"google.golang.org/protobuf/types/known/durationpb"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -140,34 +141,75 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 		return nil, nil, errors.Errorf("invalid workspace_profile")
 	}
 
+	rawConfig := d.GetRawConfig().GetAttr("workspace_profile")
+	if rawConfig.IsNull() {
+		return nil, nil, errors.Errorf("invalid workspace_profile")
+	}
+	if rawConfig.IsKnown() && rawConfig.LengthInt() == 0 {
+		return nil, nil, errors.Errorf("invalid workspace_profile")
+	}
+	workspaceRawConfig := rawConfig.AsValueSlice()[0]
+
 	updateMasks := []string{}
 	raw := rawList[0].(map[string]interface{})
 
 	workspacePrfile := &v1pb.WorkspaceProfileSetting{}
 
-	if externalURL, ok := raw["external_url"]; ok {
-		workspacePrfile.ExternalUrl = externalURL.(string)
+	if config := workspaceRawConfig.GetAttr("external_url"); !config.IsNull() {
+		workspacePrfile.ExternalUrl = raw["external_url"].(string)
 		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.external_url")
 	}
-	if disallowSignup, ok := raw["disallow_signup"]; ok {
-		workspacePrfile.DisallowSignup = disallowSignup.(bool)
+	if config := workspaceRawConfig.GetAttr("disallow_signup"); !config.IsNull() {
+		workspacePrfile.DisallowSignup = raw["disallow_signup"].(bool)
 		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.disallow_signup")
 	}
-	if disallowPasswordSignin, ok := raw["disallow_password_signin"]; ok {
-		workspacePrfile.DisallowPasswordSignin = disallowPasswordSignin.(bool)
+	if config := workspaceRawConfig.GetAttr("disallow_password_signin"); !config.IsNull() {
+		workspacePrfile.DisallowPasswordSignin = raw["disallow_password_signin"].(bool)
 		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.disallow_password_signin")
 	}
-	if domains, ok := raw["domains"]; ok {
-		if enforceIdentityDomain, ok := raw["enforce_identity_domain"]; ok {
-			workspacePrfile.EnforceIdentityDomain = enforceIdentityDomain.(bool)
-			updateMasks = append(updateMasks, "value.workspace_profile_setting_value.enforce_identity_domain")
+	if config := workspaceRawConfig.GetAttr("domains"); !config.IsNull() {
+		if domains, ok := raw["domains"]; ok {
+			if enforceIdentityDomain, ok := raw["enforce_identity_domain"]; ok {
+				workspacePrfile.EnforceIdentityDomain = enforceIdentityDomain.(bool)
+				updateMasks = append(updateMasks, "value.workspace_profile_setting_value.enforce_identity_domain")
+			}
+			for _, domain := range domains.([]interface{}) {
+				workspacePrfile.Domains = append(workspacePrfile.Domains, domain.(string))
+			}
+			updateMasks = append(updateMasks, "value.workspace_profile_setting_value.domains")
+		} else if _, ok := raw["enforce_identity_domain"]; ok {
+			return nil, nil, errors.Errorf("enforce_identity_domain must works with domains")
 		}
-		for _, domain := range domains.([]interface{}) {
-			workspacePrfile.Domains = append(workspacePrfile.Domains, domain.(string))
+	}
+	if config := workspaceRawConfig.GetAttr("database_change_mode"); !config.IsNull() {
+		workspacePrfile.DatabaseChangeMode = v1pb.DatabaseChangeMode(v1pb.DatabaseChangeMode_value[raw["database_change_mode"].(string)])
+		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.database_change_mode")
+	}
+	if config := workspaceRawConfig.GetAttr("token_duration_in_seconds"); !config.IsNull() {
+		workspacePrfile.TokenDuration = &durationpb.Duration{
+			Seconds: int64(raw["token_duration_in_seconds"].(int)),
 		}
-		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.domains")
-	} else if _, ok := raw["enforce_identity_domain"]; ok {
-		return nil, nil, errors.Errorf("enforce_identity_domain must works with domains")
+		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.token_duration")
+	}
+	if config := workspaceRawConfig.GetAttr("maximum_role_expiration_in_seconds"); !config.IsNull() {
+		workspacePrfile.MaximumRoleExpiration = &durationpb.Duration{
+			Seconds: int64(raw["maximum_role_expiration_in_seconds"].(int)),
+		}
+		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.maximum_role_expiration")
+	}
+	if config := workspaceRawConfig.GetAttr("announcement"); !config.IsNull() {
+		rawList := raw["announcement"].([]interface{})
+		if len(rawList) == 0 {
+			workspacePrfile.Announcement = &v1pb.Announcement{}
+		} else {
+			raw := rawList[0].(map[string]interface{})
+			workspacePrfile.Announcement = &v1pb.Announcement{
+				Text:  raw["text"].(string),
+				Link:  raw["link"].(string),
+				Level: v1pb.Announcement_AlertLevel(v1pb.Announcement_AlertLevel_value[raw["level"].(string)]),
+			}
+		}
+		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.announcement")
 	}
 
 	return workspacePrfile, updateMasks, nil

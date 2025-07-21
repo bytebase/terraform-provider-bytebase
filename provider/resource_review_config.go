@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	v1pb "github.com/bytebase/bytebase/proto/generated-go/v1"
+	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -162,9 +162,14 @@ func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	pendingDelete, pendingAdd := getResourceDiff(ctx, c, d)
-	removeReviewConfigTag(ctx, c, pendingDelete)
-	patchTagPolicy(ctx, c, review.Name, pendingAdd)
+	rawConfig := d.GetRawConfig()
+	if config := rawConfig.GetAttr("resources"); !config.IsNull() {
+		// only update attached resources if users set this field.
+		pendingDelete, pendingAdd := getResourceDiff(ctx, c, d)
+		removeReviewConfigTag(ctx, c, pendingDelete)
+		patchTagPolicy(ctx, c, review.Name, pendingAdd)
+	}
+
 	d.SetId(review.Name)
 
 	return resourceReviewConfigRead(ctx, d, m)
