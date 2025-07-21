@@ -90,6 +90,11 @@ func dataSourceProjectList() *schema.Resource {
 							Computed:    true,
 							Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 						},
+						"allow_self_approval": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether to allow the issue creator to self-approve the issue.",
+						},
 						"databases": getDatabasesSchema(true),
 						"webhooks":  getWebhooksSchema(true),
 					},
