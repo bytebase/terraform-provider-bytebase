@@ -353,7 +353,7 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 							"text": {
 								Type:        schema.TypeString,
 								Required:    true,
-								Description: "The text of announcemnt. Leave it as empty string can clear the announcement",
+								Description: "The text of announcement. Leave it as empty string can clear the announcement",
 							},
 							"link": {
 								Type:        schema.TypeString,
@@ -363,7 +363,7 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 							"level": {
 								Type:        schema.TypeString,
 								Required:    true,
-								Description: "The alert level of announcemnt",
+								Description: "The alert level of announcement",
 								ValidateFunc: validation.StringInSlice([]string{
 									v1pb.Announcement_INFO.String(),
 									v1pb.Announcement_WARNING.String(),

@@ -239,8 +239,8 @@ Optional:
 
 Required:
 
-- `level` (String) The alert level of announcemnt
-- `text` (String) The text of announcemnt. Leave it as empty string can clear the announcement
+- `level` (String) The alert level of announcement
+- `text` (String) The text of announcement. Leave it as empty string can clear the announcement
 
 Optional:
 
