@@ -138,7 +138,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	user := &v1pb.User{
-		Name:     existedUser.Name,
+		Name:     userName,
 		Title:    d.Get("title").(string),
 		Password: d.Get("password").(string),
 		Phone:    d.Get("phone").(string),
