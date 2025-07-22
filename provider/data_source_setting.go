@@ -24,20 +24,24 @@ func dataSourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES" and "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "PASSWORD_RESTRICTION", "SQL_RESULT_SIZE_LIMIT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_PASSWORD_RESTRICTION.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SQL_RESULT_SIZE_LIMIT.String()),
 				),
 			},
-			"approval_flow":       getWorkspaceApprovalSetting(true),
-			"workspace_profile":   getWorkspaceProfileSetting(true),
-			"classification":      getClassificationSetting(true),
-			"semantic_types":      getSemanticTypesSetting(true),
-			"environment_setting": getEnvironmentSetting(true),
+			"approval_flow":         getWorkspaceApprovalSetting(true),
+			"workspace_profile":     getWorkspaceProfileSetting(true),
+			"classification":        getClassificationSetting(true),
+			"semantic_types":        getSemanticTypesSetting(true),
+			"environment_setting":   getEnvironmentSetting(true),
+			"password_restriction":  getPasswordRestrictionSetting(true),
+			"sql_query_restriction": getSQLQueryRestrictionSetting(true),
 		},
 	}
 }
@@ -287,25 +291,21 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 			Schema: map[string]*schema.Schema{
 				"external_url": {
 					Type:        schema.TypeString,
-					Computed:    computed,
 					Optional:    true,
 					Description: "The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.",
 				},
 				"disallow_signup": {
 					Type:        schema.TypeBool,
-					Computed:    computed,
 					Optional:    true,
 					Description: "Disallow self-service signup, users can only be invited by the owner. Require PRO subscription.",
 				},
 				"disallow_password_signin": {
 					Type:        schema.TypeBool,
-					Computed:    computed,
 					Optional:    true,
 					Description: "Whether to disallow password signin (except workspace admins). Require ENTERPRISE subscription",
 				},
 				"domains": {
 					Type:        schema.TypeList,
-					Computed:    computed,
 					Optional:    true,
 					Description: "The workspace domain, e.g. bytebase.com. Required for the group",
 					Elem: &schema.Schema{
@@ -314,14 +314,13 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 				},
 				"enforce_identity_domain": {
 					Type:        schema.TypeBool,
-					Computed:    computed,
 					Optional:    true,
 					Description: "Only user and group from the domains can be created and login.",
 				},
 				"database_change_mode": {
 					Type:     schema.TypeString,
-					Computed: computed,
 					Optional: true,
+					Default:  v1pb.DatabaseChangeMode_PIPELINE.String(),
 					ValidateFunc: validation.StringInSlice([]string{
 						v1pb.DatabaseChangeMode_EDITOR.String(),
 						v1pb.DatabaseChangeMode_PIPELINE.String(),
@@ -330,22 +329,19 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 				},
 				"token_duration_in_seconds": {
 					Type:         schema.TypeInt,
-					Computed:     computed,
 					Optional:     true,
 					ValidateFunc: validation.IntAtLeast(3600),
 					Description:  "The duration for login token in seconds. The duration should be at least 3600 (one hour).",
 				},
 				"maximum_role_expiration_in_seconds": {
 					Type:        schema.TypeInt,
-					Computed:    computed,
 					Optional:    true,
 					Description: "The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
 				},
 				"announcement": {
 					Type:        schema.TypeList,
-					Computed:    computed,
 					Optional:    true,
-					MinItems:    0,
+					MinItems:    1,
 					MaxItems:    1,
 					Description: "Custom announcement. Will show as a banner in the Bytebase UI. Require ENTERPRISE subscription.",
 					Elem: &schema.Resource{
@@ -372,6 +368,87 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 							},
 						},
 					},
+				},
+			},
+		},
+	}
+}
+
+func getSQLQueryRestrictionSetting(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		MaxItems:    1,
+		MinItems:    1,
+		Description: "Restrict for SQL query result",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"maximum_result_size": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Default:     100 * 1024 * 1024,
+					Description: "The size limit in bytes. The default value is 100MB, we will use the default value if the setting not exists, or the limit <= 0.",
+				},
+				"maximum_result_rows": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Default:     -1,
+					Description: "The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.",
+				},
+			},
+		},
+	}
+}
+
+func getPasswordRestrictionSetting(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		MaxItems:    1,
+		MinItems:    1,
+		Description: "Restrict for login password",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"min_length": {
+					Type:         schema.TypeInt,
+					Optional:     true,
+					Description:  "min_length is the minimum length for password, should no less than 8.",
+					ValidateFunc: validation.IntAtLeast(8),
+				},
+				"require_number": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "require_number requires the password must contains at least one number.",
+				},
+				"require_letter": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "require_letter requires the password must contains at least one letter, regardless of upper case or lower case.",
+				},
+				"require_uppercase_letter": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "require_uppercase_letter requires the password must contains at least one upper case letter.",
+				},
+				"require_special_character": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "require_special_character requires the password must contains at least one special character.",
+				},
+				"require_reset_password_for_first_login": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "require_reset_password_for_first_login requires users to reset their password after the 1st login.",
+				},
+				"password_rotation_in_seconds": {
+					Type:         schema.TypeInt,
+					Optional:     true,
+					ValidateFunc: validation.IntAtLeast(86400),
+					Description:  "password_rotation requires users to reset their password after the duration. The duration should be at least 86400 (one day).",
 				},
 			},
 		},
@@ -551,6 +628,18 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 			return diag.Errorf("cannot set workspace_profile: %s", err.Error())
 		}
 	}
+	if value := setting.GetValue().GetPasswordRestrictionSetting(); value != nil {
+		settingVal := flattenPasswordRestrictionSetting(value)
+		if err := d.Set("password_restriction", settingVal); err != nil {
+			return diag.Errorf("cannot set password_restriction: %s", err.Error())
+		}
+	}
+	if value := setting.GetValue().GetSqlQueryRestrictionSetting(); value != nil {
+		settingVal := flattenSQLQueryRestrictionSetting(value)
+		if err := d.Set("sql_query_restriction", settingVal); err != nil {
+			return diag.Errorf("cannot set sql_query_restriction: %s", err.Error())
+		}
+	}
 	if value := setting.GetValue().GetDataClassificationSettingValue(); value != nil {
 		settingVal := flattenClassificationSetting(value)
 		if err := d.Set("classification", settingVal); err != nil {
@@ -710,16 +799,44 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	raw["enforce_identity_domain"] = setting.EnforceIdentityDomain
 	raw["domains"] = setting.Domains
 	raw["database_change_mode"] = setting.DatabaseChangeMode.String()
-	raw["token_duration_in_seconds"] = int(setting.GetTokenDuration().Seconds)
-	raw["maximum_role_expiration_in_seconds"] = int(setting.GetMaximumRoleExpiration().Seconds)
-	raw["announcement"] = []any{
-		map[string]any{
-			"text":  setting.GetAnnouncement().Text,
-			"link":  setting.GetAnnouncement().Link,
-			"level": setting.GetAnnouncement().Level.String(),
-		},
+
+	if v := setting.GetTokenDuration(); v != nil {
+		raw["token_duration_in_seconds"] = int(v.Seconds)
+	}
+	if v := setting.GetMaximumRoleExpiration(); v != nil {
+		raw["maximum_role_expiration_in_seconds"] = int(v.Seconds)
+	}
+	if v := setting.GetAnnouncement(); v != nil {
+		raw["announcement"] = []any{
+			map[string]any{
+				"text":  v.Text,
+				"link":  v.Link,
+				"level": v.Level.String(),
+			},
+		}
 	}
 
+	return []interface{}{raw}
+}
+
+func flattenPasswordRestrictionSetting(setting *v1pb.PasswordRestrictionSetting) []interface{} {
+	raw := map[string]interface{}{}
+	raw["min_length"] = int(setting.MinLength)
+	raw["require_number"] = setting.RequireNumber
+	raw["require_letter"] = setting.RequireLetter
+	raw["require_uppercase_letter"] = setting.RequireUppercaseLetter
+	raw["require_special_character"] = setting.RequireSpecialCharacter
+	raw["require_reset_password_for_first_login"] = setting.RequireResetPasswordForFirstLogin
+	if v := setting.GetPasswordRotation(); v != nil {
+		raw["password_rotation_in_seconds"] = int(v.Seconds)
+	}
+	return []interface{}{raw}
+}
+
+func flattenSQLQueryRestrictionSetting(setting *v1pb.SQLQueryRestrictionSetting) []interface{} {
+	raw := map[string]interface{}{}
+	raw["maximum_result_size"] = int(setting.MaximumResultSize)
+	raw["maximum_result_rows"] = int(setting.MaximumResultRows)
 	return []interface{}{raw}
 }
 

@@ -31,20 +31,24 @@ func resourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES" and "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "PASSWORD_RESTRICTION", "SQL_RESULT_SIZE_LIMIT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_PASSWORD_RESTRICTION.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SQL_RESULT_SIZE_LIMIT.String()),
 				),
 			},
-			"approval_flow":       getWorkspaceApprovalSetting(false),
-			"workspace_profile":   getWorkspaceProfileSetting(false),
-			"classification":      getClassificationSetting(false),
-			"semantic_types":      getSemanticTypesSetting(false),
-			"environment_setting": getEnvironmentSetting(false),
+			"approval_flow":         getWorkspaceApprovalSetting(false),
+			"workspace_profile":     getWorkspaceProfileSetting(false),
+			"classification":        getClassificationSetting(false),
+			"semantic_types":        getSemanticTypesSetting(false),
+			"environment_setting":   getEnvironmentSetting(false),
+			"password_restriction":  getPasswordRestrictionSetting(false),
+			"sql_query_restriction": getSQLQueryRestrictionSetting(false),
 		},
 	}
 }
@@ -116,6 +120,26 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 				EnvironmentSetting: environmentSetting,
 			},
 		}
+	case v1pb.Setting_PASSWORD_RESTRICTION:
+		passwordSetting, err := convertToV1PasswordRestrictionSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_PasswordRestrictionSetting{
+				PasswordRestrictionSetting: passwordSetting,
+			},
+		}
+	case v1pb.Setting_SQL_RESULT_SIZE_LIMIT:
+		querySetting, err := convertToV1SQLQueryRestrictionSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_SqlQueryRestrictionSetting{
+				SqlQueryRestrictionSetting: querySetting,
+			},
+		}
 	default:
 		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
 	}
@@ -133,6 +157,51 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	return diags
+}
+
+func convertToV1SQLQueryRestrictionSetting(d *schema.ResourceData) (*v1pb.SQLQueryRestrictionSetting, error) {
+	rawList, ok := d.Get("sql_query_restriction").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid sql_query_restriction")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+	return &v1pb.SQLQueryRestrictionSetting{
+		MaximumResultSize: int64(raw["maximum_result_size"].(int)),
+		MaximumResultRows: int32(raw["maximum_result_rows"].(int)),
+	}, nil
+}
+
+func convertToV1PasswordRestrictionSetting(d *schema.ResourceData) (*v1pb.PasswordRestrictionSetting, error) {
+	rawList, ok := d.Get("password_restriction").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid password_restriction")
+	}
+
+	rawConfig := d.GetRawConfig().GetAttr("password_restriction")
+	if rawConfig.IsNull() {
+		return nil, errors.Errorf("invalid password_restriction")
+	}
+	if rawConfig.IsKnown() && rawConfig.LengthInt() == 0 {
+		return nil, errors.Errorf("invalid password_restriction")
+	}
+	passwordRawConfig := rawConfig.AsValueSlice()[0]
+	raw := rawList[0].(map[string]interface{})
+
+	setting := &v1pb.PasswordRestrictionSetting{
+		MinLength:                         int32(raw["min_length"].(int)),
+		RequireNumber:                     raw["require_number"].(bool),
+		RequireLetter:                     raw["require_letter"].(bool),
+		RequireUppercaseLetter:            raw["require_uppercase_letter"].(bool),
+		RequireSpecialCharacter:           raw["require_special_character"].(bool),
+		RequireResetPasswordForFirstLogin: raw["require_reset_password_for_first_login"].(bool),
+	}
+	if config := passwordRawConfig.GetAttr("password_rotation_in_seconds"); !config.IsNull() {
+		setting.PasswordRotation = &durationpb.Duration{
+			Seconds: int64(raw["password_rotation_in_seconds"].(int)),
+		}
+	}
+	return setting, nil
 }
 
 func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.WorkspaceProfileSetting, []string, error) {

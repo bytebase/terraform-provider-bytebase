@@ -44,10 +44,11 @@ func resourceUser() *schema.Resource {
 				Description: "The user phone.",
 			},
 			"password": {
-				Type:        schema.TypeString,
-				Sensitive:   true,
-				Optional:    true,
-				Description: "The user login password.",
+				Type:             schema.TypeString,
+				Sensitive:        true,
+				Optional:         true,
+				DiffSuppressFunc: suppressSensitiveFieldDiff,
+				Description:      "The user login password.",
 			},
 			"service_key": {
 				Type:        schema.TypeString,
@@ -149,6 +150,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 
 	var diags diag.Diagnostics
 	if existedUser != nil && err == nil {
+		user.Name = existedUser.Name
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "User already exists",
