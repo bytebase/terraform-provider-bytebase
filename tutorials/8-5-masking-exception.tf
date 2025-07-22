@@ -16,6 +16,7 @@ resource "bytebase_policy" "masking_exception_policy" {
       column   = "birth_date"
       member   = "user:admin@example.com"
       action   = "QUERY"
+      expire_timestamp = "2027-07-30T16:11:49Z"
     }
     exceptions {
       database = "instances/prod-sample-instance/databases/hr_prod"
@@ -23,6 +24,7 @@ resource "bytebase_policy" "masking_exception_policy" {
       column   = "last_name"
       member   = "user:admin@example.com"
       action   = "EXPORT"
+      expire_timestamp = "2027-07-30T16:11:49Z"
     }
   }
 }
