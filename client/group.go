@@ -86,8 +86,3 @@ func (c *client) UpdateGroup(ctx context.Context, patch *v1pb.Group, updateMasks
 
 	return &res, nil
 }
-
-// DeleteGroup deletes the group by name.
-func (c *client) DeleteGroup(ctx context.Context, name string) error {
-	return c.deleteResource(ctx, name)
-}

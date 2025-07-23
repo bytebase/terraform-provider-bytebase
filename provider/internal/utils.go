@@ -37,6 +37,8 @@ const (
 	DatabaseGroupNamePrefix = "databaseGroups/"
 	// ReviewConfigNamePrefix is the prefix for the review config name.
 	ReviewConfigNamePrefix = "reviewConfigs/"
+	// RiskNamePrefix is the prefix for risk.
+	RiskNamePrefix = "risks/"
 	// DatabaseCatalogNameSuffix is the suffix for the database catalog name.
 	DatabaseCatalogNameSuffix = "/catalog"
 	// ResourceIDPattern is the pattern for resource id.

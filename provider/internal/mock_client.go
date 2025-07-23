@@ -77,6 +77,65 @@ func (*mockClient) GetCaller() *v1pb.User {
 	}
 }
 
+// CheckResourceExist check if the resource exists.
+func (c *mockClient) CheckResourceExist(_ context.Context, name string) error {
+	prefix := strings.Split(name, "/")[0] + "/"
+	switch prefix {
+	case InstanceNamePrefix:
+		if _, ok := c.instanceMap[name]; ok {
+			return nil
+		}
+	case ProjectNamePrefix:
+		if _, ok := c.projectMap[name]; ok {
+			return nil
+		}
+	case UserNamePrefix:
+		if _, ok := c.userMap[name]; ok {
+			return nil
+		}
+	case RoleNamePrefix:
+		if _, ok := c.roleMap[name]; ok {
+			return nil
+		}
+	case GroupNamePrefix:
+		if _, ok := c.groupMap[name]; ok {
+			return nil
+		}
+	case DatabaseGroupNamePrefix:
+		return nil
+	case ReviewConfigNamePrefix:
+		return nil
+	case RiskNamePrefix:
+		return nil
+	default:
+		return errors.Errorf("invalid resource name %v", name)
+	}
+	return errors.Errorf("status: 404 cannot found resource %v", name)
+}
+
+// DeleteResource delete the resource by name.
+func (c *mockClient) DeleteResource(_ context.Context, name string) error {
+	prefix := strings.Split(name, "/")[0] + "/"
+	switch prefix {
+	case InstanceNamePrefix:
+		delete(c.instanceMap, name)
+	case ProjectNamePrefix:
+		delete(c.projectMap, name)
+	case UserNamePrefix:
+		delete(c.userMap, name)
+	case RoleNamePrefix:
+		delete(c.roleMap, name)
+	case GroupNamePrefix:
+		delete(c.groupMap, name)
+	case DatabaseGroupNamePrefix:
+	case ReviewConfigNamePrefix:
+	case RiskNamePrefix:
+	default:
+		return errors.Errorf("invalid resource name %v", name)
+	}
+	return nil
+}
+
 // ListInstance will return instances in environment.
 func (c *mockClient) ListInstance(_ context.Context, filter *api.InstanceFilter) ([]*v1pb.Instance, error) {
 	instances := make([]*v1pb.Instance, 0)

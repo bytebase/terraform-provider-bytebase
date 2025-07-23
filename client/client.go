@@ -2,6 +2,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -71,4 +72,17 @@ func (c *client) doRequest(req *http.Request) ([]byte, error) {
 // GetCaller returns the API caller.
 func (c *client) GetCaller() *v1pb.User {
 	return c.caller
+}
+
+// CheckResourceExist check if the resource exists.
+func (c *client) CheckResourceExist(ctx context.Context, name string) error {
+	if _, err := c.getResource(ctx, name, ""); err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteResource force delete the resource by name.
+func (c *client) DeleteResource(ctx context.Context, name string) error {
+	return c.execDelete(ctx, name)
 }

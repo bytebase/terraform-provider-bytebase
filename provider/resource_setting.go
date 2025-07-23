@@ -31,20 +31,24 @@ func resourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES" and "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "PASSWORD_RESTRICTION", "SQL_RESULT_SIZE_LIMIT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_PASSWORD_RESTRICTION.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SQL_RESULT_SIZE_LIMIT.String()),
 				),
 			},
-			"approval_flow":       getWorkspaceApprovalSetting(false),
-			"workspace_profile":   getWorkspaceProfileSetting(false),
-			"classification":      getClassificationSetting(false),
-			"semantic_types":      getSemanticTypesSetting(false),
-			"environment_setting": getEnvironmentSetting(false),
+			"approval_flow":         getWorkspaceApprovalSetting(false),
+			"workspace_profile":     getWorkspaceProfileSetting(false),
+			"classification":        getClassificationSetting(false),
+			"semantic_types":        getSemanticTypesSetting(false),
+			"environment_setting":   getEnvironmentSetting(false),
+			"password_restriction":  getPasswordRestrictionSetting(false),
+			"sql_query_restriction": getSQLQueryRestrictionSetting(false),
 		},
 	}
 }
@@ -97,13 +101,13 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 			},
 		}
 	case v1pb.Setting_SEMANTIC_TYPES:
-		classificationSetting, err := convertToV1SemanticTypeSetting(d)
+		semanticTypeSetting, err := convertToV1SemanticTypeSetting(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		setting.Value = &v1pb.Value{
 			Value: &v1pb.Value_SemanticTypeSettingValue{
-				SemanticTypeSettingValue: classificationSetting,
+				SemanticTypeSettingValue: semanticTypeSetting,
 			},
 		}
 	case v1pb.Setting_ENVIRONMENT:
@@ -114,6 +118,26 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		setting.Value = &v1pb.Value{
 			Value: &v1pb.Value_EnvironmentSetting{
 				EnvironmentSetting: environmentSetting,
+			},
+		}
+	case v1pb.Setting_PASSWORD_RESTRICTION:
+		passwordSetting, err := convertToV1PasswordRestrictionSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_PasswordRestrictionSetting{
+				PasswordRestrictionSetting: passwordSetting,
+			},
+		}
+	case v1pb.Setting_SQL_RESULT_SIZE_LIMIT:
+		querySetting, err := convertToV1SQLQueryRestrictionSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_SqlQueryRestrictionSetting{
+				SqlQueryRestrictionSetting: querySetting,
 			},
 		}
 	default:
@@ -133,6 +157,51 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	return diags
+}
+
+func convertToV1SQLQueryRestrictionSetting(d *schema.ResourceData) (*v1pb.SQLQueryRestrictionSetting, error) {
+	rawList, ok := d.Get("sql_query_restriction").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid sql_query_restriction")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+	return &v1pb.SQLQueryRestrictionSetting{
+		MaximumResultSize: int64(raw["maximum_result_size"].(int)),
+		MaximumResultRows: int32(raw["maximum_result_rows"].(int)),
+	}, nil
+}
+
+func convertToV1PasswordRestrictionSetting(d *schema.ResourceData) (*v1pb.PasswordRestrictionSetting, error) {
+	rawList, ok := d.Get("password_restriction").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid password_restriction")
+	}
+
+	rawConfig := d.GetRawConfig().GetAttr("password_restriction")
+	if rawConfig.IsNull() {
+		return nil, errors.Errorf("invalid password_restriction")
+	}
+	if rawConfig.IsKnown() && rawConfig.LengthInt() == 0 {
+		return nil, errors.Errorf("invalid password_restriction")
+	}
+	passwordRawConfig := rawConfig.AsValueSlice()[0]
+	raw := rawList[0].(map[string]interface{})
+
+	setting := &v1pb.PasswordRestrictionSetting{
+		MinLength:                         int32(raw["min_length"].(int)),
+		RequireNumber:                     raw["require_number"].(bool),
+		RequireLetter:                     raw["require_letter"].(bool),
+		RequireUppercaseLetter:            raw["require_uppercase_letter"].(bool),
+		RequireSpecialCharacter:           raw["require_special_character"].(bool),
+		RequireResetPasswordForFirstLogin: raw["require_reset_password_for_first_login"].(bool),
+	}
+	if config := passwordRawConfig.GetAttr("password_rotation_in_seconds"); !config.IsNull() {
+		setting.PasswordRotation = &durationpb.Duration{
+			Seconds: int64(raw["password_rotation_in_seconds"].(int)),
+		}
+	}
+	return setting, nil
 }
 
 func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.WorkspaceProfileSetting, []string, error) {
@@ -487,14 +556,103 @@ func resourceSettingRead(ctx context.Context, d *schema.ResourceData, m interfac
 	return setSettingMessage(ctx, d, c, setting)
 }
 
-func resourceSettingDelete(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
+func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
+	c := m.(api.Client)
+	settingName := d.Id()
 
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Warning,
-		Summary:  "Unsupport delete setting",
-		Detail:   "We don't support delete the setting, will only remove it from the terraform state",
-	})
+	name, err := internal.GetSettingName(settingName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	setting := &v1pb.Setting{
+		Name: settingName,
+	}
+	updateMasks := []string{}
+
+	switch name {
+	case v1pb.Setting_WORKSPACE_APPROVAL:
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_WorkspaceApprovalSettingValue{
+				WorkspaceApprovalSettingValue: &v1pb.WorkspaceApprovalSetting{},
+			},
+		}
+	case v1pb.Setting_WORKSPACE_PROFILE:
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Unsupport delete workspace profile setting",
+			Detail:   "We will reset the workspace profile with default value",
+		})
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_WorkspaceProfileSettingValue{
+				WorkspaceProfileSettingValue: &v1pb.WorkspaceProfileSetting{
+					Announcement: &v1pb.Announcement{},
+				},
+			},
+		}
+		updateMasks = []string{
+			"value.workspace_profile_setting_value.disallow_signup",
+			"value.workspace_profile_setting_value.external_url",
+			"value.workspace_profile_setting_value.disallow_password_signin",
+			"value.workspace_profile_setting_value.enforce_identity_domain",
+			"value.workspace_profile_setting_value.domains",
+			"value.workspace_profile_setting_value.database_change_mode",
+			"value.workspace_profile_setting_value.token_duration",
+			"value.workspace_profile_setting_value.maximum_role_expiration",
+			"value.workspace_profile_setting_value.announcement",
+		}
+	case v1pb.Setting_DATA_CLASSIFICATION:
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_DataClassificationSettingValue{
+				DataClassificationSettingValue: &v1pb.DataClassificationSetting{
+					Configs: []*v1pb.DataClassificationSetting_DataClassificationConfig{},
+				},
+			},
+		}
+	case v1pb.Setting_SEMANTIC_TYPES:
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_SemanticTypeSettingValue{
+				SemanticTypeSettingValue: &v1pb.SemanticTypeSetting{},
+			},
+		}
+	case v1pb.Setting_ENVIRONMENT:
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_EnvironmentSetting{
+				EnvironmentSetting: &v1pb.EnvironmentSetting{},
+			},
+		}
+	case v1pb.Setting_PASSWORD_RESTRICTION:
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Unsupport delete password restriction setting",
+			Detail:   "We will reset the password restriction with default value",
+		})
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_PasswordRestrictionSetting{
+				PasswordRestrictionSetting: &v1pb.PasswordRestrictionSetting{
+					MinLength: minimumPasswordLength,
+				},
+			},
+		}
+	case v1pb.Setting_SQL_RESULT_SIZE_LIMIT:
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Unsupport delete sql query restriction setting",
+			Detail:   "We will reset the sql query restriction with default value",
+		})
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_SqlQueryRestrictionSetting{
+				SqlQueryRestrictionSetting: &v1pb.SQLQueryRestrictionSetting{},
+			},
+		}
+	default:
+		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
+	}
+
+	if _, err := c.UpsertSetting(ctx, setting, updateMasks); err != nil {
+		return diag.FromErr(err)
+	}
 
 	d.SetId("")
 	return diags

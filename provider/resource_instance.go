@@ -22,9 +22,9 @@ func resourceInstance() *schema.Resource {
 	return &schema.Resource{
 		Description:        "The instance resource.",
 		CreateContext:      resourceInstanceCreate,
-		ReadWithoutTimeout: resourceInstanceRead,
+		ReadWithoutTimeout: internal.ResourceRead(resourceInstanceRead),
 		UpdateContext:      resourceInstanceUpdate,
-		DeleteContext:      resourceInstanceDelete,
+		DeleteContext:      internal.ResourceDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -301,7 +301,7 @@ func resourceInstance() *schema.Resource {
 }
 
 // suppressSensitiveFieldDiff suppresses diffs for write-only sensitive fields.
-func suppressSensitiveFieldDiff(_ string, oldValue, newValue string, _ *schema.ResourceData) bool {
+func suppressSensitiveFieldDiff(_, oldValue, newValue string, _ *schema.ResourceData) bool {
 	// If the field was previously set (exists in state) and the new value is empty,
 	// suppress the diff because the API doesn't return these fields
 	if oldValue != "" && newValue == "" {
@@ -551,22 +551,6 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if diag != nil {
 		diags = append(diags, diag...)
 	}
-
-	return diags
-}
-
-func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(api.Client)
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-	instanceName := d.Id()
-
-	if err := c.DeleteInstance(ctx, instanceName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
 
 	return diags
 }

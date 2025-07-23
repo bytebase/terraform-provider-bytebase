@@ -26,7 +26,7 @@ func resourceProjct() *schema.Resource {
 		CreateWithoutTimeout: resourceProjectCreate,
 		ReadWithoutTimeout:   resourceProjectRead,
 		UpdateWithoutTimeout: resourceProjectUpdate,
-		DeleteContext:        resourceProjectDelete,
+		DeleteContext:        internal.ResourceDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -371,22 +371,6 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	})
 
 	return resp
-}
-
-func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(api.Client)
-	projectName := d.Id()
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
-	if err := c.DeleteProject(ctx, projectName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return diags
 }
 
 const batchSize = 100

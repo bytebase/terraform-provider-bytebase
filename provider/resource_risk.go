@@ -12,13 +12,14 @@ import (
 	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func resourceRisk() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The risk resource. Require ENTERPRISE subscription. Check the docs https://www.bytebase.com/docs/administration/risk-center?source=terraform for more information.",
-		ReadContext:   resourceRiskRead,
-		DeleteContext: resourceRiskDelete,
+		ReadContext:   internal.ResourceRead(resourceRiskRead),
+		DeleteContext: internal.ResourceDelete,
 		CreateContext: resourceRiskCreate,
 		UpdateContext: resourceRiskUpdate,
 		Importer: &schema.ResourceImporter{
@@ -104,22 +105,6 @@ func setRisk(d *schema.ResourceData, risk *v1pb.Risk) diag.Diagnostics {
 	}
 
 	return nil
-}
-
-func resourceRiskDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(api.Client)
-	fullName := d.Id()
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
-	if err := c.DeleteRisk(ctx, fullName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return diags
 }
 
 func resourceRiskCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

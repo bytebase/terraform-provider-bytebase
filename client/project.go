@@ -268,11 +268,6 @@ func (c *client) UpdateProject(ctx context.Context, patch *v1pb.Project, updateM
 	return &res, nil
 }
 
-// DeleteProject deletes the project.
-func (c *client) DeleteProject(ctx context.Context, projectName string) error {
-	return c.deleteResource(ctx, projectName)
-}
-
 // UndeleteProject undeletes the project.
 func (c *client) UndeleteProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
 	body, err := c.undeleteResource(ctx, projectName)

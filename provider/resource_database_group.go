@@ -19,7 +19,7 @@ func resourceDatabaseGroup() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The database group resource.",
 		ReadContext:   resourceDatabaseGroupRead,
-		DeleteContext: resourceDatabaseGroupDelete,
+		DeleteContext: internal.ResourceDelete,
 		CreateContext: resourceDatabaseGroupCreate,
 		UpdateContext: resourceDatabaseGroupUpdate,
 		Importer: &schema.ResourceImporter{
@@ -105,22 +105,6 @@ func setDatabaseGroup(d *schema.ResourceData, group *v1pb.DatabaseGroup) diag.Di
 	}
 
 	return nil
-}
-
-func resourceDatabaseGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(api.Client)
-	fullName := d.Id()
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
-	if err := c.DeleteDatabaseGroup(ctx, fullName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return diags
 }
 
 func resourceDatabaseGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

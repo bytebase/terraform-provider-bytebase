@@ -85,8 +85,3 @@ func (c *client) UpdateRisk(ctx context.Context, patch *v1pb.Risk, updateMasks [
 
 	return &res, nil
 }
-
-// DeleteRisk deletes the risk by name.
-func (c *client) DeleteRisk(ctx context.Context, name string) error {
-	return c.deleteResource(ctx, name)
-}

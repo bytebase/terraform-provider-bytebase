@@ -86,8 +86,3 @@ func (c *client) UpdateDatabaseGroup(ctx context.Context, patch *v1pb.DatabaseGr
 
 	return &res, nil
 }
-
-// DeleteDatabaseGroup deletes the database group by name.
-func (c *client) DeleteDatabaseGroup(ctx context.Context, name string) error {
-	return c.deleteResource(ctx, name)
-}

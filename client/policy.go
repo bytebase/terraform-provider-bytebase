@@ -66,5 +66,5 @@ func (c *client) UpsertPolicy(ctx context.Context, policy *v1pb.Policy, updateMa
 
 // DeletePolicy deletes the policy.
 func (c *client) DeletePolicy(ctx context.Context, policyName string) error {
-	return c.deleteResource(ctx, policyName)
+	return c.execDelete(ctx, policyName)
 }

@@ -170,11 +170,6 @@ func (c *client) UpdateInstance(ctx context.Context, patch *v1pb.Instance, updat
 	return &res, nil
 }
 
-// DeleteInstance deletes the instance.
-func (c *client) DeleteInstance(ctx context.Context, instanceName string) error {
-	return c.deleteResource(ctx, instanceName)
-}
-
 // UndeleteInstance undeletes the instance.
 func (c *client) UndeleteInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
 	body, err := c.undeleteResource(ctx, instanceName)

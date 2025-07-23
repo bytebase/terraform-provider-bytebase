@@ -153,7 +153,7 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 			continue
 		}
 
-		if err := c.DeleteInstance(context.Background(), rs.Primary.ID); err != nil {
+		if err := c.DeleteResource(context.Background(), rs.Primary.ID); err != nil {
 			return err
 		}
 	}

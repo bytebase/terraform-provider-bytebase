@@ -18,8 +18,8 @@ import (
 func resourceGroup() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The group resource. Workspace domain is required for creating groups.",
-		ReadContext:   resourceGroupRead,
-		DeleteContext: resourceGroupDelete,
+		ReadContext:   internal.ResourceRead(resourceGroupRead),
+		DeleteContext: internal.ResourceDelete,
 		CreateContext: resourceGroupCreate,
 		UpdateContext: resourceGroupUpdate,
 		Importer: &schema.ResourceImporter{
@@ -96,22 +96,6 @@ func resourceGroupRead(ctx context.Context, d *schema.ResourceData, m interface{
 	}
 
 	return setGroup(d, group)
-}
-
-func resourceGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(api.Client)
-	fullName := d.Id()
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
-	if err := c.DeleteGroup(ctx, fullName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return diags
 }
 
 func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

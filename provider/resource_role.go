@@ -18,8 +18,8 @@ import (
 func resourceRole() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The role resource. Require ENTERPRISE subscription. Check the docs https://www.bytebase.com/docs/administration/custom-roles/?source=terraform for more information.",
-		ReadContext:   resourceRoleRead,
-		DeleteContext: resourceRoleDelete,
+		ReadContext:   internal.ResourceRead(resourceRoleRead),
+		DeleteContext: internal.ResourceDelete,
 		CreateContext: resourceRoleCreate,
 		UpdateContext: resourceRoleUpdate,
 		Importer: &schema.ResourceImporter{
@@ -105,22 +105,6 @@ func setRole(d *schema.ResourceData, role *v1pb.Role) diag.Diagnostics {
 	}
 
 	return nil
-}
-
-func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(api.Client)
-	fullName := d.Id()
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
-	if err := c.DeleteRole(ctx, fullName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return diags
 }
 
 func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

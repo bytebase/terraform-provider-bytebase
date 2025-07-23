@@ -17,8 +17,8 @@ import (
 func resourceUser() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The user resource.",
-		ReadContext:   resourceUserRead,
-		DeleteContext: resourceUserDelete,
+		ReadContext:   internal.ResourceRead(resourceUserRead),
+		DeleteContext: internal.ResourceDelete,
 		CreateContext: resourceUserCreate,
 		UpdateContext: resourceUserUpdate,
 		Importer: &schema.ResourceImporter{
@@ -48,6 +48,33 @@ func resourceUser() *schema.Resource {
 				Sensitive:   true,
 				Optional:    true,
 				Description: "The user login password.",
+				DiffSuppressFunc: func(_, oldValue, newValue string, d *schema.ResourceData) bool {
+					// During creation, never suppress
+					if d.Id() == "" {
+						return false
+					}
+
+					// Get the raw config value to see if password is set
+					rawConfig := d.GetRawConfig()
+					sensitiveConfig := rawConfig.GetAttr("password")
+
+					// If password is not in config, suppress the diff
+					if sensitiveConfig.IsNull() {
+						return true
+					}
+
+					// If password is in config, we need to hash it and compare
+					// The 'new' value here is already hashed by StateFunc
+					// The 'old' value is the hash from state
+
+					// If both are hashes and they're equal, suppress (no change)
+					if oldValue != "" && newValue != "" && oldValue == newValue {
+						return true
+					}
+
+					// Otherwise allow the diff (password changed)
+					return false
+				},
 			},
 			"service_key": {
 				Type:        schema.TypeString,
@@ -110,22 +137,6 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 	return setUser(d, user)
 }
 
-func resourceUserDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(api.Client)
-	fullName := d.Id()
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
-	if err := c.DeleteUser(ctx, fullName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return diags
-}
-
 func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
@@ -149,6 +160,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 
 	var diags diag.Diagnostics
 	if existedUser != nil && err == nil {
+		user.Name = existedUser.Name
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "User already exists",

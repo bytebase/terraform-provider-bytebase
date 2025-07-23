@@ -164,11 +164,6 @@ func (c *client) UpdateUser(ctx context.Context, patch *v1pb.User, updateMasks [
 	return &res, nil
 }
 
-// DeleteUser deletes the user by name.
-func (c *client) DeleteUser(ctx context.Context, userName string) error {
-	return c.deleteResource(ctx, userName)
-}
-
 // UndeleteUser undeletes the user by name.
 func (c *client) UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error) {
 	body, err := c.undeleteResource(ctx, userName)

@@ -32,6 +32,7 @@ The project data source list.
 Read-Only:
 
 - `allow_modify_statement` (Boolean)
+- `allow_self_approval` (Boolean)
 - `auto_enable_backup` (Boolean)
 - `auto_resolve_issue` (Boolean)
 - `databases` (Set of String)
