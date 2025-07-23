@@ -301,7 +301,7 @@ func resourceInstance() *schema.Resource {
 }
 
 // suppressSensitiveFieldDiff suppresses diffs for write-only sensitive fields.
-func suppressSensitiveFieldDiff(_ string, oldValue, newValue string, _ *schema.ResourceData) bool {
+func suppressSensitiveFieldDiff(_, oldValue, newValue string, _ *schema.ResourceData) bool {
 	// If the field was previously set (exists in state) and the new value is empty,
 	// suppress the diff because the API doesn't return these fields
 	if oldValue != "" && newValue == "" {

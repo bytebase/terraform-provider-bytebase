@@ -13,7 +13,7 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
-// isNotFoundError checks if the error is a 404 Not Found error
+// isNotFoundError checks if the error is a 404 Not Found error.
 func isNotFoundError(err error) bool {
 	if err == nil {
 		return false
@@ -28,17 +28,10 @@ func isNotFoundError(err error) bool {
 func ResourceRead(read schema.ReadContextFunc) schema.ReadContextFunc {
 	return func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 		c := m.(api.Client)
-		var diags diag.Diagnostics
-
 		fullName := d.Id()
 		if err := c.CheckResourceExist(ctx, fullName); err != nil {
 			// Check if the resource was deleted outside of Terraform
 			if isNotFoundError(err) {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Resource not found",
-					Detail:   fmt.Sprintf("Resource %s not found, removing from state then create a new one", fullName),
-				})
 				tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", fullName))
 				// Remove from state to trigger recreation on next apply
 				d.SetId("")
