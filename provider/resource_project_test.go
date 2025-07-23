@@ -59,7 +59,7 @@ func testAccCheckProjectDestroy(s *terraform.State) error {
 			continue
 		}
 
-		if err := c.DeleteProject(context.Background(), rs.Primary.ID); err != nil {
+		if err := c.DeleteResource(context.Background(), rs.Primary.ID); err != nil {
 			return err
 		}
 	}

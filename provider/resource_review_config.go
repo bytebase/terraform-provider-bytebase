@@ -113,20 +113,10 @@ func resourceReviewConfigRead(ctx context.Context, d *schema.ResourceData, m int
 
 func resourceReviewConfigDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	fullName := d.Id()
 	resources := getReviewConfigRelatedResources(d)
 
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-
 	removeReviewConfigTag(ctx, c, resources)
-	if err := c.DeleteReviewConfig(ctx, fullName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return diags
+	return internal.ResourceDelete(ctx, d, m)
 }
 
 func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

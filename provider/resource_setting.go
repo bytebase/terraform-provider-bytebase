@@ -101,13 +101,13 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 			},
 		}
 	case v1pb.Setting_SEMANTIC_TYPES:
-		classificationSetting, err := convertToV1SemanticTypeSetting(d)
+		semanticTypeSetting, err := convertToV1SemanticTypeSetting(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		setting.Value = &v1pb.Value{
 			Value: &v1pb.Value_SemanticTypeSettingValue{
-				SemanticTypeSettingValue: classificationSetting,
+				SemanticTypeSettingValue: semanticTypeSetting,
 			},
 		}
 	case v1pb.Setting_ENVIRONMENT:
@@ -556,14 +556,103 @@ func resourceSettingRead(ctx context.Context, d *schema.ResourceData, m interfac
 	return setSettingMessage(ctx, d, c, setting)
 }
 
-func resourceSettingDelete(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
+func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
+	c := m.(api.Client)
+	settingName := d.Id()
 
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Warning,
-		Summary:  "Unsupport delete setting",
-		Detail:   "We don't support delete the setting, will only remove it from the terraform state",
-	})
+	name, err := internal.GetSettingName(settingName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	setting := &v1pb.Setting{
+		Name: settingName,
+	}
+	updateMasks := []string{}
+
+	switch name {
+	case v1pb.Setting_WORKSPACE_APPROVAL:
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_WorkspaceApprovalSettingValue{
+				WorkspaceApprovalSettingValue: &v1pb.WorkspaceApprovalSetting{},
+			},
+		}
+	case v1pb.Setting_WORKSPACE_PROFILE:
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Unsupport delete workspace profile setting",
+			Detail:   "We will reset the workspace profile with default value",
+		})
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_WorkspaceProfileSettingValue{
+				WorkspaceProfileSettingValue: &v1pb.WorkspaceProfileSetting{
+					Announcement: &v1pb.Announcement{},
+				},
+			},
+		}
+		updateMasks = []string{
+			"value.workspace_profile_setting_value.disallow_signup",
+			"value.workspace_profile_setting_value.external_url",
+			"value.workspace_profile_setting_value.disallow_password_signin",
+			"value.workspace_profile_setting_value.enforce_identity_domain",
+			"value.workspace_profile_setting_value.domains",
+			"value.workspace_profile_setting_value.database_change_mode",
+			"value.workspace_profile_setting_value.token_duration",
+			"value.workspace_profile_setting_value.maximum_role_expiration",
+			"value.workspace_profile_setting_value.announcement",
+		}
+	case v1pb.Setting_DATA_CLASSIFICATION:
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_DataClassificationSettingValue{
+				DataClassificationSettingValue: &v1pb.DataClassificationSetting{
+					Configs: []*v1pb.DataClassificationSetting_DataClassificationConfig{},
+				},
+			},
+		}
+	case v1pb.Setting_SEMANTIC_TYPES:
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_SemanticTypeSettingValue{
+				SemanticTypeSettingValue: &v1pb.SemanticTypeSetting{},
+			},
+		}
+	case v1pb.Setting_ENVIRONMENT:
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_EnvironmentSetting{
+				EnvironmentSetting: &v1pb.EnvironmentSetting{},
+			},
+		}
+	case v1pb.Setting_PASSWORD_RESTRICTION:
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Unsupport delete password restriction setting",
+			Detail:   "We will reset the password restriction with default value",
+		})
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_PasswordRestrictionSetting{
+				PasswordRestrictionSetting: &v1pb.PasswordRestrictionSetting{
+					MinLength: minimumPasswordLength,
+				},
+			},
+		}
+	case v1pb.Setting_SQL_RESULT_SIZE_LIMIT:
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Unsupport delete sql query restriction setting",
+			Detail:   "We will reset the sql query restriction with default value",
+		})
+		setting.Value = &v1pb.Value{
+			Value: &v1pb.Value_SqlQueryRestrictionSetting{
+				SqlQueryRestrictionSetting: &v1pb.SQLQueryRestrictionSetting{},
+			},
+		}
+	default:
+		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
+	}
+
+	if _, err := c.UpsertSetting(ctx, setting, updateMasks); err != nil {
+		return diag.FromErr(err)
+	}
 
 	d.SetId("")
 	return diags

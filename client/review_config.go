@@ -57,8 +57,3 @@ func (c *client) UpsertReviewConfig(ctx context.Context, patch *v1pb.ReviewConfi
 
 	return &res, nil
 }
-
-// DeleteReviewConfig deletes the review config.
-func (c *client) DeleteReviewConfig(ctx context.Context, reviewName string) error {
-	return c.deleteResource(ctx, reviewName)
-}

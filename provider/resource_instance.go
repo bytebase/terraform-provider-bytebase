@@ -22,9 +22,9 @@ func resourceInstance() *schema.Resource {
 	return &schema.Resource{
 		Description:        "The instance resource.",
 		CreateContext:      resourceInstanceCreate,
-		ReadWithoutTimeout: resourceInstanceRead,
+		ReadWithoutTimeout: internal.ResourceRead(resourceInstanceRead),
 		UpdateContext:      resourceInstanceUpdate,
-		DeleteContext:      resourceInstanceDelete,
+		DeleteContext:      internal.ResourceDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -551,22 +551,6 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if diag != nil {
 		diags = append(diags, diag...)
 	}
-
-	return diags
-}
-
-func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(api.Client)
-
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
-	instanceName := d.Id()
-
-	if err := c.DeleteInstance(ctx, instanceName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
 
 	return diags
 }

@@ -55,6 +55,10 @@ type UserFilter struct {
 type Client interface {
 	// GetCaller returns the API caller.
 	GetCaller() *v1pb.User
+	// CheckResourceExist check if the resource exists.
+	CheckResourceExist(ctx context.Context, name string) error
+	// DeleteResource force delete the resource by name.
+	DeleteResource(ctx context.Context, name string) error
 
 	// Instance
 	// ListInstance will return instances.
@@ -65,8 +69,6 @@ type Client interface {
 	CreateInstance(ctx context.Context, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error)
 	// UpdateInstance updates the instance.
 	UpdateInstance(ctx context.Context, patch *v1pb.Instance, updateMasks []string) (*v1pb.Instance, error)
-	// DeleteInstance deletes the instance.
-	DeleteInstance(ctx context.Context, instanceName string) error
 	// UndeleteInstance undeletes the instance.
 	UndeleteInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error)
 	// SyncInstanceSchema will trigger the schema sync for an instance.
@@ -105,8 +107,6 @@ type Client interface {
 	CreateProject(ctx context.Context, projectID string, project *v1pb.Project) (*v1pb.Project, error)
 	// UpdateProject updates the project.
 	UpdateProject(ctx context.Context, patch *v1pb.Project, updateMask []string) (*v1pb.Project, error)
-	// DeleteProject deletes the project.
-	DeleteProject(ctx context.Context, projectName string) error
 	// UndeleteProject undeletes the project.
 	UndeleteProject(ctx context.Context, projectName string) (*v1pb.Project, error)
 	// GetProjectIAMPolicy gets the project IAM policy by project full name.
@@ -141,16 +141,12 @@ type Client interface {
 	GetUser(ctx context.Context, userName string) (*v1pb.User, error)
 	// UpdateUser updates the user.
 	UpdateUser(ctx context.Context, patch *v1pb.User, updateMasks []string) (*v1pb.User, error)
-	// DeleteUser deletes the user by name.
-	DeleteUser(ctx context.Context, userName string) error
 	// UndeleteUser undeletes the user by name.
 	UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error)
 
 	// Role
 	// ListRole will returns all roles.
 	ListRole(ctx context.Context) (*v1pb.ListRolesResponse, error)
-	// DeleteRole deletes the role by name.
-	DeleteRole(ctx context.Context, name string) error
 	// CreateRole creates the role.
 	CreateRole(ctx context.Context, roleID string, role *v1pb.Role) (*v1pb.Role, error)
 	// GetRole gets the role by full name.
@@ -167,8 +163,6 @@ type Client interface {
 	GetGroup(ctx context.Context, name string) (*v1pb.Group, error)
 	// UpdateGroup updates the group.
 	UpdateGroup(ctx context.Context, patch *v1pb.Group, updateMasks []string) (*v1pb.Group, error)
-	// DeleteGroup deletes the group by name.
-	DeleteGroup(ctx context.Context, name string) error
 
 	// Workspace
 	// GetWorkspaceIAMPolicy gets the workspace IAM policy.
@@ -183,8 +177,6 @@ type Client interface {
 	GetReviewConfig(ctx context.Context, reviewName string) (*v1pb.ReviewConfig, error)
 	// UpsertReviewConfig updates or creates the review config.
 	UpsertReviewConfig(ctx context.Context, patch *v1pb.ReviewConfig, updateMasks []string) (*v1pb.ReviewConfig, error)
-	// DeleteReviewConfig deletes the review config.
-	DeleteReviewConfig(ctx context.Context, reviewName string) error
 
 	// Risk
 	// ListRisk lists the risk.
@@ -195,8 +187,6 @@ type Client interface {
 	CreateRisk(ctx context.Context, risk *v1pb.Risk) (*v1pb.Risk, error)
 	// UpdateRisk updates the risk.
 	UpdateRisk(ctx context.Context, patch *v1pb.Risk, updateMasks []string) (*v1pb.Risk, error)
-	// DeleteRisk deletes the risk by name.
-	DeleteRisk(ctx context.Context, name string) error
 
 	// ListDatabaseGroup list all database groups in a project.
 	ListDatabaseGroup(ctx context.Context, project string) (*v1pb.ListDatabaseGroupsResponse, error)
@@ -206,6 +196,4 @@ type Client interface {
 	GetDatabaseGroup(ctx context.Context, name string, view v1pb.DatabaseGroupView) (*v1pb.DatabaseGroup, error)
 	// UpdateDatabaseGroup updates the database group.
 	UpdateDatabaseGroup(ctx context.Context, patch *v1pb.DatabaseGroup, updateMasks []string) (*v1pb.DatabaseGroup, error)
-	// DeleteDatabaseGroup deletes the database group by name.
-	DeleteDatabaseGroup(ctx context.Context, name string) error
 }

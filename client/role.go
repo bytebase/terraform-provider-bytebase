@@ -51,11 +51,6 @@ func (c *client) CreateRole(ctx context.Context, roleID string, role *v1pb.Role)
 	return &res, nil
 }
 
-// DeleteRole deletes the role by name.
-func (c *client) DeleteRole(ctx context.Context, name string) error {
-	return c.deleteResource(ctx, name)
-}
-
 // UpdateRole updates the role.
 func (c *client) UpdateRole(ctx context.Context, patch *v1pb.Role, updateMasks []string) (*v1pb.Role, error) {
 	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, true /* allow missing = true*/)

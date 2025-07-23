@@ -16,7 +16,7 @@ var ProtojsonUnmarshaler = protojson.UnmarshalOptions{DiscardUnknown: true}
 
 // deleteResource deletes the resource by name.
 func (c *client) deleteResource(ctx context.Context, name string) error {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s", c.url, c.version, url.QueryEscape(name)), nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s?force=true", c.url, c.version, url.QueryEscape(name)), nil)
 	if err != nil {
 		return err
 	}

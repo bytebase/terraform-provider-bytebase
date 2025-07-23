@@ -402,6 +402,8 @@ func getSQLQueryRestrictionSetting(computed bool) *schema.Schema {
 	}
 }
 
+const minimumPasswordLength = 8
+
 func getPasswordRestrictionSetting(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Computed:    computed,
@@ -416,8 +418,8 @@ func getPasswordRestrictionSetting(computed bool) *schema.Schema {
 				"min_length": {
 					Type:         schema.TypeInt,
 					Optional:     true,
-					Description:  "min_length is the minimum length for password, should no less than 8.",
-					ValidateFunc: validation.IntAtLeast(8),
+					Description:  fmt.Sprintf("min_length is the minimum length for password, should no less than %d.", minimumPasswordLength),
+					ValidateFunc: validation.IntAtLeast(minimumPasswordLength),
 				},
 				"require_number": {
 					Type:        schema.TypeBool,
