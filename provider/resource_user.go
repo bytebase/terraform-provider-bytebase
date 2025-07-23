@@ -48,7 +48,7 @@ func resourceUser() *schema.Resource {
 				Sensitive:   true,
 				Optional:    true,
 				Description: "The user login password.",
-				DiffSuppressFunc: func(_, old, new string, d *schema.ResourceData) bool {
+				DiffSuppressFunc: func(_, oldValue, newValue string, d *schema.ResourceData) bool {
 					// During creation, never suppress
 					if d.Id() == "" {
 						return false
@@ -68,7 +68,7 @@ func resourceUser() *schema.Resource {
 					// The 'old' value is the hash from state
 
 					// If both are hashes and they're equal, suppress (no change)
-					if old != "" && new != "" && old == new {
+					if oldValue != "" && newValue != "" && oldValue == newValue {
 						return true
 					}
 
