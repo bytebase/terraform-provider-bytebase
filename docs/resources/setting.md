@@ -17,14 +17,16 @@ The setting resource.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES" and "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details
+- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "PASSWORD_RESTRICTION", "SQL_RESULT_SIZE_LIMIT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details
 
 ### Optional
 
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
+- `password_restriction` (Block List, Max: 1) Restrict for login password (see [below for nested schema](#nestedblock--password_restriction))
 - `semantic_types` (Block List) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
+- `sql_query_restriction` (Block List, Max: 1) Restrict for SQL query result (see [below for nested schema](#nestedblock--sql_query_restriction))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
 ### Read-Only
@@ -149,6 +151,20 @@ Read-Only:
 
 
 
+<a id="nestedblock--password_restriction"></a>
+### Nested Schema for `password_restriction`
+
+Optional:
+
+- `min_length` (Number) min_length is the minimum length for password, should no less than 8.
+- `password_rotation_in_seconds` (Number) password_rotation requires users to reset their password after the duration. The duration should be at least 86400 (one day).
+- `require_letter` (Boolean) require_letter requires the password must contains at least one letter, regardless of upper case or lower case.
+- `require_number` (Boolean) require_number requires the password must contains at least one number.
+- `require_reset_password_for_first_login` (Boolean) require_reset_password_for_first_login requires users to reset their password after the 1st login.
+- `require_special_character` (Boolean) require_special_character requires the password must contains at least one special character.
+- `require_uppercase_letter` (Boolean) require_uppercase_letter requires the password must contains at least one upper case letter.
+
+
 <a id="nestedblock--semantic_types"></a>
 ### Nested Schema for `semantic_types`
 
@@ -217,6 +233,15 @@ Required:
 
 
 
+
+
+<a id="nestedblock--sql_query_restriction"></a>
+### Nested Schema for `sql_query_restriction`
+
+Optional:
+
+- `maximum_result_rows` (Number) The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.
+- `maximum_result_size` (Number) The size limit in bytes. The default value is 100MB, we will use the default value if the setting not exists, or the limit <= 0.
 
 
 <a id="nestedblock--workspace_profile"></a>
