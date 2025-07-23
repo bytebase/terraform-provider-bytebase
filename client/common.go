@@ -14,8 +14,8 @@ import (
 // ProtojsonUnmarshaler is the unmarshal for protocol.
 var ProtojsonUnmarshaler = protojson.UnmarshalOptions{DiscardUnknown: true}
 
-// deleteResource deletes the resource by name.
-func (c *client) deleteResource(ctx context.Context, name string) error {
+// execDelete deletes the resource by name.
+func (c *client) execDelete(ctx context.Context, name string) error {
 	req, err := http.NewRequestWithContext(ctx, "DELETE", fmt.Sprintf("%s/%s/%s?force=true", c.url, c.version, url.QueryEscape(name)), nil)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (c *client) undeleteResource(ctx context.Context, name string) ([]byte, err
 	return body, nil
 }
 
-// deleteResource deletes the resource by name.
+// updateResource update the resource.
 func (c *client) updateResource(ctx context.Context, name string, patch protoreflect.ProtoMessage, updateMasks []string, allowMissing bool) ([]byte, error) {
 	payload, err := protojson.Marshal(patch)
 	if err != nil {

@@ -84,5 +84,5 @@ func (c *client) CheckResourceExist(ctx context.Context, name string) error {
 
 // DeleteResource force delete the resource by name.
 func (c *client) DeleteResource(ctx context.Context, name string) error {
-	return c.deleteResource(ctx, name)
+	return c.execDelete(ctx, name)
 }

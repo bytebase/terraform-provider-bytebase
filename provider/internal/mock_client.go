@@ -78,27 +78,27 @@ func (*mockClient) GetCaller() *v1pb.User {
 }
 
 // CheckResourceExist check if the resource exists.
-func (c *mockClient) CheckResourceExist(ctx context.Context, name string) error {
+func (c *mockClient) CheckResourceExist(_ context.Context, name string) error {
 	prefix := strings.Split(name, "/")[0] + "/"
 	switch prefix {
 	case InstanceNamePrefix:
-		if _, ok := instanceMap[name]; ok {
+		if _, ok := c.instanceMap[name]; ok {
 			return nil
 		}
 	case ProjectNamePrefix:
-		if _, ok := projectMap[name]; ok {
+		if _, ok := c.projectMap[name]; ok {
 			return nil
 		}
 	case UserNamePrefix:
-		if _, ok := userMap[name]; ok {
+		if _, ok := c.userMap[name]; ok {
 			return nil
 		}
 	case RoleNamePrefix:
-		if _, ok := roleMap[name]; ok {
+		if _, ok := c.roleMap[name]; ok {
 			return nil
 		}
 	case GroupNamePrefix:
-		if _, ok := groupMap[name]; ok {
+		if _, ok := c.groupMap[name]; ok {
 			return nil
 		}
 	case DatabaseGroupNamePrefix:
@@ -114,19 +114,19 @@ func (c *mockClient) CheckResourceExist(ctx context.Context, name string) error 
 }
 
 // DeleteResource delete the resource by name.
-func (c *mockClient) DeleteResource(ctx context.Context, name string) error {
+func (c *mockClient) DeleteResource(_ context.Context, name string) error {
 	prefix := strings.Split(name, "/")[0] + "/"
 	switch prefix {
 	case InstanceNamePrefix:
-		delete(instanceMap, name)
+		delete(c.instanceMap, name)
 	case ProjectNamePrefix:
-		delete(projectMap, name)
+		delete(c.projectMap, name)
 	case UserNamePrefix:
-		delete(userMap, name)
+		delete(c.userMap, name)
 	case RoleNamePrefix:
-		delete(roleMap, name)
+		delete(c.roleMap, name)
 	case GroupNamePrefix:
-		delete(groupMap, name)
+		delete(c.groupMap, name)
 	case DatabaseGroupNamePrefix:
 	case ReviewConfigNamePrefix:
 	case RiskNamePrefix:
