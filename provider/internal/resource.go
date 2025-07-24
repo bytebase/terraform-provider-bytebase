@@ -53,7 +53,10 @@ func ResourceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) 
 	var diags diag.Diagnostics
 
 	if err := c.DeleteResource(ctx, fullName); err != nil {
-		return diag.FromErr(err)
+		// Check if the resource was deleted outside of Terraform
+		if !isNotFoundError(err) {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")

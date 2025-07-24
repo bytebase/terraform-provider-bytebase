@@ -126,6 +126,7 @@ func dataSourceInstanceList() *schema.Resource {
 							Computed:    true,
 							Description: "The maximum number of connections. The default value is 10.",
 						},
+						"sync_databases": getSyncDatabasesSchema(true),
 						"data_sources": {
 							Type:     schema.TypeSet,
 							Computed: true,
@@ -251,8 +252,11 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		ins["engine_version"] = instance.EngineVersion
 		ins["external_link"] = instance.ExternalLink
 		ins["environment"] = instance.Environment
-		ins["sync_interval"] = instance.GetSyncInterval().GetSeconds()
+		if v := instance.GetSyncInterval(); v != nil {
+			ins["sync_interval"] = v.GetSeconds()
+		}
 		ins["maximum_connections"] = instance.GetMaximumConnections()
+		ins["sync_databases"] = instance.SyncDatabases
 
 		dataSources, err := flattenDataSourceList(d, instance.DataSources)
 		if err != nil {

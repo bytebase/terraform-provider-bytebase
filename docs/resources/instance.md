@@ -37,6 +37,7 @@ The instance resource.
 - `engine_version` (String) The engine version.
 - `id` (String) The ID of this resource.
 - `name` (String) The instance full name in instances/{resource id} format.
+- `sync_databases` (Set of String) Enable sync for following databases. Default empty, means sync all schemas & databases.
 
 <a id="nestedblock--data_sources"></a>
 ### Nested Schema for `data_sources`

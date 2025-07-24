@@ -142,7 +142,8 @@ func dataSourceInstance() *schema.Resource {
 				Default:     false,
 				Description: "List all databases in this instance. If false, will only list 500 databases.",
 			},
-			"databases": getDatabasesSchema(true),
+			"databases":      getDatabasesSchema(true),
+			"sync_databases": getSyncDatabasesSchema(true),
 		},
 	}
 }

@@ -35,6 +35,7 @@ The instance data source.
 - `id` (String) The ID of this resource.
 - `maximum_connections` (Number) The maximum number of connections. The default value is 10.
 - `name` (String) The instance full name in instances/{resource id} format.
+- `sync_databases` (Set of String) Enable sync for following databases. Default empty, means sync all schemas & databases.
 - `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync.
 - `title` (String) The instance title.
 
