@@ -11,6 +11,7 @@ resource "bytebase_policy" "masking_exception_policy" {
 
   masking_exception_policy {
     exceptions {
+      reason = "Business requirement"
       database = "instances/prod-sample-instance/databases/hr_prod"
       table    = "employee"
       column   = "birth_date"
@@ -19,6 +20,7 @@ resource "bytebase_policy" "masking_exception_policy" {
       expire_timestamp = "2027-07-30T16:11:49Z"
     }
     exceptions {
+      reason = "Export data for analysis"
       database = "instances/prod-sample-instance/databases/hr_prod"
       table    = "employee"
       column   = "last_name"
