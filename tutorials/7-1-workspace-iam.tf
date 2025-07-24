@@ -30,11 +30,7 @@ resource "bytebase_iam_policy" "workspace_iam" {
     binding {
       role = "roles/workspaceMember"
       members = [
-        format("user:%s", bytebase_user.dev1.email),
-        format("user:%s", bytebase_user.dev2.email),
-        format("user:%s", bytebase_user.dev3.email),
-        format("user:%s", bytebase_user.qa1.email),
-        format("user:%s", bytebase_user.qa2.email)
+        "allUsers"
       ]
     }
 
