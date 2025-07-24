@@ -20,11 +20,11 @@ import (
 
 func resourceInstance() *schema.Resource {
 	return &schema.Resource{
-		Description:        "The instance resource.",
-		CreateContext:      resourceInstanceCreate,
-		ReadWithoutTimeout: internal.ResourceRead(resourceInstanceRead),
-		UpdateContext:      resourceInstanceUpdate,
-		DeleteContext:      internal.ResourceDelete,
+		Description:          "The instance resource.",
+		CreateWithoutTimeout: resourceInstanceCreate,
+		ReadWithoutTimeout:   internal.ResourceRead(resourceInstanceRead),
+		UpdateContext:        resourceInstanceUpdate,
+		DeleteContext:        internal.ResourceDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -90,6 +90,7 @@ func resourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: "The maximum number of connections.",
 			},
+			"sync_databases": getSyncDatabasesSchema(true),
 			"data_sources": {
 				Type:        schema.TypeSet,
 				Required:    true,
@@ -300,6 +301,18 @@ func resourceInstance() *schema.Resource {
 	}
 }
 
+func getSyncDatabasesSchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeSet,
+		Computed:    computed,
+		Optional:    !computed,
+		Description: "Enable sync for following databases. Default empty, means sync all schemas & databases.",
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
+		},
+	}
+}
+
 // suppressSensitiveFieldDiff suppresses diffs for write-only sensitive fields.
 func suppressSensitiveFieldDiff(_, oldValue, newValue string, _ *schema.ResourceData) bool {
 	// If the field was previously set (exists in state) and the new value is empty,
@@ -336,6 +349,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		State:              v1pb.State_ACTIVE,
 		MaximumConnections: int32(d.Get("maximum_connections").(int)),
 		Engine:             v1pb.Engine(v1pb.Engine_value[d.Get("engine").(string)]),
+		SyncDatabases:      getSyncDatabases(d),
 	}
 	rawConfig := d.GetRawConfig()
 	if config := rawConfig.GetAttr("sync_interval"); !config.IsNull() {
@@ -395,6 +409,9 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 		if config := rawConfig.GetAttr("maximum_connections"); !config.IsNull() && instance.MaximumConnections != existedInstance.GetMaximumConnections() {
 			updateMasks = append(updateMasks, "maximum_connections")
+		}
+		if config := rawConfig.GetAttr("sync_databases"); !config.IsNull() {
+			updateMasks = append(updateMasks, "sync_databases")
 		}
 		if len(dataSourceList) > 0 {
 			updateMasks = append(updateMasks, "data_sources")
@@ -461,6 +478,18 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 	return resp
 }
 
+func getSyncDatabases(d *schema.ResourceData) []string {
+	rawSet, ok := d.Get("sync_databases").(*schema.Set)
+	if !ok {
+		return nil
+	}
+	dbList := []string{}
+	for _, raw := range rawSet.List() {
+		dbList = append(dbList, raw.(string))
+	}
+	return dbList
+}
+
 func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	if d.HasChange("resource_id") {
 		return diag.Errorf("cannot change the resource id")
@@ -518,6 +547,9 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if d.HasChange("sync_interval") {
 		paths = append(paths, "sync_interval")
 	}
+	if d.HasChange("sync_databases") {
+		paths = append(paths, "sync_databases")
+	}
 	if d.HasChange("maximum_connections") {
 		paths = append(paths, "maximum_connections")
 	}
@@ -535,6 +567,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				Seconds: int64(d.Get("sync_interval").(int)),
 			},
 			MaximumConnections: int32(d.Get("maximum_connections").(int)),
+			SyncDatabases:      getSyncDatabases(d),
 		}, paths); err != nil {
 			return diag.FromErr(err)
 		}
@@ -593,8 +626,10 @@ func setInstanceMessage(
 	if err := d.Set("external_link", instance.ExternalLink); err != nil {
 		return diag.Errorf("cannot set external_link for instance: %s", err.Error())
 	}
-	if err := d.Set("sync_interval", instance.GetSyncInterval().GetSeconds()); err != nil {
-		return diag.Errorf("cannot set sync_interval for instance: %s", err.Error())
+	if v := instance.GetSyncInterval(); v != nil {
+		if err := d.Set("sync_interval", v.GetSeconds()); err != nil {
+			return diag.Errorf("cannot set sync_interval for instance: %s", err.Error())
+		}
 	}
 	if err := d.Set("maximum_connections", instance.GetMaximumConnections()); err != nil {
 		return diag.Errorf("cannot set maximum_connections for instance: %s", err.Error())
@@ -620,6 +655,10 @@ func setInstanceMessage(
 	databaseList := flattenDatabaseList(databases)
 	if err := d.Set("databases", databaseList); err != nil {
 		return diag.Errorf("cannot set databases for instance: %s", err.Error())
+	}
+
+	if err := d.Set("sync_databases", instance.SyncDatabases); err != nil {
+		return diag.Errorf("cannot set sync_databases for instance: %s", err.Error())
 	}
 
 	return nil

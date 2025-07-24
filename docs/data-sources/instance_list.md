@@ -44,6 +44,7 @@ Read-Only:
 - `maximum_connections` (Number)
 - `name` (String)
 - `resource_id` (String)
+- `sync_databases` (Set of String)
 - `sync_interval` (Number)
 - `title` (String)
 

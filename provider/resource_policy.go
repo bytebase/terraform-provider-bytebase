@@ -383,7 +383,7 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 			return nil, err
 		}
 		policy.MaskingExceptions = append(policy.MaskingExceptions, &v1pb.MaskingExceptionPolicy_MaskingException{
-			Member: rawException["member"].(string),
+			Member: member,
 			Action: v1pb.MaskingExceptionPolicy_MaskingException_Action(
 				v1pb.MaskingExceptionPolicy_MaskingException_Action_value[rawException["action"].(string)],
 			),
