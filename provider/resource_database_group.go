@@ -18,7 +18,7 @@ import (
 func resourceDatabaseGroup() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The database group resource.",
-		ReadContext:   resourceDatabaseGroupRead,
+		ReadContext:   internal.ResourceRead(resourceDatabaseGroupRead),
 		DeleteContext: internal.ResourceDelete,
 		CreateContext: resourceDatabaseGroupCreate,
 		UpdateContext: resourceDatabaseGroupUpdate,
