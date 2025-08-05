@@ -28,19 +28,31 @@ func resourceDatabase() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					// database name format
+					fmt.Sprintf("^%s%s/%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern),
+				),
 				Description: "The database full name in instances/{instance}/databases/{database} format",
 			},
 			"project": {
-				Type:        schema.TypeString,
-				Required:    true,
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					// project name format
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
+				),
 				Description: "The project full name for the database in projects/{project} format.",
 			},
 			"environment": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					// environment name format
+					fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern),
+				),
 				Description: "The database environment, will follow the instance environment by default",
 			},
 			"state": {

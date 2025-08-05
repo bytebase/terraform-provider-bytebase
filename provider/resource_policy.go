@@ -349,25 +349,30 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 	for _, exception := range exceptionList.List() {
 		rawException := exception.(map[string]interface{})
 
+		expressions := []string{}
 		databaseFullName := rawException["database"].(string)
-		instanceID, databaseName, err := internal.GetInstanceDatabaseID(databaseFullName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid database full name: %v", databaseFullName)
+		if databaseFullName != "" {
+			instanceID, databaseName, err := internal.GetInstanceDatabaseID(databaseFullName)
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid database full name: %v", databaseFullName)
+			}
+			expressions = append(
+				expressions,
+				fmt.Sprintf(`resource.instance_id == "%s"`, instanceID),
+				fmt.Sprintf(`resource.database_name == "%s"`, databaseName),
+			)
+
+			if schema, ok := rawException["schema"].(string); ok && schema != "" {
+				expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
+			}
+			if table, ok := rawException["table"].(string); ok && table != "" {
+				expressions = append(expressions, fmt.Sprintf(`resource.table_name == "%s"`, table))
+			}
+			if column, ok := rawException["column"].(string); ok && column != "" {
+				expressions = append(expressions, fmt.Sprintf(`resource.column_name == "%s"`, column))
+			}
 		}
 
-		expressions := []string{
-			fmt.Sprintf(`resource.instance_id == "%s"`, instanceID),
-			fmt.Sprintf(`resource.database_name == "%s"`, databaseName),
-		}
-		if schema, ok := rawException["schema"].(string); ok && schema != "" {
-			expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
-		}
-		if table, ok := rawException["table"].(string); ok && table != "" {
-			expressions = append(expressions, fmt.Sprintf(`resource.table_name == "%s"`, table))
-		}
-		if column, ok := rawException["column"].(string); ok && column != "" {
-			expressions = append(expressions, fmt.Sprintf(`resource.column_name == "%s"`, column))
-		}
 		if expire, ok := rawException["expire_timestamp"].(string); ok && expire != "" {
 			formattedTime, err := time.Parse(time.RFC3339, expire)
 			if err != nil {

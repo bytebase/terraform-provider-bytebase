@@ -93,10 +93,14 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"database": {
-								Type:         schema.TypeString,
-								Required:     true,
-								ValidateFunc: validation.StringIsNotEmpty,
-								Description:  "The database full name in instances/{instance resource id}/databases/{database name} format",
+								Type:     schema.TypeString,
+								Computed: computed,
+								Optional: true,
+								ValidateDiagFunc: internal.ResourceNameValidation(
+									// database name format
+									fmt.Sprintf("^%s%s/%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern),
+								),
+								Description: "The database full name in instances/{instance resource id}/databases/{database name} format",
 							},
 							"schema": {
 								Type:     schema.TypeString,
@@ -476,10 +480,9 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 				)
 			}
 		}
-		if instanceID == "" || databaseName == "" {
-			return nil, errors.Errorf("invalid exception policy condition: %v", exception.Condition.Expression)
+		if instanceID != "" && databaseName != "" {
+			raw["database"] = fmt.Sprintf("%s%s/%s%s", internal.InstanceNamePrefix, instanceID, internal.DatabaseIDPrefix, databaseName)
 		}
-		raw["database"] = fmt.Sprintf("%s%s/%s%s", internal.InstanceNamePrefix, instanceID, internal.DatabaseIDPrefix, databaseName)
 		exceptionList = append(exceptionList, raw)
 	}
 	policy := map[string]interface{}{
