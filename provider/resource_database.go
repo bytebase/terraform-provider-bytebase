@@ -32,7 +32,7 @@ func resourceDatabase() *schema.Resource {
 				Required: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// database name format
-					fmt.Sprintf("^%s%s/%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix, internal.ResourceIDPattern),
+					fmt.Sprintf(`^%s%s/%s\S+$`, internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix),
 				),
 				Description: "The database full name in instances/{instance}/databases/{database} format",
 			},
