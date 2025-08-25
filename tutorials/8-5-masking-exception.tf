@@ -11,21 +11,12 @@ resource "bytebase_policy" "masking_exception_policy" {
 
   masking_exception_policy {
     exceptions {
-      reason = "Business requirement"
-      database = "instances/prod-sample-instance/databases/hr_prod"
-      table    = "employee"
-      column   = "birth_date"
-      member   = "user:admin@example.com"
-      action   = "QUERY"
-      expire_timestamp = "2027-07-30T16:11:49Z"
-    }
-    exceptions {
-      reason = "Export data for analysis"
-      database = "instances/prod-sample-instance/databases/hr_prod"
-      table    = "employee"
-      column   = "last_name"
-      member   = "user:admin@example.com"
-      action   = "EXPORT"
+      reason           = "Business requirement"
+      database         = "instances/prod-sample-instance/databases/hr_prod"
+      table            = "employee"
+      columns          = ["birth_date", "last_name"]
+      members          = ["user:admin@example.com"]
+      actions          = ["QUERY", "EXPORT"]
       expire_timestamp = "2027-07-30T16:11:49Z"
     }
   }

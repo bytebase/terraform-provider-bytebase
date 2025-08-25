@@ -113,25 +113,40 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 								Optional:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
 							},
-							"column": {
-								Type:         schema.TypeString,
-								Computed:     computed,
-								Optional:     true,
-								ValidateFunc: validation.StringIsNotEmpty,
+							"columns": {
+								Type:     schema.TypeSet,
+								Computed: computed,
+								Optional: true,
+								Elem: &schema.Schema{
+									Type:         schema.TypeString,
+									ValidateFunc: validation.StringIsNotEmpty,
+								},
 							},
-							"member": {
-								Type:         schema.TypeString,
-								Required:     true,
-								ValidateFunc: validation.StringIsNotEmpty,
-								Description:  "The member in user:{email} or group:{email} format.",
-							},
-							"action": {
-								Type:     schema.TypeString,
+							"members": {
+								Type:     schema.TypeSet,
 								Required: true,
-								ValidateFunc: validation.StringInSlice([]string{
-									v1pb.MaskingExceptionPolicy_MaskingException_QUERY.String(),
-									v1pb.MaskingExceptionPolicy_MaskingException_EXPORT.String(),
-								}, false),
+								MinItems: 1,
+								Elem: &schema.Schema{
+									Type:        schema.TypeString,
+									Description: "The member in user:{email} or group:{email} format.",
+									ValidateDiagFunc: internal.ResourceNameValidation(
+										"^user:",
+										"^group:",
+									),
+								},
+							},
+							"actions": {
+								Type:     schema.TypeSet,
+								Required: true,
+								MinItems: 1,
+								Elem: &schema.Schema{
+									Type:        schema.TypeString,
+									Description: "The action to allow for members. Support QUERY or EXPORT",
+									ValidateFunc: validation.StringInSlice([]string{
+										v1pb.MaskingExceptionPolicy_MaskingException_QUERY.String(),
+										v1pb.MaskingExceptionPolicy_MaskingException_EXPORT.String(),
+									}, false),
+								},
 							},
 							"reason": {
 								Type:        schema.TypeString,
@@ -318,10 +333,6 @@ func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func setPolicyMessage(d *schema.ResourceData, policy *v1pb.Policy) diag.Diagnostics {
-	_, policyType, err := internal.GetPolicyParentAndType(policy.Name)
-	if err != nil {
-		return diag.Errorf("cannot parse name for policy: %s", err.Error())
-	}
 	if err := d.Set("name", policy.Name); err != nil {
 		return diag.Errorf("cannot set name for policy: %s", err.Error())
 	}
@@ -332,51 +343,57 @@ func setPolicyMessage(d *schema.ResourceData, policy *v1pb.Policy) diag.Diagnost
 		return diag.Errorf("cannot set enforce for policy: %s", err.Error())
 	}
 
+	key, payload, diags := flattenPolicyPayload(policy)
+	if diags != nil {
+		return diags
+	}
+	if err := d.Set(key, payload); err != nil {
+		return diag.Errorf("cannot set %s for policy: %s", key, err.Error())
+	}
+
+	return nil
+}
+
+func flattenPolicyPayload(policy *v1pb.Policy) (string, interface{}, diag.Diagnostics) {
+	_, policyType, err := internal.GetPolicyParentAndType(policy.Name)
+	if err != nil {
+		return "", nil, diag.Errorf("cannot parse name for policy: %s", err.Error())
+	}
 	switch policyType {
 	case v1pb.PolicyType_MASKING_EXCEPTION:
 		if p := policy.GetMaskingExceptionPolicy(); p != nil {
 			exceptionPolicy, err := flattenMaskingExceptionPolicy(p)
 			if err != nil {
-				return diag.FromErr(err)
+				return "", nil, diag.FromErr(err)
 			}
-			if err := d.Set("masking_exception_policy", exceptionPolicy); err != nil {
-				return diag.Errorf("cannot set masking_exception_policy: %s", err.Error())
-			}
+			return "masking_exception_policy", exceptionPolicy, nil
 		}
 	case v1pb.PolicyType_MASKING_RULE:
 		if p := policy.GetMaskingRulePolicy(); p != nil {
 			maskingPolicy, err := flattenGlobalMaskingPolicy(p)
 			if err != nil {
-				return diag.FromErr(err)
+				return "", nil, diag.FromErr(err)
 			}
-			if err := d.Set("global_masking_policy", maskingPolicy); err != nil {
-				return diag.Errorf("cannot set global_masking_policy: %s", err.Error())
-			}
+			return "global_masking_policy", maskingPolicy, nil
 		}
 	case v1pb.PolicyType_DISABLE_COPY_DATA:
 		if p := policy.GetDisableCopyDataPolicy(); p != nil {
 			disableCopyDataPolicy := flattenDisableCopyDataPolicy(p)
-			if err := d.Set("disable_copy_data_policy", disableCopyDataPolicy); err != nil {
-				return diag.Errorf("cannot set disable_copy_data_policy: %s", err.Error())
-			}
+			return "disable_copy_data_policy", disableCopyDataPolicy, nil
 		}
 	case v1pb.PolicyType_DATA_SOURCE_QUERY:
 		if p := policy.GetDataSourceQueryPolicy(); p != nil {
 			dataSourceQueryPolicy := flattenDataSourceQueryPolicy(p)
-			if err := d.Set("data_source_query_policy", dataSourceQueryPolicy); err != nil {
-				return diag.Errorf("cannot set data_source_query_policy: %s", err.Error())
-			}
+			return "data_source_query_policy", dataSourceQueryPolicy, nil
 		}
 	case v1pb.PolicyType_ROLLOUT_POLICY:
 		if p := policy.GetRolloutPolicy(); p != nil {
 			rolloutPolicy := flattenRolloutPolicy(p)
-			if err := d.Set("rollout_policy", rolloutPolicy); err != nil {
-				return diag.Errorf("cannot set rollout_policy: %s", err.Error())
-			}
+			return "rollout_policy", rolloutPolicy, nil
 		}
 	}
 
-	return nil
+	return "", nil, diag.Errorf("unsupported policy: %s", policy.Name)
 }
 
 func flattenRolloutPolicy(p *v1pb.RolloutPolicy) []interface{} {
@@ -428,21 +445,48 @@ func flattenGlobalMaskingPolicy(p *v1pb.MaskingRulePolicy) ([]interface{}, error
 	return []interface{}{policy}, nil
 }
 
+type combineException struct {
+	expression string
+	reason     string
+	members    []interface{}
+	actions    []interface{}
+}
+
 func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{}, error) {
 	exceptionList := []interface{}{}
+	exceptionMap := map[string]*combineException{}
+
 	for _, exception := range p.MaskingExceptions {
-		raw := map[string]interface{}{}
-		raw["member"] = exception.Member
-		raw["action"] = exception.Action.String()
-
 		if exception.Condition == nil || exception.Condition.Expression == "" {
-			return nil, errors.Errorf("invalid exception policy condition")
+			// Skip invalid data.
+			continue
 		}
-		raw["reason"] = exception.Condition.Description
 
-		expressions := strings.Split(exception.Condition.Expression, " && ")
+		key := fmt.Sprintf("[expression:%s] [reason:%s]", exception.Condition.Expression, exception.Condition.Description)
+		if _, ok := exceptionMap[key]; !ok {
+			exceptionMap[key] = &combineException{
+				expression: exception.Condition.Expression,
+				reason:     exception.Condition.Description,
+				members:    []interface{}{},
+				actions:    []interface{}{},
+			}
+		}
+		exceptionMap[key].members = append(exceptionMap[key].members, exception.Member)
+		exceptionMap[key].actions = append(exceptionMap[key].actions, exception.Action.String())
+	}
+
+	for _, combine := range exceptionMap {
+		raw := map[string]interface{}{
+			"members": schema.NewSet(schema.HashString, combine.members),
+			"actions": schema.NewSet(schema.HashString, combine.actions),
+			"reason":  combine.reason,
+		}
+
+		expressions := strings.Split(combine.expression, " && ")
 		instanceID := ""
 		databaseName := ""
+		columns := []interface{}{}
+
 		for _, expression := range expressions {
 			if strings.HasPrefix(expression, "resource.instance_id == ") {
 				instanceID = strings.TrimSuffix(
@@ -469,10 +513,10 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 				)
 			}
 			if strings.HasPrefix(expression, "resource.column_name == ") {
-				raw["column"] = strings.TrimSuffix(
+				columns = append(columns, strings.TrimSuffix(
 					strings.TrimPrefix(expression, `resource.column_name == "`),
 					`"`,
-				)
+				))
 			}
 			if strings.HasPrefix(expression, "request.time < ") {
 				raw["expire_timestamp"] = strings.TrimSuffix(
@@ -480,12 +524,31 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 					`")`,
 				)
 			}
+			if strings.HasPrefix(expression, "resource.column_name in [") {
+				// rawColumnListString should be: "col1", "col2"
+				rawColumnListString := strings.TrimSuffix(
+					strings.TrimPrefix(expression, `resource.column_name in [`),
+					`]`,
+				)
+				rawColumnList := strings.SplitSeq(rawColumnListString, ",")
+				for rawColumn := range rawColumnList {
+					column := strings.TrimSuffix(
+						strings.TrimPrefix(strings.TrimSpace(rawColumn), `"`),
+						`"`,
+					)
+					columns = append(columns, column)
+				}
+			}
 		}
 		if instanceID != "" && databaseName != "" {
 			raw["database"] = fmt.Sprintf("%s%s/%s%s", internal.InstanceNamePrefix, instanceID, internal.DatabaseIDPrefix, databaseName)
 		}
+		if len(columns) > 0 {
+			raw["columns"] = schema.NewSet(schema.HashString, columns)
+		}
 		exceptionList = append(exceptionList, raw)
 	}
+
 	policy := map[string]interface{}{
 		"exceptions": exceptionList,
 	}
@@ -493,9 +556,11 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 }
 
 func exceptionHash(rawSchema interface{}) int {
-	exception, err := convertToV1Exception(rawSchema)
+	exceptions, err := convertToV1Exceptions(rawSchema)
 	if err != nil {
 		return 0
 	}
-	return internal.ToHash(exception)
+	return internal.ToHash(&v1pb.MaskingExceptionPolicy{
+		MaskingExceptions: exceptions,
+	})
 }
