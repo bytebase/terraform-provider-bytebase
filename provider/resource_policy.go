@@ -351,40 +351,46 @@ func convertToV1Exceptions(rawSchema interface{}) ([]*v1pb.MaskingExceptionPolic
 	rawException := rawSchema.(map[string]interface{})
 
 	expressions := []string{}
-	databaseFullName := rawException["database"].(string)
-	if databaseFullName != "" {
-		instanceID, databaseName, err := internal.GetInstanceDatabaseID(databaseFullName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid database full name: %v", databaseFullName)
-		}
-		expressions = append(
-			expressions,
-			fmt.Sprintf(`resource.instance_id == "%s"`, instanceID),
-			fmt.Sprintf(`resource.database_name == "%s"`, databaseName),
-		)
+	rawExpression := rawException["raw_expression"].(string)
 
-		if schema, ok := rawException["schema"].(string); ok && schema != "" {
-			expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
-		}
-		if table, ok := rawException["table"].(string); ok && table != "" {
-			expressions = append(expressions, fmt.Sprintf(`resource.table_name == "%s"`, table))
-		}
-
-		if rawColumns, ok := rawException["columns"].(*schema.Set); ok && rawColumns.Len() > 0 {
-			columnNames := []string{}
-			for _, column := range rawColumns.List() {
-				columnNames = append(columnNames, fmt.Sprintf(`"%s"`, column.(string)))
+	if rawExpression != "" {
+		expressions = append(expressions, rawExpression)
+	} else {
+		databaseFullName := rawException["database"].(string)
+		if databaseFullName != "" {
+			instanceID, databaseName, err := internal.GetInstanceDatabaseID(databaseFullName)
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid database full name: %v", databaseFullName)
 			}
-			expressions = append(expressions, fmt.Sprintf(`resource.column_name in [%s]`, strings.Join(columnNames, ", ")))
-		}
-	}
+			expressions = append(
+				expressions,
+				fmt.Sprintf(`resource.instance_id == "%s"`, instanceID),
+				fmt.Sprintf(`resource.database_name == "%s"`, databaseName),
+			)
 
-	if expire, ok := rawException["expire_timestamp"].(string); ok && expire != "" {
-		formattedTime, err := time.Parse(time.RFC3339, expire)
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid time: %v", expire)
+			if schema, ok := rawException["schema"].(string); ok && schema != "" {
+				expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
+			}
+			if table, ok := rawException["table"].(string); ok && table != "" {
+				expressions = append(expressions, fmt.Sprintf(`resource.table_name == "%s"`, table))
+			}
+
+			if rawColumns, ok := rawException["columns"].(*schema.Set); ok && rawColumns.Len() > 0 {
+				columnNames := []string{}
+				for _, column := range rawColumns.List() {
+					columnNames = append(columnNames, fmt.Sprintf(`"%s"`, column.(string)))
+				}
+				expressions = append(expressions, fmt.Sprintf(`resource.column_name in [%s]`, strings.Join(columnNames, ", ")))
+			}
 		}
-		expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
+
+		if expire, ok := rawException["expire_timestamp"].(string); ok && expire != "" {
+			formattedTime, err := time.Parse(time.RFC3339, expire)
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid time: %v", expire)
+			}
+			expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
+		}
 	}
 
 	exceptions := []*v1pb.MaskingExceptionPolicy_MaskingException{}

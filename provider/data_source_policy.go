@@ -159,6 +159,12 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 								Optional:    true,
 								Description: "The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format",
 							},
+							"raw_expression": {
+								Type:        schema.TypeString,
+								Computed:    computed,
+								Optional:    true,
+								Description: `The raw CEL expression. We will use it as the masking exception and ignore the "database"/"schema"/"table"/"columns"/"expire_timestamp" fields if you provide the raw expression.`,
+							},
 						},
 					},
 					Set: exceptionHash,
@@ -477,9 +483,10 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 
 	for _, combine := range exceptionMap {
 		raw := map[string]interface{}{
-			"members": schema.NewSet(schema.HashString, combine.members),
-			"actions": schema.NewSet(schema.HashString, combine.actions),
-			"reason":  combine.reason,
+			"members":        schema.NewSet(schema.HashString, combine.members),
+			"actions":        schema.NewSet(schema.HashString, combine.actions),
+			"reason":         combine.reason,
+			"raw_expression": combine.expression,
 		}
 
 		expressions := strings.Split(combine.expression, " && ")

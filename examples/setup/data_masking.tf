@@ -131,7 +131,16 @@ resource "bytebase_policy" "masking_exception_policy" {
         format("user:%s", bytebase_user.workspace_dba.email),
       ]
       actions = ["EXPORT"]
-      reason  = "Grant access"
+      reason  = "Grant export access"
+    }
+
+    exceptions {
+      members = [
+        format("user:%s", bytebase_user.project_developer.email),
+      ]
+      actions        = ["QUERY"]
+      reason         = "Grant query access"
+      raw_expression = "resource.instance_id == \"test-sample-instance\" && resource.database_name == \"employee\" && resource.table_name == \"employee\" && resource.column_name in [\"first_name\", \"last_name\", \"gender\"]"
     }
   }
 }

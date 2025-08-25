@@ -87,14 +87,15 @@ Optional:
 
 Required:
 
-- `action` (String)
-- `member` (String) The member in user:{email} or group:{email} format.
+- `actions` (Set of String)
+- `members` (Set of String)
 
 Optional:
 
-- `column` (String)
+- `columns` (Set of String)
 - `database` (String) The database full name in instances/{instance resource id}/databases/{database name} format
 - `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format
+- `raw_expression` (String) The raw CEL expression. We will use it as the masking exception and ignore the "database"/"schema"/"table"/"columns"/"expire_timestamp" fields if you provide the raw expression.
 - `reason` (String) The reason for the masking exemption
 - `schema` (String)
 - `table` (String)
