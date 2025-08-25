@@ -65,6 +65,9 @@ func dataSourcePolicyList() *schema.Resource {
 						},
 						"masking_exception_policy": getMaskingExceptionPolicySchema(true),
 						"global_masking_policy":    getGlobalMaskingPolicySchema(true),
+						"disable_copy_data_policy": getDisableCopyDataPolicySchema(true),
+						"data_source_query_policy": getDataSourceQueryPolicySchema(true),
+						"rollout_policy":           getRolloutPolicySchema(true),
 					},
 				},
 			},
@@ -96,20 +99,11 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 		raw["inherit_from_parent"] = policy.InheritFromParent
 		raw["enforce"] = policy.Enforce
 
-		if p := policy.GetMaskingExceptionPolicy(); p != nil {
-			exceptionPolicy, err := flattenMaskingExceptionPolicy(p)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			raw["masking_exception_policy"] = exceptionPolicy
+		key, payload, diags := flattenPolicyPayload(policy)
+		if diags != nil {
+			return diags
 		}
-		if p := policy.GetMaskingRulePolicy(); p != nil {
-			maskingPolicy, err := flattenGlobalMaskingPolicy(p)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			raw["global_masking_policy"] = maskingPolicy
-		}
+		raw[key] = payload
 
 		policies = append(policies, raw)
 	}

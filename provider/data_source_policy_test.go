@@ -39,7 +39,7 @@ func TestAccPolicyDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.bytebase_policy.masking_exception_policy", "masking_exception_policy.#", "1"),
 					resource.TestCheckResourceAttr("data.bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.#", "1"),
 					resource.TestCheckResourceAttr("data.bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.table", "salary"),
-					resource.TestCheckResourceAttr("data.bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.column", "amount"),
+					resource.TestCheckResourceAttr("data.bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.columns.0", "amount"),
 				),
 			},
 		},

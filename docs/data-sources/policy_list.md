@@ -29,12 +29,33 @@ The policy data source list.
 
 Read-Only:
 
+- `data_source_query_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--data_source_query_policy))
+- `disable_copy_data_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--disable_copy_data_policy))
 - `enforce` (Boolean)
 - `global_masking_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--global_masking_policy))
 - `inherit_from_parent` (Boolean)
 - `masking_exception_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy))
 - `name` (String)
+- `rollout_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--rollout_policy))
 - `type` (String)
+
+<a id="nestedobjatt--policies--data_source_query_policy"></a>
+### Nested Schema for `policies.data_source_query_policy`
+
+Read-Only:
+
+- `disallow_ddl` (Boolean)
+- `disallow_dml` (Boolean)
+- `restriction` (String)
+
+
+<a id="nestedobjatt--policies--disable_copy_data_policy"></a>
+### Nested Schema for `policies.disable_copy_data_policy`
+
+Read-Only:
+
+- `enable` (Boolean)
+
 
 <a id="nestedobjatt--policies--global_masking_policy"></a>
 ### Nested Schema for `policies.global_masking_policy`
@@ -67,13 +88,24 @@ Read-Only:
 
 Read-Only:
 
-- `action` (String)
-- `column` (String)
+- `actions` (Set of String)
+- `columns` (Set of String)
 - `database` (String)
 - `expire_timestamp` (String)
-- `member` (String)
+- `members` (Set of String)
+- `raw_expression` (String)
 - `reason` (String)
 - `schema` (String)
 - `table` (String)
+
+
+
+<a id="nestedobjatt--policies--rollout_policy"></a>
+### Nested Schema for `policies.rollout_policy`
+
+Read-Only:
+
+- `automatic` (Boolean)
+- `roles` (Set of String)
 
 

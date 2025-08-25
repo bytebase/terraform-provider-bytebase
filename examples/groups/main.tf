@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.9.1"
+      version = "3.9.2"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -30,7 +30,7 @@ data "bytebase_project" "sample_project" {
 
 data "bytebase_group_list" "groups_in_project" {
   project = data.bytebase_project.sample_project.name
-  query = "Bytebase"
+  query   = "Bytebase"
 }
 
 output "groups_in_project" {

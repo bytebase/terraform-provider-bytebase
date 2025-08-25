@@ -35,7 +35,7 @@ func TestAccPolicy(t *testing.T) {
 					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.#", "1"),
 					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.#", "1"),
 					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.table", "salary"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.column", "amount"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.columns.0", "amount"),
 				),
 			},
 		},
@@ -59,9 +59,9 @@ func getMaskingExceptionPolicy(database, table, column string) string {
 		exceptions {
 			database      = "%s"
 			table         = "%s"
-			column        = "%s"
-			member        = "user:ed@bytebase.com"
-			action        = "QUERY"
+			columns       = ["%s"]
+			members       = ["user:ed@bytebase.com"]
+			actions       = ["QUERY"]
 		}
 	}
 	`, database, table, column)
