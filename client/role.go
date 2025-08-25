@@ -2,86 +2,96 @@ package client
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"strings"
+	"errors"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
-	"google.golang.org/protobuf/encoding/protojson"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
-// GetRole gets the role by full name.
+// GetRole gets the role by full name using Connect RPC.
 func (c *client) GetRole(ctx context.Context, name string) (*v1pb.Role, error) {
-	body, err := c.getResource(ctx, name, "")
+	if c.roleClient == nil {
+		return nil, errors.New("role service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.GetRoleRequest{
+		Name: name,
+	})
+
+	resp, err := c.roleClient.GetRole(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Role
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// CreateRole creates the role.
+// CreateRole creates the role using Connect RPC.
 func (c *client) CreateRole(ctx context.Context, roleID string, role *v1pb.Role) (*v1pb.Role, error) {
-	payload, err := protojson.Marshal(role)
+	if c.roleClient == nil {
+		return nil, errors.New("role service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.CreateRoleRequest{
+		Role:   role,
+		RoleId: roleID,
+	})
+
+	resp, err := c.roleClient.CreateRole(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/roles?roleId=%s", c.url, c.version, roleID), strings.NewReader(string(payload)))
-
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.Role
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// UpdateRole updates the role.
+// UpdateRole updates the role using Connect RPC.
 func (c *client) UpdateRole(ctx context.Context, patch *v1pb.Role, updateMasks []string) (*v1pb.Role, error) {
-	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, true /* allow missing = true*/)
+	if c.roleClient == nil {
+		return nil, errors.New("role service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UpdateRoleRequest{
+		Role:         patch,
+		AllowMissing: true,
+		UpdateMask:   &fieldmaskpb.FieldMask{Paths: updateMasks},
+	})
+
+	resp, err := c.roleClient.UpdateRole(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Role
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// ListRole will returns all roles.
+// ListRole will returns all roles using Connect RPC.
 func (c *client) ListRole(ctx context.Context) (*v1pb.ListRolesResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/roles", c.url, c.version), nil)
+	if c.roleClient == nil {
+		return nil, errors.New("role service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.ListRolesRequest{})
+
+	resp, err := c.roleClient.ListRoles(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
+	return resp.Msg, nil
+}
+
+// DeleteRole deletes the role.
+func (c *client) DeleteRole(ctx context.Context, name string) error {
+	if c.roleClient == nil {
+		return errors.New("role service client not initialized")
 	}
 
-	var res v1pb.ListRolesResponse
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
+	req := connect.NewRequest(&v1pb.DeleteRoleRequest{
+		Name: name,
+	})
 
-	return &res, nil
+	_, err := c.roleClient.DeleteRole(ctx, req)
+	return err
 }

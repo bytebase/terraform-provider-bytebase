@@ -10,7 +10,7 @@ import (
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
@@ -69,73 +69,6 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 	}, nil
 }
 
-// GetCaller returns the API caller.
-func (*mockClient) GetCaller() *v1pb.User {
-	return &v1pb.User{
-		Name:  "users/mock@bytease.com",
-		Email: "mock@bytease.com",
-	}
-}
-
-// CheckResourceExist check if the resource exists.
-func (c *mockClient) CheckResourceExist(_ context.Context, name string) error {
-	prefix := strings.Split(name, "/")[0] + "/"
-	switch prefix {
-	case InstanceNamePrefix:
-		if _, ok := c.instanceMap[name]; ok {
-			return nil
-		}
-	case ProjectNamePrefix:
-		if _, ok := c.projectMap[name]; ok {
-			return nil
-		}
-	case UserNamePrefix:
-		if _, ok := c.userMap[name]; ok {
-			return nil
-		}
-	case RoleNamePrefix:
-		if _, ok := c.roleMap[name]; ok {
-			return nil
-		}
-	case GroupNamePrefix:
-		if _, ok := c.groupMap[name]; ok {
-			return nil
-		}
-	case DatabaseGroupNamePrefix:
-		return nil
-	case ReviewConfigNamePrefix:
-		return nil
-	case RiskNamePrefix:
-		return nil
-	default:
-		return errors.Errorf("invalid resource name %v", name)
-	}
-	return errors.Errorf("status: 404 cannot found resource %v", name)
-}
-
-// DeleteResource delete the resource by name.
-func (c *mockClient) DeleteResource(_ context.Context, name string) error {
-	prefix := strings.Split(name, "/")[0] + "/"
-	switch prefix {
-	case InstanceNamePrefix:
-		delete(c.instanceMap, name)
-	case ProjectNamePrefix:
-		delete(c.projectMap, name)
-	case UserNamePrefix:
-		delete(c.userMap, name)
-	case RoleNamePrefix:
-		delete(c.roleMap, name)
-	case GroupNamePrefix:
-		delete(c.groupMap, name)
-	case DatabaseGroupNamePrefix:
-	case ReviewConfigNamePrefix:
-	case RiskNamePrefix:
-	default:
-		return errors.Errorf("invalid resource name %v", name)
-	}
-	return nil
-}
-
 // ListInstance will return instances in environment.
 func (c *mockClient) ListInstance(_ context.Context, filter *api.InstanceFilter) ([]*v1pb.Instance, error) {
 	instances := make([]*v1pb.Instance, 0)
@@ -171,7 +104,13 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 		Environment:  instance.Environment,
 	}
 
-	envID, err := GetEnvironmentID(ins.Environment)
+	var envID string
+	var err error
+	if ins.Environment != nil {
+		envID, err = GetEnvironmentID(*ins.Environment)
+	} else {
+		err = errors.New("instance environment is nil")
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -620,15 +559,13 @@ func (c *mockClient) UndeleteUser(ctx context.Context, userName string) (*v1pb.U
 }
 
 // ListGroup list all groups.
-func (c *mockClient) ListGroup(_ context.Context) (*v1pb.ListGroupsResponse, error) {
+func (c *mockClient) ListGroup(_ context.Context, _ *api.GroupFilter) ([]*v1pb.Group, error) {
 	groups := make([]*v1pb.Group, 0)
 	for _, group := range c.groupMap {
 		groups = append(groups, group)
 	}
 
-	return &v1pb.ListGroupsResponse{
-		Groups: groups,
-	}, nil
+	return groups, nil
 }
 
 // GetGroup gets the group by name.

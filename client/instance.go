@@ -2,22 +2,21 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"connectrpc.com/connect"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
-func buildInstanceQuery(filter *api.InstanceFilter) string {
+func buildInstanceFilter(filter *api.InstanceFilter) string {
 	params := []string{}
-	showDeleted := v1pb.State_DELETED == filter.State
 
 	if v := filter.Query; v != "" {
 		params = append(params, fmt.Sprintf(`(name.matches("%s") || resource_id.matches("%s"))`, strings.ToLower(v), strings.ToLower(v)))
@@ -41,37 +40,48 @@ func buildInstanceQuery(filter *api.InstanceFilter) string {
 		}
 		params = append(params, fmt.Sprintf(`engine in [%s]`, strings.Join(engines, ", ")))
 	}
-	if showDeleted {
+	if filter.State == v1pb.State_DELETED {
 		params = append(params, fmt.Sprintf(`state == "%s"`, filter.State.String()))
 	}
 
-	if len(params) == 0 {
-		return fmt.Sprintf("showDeleted=%v", showDeleted)
-	}
-
-	return fmt.Sprintf("filter=%s&showDeleted=%v", url.QueryEscape(strings.Join(params, " && ")), showDeleted)
+	return strings.Join(params, " && ")
 }
 
-// ListInstance will return instances.
+// ListInstance will return instances using Connect RPC.
 func (c *client) ListInstance(ctx context.Context, filter *api.InstanceFilter) ([]*v1pb.Instance, error) {
+	if c.instanceClient == nil {
+		return nil, errors.New("instance service client not initialized")
+	}
+
 	res := []*v1pb.Instance{}
 	pageToken := ""
 	startTime := time.Now()
-	query := buildInstanceQuery(filter)
+	filterStr := buildInstanceFilter(filter)
+	showDeleted := filter.State == v1pb.State_DELETED
 
 	for {
 		startTimePerPage := time.Now()
-		resp, err := c.listInstancePerPage(ctx, query, pageToken, 500)
+
+		req := connect.NewRequest(&v1pb.ListInstancesRequest{
+			Filter:      filterStr,
+			PageSize:    500,
+			PageToken:   pageToken,
+			ShowDeleted: showDeleted,
+		})
+
+		resp, err := c.instanceClient.ListInstances(ctx, req)
 		if err != nil {
 			return nil, err
 		}
-		res = append(res, resp.Instances...)
+
+		res = append(res, resp.Msg.Instances...)
+
 		tflog.Debug(ctx, "[list instance per page]", map[string]interface{}{
-			"count": len(resp.Instances),
+			"count": len(resp.Msg.Instances),
 			"ms":    time.Since(startTimePerPage).Milliseconds(),
 		})
 
-		pageToken = resp.NextPageToken
+		pageToken = resp.Msg.NextPageToken
 		if pageToken == "" {
 			break
 		}
@@ -85,117 +95,104 @@ func (c *client) ListInstance(ctx context.Context, filter *api.InstanceFilter) (
 	return res, nil
 }
 
-// listInstancePerPage list the instance.
-func (c *client) listInstancePerPage(ctx context.Context, query, pageToken string, pageSize int) (*v1pb.ListInstancesResponse, error) {
-	requestURL := fmt.Sprintf(
-		"%s/%s/instances?%s&page_size=%d&page_token=%s",
-		c.url,
-		c.version,
-		query,
-		pageSize,
-		url.QueryEscape(pageToken),
-	)
-
-	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.ListInstancesResponse
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
-}
-
-// GetInstance gets the instance by full name.
+// GetInstance gets the instance by full name using Connect RPC.
 func (c *client) GetInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
-	body, err := c.getResource(ctx, instanceName, "")
+	if c.instanceClient == nil {
+		return nil, errors.New("instance service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.GetInstanceRequest{
+		Name: instanceName,
+	})
+
+	resp, err := c.instanceClient.GetInstance(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Instance
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// CreateInstance creates the instance.
+// CreateInstance creates the instance using Connect RPC.
 func (c *client) CreateInstance(ctx context.Context, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error) {
-	payload, err := protojson.Marshal(instance)
+	if c.instanceClient == nil {
+		return nil, errors.New("instance service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.CreateInstanceRequest{
+		InstanceId: instanceID,
+		Instance:   instance,
+	})
+
+	resp, err := c.instanceClient.CreateInstance(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/instances?instanceId=%s", c.url, c.version, instanceID), strings.NewReader(string(payload)))
-
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.Instance
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// UpdateInstance updates the instance.
+// UpdateInstance updates the instance using Connect RPC.
 func (c *client) UpdateInstance(ctx context.Context, patch *v1pb.Instance, updateMasks []string) (*v1pb.Instance, error) {
-	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
+	if c.instanceClient == nil {
+		return nil, errors.New("instance service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UpdateInstanceRequest{
+		Instance:   patch,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: updateMasks},
+	})
+
+	resp, err := c.instanceClient.UpdateInstance(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Instance
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// UndeleteInstance undeletes the instance.
+// UndeleteInstance undeletes the instance using Connect RPC.
 func (c *client) UndeleteInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
-	body, err := c.undeleteResource(ctx, instanceName)
+	if c.instanceClient == nil {
+		return nil, errors.New("instance service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UndeleteInstanceRequest{
+		Name: instanceName,
+	})
+
+	resp, err := c.instanceClient.UndeleteInstance(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Instance
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// SyncInstanceSchema will trigger the schema sync for an instance.
+// SyncInstanceSchema will trigger the schema sync for an instance using Connect RPC.
 func (c *client) SyncInstanceSchema(ctx context.Context, instanceName string) error {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:sync", c.url, c.version, instanceName), nil)
-
-	if err != nil {
-		return err
+	if c.instanceClient == nil {
+		return errors.New("instance service client not initialized")
 	}
 
-	if _, err := c.doRequest(req); err != nil {
-		return err
+	req := connect.NewRequest(&v1pb.SyncInstanceRequest{
+		Name: instanceName,
+	})
+
+	_, err := c.instanceClient.SyncInstance(ctx, req)
+	return err
+}
+
+// DeleteInstance deletes the instance.
+func (c *client) DeleteInstance(ctx context.Context, name string) error {
+	if c.instanceClient == nil {
+		return errors.New("instance service client not initialized")
 	}
 
-	return nil
+	req := connect.NewRequest(&v1pb.DeleteInstanceRequest{
+		Name: name,
+	})
+
+	_, err := c.instanceClient.DeleteInstance(ctx, req)
+	return err
 }

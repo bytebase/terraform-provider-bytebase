@@ -13,7 +13,7 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 )
 
 func dataSourceProject() *schema.Resource {
@@ -80,7 +80,7 @@ func dataSourceProject() *schema.Resource {
 
 func getWebhooksSchema(computed bool) *schema.Schema {
 	return &schema.Schema{
-		Type:        schema.TypeList,
+		Type:        schema.TypeSet,
 		Optional:    !computed,
 		Computed:    computed,
 		Description: "The webhooks in the project.",
@@ -147,6 +147,7 @@ func getWebhooksSchema(computed bool) *schema.Schema {
 				},
 			},
 		},
+		Set: webhookHash,
 	}
 }
 
@@ -182,22 +183,26 @@ func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
 	return dbList
 }
 
-func flattenWebhookList(webhooks []*v1pb.Webhook) []map[string]interface{} {
-	rawWebhooks := []map[string]interface{}{}
+func flattenWebhookList(webhooks []*v1pb.Webhook) []interface{} {
+	rawWebhooks := []interface{}{}
 	for _, webhook := range webhooks {
 		rawWebhook := make(map[string]interface{})
 		rawWebhook["title"] = webhook.Title
 		rawWebhook["type"] = webhook.Type.String()
 		rawWebhook["url"] = webhook.Url
+		// Include name for reference but it shouldn't affect the hash
 		rawWebhook["name"] = webhook.Name
 		rawWebhook["direct_message"] = webhook.DirectMessage
-		rawWebhooks = append(rawWebhooks, rawWebhook)
 
-		notificationTypes := []string{}
+		// Convert notification types to interface slice, then wrap in Set
+		notificationTypes := []interface{}{}
 		for _, notificationType := range webhook.NotificationTypes {
 			notificationTypes = append(notificationTypes, notificationType.String())
 		}
-		rawWebhook["notification_types"] = notificationTypes
+		// Use schema.NewSet for consistency with the schema definition
+		rawWebhook["notification_types"] = schema.NewSet(schema.HashString, notificationTypes)
+
+		rawWebhooks = append(rawWebhooks, rawWebhook)
 	}
 	return rawWebhooks
 }
@@ -268,9 +273,14 @@ func setProject(
 		"ms":        time.Since(startTime).Milliseconds(),
 	})
 
-	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks)); err != nil {
+	if err := d.Set("webhooks", schema.NewSet(webhookHash, flattenWebhookList(project.Webhooks))); err != nil {
 		return diag.Errorf("cannot set webhooks for project: %s", err.Error())
 	}
 
 	return nil
+}
+
+func webhookHash(rawSchema interface{}) int {
+	webhook := convertToV1Webhook(rawSchema)
+	return internal.ToHash(webhook)
 }

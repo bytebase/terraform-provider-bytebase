@@ -23,7 +23,7 @@ The setting data source.
 
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `password_restriction` (Block List, Max: 1) Restrict for login password (see [below for nested schema](#nestedblock--password_restriction))
-- `semantic_types` (Block List) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
+- `semantic_types` (Block Set) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
 - `sql_query_restriction` (Block List, Max: 1) Restrict for SQL query result (see [below for nested schema](#nestedblock--sql_query_restriction))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
@@ -38,9 +38,9 @@ The setting data source.
 
 Required:
 
-- `classifications` (Block List, Min: 1) (see [below for nested schema](#nestedblock--classification--classifications))
+- `classifications` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--classifications))
 - `id` (String) The classification unique uuid.
-- `levels` (Block List, Min: 1) (see [below for nested schema](#nestedblock--classification--levels))
+- `levels` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--levels))
 - `title` (String) The classification title. Optional.
 
 Optional:
@@ -186,14 +186,11 @@ Optional:
 <a id="nestedblock--workspace_profile--announcement"></a>
 ### Nested Schema for `workspace_profile.announcement`
 
-Required:
-
-- `level` (String) The alert level of announcement
-- `text` (String) The text of announcement. Leave it as empty string can clear the announcement
-
 Optional:
 
+- `level` (String) The alert level of announcement
 - `link` (String) The optional link, user can follow the link to check extra details
+- `text` (String) The text of announcement. Leave it as empty string can clear the announcement
 
 
 

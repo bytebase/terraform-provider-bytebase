@@ -88,12 +88,12 @@ Optional:
 Required:
 
 - `action` (String)
-- `database` (String) The database full name in instances/{instance resource id}/databases/{database name} format
 - `member` (String) The member in user:{email} or group:{email} format.
 
 Optional:
 
 - `column` (String)
+- `database` (String) The database full name in instances/{instance resource id}/databases/{database name} format
 - `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format
 - `reason` (String) The reason for the masking exemption
 - `schema` (String)

@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -251,7 +251,9 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		ins["engine"] = instance.Engine.String()
 		ins["engine_version"] = instance.EngineVersion
 		ins["external_link"] = instance.ExternalLink
-		ins["environment"] = instance.Environment
+		if v := instance.Environment; v != nil {
+			ins["environment"] = *v
+		}
 		if v := instance.GetSyncInterval(); v != nil {
 			ins["sync_interval"] = v.GetSeconds()
 		}

@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
@@ -12,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -22,9 +21,9 @@ func resourceInstance() *schema.Resource {
 	return &schema.Resource{
 		Description:          "The instance resource.",
 		CreateWithoutTimeout: resourceInstanceCreate,
-		ReadWithoutTimeout:   internal.ResourceRead(resourceInstanceRead),
+		ReadWithoutTimeout:   resourceInstanceRead,
 		UpdateContext:        resourceInstanceUpdate,
-		DeleteContext:        internal.ResourceDelete,
+		DeleteContext:        resourceInstanceDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -37,7 +36,7 @@ func resourceInstance() *schema.Resource {
 			},
 			"environment": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern),
 				),
@@ -82,15 +81,15 @@ func resourceInstance() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
-				Description: "How often the instance is synced in seconds. Default 0, means never sync.",
+				Description: "How often the instance is synced in seconds. Default 0, means never sync. Require instance license to enable this feature.",
 			},
 			"maximum_connections": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
-				Description: "The maximum number of connections.",
+				Description: "The maximum number of connections. Require instance license to enable this feature.",
 			},
-			"sync_databases": getSyncDatabasesSchema(true),
+			"sync_databases": getSyncDatabasesSchema(false),
 			"data_sources": {
 				Type:        schema.TypeSet,
 				Required:    true,
@@ -110,7 +109,7 @@ func resourceInstance() *schema.Resource {
 								v1pb.DataSourceType_ADMIN.String(),
 								v1pb.DataSourceType_READ_ONLY.String(),
 							}, false),
-							Description: "The data source type. Should be ADMIN or READ_ONLY.",
+							Description: "The data source type. Should be ADMIN or READ_ONLY. The READ_ONLY data source requires the instance license.",
 						},
 						"username": {
 							Type:        schema.TypeString,
@@ -130,13 +129,15 @@ func resourceInstance() *schema.Resource {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
-							Description: "The external secret to get the database password. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager",
+							MinItems:    0,
+							Description: "The external secret to get the database password. Require instance license to enable this feature. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"vault": {
 										Type:        schema.TypeList,
 										Optional:    true,
 										MaxItems:    1,
+										MinItems:    0,
 										Description: "The Valut to get the database password. Reference doc https://developer.hashicorp.com/vault/api-docs/secret/kv/kv-v2",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
@@ -155,6 +156,7 @@ func resourceInstance() *schema.Resource {
 													Type:        schema.TypeList,
 													Optional:    true,
 													MaxItems:    1,
+													MinItems:    0,
 													Description: "The Vault app role to get the password.",
 													Elem: &schema.Resource{
 														Schema: map[string]*schema.Schema{
@@ -204,6 +206,7 @@ func resourceInstance() *schema.Resource {
 										Type:        schema.TypeList,
 										Optional:    true,
 										MaxItems:    1,
+										MinItems:    0,
 										Description: "The AWS Secrets Manager to get the database password. Reference doc https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
@@ -224,6 +227,7 @@ func resourceInstance() *schema.Resource {
 										Type:        schema.TypeList,
 										Optional:    true,
 										MaxItems:    1,
+										MinItems:    0,
 										Description: "The GCP Secret Manager to get the database password. Reference doc https://cloud.google.com/secret-manager/docs",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
@@ -344,12 +348,15 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		Title:              d.Get("title").(string),
 		ExternalLink:       d.Get("external_link").(string),
 		DataSources:        dataSourceList,
-		Environment:        d.Get("environment").(string),
 		Activation:         d.Get("activation").(bool),
 		State:              v1pb.State_ACTIVE,
 		MaximumConnections: int32(d.Get("maximum_connections").(int)),
 		Engine:             v1pb.Engine(v1pb.Engine_value[d.Get("engine").(string)]),
 		SyncDatabases:      getSyncDatabases(d),
+	}
+	environment := d.Get("environment").(string)
+	if environment != "" {
+		instance.Environment = &environment
 	}
 	rawConfig := d.GetRawConfig()
 	if config := rawConfig.GetAttr("sync_interval"); !config.IsNull() {
@@ -468,6 +475,13 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 	instance, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
+		// Check if the resource was deleted outside of Terraform
+		if internal.IsNotFoundError(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", instanceName))
+			// Remove from state to trigger recreation on next apply
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -500,6 +514,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	c := m.(api.Client)
 	instanceName := d.Id()
+	environment := d.Get("environment").(string)
 
 	existedInstance, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
@@ -559,7 +574,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			Name:         instanceName,
 			Title:        d.Get("title").(string),
 			ExternalLink: d.Get("external_link").(string),
-			Environment:  d.Get("environment").(string),
+			Environment:  &environment,
 			Activation:   d.Get("activation").(bool),
 			DataSources:  dataSourceList,
 			State:        v1pb.State_ACTIVE,
@@ -610,6 +625,11 @@ func setInstanceMessage(
 	}
 	if err := d.Set("name", instance.Name); err != nil {
 		return diag.Errorf("cannot set name for instance: %s", err.Error())
+	}
+	if v := instance.Environment; v != nil {
+		if err := d.Set("environment", *v); err != nil {
+			return diag.Errorf("cannot set environment for instance: %s", err.Error())
+		}
 	}
 	if err := d.Set("environment", instance.Environment); err != nil {
 		return diag.Errorf("cannot set environment for instance: %s", err.Error())
@@ -749,44 +769,95 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 }
 
 func dataSourceHash(rawDataSource interface{}) int {
-	var buf bytes.Buffer
-	raw := rawDataSource.(map[string]interface{})
+	ds, err := convertToV1DataSource(rawDataSource)
+	if err != nil {
+		return 0
+	}
+	return internal.ToHash(ds)
+}
 
-	if v, ok := raw["id"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["username"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["password"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["host"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["port"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := raw["database"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
+	obj := raw.(map[string]interface{})
+	dataSource := &v1pb.DataSource{
+		Id:   obj["id"].(string),
+		Type: v1pb.DataSourceType(v1pb.DataSourceType_value[obj["type"].(string)]),
 	}
 
-	// Include use_ssl in hash to detect SSL enablement changes
-	if v, ok := raw["use_ssl"].(bool); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("ssl_%v-", v))
+	if v, ok := obj["username"].(string); ok {
+		dataSource.Username = v
 	}
-	// Include whether SSL certificates are present (not the values themselves)
-	if v, ok := raw["ssl_ca"].(string); ok && v != "" {
-		_, _ = buf.WriteString(fmt.Sprintf("ca_present_%s-", v))
+	if v, ok := obj["password"].(string); ok && v != "" {
+		dataSource.Password = v
 	}
-	if v, ok := raw["ssl_cert"].(string); ok && v != "" {
-		_, _ = buf.WriteString(fmt.Sprintf("cert_present_%s-", v))
+	if v, ok := obj["external_secret"].([]interface{}); ok && len(v) == 1 {
+		externalSecret := &v1pb.DataSourceExternalSecret{}
+		rawExternalSecret := v[0].(map[string]interface{})
+		if v, ok := rawExternalSecret["vault"].([]interface{}); ok && len(v) == 1 {
+			rawVault := v[0].(map[string]interface{})
+			externalSecret.SecretType = v1pb.DataSourceExternalSecret_VAULT_KV_V2
+			externalSecret.Url = rawVault["url"].(string)
+			externalSecret.EngineName = rawVault["engine_name"].(string)
+			externalSecret.SecretName = rawVault["secret_name"].(string)
+			externalSecret.PasswordKeyName = rawVault["password_key_name"].(string)
+
+			if token, ok := rawVault["token"].(string); ok && token != "" {
+				externalSecret.AuthType = v1pb.DataSourceExternalSecret_TOKEN
+				externalSecret.AuthOption = &v1pb.DataSourceExternalSecret_Token{
+					Token: token,
+				}
+			} else if v, ok := rawVault["app_role"].([]interface{}); ok && len(v) == 1 {
+				rawAppRole := v[0].(map[string]interface{})
+				externalSecret.AuthType = v1pb.DataSourceExternalSecret_VAULT_APP_ROLE
+				externalSecret.AuthOption = &v1pb.DataSourceExternalSecret_AppRole{
+					AppRole: &v1pb.DataSourceExternalSecret_AppRoleAuthOption{
+						RoleId:   rawAppRole["role_id"].(string),
+						SecretId: rawAppRole["secret"].(string),
+						Type:     v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType(v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType_value[rawAppRole["secret_type"].(string)]),
+					},
+				}
+			} else {
+				return nil, errors.Errorf("require token or app_role for Vault")
+			}
+		} else if v, ok := rawExternalSecret["aws_secrets_manager"].([]interface{}); ok && len(v) == 1 {
+			rawAWS := v[0].(map[string]interface{})
+			externalSecret.SecretType = v1pb.DataSourceExternalSecret_AWS_SECRETS_MANAGER
+			externalSecret.SecretName = rawAWS["secret_name"].(string)
+			externalSecret.PasswordKeyName = rawAWS["password_key_name"].(string)
+		} else if v, ok := rawExternalSecret["gcp_secret_manager"].([]interface{}); ok && len(v) == 1 {
+			rawGCP := v[0].(map[string]interface{})
+			externalSecret.SecretType = v1pb.DataSourceExternalSecret_GCP_SECRET_MANAGER
+			externalSecret.SecretName = rawGCP["secret_name"].(string)
+		} else {
+			return nil, errors.Errorf("must set one of vault, aws_secrets_manager or gcp_secret_manager")
+		}
+		dataSource.ExternalSecret = externalSecret
 	}
-	if v, ok := raw["ssl_key"].(string); ok && v != "" {
-		_, _ = buf.WriteString(fmt.Sprintf("key_present_%s-", v))
+	if dataSource.Password != "" && dataSource.ExternalSecret != nil {
+		return nil, errors.Errorf("cannot set both password and external_secret")
 	}
 
-	return internal.ToHashcodeInt(buf.String())
+	if v, ok := obj["use_ssl"].(bool); ok {
+		dataSource.UseSsl = v
+	}
+	if v, ok := obj["ssl_ca"].(string); ok {
+		dataSource.SslCa = v
+	}
+	if v, ok := obj["ssl_cert"].(string); ok {
+		dataSource.SslCert = v
+	}
+	if v, ok := obj["ssl_key"].(string); ok {
+		dataSource.SslKey = v
+	}
+	if v, ok := obj["host"].(string); ok {
+		dataSource.Host = v
+	}
+	if v, ok := obj["port"].(string); ok {
+		dataSource.Port = v
+	}
+	if v, ok := obj["database"].(string); ok {
+		dataSource.Database = v
+	}
+	return dataSource, nil
 }
 
 func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb.DataSource, error) {
@@ -798,90 +869,14 @@ func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb
 
 	dataSourceTypeMap := map[v1pb.DataSourceType]bool{}
 	for _, raw := range dataSourceSet.List() {
-		obj := raw.(map[string]interface{})
-		dataSource := &v1pb.DataSource{
-			Id:   obj["id"].(string),
-			Type: v1pb.DataSourceType(v1pb.DataSourceType_value[obj["type"].(string)]),
+		dataSource, err := convertToV1DataSource(raw)
+		if err != nil {
+			return nil, err
 		}
 		if dataSourceTypeMap[dataSource.Type] && dataSource.Type == v1pb.DataSourceType_ADMIN {
 			return nil, errors.Errorf("duplicate data source type ADMIN")
 		}
 		dataSourceTypeMap[dataSource.Type] = true
-
-		if v, ok := obj["username"].(string); ok {
-			dataSource.Username = v
-		}
-		if v, ok := obj["password"].(string); ok && v != "" {
-			dataSource.Password = v
-		}
-		if v, ok := obj["external_secret"].([]interface{}); ok && len(v) == 1 {
-			externalSecret := &v1pb.DataSourceExternalSecret{}
-			rawExternalSecret := v[0].(map[string]interface{})
-			if v, ok := rawExternalSecret["vault"].([]interface{}); ok && len(v) == 1 {
-				rawVault := v[0].(map[string]interface{})
-				externalSecret.SecretType = v1pb.DataSourceExternalSecret_VAULT_KV_V2
-				externalSecret.Url = rawVault["url"].(string)
-				externalSecret.EngineName = rawVault["engine_name"].(string)
-				externalSecret.SecretName = rawVault["secret_name"].(string)
-				externalSecret.PasswordKeyName = rawVault["password_key_name"].(string)
-
-				if token, ok := rawVault["token"].(string); ok && token != "" {
-					externalSecret.AuthType = v1pb.DataSourceExternalSecret_TOKEN
-					externalSecret.AuthOption = &v1pb.DataSourceExternalSecret_Token{
-						Token: token,
-					}
-				} else if v, ok := rawVault["app_role"].([]interface{}); ok && len(v) == 1 {
-					rawAppRole := v[0].(map[string]interface{})
-					externalSecret.AuthType = v1pb.DataSourceExternalSecret_VAULT_APP_ROLE
-					externalSecret.AuthOption = &v1pb.DataSourceExternalSecret_AppRole{
-						AppRole: &v1pb.DataSourceExternalSecret_AppRoleAuthOption{
-							RoleId:   rawAppRole["role_id"].(string),
-							SecretId: rawAppRole["secret"].(string),
-							Type:     v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType(v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType_value[rawAppRole["secret_type"].(string)]),
-						},
-					}
-				} else {
-					return nil, errors.Errorf("require token or app_role for Vault")
-				}
-			} else if v, ok := rawExternalSecret["aws_secrets_manager"].([]interface{}); ok && len(v) == 1 {
-				rawAWS := v[0].(map[string]interface{})
-				externalSecret.SecretType = v1pb.DataSourceExternalSecret_AWS_SECRETS_MANAGER
-				externalSecret.SecretName = rawAWS["secret_name"].(string)
-				externalSecret.PasswordKeyName = rawAWS["password_key_name"].(string)
-			} else if v, ok := rawExternalSecret["gcp_secret_manager"].([]interface{}); ok && len(v) == 1 {
-				rawGCP := v[0].(map[string]interface{})
-				externalSecret.SecretType = v1pb.DataSourceExternalSecret_GCP_SECRET_MANAGER
-				externalSecret.SecretName = rawGCP["secret_name"].(string)
-			} else {
-				return nil, errors.Errorf("must set one of vault, aws_secrets_manager or gcp_secret_manager")
-			}
-			dataSource.ExternalSecret = externalSecret
-		}
-		if dataSource.Password != "" && dataSource.ExternalSecret != nil {
-			return nil, errors.Errorf("cannot set both password and external_secret")
-		}
-
-		if v, ok := obj["use_ssl"].(bool); ok {
-			dataSource.UseSsl = v
-		}
-		if v, ok := obj["ssl_ca"].(string); ok {
-			dataSource.SslCa = v
-		}
-		if v, ok := obj["ssl_cert"].(string); ok {
-			dataSource.SslCert = v
-		}
-		if v, ok := obj["ssl_key"].(string); ok {
-			dataSource.SslKey = v
-		}
-		if v, ok := obj["host"].(string); ok {
-			dataSource.Host = v
-		}
-		if v, ok := obj["port"].(string); ok {
-			dataSource.Port = v
-		}
-		if v, ok := obj["database"].(string); ok {
-			dataSource.Database = v
-		}
 		dataSourceList = append(dataSourceList, dataSource)
 	}
 
@@ -890,4 +885,9 @@ func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb
 	}
 
 	return dataSourceList, nil
+}
+
+func resourceInstanceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(api.Client)
+	return internal.ResourceDelete(ctx, d, c.DeleteInstance)
 }

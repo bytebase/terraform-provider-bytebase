@@ -20,15 +20,18 @@ resource "bytebase_instance" "test" {
     port = "3366"
 
     username = "bytebase"
-    external_secret {
-      vault {
-        url               = "http://127.0.0.1:8200"
-        token             = "<root token>"
-        engine_name       = "secret"
-        secret_name       = "bytebase"
-        password_key_name = "database_pwd"
-      }
-    }
+    password = "YOUR_DB_PWD"
+
+    # You can also use external_secret for password (require instance license)
+    # external_secret {
+    #   vault {
+    #     url               = "http://127.0.0.1:8200"
+    #     token             = "<root token>"
+    #     engine_name       = "secret"
+    #     secret_name       = "bytebase"
+    #     password_key_name = "database_pwd"
+    #   }
+    # }
   }
 
   # And you can add another data_sources with RO type
@@ -40,6 +43,11 @@ resource "bytebase_instance" "test" {
     host     = "127.0.0.1"
     port     = "3366"
   }
+
+  # You can specific the databases to sync.
+  # sync_databases = [
+  #   "employee"
+  # ]
 }
 
 # Create a new instance named "prod instance"
@@ -52,6 +60,12 @@ resource "bytebase_instance" "prod" {
   environment = bytebase_setting.environments.environment_setting[0].environment[1].name
   title       = "prod instance"
   engine      = "POSTGRES"
+  activation  = true
+
+  # Require instance license
+  sync_interval = 60 * 60 * 2 # 2 hour
+  # Require instance license
+  maximum_connections = 20
 
   # You need to specific the data source
   data_sources {

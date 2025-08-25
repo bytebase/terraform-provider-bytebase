@@ -12,8 +12,6 @@ import (
 )
 
 const (
-	openAPIVersion = "v1"
-
 	envKeyForBytebaseURL    = "BYTEBASE_URL"
 	envKeyForServiceAccount = "BYTEBASE_SERVICE_ACCOUNT"
 	envKeyForServiceKey     = "BYTEBASE_SERVICE_KEY"
@@ -119,7 +117,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		return nil, diags
 	}
 
-	c, err := client.NewClient(bytebaseURL, openAPIVersion, email, key)
+	c, err := client.NewClient(bytebaseURL, email, key)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,

@@ -2,15 +2,12 @@ package client
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"net/url"
+	"errors"
 	"strings"
-	"time"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"connectrpc.com/connect"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
@@ -18,267 +15,266 @@ import (
 
 // GetProject gets the project by project full name.
 func (c *client) GetProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
-	body, err := c.getResource(ctx, projectName, "")
+	if c.projectClient == nil {
+		return nil, errors.New("project service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.GetProjectRequest{
+		Name: projectName,
+	})
+
+	resp, err := c.projectClient.GetProject(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Project
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
 // GetProjectIAMPolicy gets the project IAM policy by project full name.
 func (c *client) GetProjectIAMPolicy(ctx context.Context, projectName string) (*v1pb.IamPolicy, error) {
-	body, err := c.getResource(ctx, fmt.Sprintf("%s:getIamPolicy", projectName), "")
+	if c.projectClient == nil {
+		return nil, errors.New("project service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.GetIamPolicyRequest{
+		Resource: projectName,
+	})
+
+	resp, err := c.projectClient.GetIamPolicy(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.IamPolicy
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
 // SetProjectIAMPolicy sets the project IAM policy.
 func (c *client) SetProjectIAMPolicy(ctx context.Context, projectName string, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
-	payload, err := protojson.Marshal(update)
+	if c.projectClient == nil {
+		return nil, errors.New("project service client not initialized")
+	}
+
+	// Update the resource field to match the project name
+	update.Resource = projectName
+
+	req := connect.NewRequest(update)
+
+	resp, err := c.projectClient.SetIamPolicy(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:setIamPolicy", c.url, c.version, projectName), strings.NewReader(string(payload)))
-
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.IamPolicy
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
 // CreateProjectWebhook creates the webhook in the project.
 func (c *client) CreateProjectWebhook(ctx context.Context, projectName string, webhook *v1pb.Webhook) (*v1pb.Webhook, error) {
-	payload, err := protojson.Marshal(&v1pb.AddWebhookRequest{
+	if c.projectClient == nil {
+		return nil, errors.New("project service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.AddWebhookRequest{
 		Project: projectName,
 		Webhook: webhook,
 	})
+
+	resp, err := c.projectClient.AddWebhook(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:addWebhook", c.url, c.version, projectName), strings.NewReader(string(payload)))
-
-	if err != nil {
-		return nil, err
+	// AddWebhook returns the updated project, find the webhook we just added
+	if resp.Msg != nil && len(resp.Msg.Webhooks) > 0 {
+		// Return the last webhook (the one we just added)
+		return resp.Msg.Webhooks[len(resp.Msg.Webhooks)-1], nil
 	}
 
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.Webhook
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return nil, errors.New("webhook not found in response")
 }
 
 // UpdateProjectWebhook updates the webhook.
 func (c *client) UpdateProjectWebhook(ctx context.Context, patch *v1pb.Webhook, updateMasks []string) (*v1pb.Webhook, error) {
-	payload, err := protojson.Marshal(&v1pb.UpdateWebhookRequest{
+	if c.projectClient == nil {
+		return nil, errors.New("project service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UpdateWebhookRequest{
 		Webhook: patch,
 		UpdateMask: &fieldmaskpb.FieldMask{
 			Paths: updateMasks,
 		},
 	})
+
+	resp, err := c.projectClient.UpdateWebhook(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:updateWebhook", c.url, c.version, patch.Name), strings.NewReader(string(payload)))
-	if err != nil {
-		return nil, err
+	// UpdateWebhook returns the updated project, find the updated webhook
+	if resp.Msg != nil && resp.Msg.Webhooks != nil {
+		for _, wh := range resp.Msg.Webhooks {
+			if wh.Name == patch.Name {
+				return wh, nil
+			}
+		}
 	}
 
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.Webhook
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return nil, errors.New("updated webhook not found in response")
 }
 
 // DeleteProjectWebhook deletes the webhook.
 func (c *client) DeleteProjectWebhook(ctx context.Context, webhookName string) error {
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:removeWebhook", c.url, c.version, url.QueryEscape(webhookName)), nil)
-	if err != nil {
-		return err
+	if c.projectClient == nil {
+		return errors.New("project service client not initialized")
 	}
 
-	if _, err := c.doRequest(req); err != nil {
-		return err
-	}
-	return nil
-}
+	req := connect.NewRequest(&v1pb.RemoveWebhookRequest{
+		Webhook: &v1pb.Webhook{
+			Name: webhookName,
+		},
+	})
 
-func buildProjectQuery(filter *api.ProjectFilter) string {
-	params := []string{}
-	showDeleted := v1pb.State_DELETED == filter.State
-
-	if v := filter.Query; v != "" {
-		params = append(params, fmt.Sprintf(`(name.matches("%s") || resource_id.matches("%s"))`, strings.ToLower(v), strings.ToLower(v)))
-	}
-	if filter.ExcludeDefault {
-		params = append(params, "exclude_default == true")
-	}
-	if showDeleted {
-		params = append(params, fmt.Sprintf(`state == "%s"`, filter.State.String()))
-	}
-
-	if len(params) == 0 {
-		return fmt.Sprintf("showDeleted=%v", showDeleted)
-	}
-
-	return fmt.Sprintf("filter=%s&showDeleted=%v", url.QueryEscape(strings.Join(params, " && ")), showDeleted)
+	_, err := c.projectClient.RemoveWebhook(ctx, req)
+	return err
 }
 
 // ListProject list all projects.
 func (c *client) ListProject(ctx context.Context, filter *api.ProjectFilter) ([]*v1pb.Project, error) {
-	res := []*v1pb.Project{}
+	if c.projectClient == nil {
+		return nil, errors.New("project service client not initialized")
+	}
+
+	var projects []*v1pb.Project
 	pageToken := ""
-	startTime := time.Now()
-	query := buildProjectQuery(filter)
 
 	for {
-		startTimePerPage := time.Now()
-		resp, err := c.listProjectPerPage(ctx, query, pageToken, 500)
+		req := connect.NewRequest(&v1pb.ListProjectsRequest{
+			PageSize:    500,
+			PageToken:   pageToken,
+			ShowDeleted: filter.State == v1pb.State_DELETED,
+		})
+
+		resp, err := c.projectClient.ListProjects(ctx, req)
 		if err != nil {
 			return nil, err
 		}
-		res = append(res, resp.Projects...)
-		tflog.Debug(ctx, "[list project per page]", map[string]interface{}{
-			"count": len(resp.Projects),
-			"ms":    time.Since(startTimePerPage).Milliseconds(),
-		})
 
-		pageToken = resp.NextPageToken
+		// Filter projects based on the filter criteria
+		for _, project := range resp.Msg.Projects {
+			// Apply filter logic
+			if filter.Query != "" {
+				// Check if name or resource_id matches the query
+				// Extract resource ID from name (e.g., "projects/my-project" -> "my-project")
+				resourceID := ""
+				if parts := strings.Split(project.Name, "/"); len(parts) > 1 {
+					resourceID = parts[len(parts)-1]
+				}
+				if !containsIgnoreCase(project.Name, filter.Query) && !containsIgnoreCase(resourceID, filter.Query) {
+					continue
+				}
+			}
+
+			if filter.ExcludeDefault {
+				// Skip default project (you might need to adjust this logic)
+				if project.Name == "projects/default" {
+					continue
+				}
+			}
+
+			if filter.State != v1pb.State_STATE_UNSPECIFIED && project.State != filter.State {
+				continue
+			}
+
+			projects = append(projects, project)
+		}
+
+		pageToken = resp.Msg.NextPageToken
 		if pageToken == "" {
 			break
 		}
 	}
 
 	tflog.Debug(ctx, "[list project]", map[string]interface{}{
-		"total": len(res),
-		"ms":    time.Since(startTime).Milliseconds(),
+		"total": len(projects),
 	})
 
-	return res, nil
-}
-
-// listProjectPerPage list the projects.
-func (c *client) listProjectPerPage(ctx context.Context, query, pageToken string, pageSize int) (*v1pb.ListProjectsResponse, error) {
-	requestURL := fmt.Sprintf(
-		"%s/%s/projects?%s&page_size=%d&page_token=%s",
-		c.url,
-		c.version,
-		query,
-		pageSize,
-		url.QueryEscape(pageToken),
-	)
-
-	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.ListProjectsResponse
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return projects, nil
 }
 
 // CreateProject creates the project.
 func (c *client) CreateProject(ctx context.Context, projectID string, project *v1pb.Project) (*v1pb.Project, error) {
-	payload, err := protojson.Marshal(project)
+	if c.projectClient == nil {
+		return nil, errors.New("project service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.CreateProjectRequest{
+		ProjectId: projectID,
+		Project:   project,
+	})
+
+	resp, err := c.projectClient.CreateProject(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/projects?projectId=%s", c.url, c.version, projectID), strings.NewReader(string(payload)))
-
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.Project
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
 // UpdateProject updates the project.
 func (c *client) UpdateProject(ctx context.Context, patch *v1pb.Project, updateMasks []string) (*v1pb.Project, error) {
-	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
+	if c.projectClient == nil {
+		return nil, errors.New("project service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UpdateProjectRequest{
+		Project: patch,
+		UpdateMask: &fieldmaskpb.FieldMask{
+			Paths: updateMasks,
+		},
+	})
+
+	resp, err := c.projectClient.UpdateProject(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Project
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
 // UndeleteProject undeletes the project.
 func (c *client) UndeleteProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
-	body, err := c.undeleteResource(ctx, projectName)
+	if c.projectClient == nil {
+		return nil, errors.New("project service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UndeleteProjectRequest{
+		Name: projectName,
+	})
+
+	resp, err := c.projectClient.UndeleteProject(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Project
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
+	return resp.Msg, nil
+}
+
+// DeleteProject deletes the project.
+func (c *client) DeleteProject(ctx context.Context, name string) error {
+	if c.projectClient == nil {
+		return errors.New("project service client not initialized")
 	}
 
-	return &res, nil
+	req := connect.NewRequest(&v1pb.DeleteProjectRequest{
+		Name: name,
+	})
+
+	_, err := c.projectClient.DeleteProject(ctx, req)
+	return err
+}
+
+// Helper function for case-insensitive string contains.
+func containsIgnoreCase(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }

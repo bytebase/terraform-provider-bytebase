@@ -2,58 +2,63 @@ package client
 
 import (
 	"context"
-	"fmt"
-	"net/http"
+	"errors"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
-// ListSettings lists all settings.
+// ListSettings lists all settings using Connect RPC.
 func (c *client) ListSettings(ctx context.Context) (*v1pb.ListSettingsResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/settings", c.url, c.version), nil)
+	if c.settingClient == nil {
+		return nil, errors.New("setting service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.ListSettingsRequest{})
+
+	resp, err := c.settingClient.ListSettings(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.ListSettingsResponse
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// GetSetting gets the setting by the name.
+// GetSetting gets the setting by the name using Connect RPC.
 func (c *client) GetSetting(ctx context.Context, settingName string) (*v1pb.Setting, error) {
-	body, err := c.getResource(ctx, settingName, "")
+	if c.settingClient == nil {
+		return nil, errors.New("setting service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.GetSettingRequest{
+		Name: settingName,
+	})
+
+	resp, err := c.settingClient.GetSetting(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Setting
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// UpsertSetting updates or creates the setting.
+// UpsertSetting updates or creates the setting using Connect RPC.
 func (c *client) UpsertSetting(ctx context.Context, upsert *v1pb.Setting, updateMasks []string) (*v1pb.Setting, error) {
-	body, err := c.updateResource(ctx, upsert.Name, upsert, updateMasks, true /* allow missing = true*/)
+	if c.settingClient == nil {
+		return nil, errors.New("setting service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UpdateSettingRequest{
+		Setting:      upsert,
+		AllowMissing: true,
+		UpdateMask:   &fieldmaskpb.FieldMask{Paths: updateMasks},
+	})
+
+	resp, err := c.settingClient.UpdateSetting(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Setting
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }

@@ -46,7 +46,7 @@ func dataSourceReviewConfigList() *schema.Resource {
 							Description: "Resources using the config. We support attach the review config for environments or projects with format {resurce}/{resource id}. For example, environments/test, projects/sample.",
 						},
 						"rules": {
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Computed:    true,
 							Description: "The SQL review rules.",
 							Elem: &schema.Resource{
@@ -78,6 +78,7 @@ func dataSourceReviewConfigList() *schema.Resource {
 									},
 								},
 							},
+							Set: reviewRuleHash,
 						},
 					},
 				},
@@ -105,7 +106,7 @@ func dataSourceReviewConfigListRead(ctx context.Context, d *schema.ResourceData,
 		raw["title"] = review.Title
 		raw["enabled"] = review.Enabled
 		raw["resources"] = review.Resources
-		raw["rules"] = flattenReviewRules(review.Rules)
+		raw["rules"] = schema.NewSet(reviewRuleHash, flattenReviewRules(review.Rules))
 
 		reviews = append(reviews, raw)
 	}

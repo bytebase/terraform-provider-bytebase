@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -81,6 +81,7 @@ func resourceDatabase() *schema.Resource {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Optional:    true,
+				MinItems:    0,
 				MaxItems:    1,
 				Description: "The databases catalog.",
 				Elem: &schema.Resource{
@@ -140,15 +141,11 @@ func resourceDatabase() *schema.Resource {
 															},
 														},
 													},
-													Set: func(i interface{}) int {
-														return internal.ToHashcodeInt(columnHash(i))
-													},
+													Set: columnHash,
 												},
 											},
 										},
-										Set: func(i interface{}) int {
-											return internal.ToHashcodeInt(tableHash(i))
-										},
+										Set: tableHash,
 									},
 								},
 							},
@@ -173,7 +170,8 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	updateMasks := []string{"project"}
 	rawConfig := d.GetRawConfig()
 	if config := rawConfig.GetAttr("environment"); !config.IsNull() {
-		database.Environment = d.Get("environment").(string)
+		env := d.Get("environment").(string)
+		database.Environment = &env
 		updateMasks = append(updateMasks, "environment")
 	}
 	if config := rawConfig.GetAttr("labels"); !config.IsNull() {
@@ -261,8 +259,10 @@ func setDatabase(
 	if err := d.Set("project", database.Project); err != nil {
 		return diag.Errorf("cannot set project for database: %s", err.Error())
 	}
-	if err := d.Set("environment", database.EffectiveEnvironment); err != nil {
-		return diag.Errorf("cannot set environment for database: %s", err.Error())
+	if v := database.EffectiveEnvironment; v != nil {
+		if err := d.Set("environment", *v); err != nil {
+			return diag.Errorf("cannot set environment for database: %s", err.Error())
+		}
 	}
 	if err := d.Set("state", database.State.String()); err != nil {
 		return diag.Errorf("cannot set state for database: %s", err.Error())
@@ -306,14 +306,10 @@ func flattenDatabaseCatalog(catalog *v1pb.DatabaseCatalog) []interface{} {
 				rawColumn["labels"] = column.Labels
 				columnList = append(columnList, rawColumn)
 			}
-			rawTable["columns"] = schema.NewSet(func(i interface{}) int {
-				return internal.ToHashcodeInt(columnHash(i))
-			}, columnList)
+			rawTable["columns"] = schema.NewSet(columnHash, columnList)
 			tableList = append(tableList, rawTable)
 		}
-		rawSchema["tables"] = schema.NewSet(func(i interface{}) int {
-			return internal.ToHashcodeInt(tableHash(i))
-		}, tableList)
+		rawSchema["tables"] = schema.NewSet(tableHash, tableList)
 		schemaList = append(schemaList, rawSchema)
 	}
 
@@ -321,6 +317,79 @@ func flattenDatabaseCatalog(catalog *v1pb.DatabaseCatalog) []interface{} {
 		"schemas": schema.NewSet(schemaHash, schemaList),
 	}
 	return []interface{}{rawCatalog}
+}
+
+func convertToV1ColumnCatalog(raw interface{}) *v1pb.ColumnCatalog {
+	rawColumn := raw.(map[string]interface{})
+	labels := map[string]string{}
+
+	// Handle labels field which can be either map[string]interface{} or map[string]string
+	if rawLabels, ok := rawColumn["labels"]; ok && rawLabels != nil {
+		switch v := rawLabels.(type) {
+		case map[string]string:
+			labels = v
+		case map[string]interface{}:
+			for key, val := range v {
+				if strVal, ok := val.(string); ok {
+					labels[key] = strVal
+				}
+			}
+		}
+	}
+
+	return &v1pb.ColumnCatalog{
+		Name:           rawColumn["name"].(string),
+		SemanticType:   rawColumn["semantic_type"].(string),
+		Classification: rawColumn["classification"].(string),
+		Labels:         labels,
+	}
+}
+
+func convertToV1TableCatalog(raw interface{}) (*v1pb.TableCatalog, error) {
+	rawTable := raw.(map[string]interface{})
+	table := &v1pb.TableCatalog{
+		Name:           rawTable["name"].(string),
+		Classification: rawTable["classification"].(string),
+	}
+
+	columnList := []*v1pb.ColumnCatalog{}
+	rawColumnList, ok := rawTable["columns"].(*schema.Set)
+	if !ok {
+		return nil, errors.Errorf("invalid columns")
+	}
+	for _, raw := range rawColumnList.List() {
+		column := convertToV1ColumnCatalog(raw)
+		columnList = append(columnList, column)
+	}
+
+	table.Kind = &v1pb.TableCatalog_Columns_{
+		Columns: &v1pb.TableCatalog_Columns{
+			Columns: columnList,
+		},
+	}
+
+	return table, nil
+}
+
+func convertToV1SchemaCatalog(raw interface{}) (*v1pb.SchemaCatalog, error) {
+	rawSchema := raw.(map[string]interface{})
+	schemaCatalog := &v1pb.SchemaCatalog{
+		Name: rawSchema["name"].(string),
+	}
+
+	rawTableList, ok := rawSchema["tables"].(*schema.Set)
+	if !ok {
+		return nil, errors.Errorf("invalid tables")
+	}
+	for _, raw := range rawTableList.List() {
+		table, err := convertToV1TableCatalog(raw)
+		if err != nil {
+			return nil, err
+		}
+		schemaCatalog.Tables = append(schemaCatalog.Tables, table)
+	}
+
+	return schemaCatalog, nil
 }
 
 func convertToV1DatabaseCatalog(d *schema.ResourceData, databaseName string) (*v1pb.DatabaseCatalog, error) {
@@ -341,50 +410,9 @@ func convertToV1DatabaseCatalog(d *schema.ResourceData, databaseName string) (*v
 	}
 
 	for _, raw := range rawSchemaList.List() {
-		rawSchema := raw.(map[string]interface{})
-		schemaCatalog := &v1pb.SchemaCatalog{
-			Name: rawSchema["name"].(string),
-		}
-
-		rawTableList, ok := rawSchema["tables"].(*schema.Set)
-		if !ok {
-			return nil, errors.Errorf("invalid tables")
-		}
-		for _, table := range rawTableList.List() {
-			rawTable := table.(map[string]interface{})
-			table := &v1pb.TableCatalog{
-				Name:           rawTable["name"].(string),
-				Classification: rawTable["classification"].(string),
-			}
-
-			columnList := []*v1pb.ColumnCatalog{}
-			rawColumnList, ok := rawTable["columns"].(*schema.Set)
-			if !ok {
-				return nil, errors.Errorf("invalid columns")
-			}
-			for _, column := range rawColumnList.List() {
-				rawColumn := column.(map[string]interface{})
-				labels := map[string]string{}
-				for key, val := range rawColumn["labels"].(map[string]interface{}) {
-					labels[key] = val.(string)
-				}
-
-				column := &v1pb.ColumnCatalog{
-					Name:           rawColumn["name"].(string),
-					SemanticType:   rawColumn["semantic_type"].(string),
-					Classification: rawColumn["classification"].(string),
-					Labels:         labels,
-				}
-				columnList = append(columnList, column)
-			}
-
-			table.Kind = &v1pb.TableCatalog_Columns_{
-				Columns: &v1pb.TableCatalog_Columns{
-					Columns: columnList,
-				},
-			}
-
-			schemaCatalog.Tables = append(schemaCatalog.Tables, table)
+		schemaCatalog, err := convertToV1SchemaCatalog(raw)
+		if err != nil {
+			return nil, err
 		}
 
 		catalog.Schemas = append(catalog.Schemas, schemaCatalog)

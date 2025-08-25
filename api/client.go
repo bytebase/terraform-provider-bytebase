@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
@@ -51,15 +51,14 @@ type UserFilter struct {
 	State     v1pb.State
 }
 
+// GroupFilter is the filter for list group API.
+type GroupFilter struct {
+	Query   string
+	Project string
+}
+
 // Client is the API message for Bytebase OpenAPI client.
 type Client interface {
-	// GetCaller returns the API caller.
-	GetCaller() *v1pb.User
-	// CheckResourceExist check if the resource exists.
-	CheckResourceExist(ctx context.Context, name string) error
-	// DeleteResource force delete the resource by name.
-	DeleteResource(ctx context.Context, name string) error
-
 	// Instance
 	// ListInstance will return instances.
 	ListInstance(ctx context.Context, filter *InstanceFilter) ([]*v1pb.Instance, error)
@@ -71,6 +70,8 @@ type Client interface {
 	UpdateInstance(ctx context.Context, patch *v1pb.Instance, updateMasks []string) (*v1pb.Instance, error)
 	// UndeleteInstance undeletes the instance.
 	UndeleteInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error)
+	// DeleteInstance deletes the instance.
+	DeleteInstance(ctx context.Context, instanceName string) error
 	// SyncInstanceSchema will trigger the schema sync for an instance.
 	SyncInstanceSchema(ctx context.Context, instanceName string) error
 
@@ -109,6 +110,8 @@ type Client interface {
 	UpdateProject(ctx context.Context, patch *v1pb.Project, updateMask []string) (*v1pb.Project, error)
 	// UndeleteProject undeletes the project.
 	UndeleteProject(ctx context.Context, projectName string) (*v1pb.Project, error)
+	// DeleteProject deletes the project.
+	DeleteProject(ctx context.Context, projectName string) error
 	// GetProjectIAMPolicy gets the project IAM policy by project full name.
 	GetProjectIAMPolicy(ctx context.Context, projectName string) (*v1pb.IamPolicy, error)
 	// SetProjectIAMPolicy sets the project IAM policy.
@@ -143,6 +146,8 @@ type Client interface {
 	UpdateUser(ctx context.Context, patch *v1pb.User, updateMasks []string) (*v1pb.User, error)
 	// UndeleteUser undeletes the user by name.
 	UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error)
+	// DeleteUser deletes the user.
+	DeleteUser(ctx context.Context, userName string) error
 
 	// Role
 	// ListRole will returns all roles.
@@ -153,16 +158,20 @@ type Client interface {
 	GetRole(ctx context.Context, name string) (*v1pb.Role, error)
 	// UpdateRole updates the role.
 	UpdateRole(ctx context.Context, patch *v1pb.Role, updateMasks []string) (*v1pb.Role, error)
+	// DeleteRole deletes the role.
+	DeleteRole(ctx context.Context, roleName string) error
 
 	// Group
 	// ListGroup list all groups.
-	ListGroup(ctx context.Context) (*v1pb.ListGroupsResponse, error)
+	ListGroup(ctx context.Context, filter *GroupFilter) ([]*v1pb.Group, error)
 	// CreateGroup creates the group.
 	CreateGroup(ctx context.Context, email string, group *v1pb.Group) (*v1pb.Group, error)
 	// GetGroup gets the group by name.
 	GetGroup(ctx context.Context, name string) (*v1pb.Group, error)
 	// UpdateGroup updates the group.
 	UpdateGroup(ctx context.Context, patch *v1pb.Group, updateMasks []string) (*v1pb.Group, error)
+	// DeleteGroup deletes the group.
+	DeleteGroup(ctx context.Context, groupName string) error
 
 	// Workspace
 	// GetWorkspaceIAMPolicy gets the workspace IAM policy.
@@ -177,6 +186,8 @@ type Client interface {
 	GetReviewConfig(ctx context.Context, reviewName string) (*v1pb.ReviewConfig, error)
 	// UpsertReviewConfig updates or creates the review config.
 	UpsertReviewConfig(ctx context.Context, patch *v1pb.ReviewConfig, updateMasks []string) (*v1pb.ReviewConfig, error)
+	// DeleteReviewConfig deletes the review config.
+	DeleteReviewConfig(ctx context.Context, reviewConfigName string) error
 
 	// Risk
 	// ListRisk lists the risk.
@@ -187,6 +198,8 @@ type Client interface {
 	CreateRisk(ctx context.Context, risk *v1pb.Risk) (*v1pb.Risk, error)
 	// UpdateRisk updates the risk.
 	UpdateRisk(ctx context.Context, patch *v1pb.Risk, updateMasks []string) (*v1pb.Risk, error)
+	// DeleteRisk deletes the risk.
+	DeleteRisk(ctx context.Context, riskName string) error
 
 	// ListDatabaseGroup list all database groups in a project.
 	ListDatabaseGroup(ctx context.Context, project string) (*v1pb.ListDatabaseGroupsResponse, error)
@@ -196,4 +209,6 @@ type Client interface {
 	GetDatabaseGroup(ctx context.Context, name string, view v1pb.DatabaseGroupView) (*v1pb.DatabaseGroup, error)
 	// UpdateDatabaseGroup updates the database group.
 	UpdateDatabaseGroup(ctx context.Context, patch *v1pb.DatabaseGroup, updateMasks []string) (*v1pb.DatabaseGroup, error)
+	// DeleteDatabaseGroup deletes the database group.
+	DeleteDatabaseGroup(ctx context.Context, databaseGroupName string) error
 }

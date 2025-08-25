@@ -3,86 +3,91 @@ package client
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	"buf.build/gen/go/bytebase/bytebase/connectrpc/go/v1/bytebasev1connect"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"connectrpc.com/connect"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
 // client is the API message for Bytebase API client.
 type client struct {
-	url     string
-	version string
-	client  *http.Client
-	token   string
-	caller  *v1pb.User
+	url    string
+	client *http.Client
+
+	// Connect RPC clients
+	authClient            bytebasev1connect.AuthServiceClient
+	workspaceClient       bytebasev1connect.WorkspaceServiceClient
+	instanceClient        bytebasev1connect.InstanceServiceClient
+	databaseClient        bytebasev1connect.DatabaseServiceClient
+	databaseCatalogClient bytebasev1connect.DatabaseCatalogServiceClient
+	databaseGroupClient   bytebasev1connect.DatabaseGroupServiceClient
+	projectClient         bytebasev1connect.ProjectServiceClient
+	userClient            bytebasev1connect.UserServiceClient
+	roleClient            bytebasev1connect.RoleServiceClient
+	groupClient           bytebasev1connect.GroupServiceClient
+	settingClient         bytebasev1connect.SettingServiceClient
+	orgPolicyClient       bytebasev1connect.OrgPolicyServiceClient
+	reviewConfigClient    bytebasev1connect.ReviewConfigServiceClient
+	riskClient            bytebasev1connect.RiskServiceClient
+	celClient             bytebasev1connect.CelServiceClient
 }
 
 // NewClient returns the new Bytebase API client.
-func NewClient(url, version, email, password string) (api.Client, error) {
+func NewClient(url, email, password string) (api.Client, error) {
 	c := client{
-		client:  &http.Client{Timeout: 10 * time.Second},
-		url:     url,
-		version: version,
+		url: strings.TrimSuffix(url, "/"),
 	}
 
-	response, err := c.login(&v1pb.LoginRequest{
+	// Use standard HTTP client that supports both HTTP/1.1 and HTTP/2
+	c.client = &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	authInt := &authInterceptor{}
+	interceptors := connect.WithInterceptors(authInt)
+
+	// Create auth client without token first
+	// Try without WithGRPC first to see if it's a standard Connect/gRPC-Web service
+	c.authClient = bytebasev1connect.NewAuthServiceClient(
+		c.client,
+		c.url,
+	)
+
+	// Login to get token
+	loginReq := connect.NewRequest(&v1pb.LoginRequest{
 		Email:    email,
 		Password: password,
 	})
+
+	loginResp, err := c.authClient.Login(context.Background(), loginReq)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to login")
 	}
 
-	c.token = response.Token
-	c.caller = response.User
+	authInt.token = loginResp.Msg.Token
+
+	// Initialize other clients with auth token
+	c.workspaceClient = bytebasev1connect.NewWorkspaceServiceClient(c.client, c.url, interceptors)
+	c.instanceClient = bytebasev1connect.NewInstanceServiceClient(c.client, c.url, interceptors)
+	c.databaseClient = bytebasev1connect.NewDatabaseServiceClient(c.client, c.url, interceptors)
+	c.databaseCatalogClient = bytebasev1connect.NewDatabaseCatalogServiceClient(c.client, c.url, interceptors)
+	c.databaseGroupClient = bytebasev1connect.NewDatabaseGroupServiceClient(c.client, c.url, interceptors)
+	c.projectClient = bytebasev1connect.NewProjectServiceClient(c.client, c.url, interceptors)
+	c.userClient = bytebasev1connect.NewUserServiceClient(c.client, c.url, interceptors)
+	c.roleClient = bytebasev1connect.NewRoleServiceClient(c.client, c.url, interceptors)
+	c.groupClient = bytebasev1connect.NewGroupServiceClient(c.client, c.url, interceptors)
+	c.settingClient = bytebasev1connect.NewSettingServiceClient(c.client, c.url, interceptors)
+	c.orgPolicyClient = bytebasev1connect.NewOrgPolicyServiceClient(c.client, c.url, interceptors)
+	c.reviewConfigClient = bytebasev1connect.NewReviewConfigServiceClient(c.client, c.url, interceptors)
+	c.riskClient = bytebasev1connect.NewRiskServiceClient(c.client, c.url, interceptors)
+	c.celClient = bytebasev1connect.NewCelServiceClient(c.client, c.url, interceptors)
 
 	return &c, nil
-}
-
-func (c *client) doRequest(req *http.Request) ([]byte, error) {
-	if c.token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
-	}
-
-	res, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("status: %d, body: %s", res.StatusCode, body)
-	}
-
-	return body, err
-}
-
-// GetCaller returns the API caller.
-func (c *client) GetCaller() *v1pb.User {
-	return c.caller
-}
-
-// CheckResourceExist check if the resource exists.
-func (c *client) CheckResourceExist(ctx context.Context, name string) error {
-	if _, err := c.getResource(ctx, name, ""); err != nil {
-		return err
-	}
-	return nil
-}
-
-// DeleteResource force delete the resource by name.
-func (c *client) DeleteResource(ctx context.Context, name string) error {
-	return c.execDelete(ctx, name)
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -163,7 +163,9 @@ func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m i
 		db := map[string]interface{}{}
 		db["name"] = database.Name
 		db["project"] = database.Project
-		db["environment"] = database.Environment
+		if v := database.EffectiveEnvironment; v != nil {
+			db["environment"] = *v
+		}
 		db["state"] = database.State.String()
 		db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
 		db["schema_version"] = database.SchemaVersion

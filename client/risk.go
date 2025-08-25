@@ -2,86 +2,94 @@ package client
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"strings"
+	"errors"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
-	"google.golang.org/protobuf/encoding/protojson"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
-// ListRisk lists the risk.
+// ListRisk lists the risk using Connect RPC.
 func (c *client) ListRisk(ctx context.Context) ([]*v1pb.Risk, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s/risks", c.url, c.version), nil)
+	if c.riskClient == nil {
+		return nil, errors.New("risk service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.ListRisksRequest{})
+
+	resp, err := c.riskClient.ListRisks(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.ListRisksResponse
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return res.Risks, nil
+	return resp.Msg.Risks, nil
 }
 
-// GetRisk gets the risk by full name.
+// GetRisk gets the risk by full name using Connect RPC.
 func (c *client) GetRisk(ctx context.Context, name string) (*v1pb.Risk, error) {
-	body, err := c.getResource(ctx, name, "")
+	if c.riskClient == nil {
+		return nil, errors.New("risk service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.GetRiskRequest{
+		Name: name,
+	})
+
+	resp, err := c.riskClient.GetRisk(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Risk
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// CreateRisk creates the risk.
+// CreateRisk creates the risk using Connect RPC.
 func (c *client) CreateRisk(ctx context.Context, risk *v1pb.Risk) (*v1pb.Risk, error) {
-	payload, err := protojson.Marshal(risk)
+	if c.riskClient == nil {
+		return nil, errors.New("risk service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.CreateRiskRequest{
+		Risk: risk,
+	})
+
+	resp, err := c.riskClient.CreateRisk(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/risks", c.url, c.version), strings.NewReader(string(payload)))
-
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.Risk
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// UpdateRisk updates the risk.
+// UpdateRisk updates the risk using Connect RPC.
 func (c *client) UpdateRisk(ctx context.Context, patch *v1pb.Risk, updateMasks []string) (*v1pb.Risk, error) {
-	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
+	if c.riskClient == nil {
+		return nil, errors.New("risk service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UpdateRiskRequest{
+		Risk:       patch,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: updateMasks},
+	})
+
+	resp, err := c.riskClient.UpdateRisk(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Risk
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
+	return resp.Msg, nil
+}
+
+// DeleteRisk deletes the risk.
+func (c *client) DeleteRisk(ctx context.Context, name string) error {
+	if c.riskClient == nil {
+		return errors.New("risk service client not initialized")
 	}
 
-	return &res, nil
+	req := connect.NewRequest(&v1pb.DeleteRiskRequest{
+		Name: name,
+	})
+
+	_, err := c.riskClient.DeleteRisk(ctx, req)
+	return err
 }

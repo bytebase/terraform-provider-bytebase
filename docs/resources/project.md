@@ -33,7 +33,7 @@ The project resource.
 - `parallel_tasks_per_rollout` (Number) The maximum number of parallel tasks to run during the rollout.
 - `postgres_database_tenant_mode` (Boolean) Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended "set role <db_owner>" statement.
 - `skip_backup_errors` (Boolean) Whether to skip backup errors and continue the data migration.
-- `webhooks` (List of Object) The webhooks in the project. (see [below for nested schema](#nestedatt--webhooks))
+- `webhooks` (Set of Object) The webhooks in the project. (see [below for nested schema](#nestedatt--webhooks))
 
 ### Read-Only
 

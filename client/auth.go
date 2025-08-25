@@ -1,40 +1,41 @@
 package client
 
 import (
+	"context"
 	"fmt"
-	"net/http"
-	"strings"
 
-	"github.com/pkg/errors"
-	"google.golang.org/protobuf/encoding/protojson"
-
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	"connectrpc.com/connect"
 )
 
-// Login will login the user and get the response.
-func (c *client) login(request *v1pb.LoginRequest) (*v1pb.LoginResponse, error) {
-	if request.Email == "" || request.Password == "" {
-		return nil, errors.Errorf("undefined login service account or key")
-	}
-	rb, err := protojson.Marshal(request)
-	if err != nil {
-		return nil, err
-	}
+// Note: The login method has been moved to client.go and now uses Connect RPC.
+// This file is kept for backward compatibility but the implementation
+// has been migrated to use the AuthServiceClient from Connect RPC.
+// authInterceptor implements connect.Interceptor to add authentication headers.
+type authInterceptor struct {
+	token string
+}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s/auth/login", c.url, c.version), strings.NewReader(string(rb)))
-	if err != nil {
-		return nil, err
-	}
+func (a *authInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+	return connect.UnaryFunc(func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		if req.Spec().IsClient && a.token != "" {
+			req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
+		}
+		return next(ctx, req)
+	})
+}
 
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to login")
-	}
+func (a *authInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return connect.StreamingClientFunc(func(ctx context.Context, spec connect.Spec) connect.StreamingClientConn {
+		conn := next(ctx, spec)
+		if a.token != "" {
+			conn.RequestHeader().Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
+		}
+		return conn
+	})
+}
 
-	ar := v1pb.LoginResponse{}
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &ar); err != nil {
-		return nil, err
-	}
-
-	return &ar, nil
+func (*authInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return connect.StreamingHandlerFunc(func(ctx context.Context, conn connect.StreamingHandlerConn) error {
+		return next(ctx, conn)
+	})
 }

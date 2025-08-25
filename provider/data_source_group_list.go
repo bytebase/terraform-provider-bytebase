@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
+	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
 func dataSourceGroupList() *schema.Resource {
@@ -16,6 +18,19 @@ func dataSourceGroupList() *schema.Resource {
 		Description: "The group data source list.",
 		ReadContext: dataSourceGroupListRead,
 		Schema: map[string]*schema.Schema{
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
+				),
+				Description: "The project fullname in projects/{id} format.",
+			},
+			"query": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filter groups by title or email with wildcard",
+			},
 			"groups": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -71,13 +86,16 @@ func dataSourceGroupList() *schema.Resource {
 func dataSourceGroupListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	response, err := c.ListGroup(ctx)
+	response, err := c.ListGroup(ctx, &api.GroupFilter{
+		Query:   d.Get("query").(string),
+		Project: d.Get("project").(string),
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	groups := make([]map[string]interface{}, 0)
-	for _, group := range response.Groups {
+	for _, group := range response {
 		raw := make(map[string]interface{})
 		raw["name"] = group.Name
 		raw["title"] = group.Title

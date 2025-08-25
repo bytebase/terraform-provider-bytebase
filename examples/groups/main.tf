@@ -17,17 +17,30 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
-data "bytebase_group_list" "all" {
+data "bytebase_group_list" "all_groups" {
 }
 
 output "all_groups" {
-  value = data.bytebase_group_list.all
+  value = data.bytebase_group_list.all_groups.groups
 }
 
-data "bytebase_group" "sample" {
-  name = "groups/group@bytebase.com"
+data "bytebase_project" "sample_project" {
+  resource_id = "sample"
 }
 
-output "sample_group" {
-  value = data.bytebase_group.sample
+data "bytebase_group_list" "groups_in_project" {
+  project = data.bytebase_project.sample_project.name
+  query = "Bytebase"
 }
+
+output "groups_in_project" {
+  value = data.bytebase_group_list.groups_in_project.groups
+}
+
+# Query single group
+# data "bytebase_group" "sample" {
+#   name = "groups/group@bytebase.com"
+# }
+# output "sample_group" {
+#   value = data.bytebase_group.sample
+# }

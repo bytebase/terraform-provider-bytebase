@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -151,7 +151,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 
 		databaseList := flattenDatabaseList(databases)
 		proj["databases"] = databaseList
-		proj["webhooks"] = flattenWebhookList(project.Webhooks)
+		proj["webhooks"] = schema.NewSet(webhookHash, flattenWebhookList(project.Webhooks))
 
 		projects = append(projects, proj)
 	}

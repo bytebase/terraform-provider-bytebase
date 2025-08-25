@@ -19,17 +19,18 @@ The instance resource.
 
 - `data_sources` (Block Set, Min: 1) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_sources))
 - `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, COCKROACHDB.
-- `environment` (String) The environment full name for the instance in environments/{environment id} format.
 - `resource_id` (String) The instance unique resource id.
 - `title` (String) The instance title.
 
 ### Optional
 
 - `activation` (Boolean) Whether assign license for this instance or not.
+- `environment` (String) The environment full name for the instance in environments/{environment id} format.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
 - `list_all_databases` (Boolean) List all databases in this instance. If false, will only list 500 databases.
-- `maximum_connections` (Number) The maximum number of connections.
-- `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync.
+- `maximum_connections` (Number) The maximum number of connections. Require instance license to enable this feature.
+- `sync_databases` (Set of String) Enable sync for following databases. Default empty, means sync all schemas & databases.
+- `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync. Require instance license to enable this feature.
 
 ### Read-Only
 
@@ -37,7 +38,6 @@ The instance resource.
 - `engine_version` (String) The engine version.
 - `id` (String) The ID of this resource.
 - `name` (String) The instance full name in instances/{resource id} format.
-- `sync_databases` (Set of String) Enable sync for following databases. Default empty, means sync all schemas & databases.
 
 <a id="nestedblock--data_sources"></a>
 ### Nested Schema for `data_sources`
@@ -47,12 +47,12 @@ Required:
 - `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.
 - `id` (String) The unique data source id in this instance.
 - `port` (String) The port for your instance.
-- `type` (String) The data source type. Should be ADMIN or READ_ONLY.
+- `type` (String) The data source type. Should be ADMIN or READ_ONLY. The READ_ONLY data source requires the instance license.
 
 Optional:
 
 - `database` (String) The database for the instance, you can set this if the engine type is POSTGRES.
-- `external_secret` (Block List, Max: 1) The external secret to get the database password. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager (see [below for nested schema](#nestedblock--data_sources--external_secret))
+- `external_secret` (Block List, Max: 1) The external secret to get the database password. Require instance license to enable this feature. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager (see [below for nested schema](#nestedblock--data_sources--external_secret))
 - `password` (String, Sensitive) The connection user password used by Bytebase to perform DDL and DML operations.
 - `ssl_ca` (String, Sensitive) The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.

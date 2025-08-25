@@ -42,7 +42,7 @@ Read-Only:
 - `resource_id` (String)
 - `skip_backup_errors` (Boolean)
 - `title` (String)
-- `webhooks` (List of Object) (see [below for nested schema](#nestedobjatt--projects--webhooks))
+- `webhooks` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--webhooks))
 
 <a id="nestedobjatt--projects--webhooks"></a>
 ### Nested Schema for `projects.webhooks`
