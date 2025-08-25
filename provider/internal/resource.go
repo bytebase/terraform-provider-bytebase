@@ -21,13 +21,13 @@ func IsNotFoundError(err error) bool {
 type ResourceDeleteFunc func(ctx context.Context, name string) error
 
 // ResourceDelete wrap the delete func.
-func ResourceDelete(ctx context.Context, d *schema.ResourceData, delete ResourceDeleteFunc) diag.Diagnostics {
+func ResourceDelete(ctx context.Context, d *schema.ResourceData, deleteResource ResourceDeleteFunc) diag.Diagnostics {
 	fullName := d.Id()
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	if err := delete(ctx, fullName); err != nil {
+	if err := deleteResource(ctx, fullName); err != nil {
 		// Check if the resource was deleted outside of Terraform
 		if !IsNotFoundError(err) {
 			return diag.FromErr(err)
