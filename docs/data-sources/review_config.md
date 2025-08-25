@@ -21,7 +21,7 @@ The review config data source.
 - `id` (String) The ID of this resource.
 - `resource_id` (String) The unique resource id for the review config.
 - `resources` (Set of String) Resources using the config. We support attach the review config for environments or projects with format {resurce}/{resource id}. For example, environments/test, projects/sample.
-- `rules` (List of Object) The SQL review rules. (see [below for nested schema](#nestedatt--rules))
+- `rules` (Set of Object) The SQL review rules. (see [below for nested schema](#nestedatt--rules))
 - `title` (String) The title for the review config.
 
 <a id="nestedatt--rules"></a>

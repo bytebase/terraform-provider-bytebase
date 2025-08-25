@@ -3,50 +3,46 @@ package client
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"strings"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
-	"google.golang.org/protobuf/encoding/protojson"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"connectrpc.com/connect"
 )
 
 // GetWorkspaceIAMPolicy gets the workspace IAM policy.
 func (c *client) GetWorkspaceIAMPolicy(ctx context.Context) (*v1pb.IamPolicy, error) {
-	body, err := c.getResource(ctx, "workspaces/-:getIamPolicy", "")
+	if c.workspaceClient == nil {
+		return nil, fmt.Errorf("workspace service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.GetIamPolicyRequest{
+		Resource: "workspaces/-",
+	})
+
+	resp, err := c.workspaceClient.GetIamPolicy(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.IamPolicy
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
 // SetWorkspaceIAMPolicy sets the workspace IAM policy.
 func (c *client) SetWorkspaceIAMPolicy(ctx context.Context, setIamPolicyRequest *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
-	payload, err := protojson.Marshal(setIamPolicyRequest)
+	if c.workspaceClient == nil {
+		return nil, fmt.Errorf("workspace service client not initialized")
+	}
+
+	// Ensure the resource is set correctly
+	if setIamPolicyRequest.Resource == "" {
+		setIamPolicyRequest.Resource = "workspaces/-"
+	}
+
+	req := connect.NewRequest(setIamPolicyRequest)
+
+	resp, err := c.workspaceClient.SetIamPolicy(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s/%s:setIamPolicy", c.url, c.version, "workspaces/-"), strings.NewReader(string(payload)))
-
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.IamPolicy
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }

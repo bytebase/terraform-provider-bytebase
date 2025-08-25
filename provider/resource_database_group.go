@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -18,8 +18,8 @@ import (
 func resourceDatabaseGroup() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The database group resource.",
-		ReadContext:   internal.ResourceRead(resourceDatabaseGroupRead),
-		DeleteContext: internal.ResourceDelete,
+		ReadContext:   resourceDatabaseGroupRead,
+		DeleteContext: resourceDatabaseGroupDelete,
 		CreateContext: resourceDatabaseGroupCreate,
 		UpdateContext: resourceDatabaseGroupUpdate,
 		Importer: &schema.ResourceImporter{
@@ -71,6 +71,13 @@ func resourceDatabaseGroupRead(ctx context.Context, d *schema.ResourceData, m in
 
 	group, err := c.GetDatabaseGroup(ctx, fullName, v1pb.DatabaseGroupView_DATABASE_GROUP_VIEW_FULL)
 	if err != nil {
+		// Check if the resource was deleted outside of Terraform
+		if internal.IsNotFoundError(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", fullName))
+			// Remove from state to trigger recreation on next apply
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -212,4 +219,9 @@ func resourceDatabaseGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	return diags
+}
+
+func resourceDatabaseGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(api.Client)
+	return internal.ResourceDelete(ctx, d, c.DeleteDatabaseGroup)
 }

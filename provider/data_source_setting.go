@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
@@ -51,7 +51,7 @@ func getSemanticTypesSetting(computed bool) *schema.Schema {
 		Computed:    computed,
 		Optional:    true,
 		Default:     nil,
-		Type:        schema.TypeList,
+		Type:        schema.TypeSet,
 		Description: "Semantic types for data masking. Require ENTERPRISE subscription.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
@@ -188,6 +188,7 @@ func getSemanticTypesSetting(computed bool) *schema.Schema {
 				},
 			},
 		},
+		Set: semanticTypeHash,
 	}
 }
 
@@ -220,7 +221,7 @@ func getClassificationSetting(computed bool) *schema.Schema {
 				},
 				"levels": {
 					Required: true,
-					Type:     schema.TypeList,
+					Type:     schema.TypeSet,
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -242,10 +243,11 @@ func getClassificationSetting(computed bool) *schema.Schema {
 							},
 						},
 					},
+					Set: levelHash,
 				},
 				"classifications": {
 					Required: true,
-					Type:     schema.TypeList,
+					Type:     schema.TypeSet,
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -273,6 +275,7 @@ func getClassificationSetting(computed bool) *schema.Schema {
 							},
 						},
 					},
+					Set: classificationHash,
 				},
 			},
 		},
@@ -320,7 +323,7 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 				"database_change_mode": {
 					Type:     schema.TypeString,
 					Optional: true,
-					Default:  v1pb.DatabaseChangeMode_PIPELINE.String(),
+					Default:  v1pb.DatabaseChangeMode_DATABASE_CHANGE_MODE_UNSPECIFIED.String(),
 					ValidateFunc: validation.StringInSlice([]string{
 						v1pb.DatabaseChangeMode_EDITOR.String(),
 						v1pb.DatabaseChangeMode_PIPELINE.String(),
@@ -341,14 +344,14 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 				"announcement": {
 					Type:        schema.TypeList,
 					Optional:    true,
-					MinItems:    1,
+					MinItems:    0,
 					MaxItems:    1,
 					Description: "Custom announcement. Will show as a banner in the Bytebase UI. Require ENTERPRISE subscription.",
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"text": {
 								Type:        schema.TypeString,
-								Required:    true,
+								Optional:    true,
 								Description: "The text of announcement. Leave it as empty string can clear the announcement",
 							},
 							"link": {
@@ -358,8 +361,9 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 							},
 							"level": {
 								Type:        schema.TypeString,
-								Required:    true,
+								Optional:    true,
 								Description: "The alert level of announcement",
+								Default:     v1pb.Announcement_ALERT_LEVEL_UNSPECIFIED.String(),
 								ValidateFunc: validation.StringInSlice([]string{
 									v1pb.Announcement_INFO.String(),
 									v1pb.Announcement_WARNING.String(),
@@ -650,7 +654,7 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 	}
 	if value := setting.GetValue().GetSemanticTypeSettingValue(); value != nil {
 		settingVal := flattenSemanticTypesSetting(value)
-		if err := d.Set("semantic_types", settingVal); err != nil {
+		if err := d.Set("semantic_types", schema.NewSet(semanticTypeHash, settingVal)); err != nil {
 			return diag.Errorf("cannot set semantic_types: %s", err.Error())
 		}
 	}
@@ -808,14 +812,20 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	if v := setting.GetMaximumRoleExpiration(); v != nil {
 		raw["maximum_role_expiration_in_seconds"] = int(v.Seconds)
 	}
+	// Handle announcement field - need to be careful with empty announcements
 	if v := setting.GetAnnouncement(); v != nil {
-		raw["announcement"] = []any{
-			map[string]any{
-				"text":  v.Text,
-				"link":  v.Link,
-				"level": v.Level.String(),
-			},
+		// Check if this is truly an empty announcement (all fields at their zero/default values)
+		isEmpty := v.Text == "" && v.Link == "" && v.Level == v1pb.Announcement_ALERT_LEVEL_UNSPECIFIED
+		if !isEmpty {
+			raw["announcement"] = []any{
+				map[string]any{
+					"text":  v.Text,
+					"link":  v.Link,
+					"level": v.Level.String(),
+				},
+			}
 		}
+		// If announcement is empty, don't set it at all - let Terraform handle it as unset
 	}
 
 	return []interface{}{raw}
@@ -859,7 +869,7 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 			rawLevel["description"] = level.Description
 			rawLevels = append(rawLevels, rawLevel)
 		}
-		raw["levels"] = rawLevels
+		raw["levels"] = schema.NewSet(levelHash, rawLevels)
 
 		rawClassifications := []interface{}{}
 		for _, classification := range config.GetClassification() {
@@ -870,7 +880,7 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 			rawClassification["level"] = classification.LevelId
 			rawClassifications = append(rawClassifications, rawClassification)
 		}
-		raw["classifications"] = rawClassifications
+		raw["classifications"] = schema.NewSet(classificationHash, rawClassifications)
 	}
 
 	return []interface{}{raw}
@@ -949,4 +959,22 @@ func flattenSemanticTypesSetting(setting *v1pb.SemanticTypeSetting) []interface{
 	}
 
 	return raw
+}
+
+func levelHash(rawSchema interface{}) int {
+	classificationLevel := convertToV1Level(rawSchema)
+	return internal.ToHash(classificationLevel)
+}
+
+func classificationHash(rawSchema interface{}) int {
+	classificationData := convertToV1Classification(rawSchema)
+	return internal.ToHash(classificationData)
+}
+
+func semanticTypeHash(rawSchema interface{}) int {
+	semanticType, err := convertToV1SemanticType(rawSchema)
+	if err != nil {
+		return 0
+	}
+	return internal.ToHash(semanticType)
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -18,8 +18,8 @@ import (
 func resourceGroup() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The group resource. Workspace domain is required for creating groups.",
-		ReadContext:   internal.ResourceRead(resourceGroupRead),
-		DeleteContext: internal.ResourceDelete,
+		ReadContext:   resourceGroupRead,
+		DeleteContext: resourceGroupDelete,
 		CreateContext: resourceGroupCreate,
 		UpdateContext: resourceGroupUpdate,
 		Importer: &schema.ResourceImporter{
@@ -67,7 +67,7 @@ func resourceGroup() *schema.Resource {
 							ValidateDiagFunc: internal.ResourceNameValidation(
 								fmt.Sprintf("^%s", internal.UserNamePrefix),
 							),
-							Description: "The member in users/{email} format.",
+							Description: "The member in users/{email} format. Only allow add end users to the group.",
 						},
 						"role": {
 							Type:        schema.TypeString,
@@ -92,6 +92,13 @@ func resourceGroupRead(ctx context.Context, d *schema.ResourceData, m interface{
 	fullName := d.Id()
 	group, err := c.GetGroup(ctx, fullName)
 	if err != nil {
+		// Check if the resource was deleted outside of Terraform
+		if internal.IsNotFoundError(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", fullName))
+			// Remove from state to trigger recreation on next apply
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -212,6 +219,17 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	return diags
 }
 
+func convertToV1Member(rawSchema interface{}) *v1pb.GroupMember {
+	rawMember := rawSchema.(map[string]interface{})
+
+	member := rawMember["member"].(string)
+	role := v1pb.GroupMember_Role(v1pb.GroupMember_Role_value[rawMember["role"].(string)])
+	return &v1pb.GroupMember{
+		Member: member,
+		Role:   role,
+	}
+}
+
 func convertToMemberList(d *schema.ResourceData) ([]*v1pb.GroupMember, error) {
 	memberSet, ok := d.Get("members").(*schema.Set)
 	if !ok {
@@ -221,16 +239,9 @@ func convertToMemberList(d *schema.ResourceData) ([]*v1pb.GroupMember, error) {
 	memberList := []*v1pb.GroupMember{}
 	existOwner := false
 	for _, m := range memberSet.List() {
-		rawMember := m.(map[string]interface{})
-
-		member := rawMember["member"].(string)
-		role := v1pb.GroupMember_Role(v1pb.GroupMember_Role_value[rawMember["role"].(string)])
-		memberList = append(memberList, &v1pb.GroupMember{
-			Member: member,
-			Role:   role,
-		})
-
-		if role == v1pb.GroupMember_OWNER {
+		member := convertToV1Member(m)
+		memberList = append(memberList, member)
+		if member.Role == v1pb.GroupMember_OWNER {
 			existOwner = true
 		}
 	}
@@ -240,4 +251,9 @@ func convertToMemberList(d *schema.ResourceData) ([]*v1pb.GroupMember, error) {
 	}
 
 	return memberList, nil
+}
+
+func resourceGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(api.Client)
+	return internal.ResourceDelete(ctx, d, c.DeleteGroup)
 }

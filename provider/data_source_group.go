@@ -1,14 +1,13 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -107,15 +106,6 @@ func setGroup(d *schema.ResourceData, group *v1pb.Group) diag.Diagnostics {
 }
 
 func memberHash(rawMember interface{}) int {
-	var buf bytes.Buffer
-	member := rawMember.(map[string]interface{})
-
-	if v, ok := member["member"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := member["role"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-
-	return internal.ToHashcodeInt(buf.String())
+	member := convertToV1Member(rawMember)
+	return internal.ToHash(member)
 }

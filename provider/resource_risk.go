@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"google.golang.org/genproto/googleapis/type/expr"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -18,8 +19,8 @@ import (
 func resourceRisk() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The risk resource. Require ENTERPRISE subscription. Check the docs https://www.bytebase.com/docs/administration/risk-center?source=terraform for more information.",
-		ReadContext:   internal.ResourceRead(resourceRiskRead),
-		DeleteContext: internal.ResourceDelete,
+		ReadContext:   resourceRiskRead,
+		DeleteContext: resourceRiskDelete,
 		CreateContext: resourceRiskCreate,
 		UpdateContext: resourceRiskUpdate,
 		Importer: &schema.ResourceImporter{
@@ -78,6 +79,13 @@ func resourceRiskRead(ctx context.Context, d *schema.ResourceData, m interface{}
 	fullName := d.Id()
 	risk, err := c.GetRisk(ctx, fullName)
 	if err != nil {
+		// Check if the resource was deleted outside of Terraform
+		if internal.IsNotFoundError(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", fullName))
+			// Remove from state to trigger recreation on next apply
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -179,4 +187,9 @@ func resourceRiskUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	return diags
+}
+
+func resourceRiskDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(api.Client)
+	return internal.ResourceDelete(ctx, d, c.DeleteRisk)
 }

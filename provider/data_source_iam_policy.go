@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strconv"
@@ -11,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/pkg/errors"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -128,9 +127,7 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 							},
 						},
 					},
-					Set: func(i interface{}) int {
-						return internal.ToHashcodeInt(conditionHash(i))
-					},
+					Set: conditionHash,
 				},
 			},
 		},
@@ -198,14 +195,14 @@ func flattenIAMPolicy(p *v1pb.IamPolicy) ([]interface{}, error) {
 						strings.TrimPrefix(expression, `resource.table in [`),
 						`]`,
 					)
-					rawTableList := []string{}
+					rawTableList := []interface{}{}
 					for _, t := range strings.Split(tableStr, ",") {
 						rawTableList = append(rawTableList, strings.TrimSuffix(
 							strings.TrimPrefix(t, `"`),
 							`"`,
 						))
 					}
-					rawCondition["tables"] = rawTableList
+					rawCondition["tables"] = schema.NewSet(schema.HashString, rawTableList)
 				}
 				if strings.HasPrefix(expression, `request.row_limit <= `) {
 					i, err := strconv.Atoi(strings.TrimPrefix(expression, `request.row_limit <= `))
@@ -223,11 +220,17 @@ func flattenIAMPolicy(p *v1pb.IamPolicy) ([]interface{}, error) {
 			}
 		}
 
-		rawBinding["condition"] = schema.NewSet(func(i interface{}) int {
-			return internal.ToHashcodeInt(conditionHash(i))
-		}, []interface{}{rawCondition})
+		// Only set condition if it's not empty
+		if len(rawCondition) > 0 {
+			rawBinding["condition"] = schema.NewSet(conditionHash, []interface{}{rawCondition})
+		}
 		rawBinding["role"] = binding.Role
-		rawBinding["members"] = binding.Members
+		// Convert members slice to a set with proper interface conversion
+		membersList := make([]interface{}, len(binding.Members))
+		for i, member := range binding.Members {
+			membersList[i] = member
+		}
+		rawBinding["members"] = schema.NewSet(schema.HashString, membersList)
 		bindingList = append(bindingList, rawBinding)
 	}
 
@@ -238,48 +241,17 @@ func flattenIAMPolicy(p *v1pb.IamPolicy) ([]interface{}, error) {
 }
 
 func bindingHash(rawBinding interface{}) int {
-	var buf bytes.Buffer
-	binding := rawBinding.(map[string]interface{})
-
-	if v, ok := binding["role"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	binding, err := convertToV1Binding(rawBinding)
+	if err != nil {
+		return 0
 	}
-
-	if condition, ok := binding["condition"].(*schema.Set); ok && condition.Len() > 0 && condition.List()[0] != nil {
-		rawCondition := condition.List()[0].(map[string]interface{})
-		_, _ = buf.WriteString(conditionHash(rawCondition))
-	}
-
-	if members, ok := binding["members"].(*schema.Set); ok && members.Len() > 0 {
-		for _, member := range members.List() {
-			_, _ = buf.WriteString(fmt.Sprintf("[member] %s", member))
-		}
-	}
-
-	return internal.ToHashcodeInt(buf.String())
+	return internal.ToHash(binding)
 }
 
-func conditionHash(rawCondition interface{}) string {
-	var buf bytes.Buffer
-	condition := rawCondition.(map[string]interface{})
-
-	if v, ok := condition["database"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+func conditionHash(rawCondition interface{}) int {
+	condition, err := convertToV1Condition(rawCondition)
+	if err != nil {
+		return 0
 	}
-	if v, ok := condition["schema"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := condition["tables"].(*schema.Set); ok {
-		for _, t := range v.List() {
-			_, _ = buf.WriteString(fmt.Sprintf("table.%s-", t.(string)))
-		}
-	}
-	if v, ok := condition["row_limit"].(int); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%d-", v))
-	}
-	if v, ok := condition["expire_timestamp"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-
-	return buf.String()
+	return internal.ToHashcodeInt(condition.Expression)
 }

@@ -15,8 +15,7 @@ resource "bytebase_iam_policy" "workspace_iam" {
     binding {
       role = "roles/workspaceAdmin"
       members = [
-        format("user:%s", local.service_account),
-        format("user:%s", bytebase_user.workspace_dba.email),
+        format("user:%s", bytebase_user.service_account.email),
       ]
     }
 
@@ -24,7 +23,6 @@ resource "bytebase_iam_policy" "workspace_iam" {
       role = "roles/workspaceDBA"
       members = [
         format("user:%s", bytebase_user.workspace_dba.email),
-        format("user:%s", bytebase_user.service_account.email),
       ]
     }
 
@@ -51,7 +49,8 @@ resource "bytebase_iam_policy" "project_iam" {
     bytebase_project.sample_project,
     bytebase_user.workspace_dba,
     bytebase_user.project_developer,
-    bytebase_group.developers
+    bytebase_group.developers,
+    bytebase_group.project_owners
   ]
 
   parent = bytebase_project.sample_project.name
@@ -60,7 +59,8 @@ resource "bytebase_iam_policy" "project_iam" {
     binding {
       role = "roles/projectOwner"
       members = [
-        format("user:%s", bytebase_user.workspace_dba.email)
+        format("user:%s", bytebase_user.workspace_dba.email),
+        format("group:%s", bytebase_group.project_owners.email),
       ]
     }
 

@@ -1,9 +1,7 @@
 package provider
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -108,15 +106,11 @@ func dataSourceDatabase() *schema.Resource {
 															},
 														},
 													},
-													Set: func(i interface{}) int {
-														return internal.ToHashcodeInt(columnHash(i))
-													},
+													Set: columnHash,
 												},
 											},
 										},
-										Set: func(i interface{}) int {
-											return internal.ToHashcodeInt(tableHash(i))
-										},
+										Set: tableHash,
 									},
 								},
 							},
@@ -143,60 +137,23 @@ func dataSourceDatabaseRead(ctx context.Context, d *schema.ResourceData, m inter
 	return setDatabase(ctx, c, d, database)
 }
 
-func columnHash(rawColumn interface{}) string {
-	var buf bytes.Buffer
-	column := rawColumn.(map[string]interface{})
-
-	if v, ok := column["name"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := column["semantic_type"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := column["classification"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if v, ok := column["labels"].(map[string]interface{}); ok {
-		for key, val := range v {
-			_, _ = buf.WriteString(fmt.Sprintf("[%s:%s]-", key, val.(string)))
-		}
-	}
-	return buf.String()
+func columnHash(rawColumn interface{}) int {
+	column := convertToV1ColumnCatalog(rawColumn)
+	return internal.ToHash(column)
 }
 
-func tableHash(rawTable interface{}) string {
-	var buf bytes.Buffer
-	table := rawTable.(map[string]interface{})
-
-	if v, ok := table["name"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+func tableHash(rawTable interface{}) int {
+	table, err := convertToV1TableCatalog(rawTable)
+	if err != nil {
+		return 0
 	}
-	if v, ok := table["classification"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
-	}
-	if columns, ok := table["columns"].(*schema.Set); ok {
-		for _, column := range columns.List() {
-			rawColumn := column.(map[string]interface{})
-			_, _ = buf.WriteString(columnHash(rawColumn))
-		}
-	}
-
-	return buf.String()
+	return internal.ToHash(table)
 }
 
 func schemaHash(rawSchema interface{}) int {
-	var buf bytes.Buffer
-	raw := rawSchema.(map[string]interface{})
-
-	if v, ok := raw["name"].(string); ok {
-		_, _ = buf.WriteString(fmt.Sprintf("%s-", v))
+	schema, err := convertToV1SchemaCatalog(rawSchema)
+	if err != nil {
+		return 0
 	}
-	if tables, ok := raw["tables"].(*schema.Set); ok {
-		for _, table := range tables.List() {
-			rawTable := table.(map[string]interface{})
-			_, _ = buf.WriteString(tableHash(rawTable))
-		}
-	}
-
-	return internal.ToHashcodeInt(buf.String())
+	return internal.ToHash(schema)
 }

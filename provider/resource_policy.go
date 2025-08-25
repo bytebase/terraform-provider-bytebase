@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -128,6 +128,7 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		Enforce:           d.Get("enforce").(bool),
 		Type:              policyType,
 	}
+	updateMasks := []string{}
 
 	switch policyType {
 	case v1pb.PolicyType_MASKING_EXCEPTION:
@@ -138,6 +139,7 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.Policy = &v1pb.Policy_MaskingExceptionPolicy{
 			MaskingExceptionPolicy: maskingExceptionPolicy,
 		}
+		updateMasks = append(updateMasks, "masking_exception_policy")
 	case v1pb.PolicyType_MASKING_RULE:
 		maskingRulePolicy, err := convertToMaskingRulePolicy(d)
 		if err != nil {
@@ -146,6 +148,7 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.Policy = &v1pb.Policy_MaskingRulePolicy{
 			MaskingRulePolicy: maskingRulePolicy,
 		}
+		updateMasks = append(updateMasks, "masking_rule_policy")
 	case v1pb.PolicyType_DISABLE_COPY_DATA:
 		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
 			return diag.Errorf("policy %v only support environment or project resource", policyName)
@@ -157,6 +160,7 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.Policy = &v1pb.Policy_DisableCopyDataPolicy{
 			DisableCopyDataPolicy: disableCopyDataPolicy,
 		}
+		updateMasks = append(updateMasks, "disable_copy_data_policy")
 	case v1pb.PolicyType_DATA_SOURCE_QUERY:
 		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
 			return diag.Errorf("policy %v only support environment or project resource", policyName)
@@ -168,6 +172,7 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.Policy = &v1pb.Policy_DataSourceQueryPolicy{
 			DataSourceQueryPolicy: dataSourceQueryPolicy,
 		}
+		updateMasks = append(updateMasks, "data_source_query_policy")
 	case v1pb.PolicyType_ROLLOUT_POLICY:
 		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) {
 			return diag.Errorf("policy %v only support environment resource", policyName)
@@ -179,11 +184,11 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.Policy = &v1pb.Policy_RolloutPolicy{
 			RolloutPolicy: rolloutPolicy,
 		}
+		updateMasks = append(updateMasks, "rollout_policy")
 	default:
 		return diag.Errorf("unsupport policy type: %v", policyName)
 	}
 
-	updateMasks := []string{"payload"}
 	rawConfig := d.GetRawConfig()
 	if config := rawConfig.GetAttr("inherit_from_parent"); !config.IsNull() {
 		updateMasks = append(updateMasks, "inherit_from_parent")
@@ -242,7 +247,7 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	if d.HasChange("masking_exception_policy") {
-		updateMasks = append(updateMasks, "payload")
+		updateMasks = append(updateMasks, "masking_exception_policy")
 		maskingExceptionPolicy, err := convertToMaskingExceptionPolicy(d)
 		if err != nil {
 			return diag.FromErr(err)
@@ -252,7 +257,7 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 	if d.HasChange("global_masking_policy") {
-		updateMasks = append(updateMasks, "payload")
+		updateMasks = append(updateMasks, "masking_rule_policy")
 		maskingRulePolicy, err := convertToMaskingRulePolicy(d)
 		if err != nil {
 			return diag.FromErr(err)
@@ -262,7 +267,7 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 	if d.HasChange("disable_copy_data_policy") {
-		updateMasks = append(updateMasks, "payload")
+		updateMasks = append(updateMasks, "disable_copy_data_policy")
 		disableCopyDataPolicy, err := convertToDisableCopyDataPolicy(d)
 		if err != nil {
 			return diag.FromErr(err)
@@ -272,13 +277,23 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 	if d.HasChange("data_source_query_policy") {
-		updateMasks = append(updateMasks, "payload")
+		updateMasks = append(updateMasks, "data_source_query_policy")
 		dataSourceQueryPolicy, err := convertToDataSourceQueryPolicy(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		patch.Policy = &v1pb.Policy_DataSourceQueryPolicy{
 			DataSourceQueryPolicy: dataSourceQueryPolicy,
+		}
+	}
+	if d.HasChange("rollout_policy") {
+		updateMasks = append(updateMasks, "rollout_policy")
+		rolloutPolicy, err := convertToRolloutPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_RolloutPolicy{
+			RolloutPolicy: rolloutPolicy,
 		}
 	}
 
@@ -332,6 +347,59 @@ func convertToMaskingRulePolicy(d *schema.ResourceData) (*v1pb.MaskingRulePolicy
 	return policy, nil
 }
 
+func convertToV1Exception(rawSchema interface{}) (*v1pb.MaskingExceptionPolicy_MaskingException, error) {
+	rawException := rawSchema.(map[string]interface{})
+
+	expressions := []string{}
+	databaseFullName := rawException["database"].(string)
+	if databaseFullName != "" {
+		instanceID, databaseName, err := internal.GetInstanceDatabaseID(databaseFullName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid database full name: %v", databaseFullName)
+		}
+		expressions = append(
+			expressions,
+			fmt.Sprintf(`resource.instance_id == "%s"`, instanceID),
+			fmt.Sprintf(`resource.database_name == "%s"`, databaseName),
+		)
+
+		if schema, ok := rawException["schema"].(string); ok && schema != "" {
+			expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
+		}
+		if table, ok := rawException["table"].(string); ok && table != "" {
+			expressions = append(expressions, fmt.Sprintf(`resource.table_name == "%s"`, table))
+		}
+		if column, ok := rawException["column"].(string); ok && column != "" {
+			expressions = append(expressions, fmt.Sprintf(`resource.column_name == "%s"`, column))
+		}
+	}
+
+	if expire, ok := rawException["expire_timestamp"].(string); ok && expire != "" {
+		formattedTime, err := time.Parse(time.RFC3339, expire)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid time: %v", expire)
+		}
+		expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
+	}
+	member := rawException["member"].(string)
+	if member == "allUsers" {
+		return nil, errors.Errorf("not support allUsers in masking_exception_policy")
+	}
+	if err := internal.ValidateMemberBinding(member); err != nil {
+		return nil, err
+	}
+	return &v1pb.MaskingExceptionPolicy_MaskingException{
+		Member: member,
+		Action: v1pb.MaskingExceptionPolicy_MaskingException_Action(
+			v1pb.MaskingExceptionPolicy_MaskingException_Action_value[rawException["action"].(string)],
+		),
+		Condition: &expr.Expr{
+			Description: rawException["reason"].(string),
+			Expression:  strings.Join(expressions, " && "),
+		},
+	}, nil
+}
+
 func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExceptionPolicy, error) {
 	rawList, ok := d.Get("masking_exception_policy").([]interface{})
 	if !ok || len(rawList) != 1 {
@@ -346,57 +414,12 @@ func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExcep
 
 	policy := &v1pb.MaskingExceptionPolicy{}
 
-	for _, exception := range exceptionList.List() {
-		rawException := exception.(map[string]interface{})
-
-		expressions := []string{}
-		databaseFullName := rawException["database"].(string)
-		if databaseFullName != "" {
-			instanceID, databaseName, err := internal.GetInstanceDatabaseID(databaseFullName)
-			if err != nil {
-				return nil, errors.Wrapf(err, "invalid database full name: %v", databaseFullName)
-			}
-			expressions = append(
-				expressions,
-				fmt.Sprintf(`resource.instance_id == "%s"`, instanceID),
-				fmt.Sprintf(`resource.database_name == "%s"`, databaseName),
-			)
-
-			if schema, ok := rawException["schema"].(string); ok && schema != "" {
-				expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
-			}
-			if table, ok := rawException["table"].(string); ok && table != "" {
-				expressions = append(expressions, fmt.Sprintf(`resource.table_name == "%s"`, table))
-			}
-			if column, ok := rawException["column"].(string); ok && column != "" {
-				expressions = append(expressions, fmt.Sprintf(`resource.column_name == "%s"`, column))
-			}
-		}
-
-		if expire, ok := rawException["expire_timestamp"].(string); ok && expire != "" {
-			formattedTime, err := time.Parse(time.RFC3339, expire)
-			if err != nil {
-				return nil, errors.Wrapf(err, "invalid time: %v", expire)
-			}
-			expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
-		}
-		member := rawException["member"].(string)
-		if member == "allUsers" {
-			return nil, errors.Errorf("not support allUsers in masking_exception_policy")
-		}
-		if err := internal.ValidateMemberBinding(member); err != nil {
+	for _, raw := range exceptionList.List() {
+		exception, err := convertToV1Exception(raw)
+		if err != nil {
 			return nil, err
 		}
-		policy.MaskingExceptions = append(policy.MaskingExceptions, &v1pb.MaskingExceptionPolicy_MaskingException{
-			Member: member,
-			Action: v1pb.MaskingExceptionPolicy_MaskingException_Action(
-				v1pb.MaskingExceptionPolicy_MaskingException_Action_value[rawException["action"].(string)],
-			),
-			Condition: &expr.Expr{
-				Description: rawException["reason"].(string),
-				Expression:  strings.Join(expressions, " && "),
-			},
-		})
+		policy.MaskingExceptions = append(policy.MaskingExceptions, exception)
 	}
 	return policy, nil
 }

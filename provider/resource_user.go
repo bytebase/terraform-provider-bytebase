@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -17,8 +17,8 @@ import (
 func resourceUser() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The user resource.",
-		ReadContext:   internal.ResourceRead(resourceUserRead),
-		DeleteContext: internal.ResourceDelete,
+		ReadContext:   resourceUserRead,
+		DeleteContext: resourceUserDelete,
 		CreateContext: resourceUserCreate,
 		UpdateContext: resourceUserUpdate,
 		Importer: &schema.ResourceImporter{
@@ -131,6 +131,13 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 	fullName := d.Id()
 	user, err := c.GetUser(ctx, fullName)
 	if err != nil {
+		// Check if the resource was deleted outside of Terraform
+		if internal.IsNotFoundError(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", fullName))
+			// Remove from state to trigger recreation on next apply
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -307,4 +314,9 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	return diags
+}
+
+func resourceUserDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(api.Client)
+	return internal.ResourceDelete(ctx, d, c.DeleteUser)
 }

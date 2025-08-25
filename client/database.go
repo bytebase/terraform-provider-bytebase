@@ -3,34 +3,36 @@ package client
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"connectrpc.com/connect"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
-// GetDatabase gets the database by the database full name.
+// GetDatabase gets the database by the database full name using Connect RPC.
 func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Database, error) {
-	body, err := c.getResource(ctx, databaseName, "")
+	if c.databaseClient == nil {
+		return nil, fmt.Errorf("database service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.GetDatabaseRequest{
+		Name: databaseName,
+	})
+
+	resp, err := c.databaseClient.GetDatabase(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Database
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-func buildDatabaseQuery(filter *api.DatabaseFilter) string {
+func buildDatabaseFilter(filter *api.DatabaseFilter) string {
 	params := []string{}
 
 	if v := filter.Query; v != "" {
@@ -68,29 +70,43 @@ func buildDatabaseQuery(filter *api.DatabaseFilter) string {
 		}
 	}
 
-	return fmt.Sprintf("filter=%s", url.QueryEscape(strings.Join(params, " && ")))
+	return strings.Join(params, " && ")
 }
 
-// ListDatabase list all databases.
+// ListDatabase list all databases using Connect RPC.
 func (c *client) ListDatabase(ctx context.Context, parent string, filter *api.DatabaseFilter, listAll bool) ([]*v1pb.Database, error) {
+	if c.databaseClient == nil {
+		return nil, fmt.Errorf("database service client not initialized")
+	}
+
 	res := []*v1pb.Database{}
 	pageToken := ""
 	startTime := time.Now()
-	query := buildDatabaseQuery(filter)
+	filterStr := buildDatabaseFilter(filter)
 
 	for {
 		startTimePerPage := time.Now()
-		resp, err := c.listDatabasePerPage(ctx, parent, query, pageToken, 500)
+
+		req := connect.NewRequest(&v1pb.ListDatabasesRequest{
+			Parent:    parent,
+			Filter:    filterStr,
+			PageSize:  500,
+			PageToken: pageToken,
+		})
+
+		resp, err := c.databaseClient.ListDatabases(ctx, req)
 		if err != nil {
 			return nil, err
 		}
-		res = append(res, resp.Databases...)
+
+		res = append(res, resp.Msg.Databases...)
+
 		tflog.Debug(ctx, "[list database per page]", map[string]interface{}{
-			"count": len(resp.Databases),
+			"count": len(resp.Msg.Databases),
 			"ms":    time.Since(startTimePerPage).Milliseconds(),
 		})
 
-		pageToken = resp.NextPageToken
+		pageToken = resp.Msg.NextPageToken
 		if pageToken == "" || !listAll {
 			break
 		}
@@ -104,103 +120,73 @@ func (c *client) ListDatabase(ctx context.Context, parent string, filter *api.Da
 	return res, nil
 }
 
-// listDatabasePerPage list the databases.
-func (c *client) listDatabasePerPage(ctx context.Context, parent, filter, pageToken string, pageSize int) (*v1pb.ListDatabasesResponse, error) {
-	requestURL := fmt.Sprintf(
-		"%s/%s/%s/databases?%s&page_size=%d&page_token=%s",
-		c.url,
-		c.version,
-		parent,
-		filter,
-		pageSize,
-		url.QueryEscape(pageToken),
-	)
-
-	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.ListDatabasesResponse
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
-}
-
-// UpdateDatabase patches the database.
+// UpdateDatabase patches the database using Connect RPC.
 func (c *client) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updateMasks []string) (*v1pb.Database, error) {
-	body, err := c.updateResource(ctx, patch.Name, patch, updateMasks, false /* allow missing = false*/)
+	if c.databaseClient == nil {
+		return nil, fmt.Errorf("database service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UpdateDatabaseRequest{
+		Database:   patch,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: updateMasks},
+	})
+
+	resp, err := c.databaseClient.UpdateDatabase(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.Database
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// BatchUpdateDatabases batch updates databases.
+// BatchUpdateDatabases batch updates databases using Connect RPC.
 func (c *client) BatchUpdateDatabases(ctx context.Context, request *v1pb.BatchUpdateDatabasesRequest) (*v1pb.BatchUpdateDatabasesResponse, error) {
-	requestURL := fmt.Sprintf("%s/%s/instances/-/databases:batchUpdate", c.url, c.version)
-	payload, err := protojson.Marshal(request)
+	if c.databaseClient == nil {
+		return nil, fmt.Errorf("database service client not initialized")
+	}
+
+	req := connect.NewRequest(request)
+
+	resp, err := c.databaseClient.BatchUpdateDatabases(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", requestURL, strings.NewReader(string(payload)))
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var res v1pb.BatchUpdateDatabasesResponse
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// GetDatabaseCatalog gets the database catalog by the database full name.
+// GetDatabaseCatalog gets the database catalog by the database full name using Connect RPC.
 func (c *client) GetDatabaseCatalog(ctx context.Context, databaseName string) (*v1pb.DatabaseCatalog, error) {
-	body, err := c.getResource(ctx, fmt.Sprintf("%s/catalog", databaseName), "")
+	if c.databaseCatalogClient == nil {
+		return nil, fmt.Errorf("database catalog service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.GetDatabaseCatalogRequest{
+		Name: fmt.Sprintf("%s/catalog", databaseName),
+	})
+
+	resp, err := c.databaseCatalogClient.GetDatabaseCatalog(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.DatabaseCatalog
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }
 
-// UpdateDatabaseCatalog patches the database catalog.
+// UpdateDatabaseCatalog patches the database catalog using Connect RPC.
 func (c *client) UpdateDatabaseCatalog(ctx context.Context, patch *v1pb.DatabaseCatalog) (*v1pb.DatabaseCatalog, error) {
-	body, err := c.updateResource(ctx, patch.Name, patch, nil, false /* allow missing = false*/)
+	if c.databaseCatalogClient == nil {
+		return nil, fmt.Errorf("database catalog service client not initialized")
+	}
+
+	req := connect.NewRequest(&v1pb.UpdateDatabaseCatalogRequest{
+		Catalog: patch,
+	})
+
+	resp, err := c.databaseCatalogClient.UpdateDatabaseCatalog(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	var res v1pb.DatabaseCatalog
-	if err := ProtojsonUnmarshaler.Unmarshal(body, &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return resp.Msg, nil
 }

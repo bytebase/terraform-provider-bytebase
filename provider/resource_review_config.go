@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -53,7 +53,7 @@ func resourceReviewConfig() *schema.Resource {
 				Description: "Resources using the config. We support attach the review config for environments or projects with format {resurce}/{resource id}. For example, environments/test, projects/sample.",
 			},
 			"rules": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Required:    true,
 				MinItems:    1,
 				Description: "The SQL review rules.",
@@ -94,6 +94,7 @@ func resourceReviewConfig() *schema.Resource {
 						},
 					},
 				},
+				Set: reviewRuleHash,
 			},
 		},
 	}
@@ -105,6 +106,13 @@ func resourceReviewConfigRead(ctx context.Context, d *schema.ResourceData, m int
 	fullName := d.Id()
 	review, err := c.GetReviewConfig(ctx, fullName)
 	if err != nil {
+		// Check if the resource was deleted outside of Terraform
+		if internal.IsNotFoundError(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", fullName))
+			// Remove from state to trigger recreation on next apply
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -116,7 +124,7 @@ func resourceReviewConfigDelete(ctx context.Context, d *schema.ResourceData, m i
 	resources := getReviewConfigRelatedResources(d)
 
 	removeReviewConfigTag(ctx, c, resources)
-	return internal.ResourceDelete(ctx, d, m)
+	return internal.ResourceDelete(ctx, d, c.DeleteReviewConfig)
 }
 
 func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -268,7 +276,8 @@ func setReviewConfig(d *schema.ResourceData, review *v1pb.ReviewConfig) diag.Dia
 	if err := d.Set("resources", review.Resources); err != nil {
 		return diag.Errorf("cannot set resources for review: %s", err.Error())
 	}
-	if err := d.Set("rules", flattenReviewRules(review.Rules)); err != nil {
+	rules := flattenReviewRules(review.Rules)
+	if err := d.Set("rules", schema.NewSet(reviewRuleHash, rules)); err != nil {
 		return diag.Errorf("cannot set rules for review: %s", err.Error())
 	}
 
@@ -289,27 +298,36 @@ func flattenReviewRules(rules []*v1pb.SQLReviewRule) []interface{} {
 	return ruleList
 }
 
+func convertToV1Rule(rawSchema interface{}) *v1pb.SQLReviewRule {
+	rawRule := rawSchema.(map[string]interface{})
+	payload := rawRule["payload"].(string)
+	if payload == "" {
+		payload = "{}"
+	}
+	return &v1pb.SQLReviewRule{
+		Type:    rawRule["type"].(string),
+		Comment: rawRule["comment"].(string),
+		Payload: payload,
+		Engine:  v1pb.Engine(v1pb.Engine_value[rawRule["engine"].(string)]),
+		Level:   v1pb.SQLReviewRuleLevel(v1pb.SQLReviewRuleLevel_value[rawRule["level"].(string)]),
+	}
+}
+
 func convertToV1RuleList(d *schema.ResourceData) ([]*v1pb.SQLReviewRule, error) {
-	ruleRawList, ok := d.Get("rules").([]interface{})
-	if !ok || len(ruleRawList) == 0 {
+	ruleRawList, ok := d.Get("rules").(*schema.Set)
+	if !ok || ruleRawList.Len() == 0 {
 		return nil, errors.Errorf("rules is required")
 	}
 
 	ruleList := []*v1pb.SQLReviewRule{}
 
-	for _, r := range ruleRawList {
-		rawRule := r.(map[string]interface{})
-		payload := rawRule["payload"].(string)
-		if payload == "" {
-			payload = "{}"
-		}
-		ruleList = append(ruleList, &v1pb.SQLReviewRule{
-			Type:    rawRule["type"].(string),
-			Comment: rawRule["comment"].(string),
-			Payload: payload,
-			Engine:  v1pb.Engine(v1pb.Engine_value[rawRule["engine"].(string)]),
-			Level:   v1pb.SQLReviewRuleLevel(v1pb.SQLReviewRuleLevel_value[rawRule["level"].(string)]),
-		})
+	for _, r := range ruleRawList.List() {
+		ruleList = append(ruleList, convertToV1Rule(r))
 	}
 	return ruleList, nil
+}
+
+func reviewRuleHash(rawSchema interface{}) int {
+	rule := convertToV1Rule(rawSchema)
+	return internal.ToHash(rule)
 }

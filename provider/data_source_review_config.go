@@ -40,7 +40,7 @@ func dataSourceReviewConfig() *schema.Resource {
 				Description: "Resources using the config. We support attach the review config for environments or projects with format {resurce}/{resource id}. For example, environments/test, projects/sample.",
 			},
 			"rules": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Computed:    true,
 				Description: "The SQL review rules.",
 				Elem: &schema.Resource{
@@ -72,6 +72,7 @@ func dataSourceReviewConfig() *schema.Resource {
 						},
 					},
 				},
+				Set: reviewRuleHash,
 			},
 		},
 	}

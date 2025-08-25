@@ -28,7 +28,7 @@ Read-Only:
 - `enabled` (Boolean)
 - `resource_id` (String)
 - `resources` (Set of String)
-- `rules` (List of Object) (see [below for nested schema](#nestedobjatt--review_configs--rules))
+- `rules` (Set of Object) (see [below for nested schema](#nestedobjatt--review_configs--rules))
 - `title` (String)
 
 <a id="nestedobjatt--review_configs--rules"></a>

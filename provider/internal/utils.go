@@ -6,7 +6,10 @@ import (
 	"regexp"
 	"strings"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -105,9 +108,6 @@ var EngineValidation = validation.StringInSlice([]string{
 	v1pb.Engine_REDSHIFT.String(),
 	v1pb.Engine_MARIADB.String(),
 	v1pb.Engine_OCEANBASE.String(),
-	v1pb.Engine_DM.String(),
-	v1pb.Engine_RISINGWAVE.String(),
-	v1pb.Engine_OCEANBASE_ORACLE.String(),
 	v1pb.Engine_STARROCKS.String(),
 	v1pb.Engine_DORIS.String(),
 	v1pb.Engine_HIVE.String(),
@@ -172,15 +172,6 @@ func GetProjectID(name string) (string, error) {
 // GetRoleID will parse the role resource id.
 func GetRoleID(name string) (string, error) {
 	tokens, err := getNameParentTokens(name, RoleNamePrefix)
-	if err != nil {
-		return "", err
-	}
-	return tokens[0], nil
-}
-
-// GetGroupEmail will parse the email from group full name.
-func GetGroupEmail(name string) (string, error) {
-	tokens, err := getNameParentTokens(name, GroupNamePrefix)
 	if err != nil {
 		return "", err
 	}
@@ -257,4 +248,13 @@ func ToHashcodeInt(s string) int {
 	}
 	// v == MinInt
 	return 0
+}
+
+// ToHash convert proto message to hash int.
+func ToHash(m proto.Message) int {
+	b, err := protojson.Marshal(m)
+	if err != nil {
+		return 0
+	}
+	return ToHashcodeInt(string(b))
 }

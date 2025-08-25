@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -284,6 +285,29 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 	return workspacePrfile, updateMasks, nil
 }
 
+func convertToV1Level(rawSchema interface{}) *v1pb.DataClassificationSetting_DataClassificationConfig_Level {
+	rawLevel := rawSchema.(map[string]interface{})
+	return &v1pb.DataClassificationSetting_DataClassificationConfig_Level{
+		Id:          rawLevel["id"].(string),
+		Title:       rawLevel["title"].(string),
+		Description: rawLevel["description"].(string),
+	}
+}
+
+func convertToV1Classification(rawSchema interface{}) *v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification {
+	rawClassification := rawSchema.(map[string]interface{})
+	classificationData := &v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification{
+		Id:          rawClassification["id"].(string),
+		Title:       rawClassification["title"].(string),
+		Description: rawClassification["description"].(string),
+	}
+	levelID, ok := rawClassification["level"].(string)
+	if ok {
+		classificationData.LevelId = &levelID
+	}
+	return classificationData
+}
+
 func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassificationSetting, error) {
 	rawList, ok := d.Get("classification").([]interface{})
 	if !ok || len(rawList) != 1 {
@@ -303,17 +327,12 @@ func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassif
 		return nil, errors.Errorf("id is required for classification config")
 	}
 
-	rawLevels := raw["levels"].([]interface{})
+	rawLevels := raw["levels"].(*schema.Set)
 	if !ok {
 		return nil, errors.Errorf("levels is required for classification config")
 	}
-	for _, level := range rawLevels {
-		rawLevel := level.(map[string]interface{})
-		classificationLevel := &v1pb.DataClassificationSetting_DataClassificationConfig_Level{
-			Id:          rawLevel["id"].(string),
-			Title:       rawLevel["title"].(string),
-			Description: rawLevel["description"].(string),
-		}
+	for _, level := range rawLevels.List() {
+		classificationLevel := convertToV1Level(level)
 		if classificationLevel.Id == "" {
 			return nil, errors.Errorf("classification level id is required")
 		}
@@ -323,26 +342,17 @@ func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassif
 		dataClassificationConfig.Levels = append(dataClassificationConfig.Levels, classificationLevel)
 	}
 
-	rawClassificationss := raw["classifications"].([]interface{})
+	rawClassificationss := raw["classifications"].(*schema.Set)
 	if !ok {
 		return nil, errors.Errorf("classifications is required for classification config")
 	}
-	for _, classification := range rawClassificationss {
-		rawClassification := classification.(map[string]interface{})
-		classificationData := &v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification{
-			Id:          rawClassification["id"].(string),
-			Title:       rawClassification["title"].(string),
-			Description: rawClassification["description"].(string),
-		}
+	for _, classification := range rawClassificationss.List() {
+		classificationData := convertToV1Classification(classification)
 		if classificationData.Id == "" {
 			return nil, errors.Errorf("classification id is required")
 		}
 		if classificationData.Title == "" {
 			return nil, errors.Errorf("classification title is required")
-		}
-		levelID, ok := rawClassification["level"].(string)
-		if ok {
-			classificationData.LevelId = &levelID
 		}
 		dataClassificationConfig.Classification[classificationData.Id] = classificationData
 	}
@@ -457,87 +467,109 @@ func convertToV1EnvironmentSetting(d *schema.ResourceData) (*v1pb.EnvironmentSet
 	return environmentSetting, nil
 }
 
+func getNumberValueFromSchema(rawSchema map[string]interface{}, field string) int32 {
+	raw, ok := rawSchema[field]
+	if !ok {
+		return 0
+	}
+	switch v := raw.(type) {
+	case int:
+		return int32(v)
+	case int32:
+		return v
+	default:
+		return 0
+	}
+}
+
+func convertToV1SemanticType(rawSchema interface{}) (*v1pb.SemanticTypeSetting_SemanticType, error) {
+	rawSemanticType := rawSchema.(map[string]interface{})
+	semanticType := &v1pb.SemanticTypeSetting_SemanticType{
+		Id:          rawSemanticType["id"].(string),
+		Title:       rawSemanticType["title"].(string),
+		Description: rawSemanticType["description"].(string),
+	}
+	if semanticType.Id == "" || semanticType.Title == "" {
+		return nil, errors.Errorf("semantic type id and title is required")
+	}
+
+	algorithmList, ok := rawSemanticType["algorithm"].([]interface{})
+	if !ok || len(algorithmList) != 1 {
+		return semanticType, nil
+	}
+
+	rawAlgorithm := algorithmList[0].(map[string]interface{})
+	if fullMasks, ok := rawAlgorithm["full_mask"].([]interface{}); ok && len(fullMasks) == 1 {
+		fullMask := fullMasks[0].(map[string]interface{})
+		semanticType.Algorithm = &v1pb.Algorithm{
+			Mask: &v1pb.Algorithm_FullMask_{
+				FullMask: &v1pb.Algorithm_FullMask{
+					Substitution: fullMask["substitution"].(string),
+				},
+			},
+		}
+	} else if rangeMasks, ok := rawAlgorithm["range_mask"].([]interface{}); ok && len(rangeMasks) == 1 {
+		rawRangeMask := rangeMasks[0].(map[string]interface{})
+		rangeMask := &v1pb.Algorithm_RangeMask{}
+		for _, raw := range rawRangeMask["slices"].([]interface{}) {
+			rawSlice := raw.(map[string]interface{})
+			rangeMask.Slices = append(rangeMask.Slices, &v1pb.Algorithm_RangeMask_Slice{
+				Start:        getNumberValueFromSchema(rawSlice, "start"),
+				End:          getNumberValueFromSchema(rawSlice, "end"),
+				Substitution: rawSlice["substitution"].(string),
+			})
+		}
+		semanticType.Algorithm = &v1pb.Algorithm{
+			Mask: &v1pb.Algorithm_RangeMask_{
+				RangeMask: rangeMask,
+			},
+		}
+	} else if md5Masks, ok := rawAlgorithm["md5_mask"].([]interface{}); ok && len(md5Masks) == 1 {
+		md5Mask := md5Masks[0].(map[string]interface{})
+		semanticType.Algorithm = &v1pb.Algorithm{
+			Mask: &v1pb.Algorithm_Md5Mask{
+				Md5Mask: &v1pb.Algorithm_MD5Mask{
+					Salt: md5Mask["salt"].(string),
+				},
+			},
+		}
+	} else if innerOuterMasks, ok := rawAlgorithm["inner_outer_mask"].([]interface{}); ok && len(innerOuterMasks) == 1 {
+		innerOuterMask := innerOuterMasks[0].(map[string]interface{})
+		t := v1pb.Algorithm_InnerOuterMask_MaskType(
+			v1pb.Algorithm_InnerOuterMask_MaskType_value[innerOuterMask["type"].(string)],
+		)
+		if t == v1pb.Algorithm_InnerOuterMask_MASK_TYPE_UNSPECIFIED {
+			return nil, errors.Errorf("invalid inner_outer_mask type: %s", innerOuterMask["type"].(string))
+		}
+		semanticType.Algorithm = &v1pb.Algorithm{
+			Mask: &v1pb.Algorithm_InnerOuterMask_{
+				InnerOuterMask: &v1pb.Algorithm_InnerOuterMask{
+					PrefixLen:    getNumberValueFromSchema(innerOuterMask, "prefix_len"),
+					SuffixLen:    getNumberValueFromSchema(innerOuterMask, "suffix_len"),
+					Substitution: innerOuterMask["substitution"].(string),
+					Type: v1pb.Algorithm_InnerOuterMask_MaskType(
+						v1pb.Algorithm_InnerOuterMask_MaskType_value[innerOuterMask["type"].(string)],
+					),
+				},
+			},
+		}
+	}
+
+	return semanticType, nil
+}
+
 func convertToV1SemanticTypeSetting(d *schema.ResourceData) (*v1pb.SemanticTypeSetting, error) {
-	set, ok := d.Get("semantic_types").([]interface{})
+	set, ok := d.Get("semantic_types").(*schema.Set)
 	if !ok {
 		return nil, errors.Errorf("invalid semantic_types")
 	}
 
 	setting := &v1pb.SemanticTypeSetting{}
-	for _, s := range set {
-		rawSemanticType := s.(map[string]interface{})
-		semanticType := &v1pb.SemanticTypeSetting_SemanticType{
-			Id:          rawSemanticType["id"].(string),
-			Title:       rawSemanticType["title"].(string),
-			Description: rawSemanticType["description"].(string),
+	for _, raw := range set.List() {
+		semanticType, err := convertToV1SemanticType(raw)
+		if err != nil {
+			return nil, err
 		}
-		if semanticType.Id == "" || semanticType.Title == "" {
-			return nil, errors.Errorf("semantic type id and title is required")
-		}
-
-		algorithmList, ok := rawSemanticType["algorithm"].([]interface{})
-		if !ok || len(algorithmList) != 1 {
-			setting.Types = append(setting.Types, semanticType)
-			continue
-		}
-
-		rawAlgorithm := algorithmList[0].(map[string]interface{})
-		if fullMasks, ok := rawAlgorithm["full_mask"].([]interface{}); ok && len(fullMasks) == 1 {
-			fullMask := fullMasks[0].(map[string]interface{})
-			semanticType.Algorithm = &v1pb.Algorithm{
-				Mask: &v1pb.Algorithm_FullMask_{
-					FullMask: &v1pb.Algorithm_FullMask{
-						Substitution: fullMask["substitution"].(string),
-					},
-				},
-			}
-		} else if rangeMasks, ok := rawAlgorithm["range_mask"].([]interface{}); ok && len(rangeMasks) == 1 {
-			rawRangeMask := rangeMasks[0].(map[string]interface{})
-			rangeMask := &v1pb.Algorithm_RangeMask{}
-			for _, raw := range rawRangeMask["slices"].([]interface{}) {
-				rawSlice := raw.(map[string]interface{})
-				rangeMask.Slices = append(rangeMask.Slices, &v1pb.Algorithm_RangeMask_Slice{
-					Start:        int32(rawSlice["start"].(int)),
-					End:          int32(rawSlice["end"].(int)),
-					Substitution: rawSlice["substitution"].(string),
-				})
-			}
-			semanticType.Algorithm = &v1pb.Algorithm{
-				Mask: &v1pb.Algorithm_RangeMask_{
-					RangeMask: rangeMask,
-				},
-			}
-		} else if md5Masks, ok := rawAlgorithm["md5_mask"].([]interface{}); ok && len(md5Masks) == 1 {
-			md5Mask := md5Masks[0].(map[string]interface{})
-			semanticType.Algorithm = &v1pb.Algorithm{
-				Mask: &v1pb.Algorithm_Md5Mask{
-					Md5Mask: &v1pb.Algorithm_MD5Mask{
-						Salt: md5Mask["salt"].(string),
-					},
-				},
-			}
-		} else if innerOuterMasks, ok := rawAlgorithm["inner_outer_mask"].([]interface{}); ok && len(innerOuterMasks) == 1 {
-			innerOuterMask := innerOuterMasks[0].(map[string]interface{})
-			t := v1pb.Algorithm_InnerOuterMask_MaskType(
-				v1pb.Algorithm_InnerOuterMask_MaskType_value[innerOuterMask["type"].(string)],
-			)
-			if t == v1pb.Algorithm_InnerOuterMask_MASK_TYPE_UNSPECIFIED {
-				return nil, errors.Errorf("invalid inner_outer_mask type: %s", innerOuterMask["type"].(string))
-			}
-			semanticType.Algorithm = &v1pb.Algorithm{
-				Mask: &v1pb.Algorithm_InnerOuterMask_{
-					InnerOuterMask: &v1pb.Algorithm_InnerOuterMask{
-						PrefixLen:    int32(innerOuterMask["prefix_len"].(int)),
-						SuffixLen:    int32(innerOuterMask["suffix_len"].(int)),
-						Substitution: innerOuterMask["substitution"].(string),
-						Type: v1pb.Algorithm_InnerOuterMask_MaskType(
-							v1pb.Algorithm_InnerOuterMask_MaskType_value[innerOuterMask["type"].(string)],
-						),
-					},
-				},
-			}
-		}
-
 		setting.Types = append(setting.Types, semanticType)
 	}
 
@@ -550,6 +582,13 @@ func resourceSettingRead(ctx context.Context, d *schema.ResourceData, m interfac
 	settingName := d.Id()
 	setting, err := c.GetSetting(ctx, settingName)
 	if err != nil {
+		// Check if the resource was deleted outside of Terraform
+		if internal.IsNotFoundError(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", settingName))
+			// Remove from state to trigger recreation on next apply
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 

@@ -14,7 +14,7 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 
-	v1pb "github.com/bytebase/bytebase/backend/generated-go/v1"
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 )
 
 // defaultProj is the default project name.
@@ -26,7 +26,7 @@ func resourceProjct() *schema.Resource {
 		CreateWithoutTimeout: resourceProjectCreate,
 		ReadWithoutTimeout:   resourceProjectRead,
 		UpdateWithoutTimeout: resourceProjectUpdate,
-		DeleteContext:        internal.ResourceDelete,
+		DeleteContext:        resourceProjectDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -373,6 +373,11 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	return resp
 }
 
+func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(api.Client)
+	return internal.ResourceDelete(ctx, d, c.DeleteProject)
+}
+
 const batchSize = 100
 
 func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
@@ -426,10 +431,7 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 	})
 
 	for i := 0; i < len(batchTransferDatabases); i += batchSize {
-		end := i + batchSize
-		if end > len(batchTransferDatabases) {
-			end = len(batchTransferDatabases)
-		}
+		end := min(i+batchSize, len(batchTransferDatabases))
 		batch := batchTransferDatabases[i:end]
 		startTime := time.Now()
 
@@ -480,6 +482,31 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 	return nil
 }
 
+func convertToV1Webhook(rawSchema interface{}) *v1pb.Webhook {
+	rawWebhook := rawSchema.(map[string]interface{})
+	webhook := &v1pb.Webhook{
+		Title: rawWebhook["title"].(string),
+		Url:   rawWebhook["url"].(string),
+		Type:  v1pb.Webhook_Type(v1pb.Webhook_Type_value[rawWebhook["type"].(string)]),
+	}
+	if dm, ok := rawWebhook["direct_message"].(bool); ok {
+		webhook.DirectMessage = dm
+	}
+	if rawTypes, ok := rawWebhook["notification_types"]; ok {
+		switch v := rawTypes.(type) {
+		case *schema.Set:
+			for _, n := range v.List() {
+				webhook.NotificationTypes = append(webhook.NotificationTypes, v1pb.Activity_Type(v1pb.Activity_Type_value[n.(string)]))
+			}
+		case []string:
+			for _, n := range v {
+				webhook.NotificationTypes = append(webhook.NotificationTypes, v1pb.Activity_Type(v1pb.Activity_Type_value[n]))
+			}
+		}
+	}
+	return webhook
+}
+
 func updateWebhooksInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
 	rawConfig := d.GetRawConfig()
 	if config := rawConfig.GetAttr("webhooks"); config.IsNull() {
@@ -496,20 +523,9 @@ func updateWebhooksInProject(ctx context.Context, d *schema.ResourceData, client
 		existedWebhookMap[webhook.Name] = webhook
 	}
 
-	for _, w := range d.Get("webhooks").([]interface{}) {
-		rawWebhook := w.(map[string]interface{})
-		webhook := &v1pb.Webhook{
-			Name:          rawWebhook["name"].(string),
-			Title:         rawWebhook["title"].(string),
-			Url:           rawWebhook["url"].(string),
-			DirectMessage: rawWebhook["direct_message"].(bool),
-			Type:          v1pb.Webhook_Type(v1pb.Webhook_Type_value[rawWebhook["type"].(string)]),
-		}
-		notificationTypes := rawWebhook["notification_types"].(*schema.Set)
-		for _, n := range notificationTypes.List() {
-			webhook.NotificationTypes = append(webhook.NotificationTypes, v1pb.Activity_Type(v1pb.Activity_Type_value[n.(string)]))
-		}
-
+	rawWebhooks := d.Get("webhooks").(*schema.Set)
+	for _, w := range rawWebhooks.List() {
+		webhook := convertToV1Webhook(w)
 		if v, ok := existedWebhookMap[webhook.Name]; ok && v.Type == webhook.Type {
 			// Not support change the webhook type.
 			if _, err := client.UpdateProjectWebhook(ctx, webhook, []string{
