@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"connectrpc.com/connect"
@@ -12,7 +12,7 @@ import (
 // ListRisk lists the risk using Connect RPC.
 func (c *client) ListRisk(ctx context.Context) ([]*v1pb.Risk, error) {
 	if c.riskClient == nil {
-		return nil, fmt.Errorf("risk service client not initialized")
+		return nil, errors.New("risk service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.ListRisksRequest{})
@@ -28,7 +28,7 @@ func (c *client) ListRisk(ctx context.Context) ([]*v1pb.Risk, error) {
 // GetRisk gets the risk by full name using Connect RPC.
 func (c *client) GetRisk(ctx context.Context, name string) (*v1pb.Risk, error) {
 	if c.riskClient == nil {
-		return nil, fmt.Errorf("risk service client not initialized")
+		return nil, errors.New("risk service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetRiskRequest{
@@ -46,7 +46,7 @@ func (c *client) GetRisk(ctx context.Context, name string) (*v1pb.Risk, error) {
 // CreateRisk creates the risk using Connect RPC.
 func (c *client) CreateRisk(ctx context.Context, risk *v1pb.Risk) (*v1pb.Risk, error) {
 	if c.riskClient == nil {
-		return nil, fmt.Errorf("risk service client not initialized")
+		return nil, errors.New("risk service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.CreateRiskRequest{
@@ -64,7 +64,7 @@ func (c *client) CreateRisk(ctx context.Context, risk *v1pb.Risk) (*v1pb.Risk, e
 // UpdateRisk updates the risk using Connect RPC.
 func (c *client) UpdateRisk(ctx context.Context, patch *v1pb.Risk, updateMasks []string) (*v1pb.Risk, error) {
 	if c.riskClient == nil {
-		return nil, fmt.Errorf("risk service client not initialized")
+		return nil, errors.New("risk service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateRiskRequest{
@@ -83,7 +83,7 @@ func (c *client) UpdateRisk(ctx context.Context, patch *v1pb.Risk, updateMasks [
 // DeleteRisk deletes the risk.
 func (c *client) DeleteRisk(ctx context.Context, name string) error {
 	if c.riskClient == nil {
-		return fmt.Errorf("risk service client not initialized")
+		return errors.New("risk service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.DeleteRiskRequest{

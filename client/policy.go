@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"connectrpc.com/connect"
@@ -12,7 +12,7 @@ import (
 // ListPolicies lists policies in a specific resource.
 func (c *client) ListPolicies(ctx context.Context, parent string) (*v1pb.ListPoliciesResponse, error) {
 	if c.orgPolicyClient == nil {
-		return nil, fmt.Errorf("org policy service client not initialized")
+		return nil, errors.New("org policy service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.ListPoliciesRequest{
@@ -30,7 +30,7 @@ func (c *client) ListPolicies(ctx context.Context, parent string) (*v1pb.ListPol
 // GetPolicy gets a policy in a specific resource.
 func (c *client) GetPolicy(ctx context.Context, policyName string) (*v1pb.Policy, error) {
 	if c.orgPolicyClient == nil {
-		return nil, fmt.Errorf("org policy service client not initialized")
+		return nil, errors.New("org policy service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetPolicyRequest{
@@ -48,7 +48,7 @@ func (c *client) GetPolicy(ctx context.Context, policyName string) (*v1pb.Policy
 // UpsertPolicy creates or updates the policy.
 func (c *client) UpsertPolicy(ctx context.Context, policy *v1pb.Policy, updateMasks []string) (*v1pb.Policy, error) {
 	if c.orgPolicyClient == nil {
-		return nil, fmt.Errorf("org policy service client not initialized")
+		return nil, errors.New("org policy service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdatePolicyRequest{
@@ -70,7 +70,7 @@ func (c *client) UpsertPolicy(ctx context.Context, policy *v1pb.Policy, updateMa
 // DeletePolicy deletes the policy.
 func (c *client) DeletePolicy(ctx context.Context, policyName string) error {
 	if c.orgPolicyClient == nil {
-		return fmt.Errorf("org policy service client not initialized")
+		return errors.New("org policy service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.DeletePolicyRequest{

@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"connectrpc.com/connect"
@@ -12,7 +12,7 @@ import (
 // GetRole gets the role by full name using Connect RPC.
 func (c *client) GetRole(ctx context.Context, name string) (*v1pb.Role, error) {
 	if c.roleClient == nil {
-		return nil, fmt.Errorf("role service client not initialized")
+		return nil, errors.New("role service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetRoleRequest{
@@ -30,7 +30,7 @@ func (c *client) GetRole(ctx context.Context, name string) (*v1pb.Role, error) {
 // CreateRole creates the role using Connect RPC.
 func (c *client) CreateRole(ctx context.Context, roleID string, role *v1pb.Role) (*v1pb.Role, error) {
 	if c.roleClient == nil {
-		return nil, fmt.Errorf("role service client not initialized")
+		return nil, errors.New("role service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.CreateRoleRequest{
@@ -49,7 +49,7 @@ func (c *client) CreateRole(ctx context.Context, roleID string, role *v1pb.Role)
 // UpdateRole updates the role using Connect RPC.
 func (c *client) UpdateRole(ctx context.Context, patch *v1pb.Role, updateMasks []string) (*v1pb.Role, error) {
 	if c.roleClient == nil {
-		return nil, fmt.Errorf("role service client not initialized")
+		return nil, errors.New("role service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateRoleRequest{
@@ -69,7 +69,7 @@ func (c *client) UpdateRole(ctx context.Context, patch *v1pb.Role, updateMasks [
 // ListRole will returns all roles using Connect RPC.
 func (c *client) ListRole(ctx context.Context) (*v1pb.ListRolesResponse, error) {
 	if c.roleClient == nil {
-		return nil, fmt.Errorf("role service client not initialized")
+		return nil, errors.New("role service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.ListRolesRequest{})
@@ -85,7 +85,7 @@ func (c *client) ListRole(ctx context.Context) (*v1pb.ListRolesResponse, error) 
 // DeleteRole deletes the role.
 func (c *client) DeleteRole(ctx context.Context, name string) error {
 	if c.roleClient == nil {
-		return fmt.Errorf("role service client not initialized")
+		return errors.New("role service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.DeleteRoleRequest{

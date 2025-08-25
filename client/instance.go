@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -49,7 +50,7 @@ func buildInstanceFilter(filter *api.InstanceFilter) string {
 // ListInstance will return instances using Connect RPC.
 func (c *client) ListInstance(ctx context.Context, filter *api.InstanceFilter) ([]*v1pb.Instance, error) {
 	if c.instanceClient == nil {
-		return nil, fmt.Errorf("instance service client not initialized")
+		return nil, errors.New("instance service client not initialized")
 	}
 
 	res := []*v1pb.Instance{}
@@ -97,7 +98,7 @@ func (c *client) ListInstance(ctx context.Context, filter *api.InstanceFilter) (
 // GetInstance gets the instance by full name using Connect RPC.
 func (c *client) GetInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
 	if c.instanceClient == nil {
-		return nil, fmt.Errorf("instance service client not initialized")
+		return nil, errors.New("instance service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetInstanceRequest{
@@ -115,7 +116,7 @@ func (c *client) GetInstance(ctx context.Context, instanceName string) (*v1pb.In
 // CreateInstance creates the instance using Connect RPC.
 func (c *client) CreateInstance(ctx context.Context, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error) {
 	if c.instanceClient == nil {
-		return nil, fmt.Errorf("instance service client not initialized")
+		return nil, errors.New("instance service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.CreateInstanceRequest{
@@ -134,7 +135,7 @@ func (c *client) CreateInstance(ctx context.Context, instanceID string, instance
 // UpdateInstance updates the instance using Connect RPC.
 func (c *client) UpdateInstance(ctx context.Context, patch *v1pb.Instance, updateMasks []string) (*v1pb.Instance, error) {
 	if c.instanceClient == nil {
-		return nil, fmt.Errorf("instance service client not initialized")
+		return nil, errors.New("instance service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateInstanceRequest{
@@ -153,7 +154,7 @@ func (c *client) UpdateInstance(ctx context.Context, patch *v1pb.Instance, updat
 // UndeleteInstance undeletes the instance using Connect RPC.
 func (c *client) UndeleteInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error) {
 	if c.instanceClient == nil {
-		return nil, fmt.Errorf("instance service client not initialized")
+		return nil, errors.New("instance service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UndeleteInstanceRequest{
@@ -171,7 +172,7 @@ func (c *client) UndeleteInstance(ctx context.Context, instanceName string) (*v1
 // SyncInstanceSchema will trigger the schema sync for an instance using Connect RPC.
 func (c *client) SyncInstanceSchema(ctx context.Context, instanceName string) error {
 	if c.instanceClient == nil {
-		return fmt.Errorf("instance service client not initialized")
+		return errors.New("instance service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.SyncInstanceRequest{
@@ -185,7 +186,7 @@ func (c *client) SyncInstanceSchema(ctx context.Context, instanceName string) er
 // DeleteInstance deletes the instance.
 func (c *client) DeleteInstance(ctx context.Context, name string) error {
 	if c.instanceClient == nil {
-		return fmt.Errorf("instance service client not initialized")
+		return errors.New("instance service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.DeleteInstanceRequest{

@@ -17,8 +17,11 @@ func IsNotFoundError(err error) bool {
 	return strings.Contains(err.Error(), "not_found")
 }
 
+// ResourceDeleteFunc is the func to delete the resource by name.
+type ResourceDeleteFunc func(ctx context.Context, name string) error
+
 // ResourceDelete wrap the delete func.
-func ResourceDelete(ctx context.Context, d *schema.ResourceData, delete func(ctx context.Context, name string) error) diag.Diagnostics {
+func ResourceDelete(ctx context.Context, d *schema.ResourceData, delete ResourceDeleteFunc) diag.Diagnostics {
 	fullName := d.Id()
 
 	// Warning or errors can be collected in a slice type

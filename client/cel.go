@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"connectrpc.com/connect"
@@ -13,7 +12,7 @@ import (
 // ParseExpression parse the expression string using Connect RPC.
 func (c *client) ParseExpression(ctx context.Context, expression string) (*v1alpha1.Expr, error) {
 	if c.celClient == nil {
-		return nil, fmt.Errorf("cel service client not initialized")
+		return nil, errors.New("cel service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.BatchParseRequest{

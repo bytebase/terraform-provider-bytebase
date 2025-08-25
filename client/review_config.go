@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"connectrpc.com/connect"
@@ -12,7 +12,7 @@ import (
 // ListReviewConfig will return review configs using Connect RPC.
 func (c *client) ListReviewConfig(ctx context.Context) (*v1pb.ListReviewConfigsResponse, error) {
 	if c.reviewConfigClient == nil {
-		return nil, fmt.Errorf("review config service client not initialized")
+		return nil, errors.New("review config service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.ListReviewConfigsRequest{})
@@ -28,7 +28,7 @@ func (c *client) ListReviewConfig(ctx context.Context) (*v1pb.ListReviewConfigsR
 // GetReviewConfig gets the review config by full name using Connect RPC.
 func (c *client) GetReviewConfig(ctx context.Context, reviewName string) (*v1pb.ReviewConfig, error) {
 	if c.reviewConfigClient == nil {
-		return nil, fmt.Errorf("review config service client not initialized")
+		return nil, errors.New("review config service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetReviewConfigRequest{
@@ -46,7 +46,7 @@ func (c *client) GetReviewConfig(ctx context.Context, reviewName string) (*v1pb.
 // UpsertReviewConfig updates or creates the review config using Connect RPC.
 func (c *client) UpsertReviewConfig(ctx context.Context, patch *v1pb.ReviewConfig, updateMasks []string) (*v1pb.ReviewConfig, error) {
 	if c.reviewConfigClient == nil {
-		return nil, fmt.Errorf("review config service client not initialized")
+		return nil, errors.New("review config service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateReviewConfigRequest{
@@ -66,7 +66,7 @@ func (c *client) UpsertReviewConfig(ctx context.Context, patch *v1pb.ReviewConfi
 // DeleteReviewConfig deletes the review config.
 func (c *client) DeleteReviewConfig(ctx context.Context, name string) error {
 	if c.reviewConfigClient == nil {
-		return fmt.Errorf("review config service client not initialized")
+		return errors.New("review config service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.DeleteReviewConfigRequest{

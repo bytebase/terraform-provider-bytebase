@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -43,7 +44,7 @@ func buildUserFilter(filter *api.UserFilter) string {
 // ListUser list all users using Connect RPC.
 func (c *client) ListUser(ctx context.Context, filter *api.UserFilter) ([]*v1pb.User, error) {
 	if c.userClient == nil {
-		return nil, fmt.Errorf("user service client not initialized")
+		return nil, errors.New("user service client not initialized")
 	}
 
 	res := []*v1pb.User{}
@@ -54,7 +55,7 @@ func (c *client) ListUser(ctx context.Context, filter *api.UserFilter) ([]*v1pb.
 
 	for {
 		startTimePerPage := time.Now()
-		
+
 		req := connect.NewRequest(&v1pb.ListUsersRequest{
 			Filter:      filterStr,
 			PageSize:    500,
@@ -91,7 +92,7 @@ func (c *client) ListUser(ctx context.Context, filter *api.UserFilter) ([]*v1pb.
 // CreateUser creates the user using Connect RPC.
 func (c *client) CreateUser(ctx context.Context, user *v1pb.User) (*v1pb.User, error) {
 	if c.userClient == nil {
-		return nil, fmt.Errorf("user service client not initialized")
+		return nil, errors.New("user service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.CreateUserRequest{
@@ -109,7 +110,7 @@ func (c *client) CreateUser(ctx context.Context, user *v1pb.User) (*v1pb.User, e
 // GetUser gets the user by name using Connect RPC.
 func (c *client) GetUser(ctx context.Context, userName string) (*v1pb.User, error) {
 	if c.userClient == nil {
-		return nil, fmt.Errorf("user service client not initialized")
+		return nil, errors.New("user service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetUserRequest{
@@ -127,7 +128,7 @@ func (c *client) GetUser(ctx context.Context, userName string) (*v1pb.User, erro
 // UpdateUser updates the user using Connect RPC.
 func (c *client) UpdateUser(ctx context.Context, patch *v1pb.User, updateMasks []string) (*v1pb.User, error) {
 	if c.userClient == nil {
-		return nil, fmt.Errorf("user service client not initialized")
+		return nil, errors.New("user service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateUserRequest{
@@ -146,7 +147,7 @@ func (c *client) UpdateUser(ctx context.Context, patch *v1pb.User, updateMasks [
 // UndeleteUser undeletes the user by name using Connect RPC.
 func (c *client) UndeleteUser(ctx context.Context, userName string) (*v1pb.User, error) {
 	if c.userClient == nil {
-		return nil, fmt.Errorf("user service client not initialized")
+		return nil, errors.New("user service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UndeleteUserRequest{
@@ -164,7 +165,7 @@ func (c *client) UndeleteUser(ctx context.Context, userName string) (*v1pb.User,
 // DeleteUser deletes the user.
 func (c *client) DeleteUser(ctx context.Context, name string) error {
 	if c.userClient == nil {
-		return fmt.Errorf("user service client not initialized")
+		return errors.New("user service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.DeleteUserRequest{

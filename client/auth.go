@@ -10,7 +10,7 @@ import (
 // Note: The login method has been moved to client.go and now uses Connect RPC.
 // This file is kept for backward compatibility but the implementation
 // has been migrated to use the AuthServiceClient from Connect RPC.
-// authInterceptor implements connect.Interceptor to add authentication headers
+// authInterceptor implements connect.Interceptor to add authentication headers.
 type authInterceptor struct {
 	token string
 }

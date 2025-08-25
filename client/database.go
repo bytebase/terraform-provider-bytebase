@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ import (
 // GetDatabase gets the database by the database full name using Connect RPC.
 func (c *client) GetDatabase(ctx context.Context, databaseName string) (*v1pb.Database, error) {
 	if c.databaseClient == nil {
-		return nil, fmt.Errorf("database service client not initialized")
+		return nil, errors.New("database service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetDatabaseRequest{
@@ -76,7 +77,7 @@ func buildDatabaseFilter(filter *api.DatabaseFilter) string {
 // ListDatabase list all databases using Connect RPC.
 func (c *client) ListDatabase(ctx context.Context, parent string, filter *api.DatabaseFilter, listAll bool) ([]*v1pb.Database, error) {
 	if c.databaseClient == nil {
-		return nil, fmt.Errorf("database service client not initialized")
+		return nil, errors.New("database service client not initialized")
 	}
 
 	res := []*v1pb.Database{}
@@ -123,7 +124,7 @@ func (c *client) ListDatabase(ctx context.Context, parent string, filter *api.Da
 // UpdateDatabase patches the database using Connect RPC.
 func (c *client) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updateMasks []string) (*v1pb.Database, error) {
 	if c.databaseClient == nil {
-		return nil, fmt.Errorf("database service client not initialized")
+		return nil, errors.New("database service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateDatabaseRequest{
@@ -142,7 +143,7 @@ func (c *client) UpdateDatabase(ctx context.Context, patch *v1pb.Database, updat
 // BatchUpdateDatabases batch updates databases using Connect RPC.
 func (c *client) BatchUpdateDatabases(ctx context.Context, request *v1pb.BatchUpdateDatabasesRequest) (*v1pb.BatchUpdateDatabasesResponse, error) {
 	if c.databaseClient == nil {
-		return nil, fmt.Errorf("database service client not initialized")
+		return nil, errors.New("database service client not initialized")
 	}
 
 	req := connect.NewRequest(request)
@@ -158,7 +159,7 @@ func (c *client) BatchUpdateDatabases(ctx context.Context, request *v1pb.BatchUp
 // GetDatabaseCatalog gets the database catalog by the database full name using Connect RPC.
 func (c *client) GetDatabaseCatalog(ctx context.Context, databaseName string) (*v1pb.DatabaseCatalog, error) {
 	if c.databaseCatalogClient == nil {
-		return nil, fmt.Errorf("database catalog service client not initialized")
+		return nil, errors.New("database catalog service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetDatabaseCatalogRequest{
@@ -176,7 +177,7 @@ func (c *client) GetDatabaseCatalog(ctx context.Context, databaseName string) (*
 // UpdateDatabaseCatalog patches the database catalog using Connect RPC.
 func (c *client) UpdateDatabaseCatalog(ctx context.Context, patch *v1pb.DatabaseCatalog) (*v1pb.DatabaseCatalog, error) {
 	if c.databaseCatalogClient == nil {
-		return nil, fmt.Errorf("database catalog service client not initialized")
+		return nil, errors.New("database catalog service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateDatabaseCatalogRequest{

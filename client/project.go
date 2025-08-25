@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
@@ -16,7 +16,7 @@ import (
 // GetProject gets the project by project full name.
 func (c *client) GetProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
 	if c.projectClient == nil {
-		return nil, fmt.Errorf("project service client not initialized")
+		return nil, errors.New("project service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetProjectRequest{
@@ -34,7 +34,7 @@ func (c *client) GetProject(ctx context.Context, projectName string) (*v1pb.Proj
 // GetProjectIAMPolicy gets the project IAM policy by project full name.
 func (c *client) GetProjectIAMPolicy(ctx context.Context, projectName string) (*v1pb.IamPolicy, error) {
 	if c.projectClient == nil {
-		return nil, fmt.Errorf("project service client not initialized")
+		return nil, errors.New("project service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetIamPolicyRequest{
@@ -52,7 +52,7 @@ func (c *client) GetProjectIAMPolicy(ctx context.Context, projectName string) (*
 // SetProjectIAMPolicy sets the project IAM policy.
 func (c *client) SetProjectIAMPolicy(ctx context.Context, projectName string, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
 	if c.projectClient == nil {
-		return nil, fmt.Errorf("project service client not initialized")
+		return nil, errors.New("project service client not initialized")
 	}
 
 	// Update the resource field to match the project name
@@ -71,7 +71,7 @@ func (c *client) SetProjectIAMPolicy(ctx context.Context, projectName string, up
 // CreateProjectWebhook creates the webhook in the project.
 func (c *client) CreateProjectWebhook(ctx context.Context, projectName string, webhook *v1pb.Webhook) (*v1pb.Webhook, error) {
 	if c.projectClient == nil {
-		return nil, fmt.Errorf("project service client not initialized")
+		return nil, errors.New("project service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.AddWebhookRequest{
@@ -90,13 +90,13 @@ func (c *client) CreateProjectWebhook(ctx context.Context, projectName string, w
 		return resp.Msg.Webhooks[len(resp.Msg.Webhooks)-1], nil
 	}
 
-	return nil, fmt.Errorf("webhook not found in response")
+	return nil, errors.New("webhook not found in response")
 }
 
 // UpdateProjectWebhook updates the webhook.
 func (c *client) UpdateProjectWebhook(ctx context.Context, patch *v1pb.Webhook, updateMasks []string) (*v1pb.Webhook, error) {
 	if c.projectClient == nil {
-		return nil, fmt.Errorf("project service client not initialized")
+		return nil, errors.New("project service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateWebhookRequest{
@@ -120,13 +120,13 @@ func (c *client) UpdateProjectWebhook(ctx context.Context, patch *v1pb.Webhook, 
 		}
 	}
 
-	return nil, fmt.Errorf("updated webhook not found in response")
+	return nil, errors.New("updated webhook not found in response")
 }
 
 // DeleteProjectWebhook deletes the webhook.
 func (c *client) DeleteProjectWebhook(ctx context.Context, webhookName string) error {
 	if c.projectClient == nil {
-		return fmt.Errorf("project service client not initialized")
+		return errors.New("project service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.RemoveWebhookRequest{
@@ -142,7 +142,7 @@ func (c *client) DeleteProjectWebhook(ctx context.Context, webhookName string) e
 // ListProject list all projects.
 func (c *client) ListProject(ctx context.Context, filter *api.ProjectFilter) ([]*v1pb.Project, error) {
 	if c.projectClient == nil {
-		return nil, fmt.Errorf("project service client not initialized")
+		return nil, errors.New("project service client not initialized")
 	}
 
 	var projects []*v1pb.Project
@@ -150,8 +150,8 @@ func (c *client) ListProject(ctx context.Context, filter *api.ProjectFilter) ([]
 
 	for {
 		req := connect.NewRequest(&v1pb.ListProjectsRequest{
-			PageSize:  500,
-			PageToken: pageToken,
+			PageSize:    500,
+			PageToken:   pageToken,
 			ShowDeleted: filter.State == v1pb.State_DELETED,
 		})
 
@@ -205,7 +205,7 @@ func (c *client) ListProject(ctx context.Context, filter *api.ProjectFilter) ([]
 // CreateProject creates the project.
 func (c *client) CreateProject(ctx context.Context, projectID string, project *v1pb.Project) (*v1pb.Project, error) {
 	if c.projectClient == nil {
-		return nil, fmt.Errorf("project service client not initialized")
+		return nil, errors.New("project service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.CreateProjectRequest{
@@ -224,7 +224,7 @@ func (c *client) CreateProject(ctx context.Context, projectID string, project *v
 // UpdateProject updates the project.
 func (c *client) UpdateProject(ctx context.Context, patch *v1pb.Project, updateMasks []string) (*v1pb.Project, error) {
 	if c.projectClient == nil {
-		return nil, fmt.Errorf("project service client not initialized")
+		return nil, errors.New("project service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateProjectRequest{
@@ -245,7 +245,7 @@ func (c *client) UpdateProject(ctx context.Context, patch *v1pb.Project, updateM
 // UndeleteProject undeletes the project.
 func (c *client) UndeleteProject(ctx context.Context, projectName string) (*v1pb.Project, error) {
 	if c.projectClient == nil {
-		return nil, fmt.Errorf("project service client not initialized")
+		return nil, errors.New("project service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UndeleteProjectRequest{
@@ -263,7 +263,7 @@ func (c *client) UndeleteProject(ctx context.Context, projectName string) (*v1pb
 // DeleteProject deletes the project.
 func (c *client) DeleteProject(ctx context.Context, name string) error {
 	if c.projectClient == nil {
-		return fmt.Errorf("project service client not initialized")
+		return errors.New("project service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.DeleteProjectRequest{
@@ -274,7 +274,7 @@ func (c *client) DeleteProject(ctx context.Context, name string) error {
 	return err
 }
 
-// Helper function for case-insensitive string contains
+// Helper function for case-insensitive string contains.
 func containsIgnoreCase(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }

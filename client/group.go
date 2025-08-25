@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -30,7 +31,7 @@ func buildGroupFilter(filter *api.GroupFilter) string {
 // ListGroup list all groups using Connect RPC.
 func (c *client) ListGroup(ctx context.Context, filter *api.GroupFilter) ([]*v1pb.Group, error) {
 	if c.groupClient == nil {
-		return nil, fmt.Errorf("group service client not initialized")
+		return nil, errors.New("group service client not initialized")
 	}
 
 	res := []*v1pb.Group{}
@@ -75,7 +76,7 @@ func (c *client) ListGroup(ctx context.Context, filter *api.GroupFilter) ([]*v1p
 // CreateGroup creates the group using Connect RPC.
 func (c *client) CreateGroup(ctx context.Context, email string, group *v1pb.Group) (*v1pb.Group, error) {
 	if c.groupClient == nil {
-		return nil, fmt.Errorf("group service client not initialized")
+		return nil, errors.New("group service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.CreateGroupRequest{
@@ -94,7 +95,7 @@ func (c *client) CreateGroup(ctx context.Context, email string, group *v1pb.Grou
 // GetGroup gets the group by name using Connect RPC.
 func (c *client) GetGroup(ctx context.Context, name string) (*v1pb.Group, error) {
 	if c.groupClient == nil {
-		return nil, fmt.Errorf("group service client not initialized")
+		return nil, errors.New("group service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetGroupRequest{
@@ -112,7 +113,7 @@ func (c *client) GetGroup(ctx context.Context, name string) (*v1pb.Group, error)
 // UpdateGroup updates the group using Connect RPC.
 func (c *client) UpdateGroup(ctx context.Context, patch *v1pb.Group, updateMasks []string) (*v1pb.Group, error) {
 	if c.groupClient == nil {
-		return nil, fmt.Errorf("group service client not initialized")
+		return nil, errors.New("group service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.UpdateGroupRequest{
@@ -132,7 +133,7 @@ func (c *client) UpdateGroup(ctx context.Context, patch *v1pb.Group, updateMasks
 // DeleteGroup deletes the group.
 func (c *client) DeleteGroup(ctx context.Context, name string) error {
 	if c.groupClient == nil {
-		return fmt.Errorf("group service client not initialized")
+		return errors.New("group service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.DeleteGroupRequest{

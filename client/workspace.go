@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"connectrpc.com/connect"
@@ -11,7 +11,7 @@ import (
 // GetWorkspaceIAMPolicy gets the workspace IAM policy.
 func (c *client) GetWorkspaceIAMPolicy(ctx context.Context) (*v1pb.IamPolicy, error) {
 	if c.workspaceClient == nil {
-		return nil, fmt.Errorf("workspace service client not initialized")
+		return nil, errors.New("workspace service client not initialized")
 	}
 
 	req := connect.NewRequest(&v1pb.GetIamPolicyRequest{
@@ -29,7 +29,7 @@ func (c *client) GetWorkspaceIAMPolicy(ctx context.Context) (*v1pb.IamPolicy, er
 // SetWorkspaceIAMPolicy sets the workspace IAM policy.
 func (c *client) SetWorkspaceIAMPolicy(ctx context.Context, setIamPolicyRequest *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
 	if c.workspaceClient == nil {
-		return nil, fmt.Errorf("workspace service client not initialized")
+		return nil, errors.New("workspace service client not initialized")
 	}
 
 	// Ensure the resource is set correctly

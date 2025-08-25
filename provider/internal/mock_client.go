@@ -109,7 +109,7 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 	if ins.Environment != nil {
 		envID, err = GetEnvironmentID(*ins.Environment)
 	} else {
-		err = fmt.Errorf("instance environment is nil")
+		err = errors.New("instance environment is nil")
 	}
 	if err != nil {
 		return nil, err
