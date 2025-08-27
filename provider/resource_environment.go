@@ -141,6 +141,10 @@ func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m in
 			enironmentList = slices.Insert(enironmentList, newOrder, v1Env)
 		}
 	} else {
+		// When creating new environment, ensure order doesn't exceed list length
+		if newOrder > len(enironmentList) {
+			newOrder = len(enironmentList)
+		}
 		enironmentList = slices.Insert(enironmentList, newOrder, v1Env)
 	}
 
