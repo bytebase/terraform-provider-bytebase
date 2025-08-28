@@ -19,5 +19,17 @@ resource "bytebase_policy" "masking_exception_policy" {
       actions          = ["QUERY", "EXPORT"]
       expire_timestamp = "2027-07-30T16:11:49Z"
     }
+     exceptions {
+      reason           = "Export data for analysis"
+      members          = ["user:qa1@example.com"]
+      actions          = ["EXPORT"]
+      expire_timestamp = "2027-07-30T16:11:49Z"
+    }
+    exceptions {
+      reason         = "Grant query access"
+      members = ["user:dev1@example.com"]
+      actions        = ["QUERY"]
+      raw_expression = "resource.instance_id == \"prod-sample-instance\" && resource.database_name == \"hr_prod\" && resource.table_name == \"employee\" && resource.column_name in [\"first_name\", \"last_name\", \"gender\"]"
+    }
   }
 }
