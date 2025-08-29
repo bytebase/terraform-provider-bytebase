@@ -92,7 +92,7 @@ resource "bytebase_review_config" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected \"resource_id\" to not be an empty string|invalid value for resource_id)"),
+				ExpectError: regexp.MustCompile(`(expected "resource_id" to not be an empty string|invalid value for resource_id)`),
 			},
 			// Empty title
 			{
@@ -109,7 +109,7 @@ resource "bytebase_review_config" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
+				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
 			// No rules
 			{
@@ -120,7 +120,7 @@ resource "bytebase_review_config" "%s" {
 	enabled     = true
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected rules to have at least|At least 1 \"rules\" blocks are required|Missing required argument)"),
+				ExpectError: regexp.MustCompile(`(expected rules to have at least|At least 1 "rules" blocks are required|Missing required argument)`),
 			},
 			// Invalid engine
 			{

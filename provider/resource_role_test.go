@@ -21,7 +21,7 @@ func TestAccRole(t *testing.T) {
 	resourceID := "test-role"
 	title := "Test Role"
 	description := "A test role for terraform"
-	
+
 	titleUpdated := "Updated Test Role"
 	descriptionUpdated := "An updated test role for terraform"
 
@@ -92,7 +92,7 @@ resource "bytebase_role" "%s" {
 	permissions = ["bb.permission.database.query"]
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected \"resource_id\" to not be an empty string|invalid value for resource_id)"),
+				ExpectError: regexp.MustCompile(`(expected "resource_id" to not be an empty string|invalid value for resource_id)`),
 			},
 			// Empty title
 			{
@@ -104,7 +104,7 @@ resource "bytebase_role" "%s" {
 	permissions = ["bb.permission.database.query"]
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
+				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
 			// No permissions
 			{
@@ -116,7 +116,7 @@ resource "bytebase_role" "%s" {
 	permissions = []
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected permissions to have at least \\(1\\)|Not enough list items|Attribute permissions requires 1 item minimum)"),
+				ExpectError: regexp.MustCompile(`(expected permissions to have at least \(1\)|Not enough list items|Attribute permissions requires 1 item minimum)`),
 			},
 			// Invalid permission format (not starting with bb.)
 			{
@@ -128,7 +128,7 @@ resource "bytebase_role" "%s" {
 	permissions = ["invalid.permission"]
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(Permissions should start with \"bb\\.\" prefix|permission should start with \"bb\\.\" prefix)"),
+				ExpectError: regexp.MustCompile(`(Permissions should start with "bb\." prefix|permission should start with "bb\." prefix)`),
 			},
 		},
 	})
@@ -139,7 +139,7 @@ func testAccCheckRoleResource(identifier, resourceID, title, description string,
 	for _, p := range permissions {
 		permissionsStr += fmt.Sprintf("\"%s\", ", p)
 	}
-	
+
 	return fmt.Sprintf(`
 resource "bytebase_role" "%s" {
 	resource_id = "%s"

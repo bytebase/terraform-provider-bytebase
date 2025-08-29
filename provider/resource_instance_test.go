@@ -71,12 +71,12 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 			// Invalid instance name
 			{
 				Config:      testAccCheckInstanceResource(identifier, "test-instance", "", engine, "environments/test"),
-				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
+				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
 			// Invalid engine
 			{
 				Config:      testAccCheckInstanceResource(identifier, "test-instance", "test instance", "engine", "environments/test"),
-				ExpectError: regexp.MustCompile("expected engine to be one of"),
+				ExpectError: regexp.MustCompile(`expected engine to be one of`),
 			},
 			// Invalid data source
 			{
@@ -94,7 +94,7 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 					}
 				}
 				`,
-				ExpectError: regexp.MustCompile("data source \"ADMIN\" is required"),
+				ExpectError: regexp.MustCompile(`data source "ADMIN" is required`),
 			},
 			// Invalid data source
 			{
@@ -112,7 +112,7 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 					}
 				}
 				`,
-				ExpectError: regexp.MustCompile("expected data_sources.0.type to be one of"),
+				ExpectError: regexp.MustCompile(`expected data_sources.0.type to be one of`),
 			},
 			// Invalid data source
 			{
@@ -136,7 +136,7 @@ func TestAccInstance_InvalidInput(t *testing.T) {
 					}
 				}
 				`,
-				ExpectError: regexp.MustCompile("duplicate data source type ADMIN"),
+				ExpectError: regexp.MustCompile(`duplicate data source type ADMIN`),
 			},
 		},
 	})

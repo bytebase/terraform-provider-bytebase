@@ -60,7 +60,7 @@ func TestAccInstanceDataSource_NotFound(t *testing.T) {
 					"test_instance",
 					"mock-id",
 				),
-				ExpectError: regexp.MustCompile("Cannot found instance"),
+				ExpectError: regexp.MustCompile(`Cannot found instance`),
 			},
 		},
 	})

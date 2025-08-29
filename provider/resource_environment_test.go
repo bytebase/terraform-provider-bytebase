@@ -83,7 +83,7 @@ resource "bytebase_environment" "%s" {
 	order       = 0
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
+				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
 			// Invalid resource_id (empty)
 			{
@@ -94,7 +94,7 @@ resource "bytebase_environment" "%s" {
 	order       = 0
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected \"resource_id\" to not be an empty string|invalid value for resource_id)"),
+				ExpectError: regexp.MustCompile(`(expected "resource_id" to not be an empty string|invalid value for resource_id)`),
 			},
 			// Invalid order (negative)
 			{
@@ -105,7 +105,7 @@ resource "bytebase_environment" "%s" {
 	order       = -1
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("expected order to be at least \\(0\\)"),
+				ExpectError: regexp.MustCompile(`expected order to be at least \(0\)`),
 			},
 		},
 	})

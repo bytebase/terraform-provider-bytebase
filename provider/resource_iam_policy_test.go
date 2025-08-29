@@ -13,7 +13,7 @@ import (
 func TestAccIAMPolicy(t *testing.T) {
 	identifier := "test_iam"
 	projectID := "test-iam-project"
-	
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -46,7 +46,7 @@ func TestAccIAMPolicy(t *testing.T) {
 
 func TestAccIAMPolicy_Workspace(t *testing.T) {
 	identifier := "test_workspace_iam"
-	
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -70,7 +70,7 @@ func TestAccIAMPolicy_Workspace(t *testing.T) {
 
 func TestAccIAMPolicy_InvalidInput(t *testing.T) {
 	identifier := "invalid_iam"
-	
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -91,7 +91,7 @@ resource "bytebase_iam_policy" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected value of parent to match regular expression|Resource id not match|doesn't must any patterns)"),
+				ExpectError: regexp.MustCompile(`(expected value of parent to match regular expression|Resource id not match|doesn't must any patterns)`),
 			},
 			// Invalid role format
 			{
@@ -106,7 +106,7 @@ resource "bytebase_iam_policy" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(invalid role format|role must in roles|doesn't must any patterns.*roles)"),
+				ExpectError: regexp.MustCompile(`(invalid role format|role must in roles|doesn't must any patterns.*roles)`),
 			},
 			// No members
 			{
@@ -121,7 +121,7 @@ resource "bytebase_iam_policy" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected members to have at least|require at least one member|empty members)"),
+				ExpectError: regexp.MustCompile(`(expected members to have at least|require at least one member|empty members)`),
 			},
 		},
 	})

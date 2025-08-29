@@ -56,7 +56,7 @@ func TestAccProjectDataSource_NotFound(t *testing.T) {
 					"mock_instance",
 					"mock-id",
 				),
-				ExpectError: regexp.MustCompile("Cannot found project"),
+				ExpectError: regexp.MustCompile(`Cannot found project`),
 			},
 		},
 	})

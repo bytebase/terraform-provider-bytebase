@@ -18,13 +18,13 @@ import (
 func TestAccRisk(t *testing.T) {
 	identifier := "test_risk"
 	resourceName := fmt.Sprintf("bytebase_risk.%s", identifier)
-	
+
 	title := "Test Risk"
 	titleUpdated := "Updated Test Risk"
 	source := v1pb.Risk_DDL.String()
 	level := 300
 	levelUpdated := 200
-	
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -78,12 +78,12 @@ func TestAccRisk_AllSources(t *testing.T) {
 		v1pb.Risk_REQUEST_ROLE.String(),
 		v1pb.Risk_DATA_EXPORT.String(),
 	}
-	
+
 	for _, source := range sources {
 		t.Run(source, func(t *testing.T) {
 			identifier := fmt.Sprintf("test_risk_%s", source)
 			resourceName := fmt.Sprintf("bytebase_risk.%s", identifier)
-			
+
 			resource.Test(t, resource.TestCase{
 				PreCheck: func() {
 					testAccPreCheck(t)
@@ -106,7 +106,7 @@ func TestAccRisk_AllSources(t *testing.T) {
 
 func TestAccRisk_InvalidInput(t *testing.T) {
 	identifier := "invalid_risk"
-	
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -125,7 +125,7 @@ resource "bytebase_risk" "%s" {
 	condition = "{\"expressions\":[{\"title\":\"High risk database\",\"expression\":\"resource.database == 'production'\"}]}"
 }
 `, identifier, v1pb.Risk_DDL.String()),
-				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
+				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
 			// Invalid source
 			{
@@ -138,7 +138,7 @@ resource "bytebase_risk" "%s" {
 	condition = "{\"expressions\":[{\"title\":\"High risk database\",\"expression\":\"resource.database == 'production'\"}]}"
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected source to be one of|must be one of)"),
+				ExpectError: regexp.MustCompile(`(expected source to be one of|must be one of)`),
 			},
 			// Invalid level
 			{
@@ -151,7 +151,7 @@ resource "bytebase_risk" "%s" {
 	condition = "{\"expressions\":[{\"title\":\"High risk database\",\"expression\":\"resource.database == 'production'\"}]}"
 }
 `, identifier, v1pb.Risk_DDL.String()),
-				ExpectError: regexp.MustCompile("(expected level to be one of|must be one of)"),
+				ExpectError: regexp.MustCompile(`(expected level to be one of|must be one of)`),
 			},
 		},
 	})
@@ -204,7 +204,7 @@ func testAccCheckRiskResource(identifier, title, source string, level int, activ
 			}]
 		}`
 	}
-	
+
 	return fmt.Sprintf(`
 resource "bytebase_risk" "%s" {
 	title     = "%s"

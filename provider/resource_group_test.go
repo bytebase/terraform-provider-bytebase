@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -22,7 +21,7 @@ func TestAccGroup(t *testing.T) {
 	email := "test-group@example.com"
 	title := "Test Group"
 	description := "A test group for terraform"
-	
+
 	titleUpdated := "Updated Test Group"
 	descriptionUpdated := "An updated test group for terraform"
 
@@ -236,7 +235,7 @@ resource "bytebase_group" "%s" {
 	}
 }
 `, identifier, identifier, identifier),
-				ExpectError: regexp.MustCompile("expected \"email\" to not be an empty string"),
+				ExpectError: regexp.MustCompile(`expected "email" to not be an empty string`),
 			},
 			// Empty title
 			{
@@ -258,7 +257,7 @@ resource "bytebase_group" "%s" {
 	}
 }
 `, identifier, identifier, identifier),
-				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
+				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
 			// No members
 			{
@@ -269,7 +268,7 @@ resource "bytebase_group" "%s" {
 	description = "Description"
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected members to have at least|At least 1 \"members\" blocks are required|Missing required argument)"),
+				ExpectError: regexp.MustCompile(`(expected members to have at least|At least 1 "members" blocks are required|Missing required argument)`),
 			},
 			// Invalid member format
 			{
@@ -284,7 +283,7 @@ resource "bytebase_group" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected value of member to match regular expression|Resource id not match|doesn't must any patterns)"),
+				ExpectError: regexp.MustCompile(`(expected value of member to match regular expression|Resource id not match|doesn't must any patterns)`),
 			},
 			// Invalid role
 			{
@@ -299,68 +298,10 @@ resource "bytebase_group" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected role to be one of|expected members\\.0\\.role to be one of)"),
+				ExpectError: regexp.MustCompile(`(expected role to be one of|expected members\.0\.role to be one of)`),
 			},
 		},
 	})
-}
-
-type groupMember struct {
-	member string
-	role   string
-}
-
-func testAccCheckGroupResource(identifier, email, title, description string, members []groupMember) string {
-	// Create users first with unique names to avoid conflicts
-	usersConfig := ""
-	userCreated := make(map[string]bool)
-	
-	for _, m := range members {
-		userEmail := strings.TrimPrefix(m.member, "users/")
-		if !userCreated[userEmail] {
-			userCreated[userEmail] = true
-			// Create a sanitized resource name
-			sanitizedEmail := strings.ReplaceAll(userEmail, "@", "_at_")
-			sanitizedEmail = strings.ReplaceAll(sanitizedEmail, ".", "_")
-			sanitizedEmail = strings.ReplaceAll(sanitizedEmail, "-", "_")
-			
-			usersConfig += fmt.Sprintf(`
-resource "bytebase_user" "user_%s_%s" {
-	email    = "%s"
-	title    = "Test User %s"
-	password = "test_password_123"
-	type     = "USER"
-}
-`, sanitizedEmail, identifier, userEmail, userEmail)
-		}
-	}
-
-	membersConfig := ""
-	for _, m := range members {
-		userEmail := strings.TrimPrefix(m.member, "users/")
-		sanitizedEmail := strings.ReplaceAll(userEmail, "@", "_at_")
-		sanitizedEmail = strings.ReplaceAll(sanitizedEmail, ".", "_")
-		sanitizedEmail = strings.ReplaceAll(sanitizedEmail, "-", "_")
-		
-		// Use the user's name output directly
-		membersConfig += fmt.Sprintf(`
-	members {
-		member = bytebase_user.user_%s_%s.name
-		role   = "%s"
-	}
-`, sanitizedEmail, identifier, m.role)
-	}
-	
-	return fmt.Sprintf(`
-%s
-
-resource "bytebase_group" "%s" {
-	email       = "%s"
-	title       = "%s"
-	description = "%s"
-%s
-}
-`, usersConfig, identifier, email, title, description, membersConfig)
 }
 
 func testAccCheckGroupDestroy(s *terraform.State) error {

@@ -262,7 +262,7 @@ resource "bytebase_setting" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(expected value of name to match regular expression|Resource id not match|doesn't must any patterns)"),
+				ExpectError: regexp.MustCompile(`(expected value of name to match regular expression|Resource id not match|doesn't must any patterns)`),
 			},
 			// Missing required fields for approval flow
 			{
@@ -275,7 +275,7 @@ resource "bytebase_setting" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(Missing required argument|Blocks of type \"conditions\" are required|missing expected|Insufficient flow blocks|At least 1 \"flow\" blocks are required)"),
+				ExpectError: regexp.MustCompile(`(Missing required argument|Blocks of type "conditions" are required|missing expected|Insufficient flow blocks|At least 1 "flow" blocks are required)`),
 			},
 			// Invalid role format in approval flow
 			{
@@ -299,7 +299,7 @@ resource "bytebase_setting" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(invalid role name|Resource id not match|doesn't must any patterns.*roles)"),
+				ExpectError: regexp.MustCompile(`(invalid role name|Resource id not match|doesn't must any patterns.*roles)`),
 			},
 			// Invalid environment ID
 			{
@@ -316,7 +316,7 @@ resource "bytebase_setting" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("invalid environment id"),
+				ExpectError: regexp.MustCompile(`invalid environment id`),
 			},
 			// Missing classification ID
 			{
@@ -338,7 +338,7 @@ resource "bytebase_setting" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("(id is required for classification|Missing required argument)"),
+				ExpectError: regexp.MustCompile(`(id is required for classification|Missing required argument)`),
 			},
 		},
 	})

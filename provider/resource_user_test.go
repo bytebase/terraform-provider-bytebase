@@ -23,7 +23,7 @@ func TestAccUser(t *testing.T) {
 	title := "Test User"
 	phone := "+1234567890"
 	password := "SecureP@ssw0rd!"
-	
+
 	titleUpdated := "Updated Test User"
 	phoneUpdated := "+0987654321"
 
@@ -106,12 +106,12 @@ func TestAccUser_InvalidInput(t *testing.T) {
 			// Empty email
 			{
 				Config:      testAccCheckUserResource(identifier, "", "Test User", "+123", "password", v1pb.UserType_USER.String()),
-				ExpectError: regexp.MustCompile("expected \"email\" to not be an empty string"),
+				ExpectError: regexp.MustCompile(`expected "email" to not be an empty string`),
 			},
 			// Empty title
 			{
 				Config:      testAccCheckUserResource(identifier, "test@example.com", "", "+123", "password", v1pb.UserType_USER.String()),
-				ExpectError: regexp.MustCompile("expected \"title\" to not be an empty string"),
+				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
 			// Invalid user type
 			{
@@ -123,7 +123,7 @@ resource "bytebase_user" "%s" {
 	password = "password"
 }
 `, identifier),
-				ExpectError: regexp.MustCompile("expected type to be one of"),
+				ExpectError: regexp.MustCompile(`expected type to be one of`),
 			},
 		},
 	})

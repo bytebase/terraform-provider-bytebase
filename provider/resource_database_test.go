@@ -20,7 +20,7 @@ func TestAccDatabase(t *testing.T) {
 	databaseName := "test-database"
 	projectName := "projects/test-project"
 	environmentName := "environments/test"
-	
+
 	databaseFullName := fmt.Sprintf("instances/%s/databases/%s", instanceID, databaseName)
 
 	resource.Test(t, resource.TestCase{
@@ -62,7 +62,7 @@ func TestAccDatabase_WithLabels(t *testing.T) {
 	databaseName := "test-database-labels"
 	projectName := "projects/test-project"
 	environmentName := "environments/test"
-	
+
 	databaseFullName := fmt.Sprintf("instances/%s/databases/%s", instanceID, databaseName)
 
 	resource.Test(t, resource.TestCase{
@@ -114,17 +114,17 @@ func TestAccDatabase_InvalidInput(t *testing.T) {
 			// Invalid database name format
 			{
 				Config:      testAccCheckDatabaseInvalidName(identifier),
-				ExpectError: regexp.MustCompile("(expected value of name to match regular expression|Resource id not match|doesn't must any patterns)"),
+				ExpectError: regexp.MustCompile(`(expected value of name to match regular expression|Resource id not match|doesn't must any patterns)`),
 			},
 			// Invalid project name format
 			{
 				Config:      testAccCheckDatabaseInvalidProject(identifier),
-				ExpectError: regexp.MustCompile("(expected value of project to match regular expression|Resource id not match|doesn't must any patterns)"),
+				ExpectError: regexp.MustCompile(`(expected value of project to match regular expression|Resource id not match|doesn't must any patterns)`),
 			},
 			// Invalid environment name format
 			{
 				Config:      testAccCheckDatabaseInvalidEnvironment(identifier),
-				ExpectError: regexp.MustCompile("(expected value of environment to match regular expression|Resource id not match|doesn't must any patterns)"),
+				ExpectError: regexp.MustCompile(`(expected value of environment to match regular expression|Resource id not match|doesn't must any patterns)`),
 			},
 		},
 	})
@@ -146,7 +146,7 @@ func testAccCheckDatabaseResource(identifier, name, project, environment string)
 		projectID = strings.TrimPrefix(project, "projects/")
 	}
 
-	// Extract environment ID from environment name  
+	// Extract environment ID from environment name
 	environmentID := ""
 	if strings.HasPrefix(environment, "environments/") {
 		environmentID = strings.TrimPrefix(environment, "environments/")
@@ -209,7 +209,7 @@ func testAccCheckDatabaseResourceWithLabels(identifier, name, project, environme
 		projectID = strings.TrimPrefix(project, "projects/")
 	}
 
-	// Extract environment ID from environment name  
+	// Extract environment ID from environment name
 	environmentID := ""
 	if strings.HasPrefix(environment, "environments/") {
 		environmentID = strings.TrimPrefix(environment, "environments/")
@@ -276,7 +276,7 @@ func testAccCheckDatabaseResourceWithLabelsUpdated(identifier, name, project, en
 		projectID = strings.TrimPrefix(project, "projects/")
 	}
 
-	// Extract environment ID from environment name  
+	// Extract environment ID from environment name
 	environmentID := ""
 	if strings.HasPrefix(environment, "environments/") {
 		environmentID = strings.TrimPrefix(environment, "environments/")
@@ -358,7 +358,7 @@ resource "bytebase_database" "%s" {
 `, identifier)
 }
 
-func testAccCheckDatabaseDestroy(s *terraform.State) error {
+func testAccCheckDatabaseDestroy(_ *terraform.State) error {
 	// In the mock implementation, databases are not actually deleted
 	// They remain as part of the instance. This is fine for testing
 	// as we're primarily testing the Terraform resource lifecycle.

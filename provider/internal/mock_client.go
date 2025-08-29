@@ -170,7 +170,7 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 	c.databaseMap[defaultDb.Name] = defaultDb
 	c.databaseMap[testDb.Name] = testDb
 	c.databaseMap[testDbLabels.Name] = testDbLabels
-	
+
 	// Also create empty catalogs for the databases
 	c.databaseCatalogMap[defaultDb.Name] = &v1pb.DatabaseCatalog{
 		Name: defaultDb.Name,
@@ -535,12 +535,12 @@ func (c *mockClient) UpsertSetting(_ context.Context, upsert *v1pb.Setting, _ []
 func (*mockClient) ParseExpression(_ context.Context, expression string) (*v1alpha1.Expr, error) {
 	// For mock client, we parse the expression and return a proper structure
 	// The real client would parse the expression, but for testing we create a mock response based on the input
-	
+
 	// Parse OR conditions (||)
 	if strings.Contains(expression, " || ") {
 		conditions := strings.Split(expression, " || ")
 		args := make([]*v1alpha1.Expr, 0, len(conditions))
-		
+
 		for i, condition := range conditions {
 			// Parse each condition (source == "X" && level == Y)
 			parsed := parseCondition(condition, int64(i*10+1))
@@ -548,7 +548,7 @@ func (*mockClient) ParseExpression(_ context.Context, expression string) (*v1alp
 				args = append(args, parsed)
 			}
 		}
-		
+
 		// If we have multiple conditions, wrap them in OR
 		if len(args) > 1 {
 			return &v1alpha1.Expr{
@@ -564,18 +564,18 @@ func (*mockClient) ParseExpression(_ context.Context, expression string) (*v1alp
 			return args[0], nil
 		}
 	}
-	
+
 	// Single condition
 	return parseCondition(expression, 1), nil
 }
 
-func parseCondition(condition string, baseId int64) *v1alpha1.Expr {
+func parseCondition(condition string, baseID int64) *v1alpha1.Expr {
 	// Parse AND conditions (&&)
 	parts := strings.Split(condition, " && ")
 	if len(parts) != 2 {
 		// Return a simple default expression
 		return &v1alpha1.Expr{
-			Id: baseId,
+			Id: baseID,
 			ExprKind: &v1alpha1.Expr_IdentExpr{
 				IdentExpr: &v1alpha1.Expr_Ident{
 					Name: condition,
@@ -583,10 +583,10 @@ func parseCondition(condition string, baseId int64) *v1alpha1.Expr {
 			},
 		}
 	}
-	
+
 	var sourceValue string
 	var levelValue int64
-	
+
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if strings.HasPrefix(part, "source ==") {
@@ -595,24 +595,29 @@ func parseCondition(condition string, baseId int64) *v1alpha1.Expr {
 		} else if strings.HasPrefix(part, "level ==") {
 			// Extract level value
 			levelStr := strings.TrimSpace(strings.TrimPrefix(part, "level =="))
-			levelValue, _ = strconv.ParseInt(levelStr, 10, 64)
+			var err error
+			levelValue, err = strconv.ParseInt(levelStr, 10, 64)
+			if err != nil {
+				// Default to 0 if parsing fails
+				levelValue = 0
+			}
 		}
 	}
-	
+
 	return &v1alpha1.Expr{
-		Id: baseId,
+		Id: baseID,
 		ExprKind: &v1alpha1.Expr_CallExpr{
 			CallExpr: &v1alpha1.Expr_Call{
 				Function: "_&&_",
 				Args: []*v1alpha1.Expr{
 					{
-						Id: baseId + 1,
+						Id: baseID + 1,
 						ExprKind: &v1alpha1.Expr_CallExpr{
 							CallExpr: &v1alpha1.Expr_Call{
 								Function: "_==_",
 								Args: []*v1alpha1.Expr{
 									{
-										Id: baseId + 2,
+										Id: baseID + 2,
 										ExprKind: &v1alpha1.Expr_IdentExpr{
 											IdentExpr: &v1alpha1.Expr_Ident{
 												Name: "source",
@@ -620,7 +625,7 @@ func parseCondition(condition string, baseId int64) *v1alpha1.Expr {
 										},
 									},
 									{
-										Id: baseId + 3,
+										Id: baseID + 3,
 										ExprKind: &v1alpha1.Expr_ConstExpr{
 											ConstExpr: &v1alpha1.Constant{
 												ConstantKind: &v1alpha1.Constant_StringValue{
@@ -634,13 +639,13 @@ func parseCondition(condition string, baseId int64) *v1alpha1.Expr {
 						},
 					},
 					{
-						Id: baseId + 4,
+						Id: baseID + 4,
 						ExprKind: &v1alpha1.Expr_CallExpr{
 							CallExpr: &v1alpha1.Expr_Call{
 								Function: "_==_",
 								Args: []*v1alpha1.Expr{
 									{
-										Id: baseId + 5,
+										Id: baseID + 5,
 										ExprKind: &v1alpha1.Expr_IdentExpr{
 											IdentExpr: &v1alpha1.Expr_Ident{
 												Name: "level",
@@ -648,7 +653,7 @@ func parseCondition(condition string, baseId int64) *v1alpha1.Expr {
 										},
 									},
 									{
-										Id: baseId + 6,
+										Id: baseID + 6,
 										ExprKind: &v1alpha1.Expr_ConstExpr{
 											ConstExpr: &v1alpha1.Constant{
 												ConstantKind: &v1alpha1.Constant_Int64Value{
@@ -803,12 +808,12 @@ func (c *mockClient) DeleteGroup(_ context.Context, name string) error {
 }
 
 // GetWorkspaceIAMPolicy gets the workspace IAM policy.
-func (c *mockClient) GetWorkspaceIAMPolicy(_ context.Context) (*v1pb.IamPolicy, error) {
+func (*mockClient) GetWorkspaceIAMPolicy(_ context.Context) (*v1pb.IamPolicy, error) {
 	return workspaceIAMPolicy, nil
 }
 
 // SetWorkspaceIAMPolicy sets the workspace IAM policy.
-func (c *mockClient) SetWorkspaceIAMPolicy(_ context.Context, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
+func (*mockClient) SetWorkspaceIAMPolicy(_ context.Context, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
 	if v := update.Policy; v != nil {
 		workspaceIAMPolicy = v
 	}
@@ -985,7 +990,6 @@ func (c *mockClient) DeleteRisk(_ context.Context, riskName string) error {
 	return nil
 }
 
-// Environment helper functions for tests
 // FindEnvironment finds an environment by name in the environment settings
 func FindEnvironment(ctx context.Context, client api.Client, name string) (*v1pb.EnvironmentSetting_Environment, int, []*v1pb.EnvironmentSetting_Environment, error) {
 	environmentSetting, err := client.GetSetting(ctx, fmt.Sprintf("%s%s", SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()))
