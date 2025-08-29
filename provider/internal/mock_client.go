@@ -990,7 +990,7 @@ func (c *mockClient) DeleteRisk(_ context.Context, riskName string) error {
 	return nil
 }
 
-// FindEnvironment finds an environment by name in the environment settings
+// FindEnvironment finds an environment by name in the environment settings.
 func FindEnvironment(ctx context.Context, client api.Client, name string) (*v1pb.EnvironmentSetting_Environment, int, []*v1pb.EnvironmentSetting_Environment, error) {
 	environmentSetting, err := client.GetSetting(ctx, fmt.Sprintf("%s%s", SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()))
 	if err != nil {
