@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -90,6 +91,13 @@ func resourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	policy, err := c.GetPolicy(ctx, policyName)
 	if err != nil {
+		// Check if the resource was deleted outside of Terraform
+		if internal.IsNotFoundError(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", policyName))
+			// Remove from state to trigger recreation on next apply
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -98,15 +106,7 @@ func resourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface
 
 func resourcePolicyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-
-	policyName := d.Id()
-	if err := c.DeletePolicy(ctx, policyName); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return internal.ResourceDelete(ctx, d, c.DeletePolicy)
 }
 
 func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

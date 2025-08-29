@@ -62,7 +62,7 @@ func TestAccPolicyDataSource_NotFound(t *testing.T) {
 					"",
 					v1pb.PolicyType_MASKING_EXCEPTION,
 				),
-				ExpectError: regexp.MustCompile("Cannot found policy projects/project-sample/policies/MASKING_EXCEPTION"),
+				ExpectError: regexp.MustCompile(`Cannot found policy projects/project-sample/policies/MASKING_EXCEPTION`),
 			},
 		},
 	})

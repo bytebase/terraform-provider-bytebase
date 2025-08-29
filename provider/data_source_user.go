@@ -91,6 +91,9 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func setUser(d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
+	if err := d.Set("name", user.Name); err != nil {
+		return diag.Errorf("cannot set name for user: %s", err.Error())
+	}
 	if err := d.Set("title", user.Title); err != nil {
 		return diag.Errorf("cannot set title for user: %s", err.Error())
 	}
