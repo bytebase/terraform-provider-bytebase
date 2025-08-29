@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -27,6 +28,7 @@ var groupMap map[string]*v1pb.Group
 var reviewConfigMap map[string]*v1pb.ReviewConfig
 var riskMap map[string]*v1pb.Risk
 var databaseGroupMap map[string]*v1pb.DatabaseGroup
+var workspaceIAMPolicy *v1pb.IamPolicy
 
 func init() {
 	instanceMap = map[string]*v1pb.Instance{}
@@ -42,6 +44,7 @@ func init() {
 	reviewConfigMap = map[string]*v1pb.ReviewConfig{}
 	riskMap = map[string]*v1pb.Risk{}
 	databaseGroupMap = map[string]*v1pb.DatabaseGroup{}
+	workspaceIAMPolicy = &v1pb.IamPolicy{}
 
 	// Initialize environment setting with an empty list
 	settingMap[fmt.Sprintf("%s%s", SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String())] = &v1pb.Setting{
@@ -70,7 +73,6 @@ type mockClient struct {
 	reviewConfigMap    map[string]*v1pb.ReviewConfig
 	riskMap            map[string]*v1pb.Risk
 	databaseGroupMap   map[string]*v1pb.DatabaseGroup
-	workspaceIAMPolicy *v1pb.IamPolicy
 }
 
 // newMockClient returns the new Bytebase API mock client.
@@ -89,7 +91,6 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		reviewConfigMap:    reviewConfigMap,
 		riskMap:            riskMap,
 		databaseGroupMap:   databaseGroupMap,
-		workspaceIAMPolicy: &v1pb.IamPolicy{},
 	}, nil
 }
 
@@ -531,8 +532,139 @@ func (c *mockClient) UpsertSetting(_ context.Context, upsert *v1pb.Setting, _ []
 }
 
 // ParseExpression parse the expression string.
-func (*mockClient) ParseExpression(_ context.Context, _ string) (*v1alpha1.Expr, error) {
-	return &v1alpha1.Expr{}, nil
+func (*mockClient) ParseExpression(_ context.Context, expression string) (*v1alpha1.Expr, error) {
+	// For mock client, we parse the expression and return a proper structure
+	// The real client would parse the expression, but for testing we create a mock response based on the input
+	
+	// Parse OR conditions (||)
+	if strings.Contains(expression, " || ") {
+		conditions := strings.Split(expression, " || ")
+		args := make([]*v1alpha1.Expr, 0, len(conditions))
+		
+		for i, condition := range conditions {
+			// Parse each condition (source == "X" && level == Y)
+			parsed := parseCondition(condition, int64(i*10+1))
+			if parsed != nil {
+				args = append(args, parsed)
+			}
+		}
+		
+		// If we have multiple conditions, wrap them in OR
+		if len(args) > 1 {
+			return &v1alpha1.Expr{
+				Id: 1,
+				ExprKind: &v1alpha1.Expr_CallExpr{
+					CallExpr: &v1alpha1.Expr_Call{
+						Function: "_||_",
+						Args:     args,
+					},
+				},
+			}, nil
+		} else if len(args) == 1 {
+			return args[0], nil
+		}
+	}
+	
+	// Single condition
+	return parseCondition(expression, 1), nil
+}
+
+func parseCondition(condition string, baseId int64) *v1alpha1.Expr {
+	// Parse AND conditions (&&)
+	parts := strings.Split(condition, " && ")
+	if len(parts) != 2 {
+		// Return a simple default expression
+		return &v1alpha1.Expr{
+			Id: baseId,
+			ExprKind: &v1alpha1.Expr_IdentExpr{
+				IdentExpr: &v1alpha1.Expr_Ident{
+					Name: condition,
+				},
+			},
+		}
+	}
+	
+	var sourceValue string
+	var levelValue int64
+	
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, "source ==") {
+			// Extract source value
+			sourceValue = strings.Trim(strings.TrimPrefix(part, "source =="), ` "`)
+		} else if strings.HasPrefix(part, "level ==") {
+			// Extract level value
+			levelStr := strings.TrimSpace(strings.TrimPrefix(part, "level =="))
+			levelValue, _ = strconv.ParseInt(levelStr, 10, 64)
+		}
+	}
+	
+	return &v1alpha1.Expr{
+		Id: baseId,
+		ExprKind: &v1alpha1.Expr_CallExpr{
+			CallExpr: &v1alpha1.Expr_Call{
+				Function: "_&&_",
+				Args: []*v1alpha1.Expr{
+					{
+						Id: baseId + 1,
+						ExprKind: &v1alpha1.Expr_CallExpr{
+							CallExpr: &v1alpha1.Expr_Call{
+								Function: "_==_",
+								Args: []*v1alpha1.Expr{
+									{
+										Id: baseId + 2,
+										ExprKind: &v1alpha1.Expr_IdentExpr{
+											IdentExpr: &v1alpha1.Expr_Ident{
+												Name: "source",
+											},
+										},
+									},
+									{
+										Id: baseId + 3,
+										ExprKind: &v1alpha1.Expr_ConstExpr{
+											ConstExpr: &v1alpha1.Constant{
+												ConstantKind: &v1alpha1.Constant_StringValue{
+													StringValue: sourceValue,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					{
+						Id: baseId + 4,
+						ExprKind: &v1alpha1.Expr_CallExpr{
+							CallExpr: &v1alpha1.Expr_Call{
+								Function: "_==_",
+								Args: []*v1alpha1.Expr{
+									{
+										Id: baseId + 5,
+										ExprKind: &v1alpha1.Expr_IdentExpr{
+											IdentExpr: &v1alpha1.Expr_Ident{
+												Name: "level",
+											},
+										},
+									},
+									{
+										Id: baseId + 6,
+										ExprKind: &v1alpha1.Expr_ConstExpr{
+											ConstExpr: &v1alpha1.Constant{
+												ConstantKind: &v1alpha1.Constant_Int64Value{
+													Int64Value: levelValue,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 // ListUser list all users.
@@ -672,15 +804,15 @@ func (c *mockClient) DeleteGroup(_ context.Context, name string) error {
 
 // GetWorkspaceIAMPolicy gets the workspace IAM policy.
 func (c *mockClient) GetWorkspaceIAMPolicy(_ context.Context) (*v1pb.IamPolicy, error) {
-	return c.workspaceIAMPolicy, nil
+	return workspaceIAMPolicy, nil
 }
 
 // SetWorkspaceIAMPolicy sets the workspace IAM policy.
 func (c *mockClient) SetWorkspaceIAMPolicy(_ context.Context, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
 	if v := update.Policy; v != nil {
-		c.workspaceIAMPolicy = v
+		workspaceIAMPolicy = v
 	}
-	return c.workspaceIAMPolicy, nil
+	return workspaceIAMPolicy, nil
 }
 
 // ListRole will returns all roles.
@@ -771,6 +903,9 @@ func (c *mockClient) UpsertReviewConfig(_ context.Context, reviewConfig *v1pb.Re
 	if slices.Contains(updateMasks, "title") {
 		existed.Title = reviewConfig.Title
 	}
+	if slices.Contains(updateMasks, "enabled") {
+		existed.Enabled = reviewConfig.Enabled
+	}
 	if slices.Contains(updateMasks, "rules") {
 		existed.Rules = reviewConfig.Rules
 	}
@@ -809,6 +944,10 @@ func (c *mockClient) GetRisk(_ context.Context, riskName string) (*v1pb.Risk, er
 
 // CreateRisk creates the risk.
 func (c *mockClient) CreateRisk(_ context.Context, risk *v1pb.Risk) (*v1pb.Risk, error) {
+	// Generate a unique name for the risk if not set
+	if risk.Name == "" {
+		risk.Name = fmt.Sprintf("risks/%d", len(c.riskMap)+1)
+	}
 	if _, exists := c.riskMap[risk.Name]; exists {
 		return nil, errors.Errorf("risk %s already exists", risk.Name)
 	}

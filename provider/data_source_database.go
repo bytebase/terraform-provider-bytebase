@@ -125,7 +125,7 @@ func dataSourceDatabase() *schema.Resource {
 
 func dataSourceDatabaseRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	databaseName := d.Get("database").(string)
+	databaseName := d.Get("name").(string)
 
 	database, err := c.GetDatabase(ctx, databaseName)
 	if err != nil {
