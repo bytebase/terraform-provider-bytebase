@@ -32,16 +32,14 @@ func dataSourceSetting() *schema.Resource {
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_PASSWORD_RESTRICTION.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SQL_RESULT_SIZE_LIMIT.String()),
 				),
 			},
-			"approval_flow":         getWorkspaceApprovalSetting(true),
-			"workspace_profile":     getWorkspaceProfileSetting(true),
-			"classification":        getClassificationSetting(true),
-			"semantic_types":        getSemanticTypesSetting(true),
-			"environment_setting":   getEnvironmentSetting(true),
-			"password_restriction":  getPasswordRestrictionSetting(true),
-			"sql_query_restriction": getSQLQueryRestrictionSetting(true),
+			"approval_flow":        getWorkspaceApprovalSetting(true),
+			"workspace_profile":    getWorkspaceProfileSetting(true),
+			"classification":       getClassificationSetting(true),
+			"semantic_types":       getSemanticTypesSetting(true),
+			"environment_setting":  getEnvironmentSetting(true),
+			"password_restriction": getPasswordRestrictionSetting(true),
 		},
 	}
 }
@@ -378,34 +376,6 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 	}
 }
 
-func getSQLQueryRestrictionSetting(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Computed:    computed,
-		Optional:    true,
-		Default:     nil,
-		Type:        schema.TypeList,
-		MaxItems:    1,
-		MinItems:    1,
-		Description: "Restrict for SQL query result",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"maximum_result_size": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Default:     100 * 1024 * 1024,
-					Description: "The size limit in bytes. The default value is 100MB, we will use the default value if the setting not exists, or the limit <= 0.",
-				},
-				"maximum_result_rows": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Default:     -1,
-					Description: "The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.",
-				},
-			},
-		},
-	}
-}
-
 const minimumPasswordLength = 8
 
 func getPasswordRestrictionSetting(computed bool) *schema.Schema {
@@ -640,12 +610,6 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 			return diag.Errorf("cannot set password_restriction: %s", err.Error())
 		}
 	}
-	if value := setting.GetValue().GetSqlQueryRestrictionSetting(); value != nil {
-		settingVal := flattenSQLQueryRestrictionSetting(value)
-		if err := d.Set("sql_query_restriction", settingVal); err != nil {
-			return diag.Errorf("cannot set sql_query_restriction: %s", err.Error())
-		}
-	}
 	if value := setting.GetValue().GetDataClassificationSettingValue(); value != nil {
 		settingVal := flattenClassificationSetting(value)
 		if err := d.Set("classification", settingVal); err != nil {
@@ -842,13 +806,6 @@ func flattenPasswordRestrictionSetting(setting *v1pb.PasswordRestrictionSetting)
 	if v := setting.GetPasswordRotation(); v != nil {
 		raw["password_rotation_in_seconds"] = int(v.Seconds)
 	}
-	return []interface{}{raw}
-}
-
-func flattenSQLQueryRestrictionSetting(setting *v1pb.SQLQueryRestrictionSetting) []interface{} {
-	raw := map[string]interface{}{}
-	raw["maximum_result_size"] = int(setting.MaximumResultSize)
-	raw["maximum_result_rows"] = int(setting.MaximumResultRows)
 	return []interface{}{raw}
 }
 

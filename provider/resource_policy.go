@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
@@ -56,6 +57,7 @@ func resourcePolicy() *schema.Resource {
 					v1pb.PolicyType_DISABLE_COPY_DATA.String(),
 					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
 					v1pb.PolicyType_ROLLOUT_POLICY.String(),
+					v1pb.PolicyType_DATA_QUERY.String(),
 				}, false),
 				Description: "The policy type.",
 			},
@@ -81,6 +83,7 @@ func resourcePolicy() *schema.Resource {
 			"disable_copy_data_policy": getDisableCopyDataPolicySchema(false),
 			"data_source_query_policy": getDataSourceQueryPolicySchema(false),
 			"rollout_policy":           getRolloutPolicySchema(false),
+			"query_data_policy":        getDataQueryPolicySchema(false),
 		},
 	}
 }
@@ -112,7 +115,8 @@ func resourcePolicyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	policyName := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
+	parent := d.Get("parent").(string)
+	policyName := fmt.Sprintf("%s/%s%s", parent, internal.PolicyNamePrefix, d.Get("type").(string))
 	if strings.HasPrefix(policyName, internal.WorkspaceName) {
 		policyName = strings.TrimPrefix(policyName, fmt.Sprintf("%s/", internal.WorkspaceName))
 	}
@@ -185,6 +189,18 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			RolloutPolicy: rolloutPolicy,
 		}
 		updateMasks = append(updateMasks, "rollout_policy")
+	case v1pb.PolicyType_DATA_QUERY:
+		if parent != internal.WorkspaceName {
+			return diag.Errorf("policy %v only support %v parent", policyName, internal.WorkspaceName)
+		}
+		queryDataPolicy, err := convertToQueryDataPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_QueryDataPolicy{
+			QueryDataPolicy: queryDataPolicy,
+		}
+		updateMasks = append(updateMasks, "query_data_policy")
 	default:
 		return diag.Errorf("unsupport policy type: %v", policyName)
 	}
@@ -294,6 +310,16 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		patch.Policy = &v1pb.Policy_RolloutPolicy{
 			RolloutPolicy: rolloutPolicy,
+		}
+	}
+	if d.HasChange("query_data_policy") {
+		updateMasks = append(updateMasks, "query_data_policy")
+		queryDataPolicy, err := convertToQueryDataPolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_QueryDataPolicy{
+			QueryDataPolicy: queryDataPolicy,
 		}
 	}
 
@@ -478,6 +504,23 @@ func convertToRolloutPolicy(d *schema.ResourceData) (*v1pb.RolloutPolicy, error)
 	}
 
 	return policy, nil
+}
+
+func convertToQueryDataPolicy(d *schema.ResourceData) (*v1pb.QueryDataPolicy, error) {
+	rawList, ok := d.Get("query_data_policy").([]interface{})
+	if !ok || len(rawList) != 1 {
+		return nil, errors.Errorf("invalid query_data_policy")
+	}
+
+	raw := rawList[0].(map[string]interface{})
+	return &v1pb.QueryDataPolicy{
+		DisableExport:     raw["disable_export"].(bool),
+		MaximumResultSize: int64(raw["maximum_result_size"].(int)),
+		MaximumResultRows: int32(raw["maximum_result_rows"].(int)),
+		Timeout: &durationpb.Duration{
+			Seconds: int64(raw["timeout_in_seconds"].(int)),
+		},
+	}, nil
 }
 
 func convertToDisableCopyDataPolicy(d *schema.ResourceData) (*v1pb.DisableCopyDataPolicy, error) {

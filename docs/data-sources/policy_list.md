@@ -36,6 +36,7 @@ Read-Only:
 - `inherit_from_parent` (Boolean)
 - `masking_exception_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy))
 - `name` (String)
+- `query_data_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--query_data_policy))
 - `rollout_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--rollout_policy))
 - `type` (String)
 
@@ -98,6 +99,17 @@ Read-Only:
 - `schema` (String)
 - `table` (String)
 
+
+
+<a id="nestedobjatt--policies--query_data_policy"></a>
+### Nested Schema for `policies.query_data_policy`
+
+Read-Only:
+
+- `disable_export` (Boolean)
+- `maximum_result_rows` (Number)
+- `maximum_result_size` (Number)
+- `timeout_in_seconds` (Number)
 
 
 <a id="nestedobjatt--policies--rollout_policy"></a>

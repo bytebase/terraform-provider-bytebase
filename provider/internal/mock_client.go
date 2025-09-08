@@ -306,6 +306,17 @@ func (c *mockClient) UpsertPolicy(_ context.Context, patch *v1pb.Policy, updateM
 				MaskingRulePolicy: v,
 			}
 		}
+	case v1pb.PolicyType_DATA_QUERY:
+		if !existed {
+			if patch.GetQueryDataPolicy() == nil {
+				return nil, errors.Errorf("payload is required to create the policy")
+			}
+		}
+		if v := patch.GetQueryDataPolicy(); v != nil {
+			policy.Policy = &v1pb.Policy_QueryDataPolicy{
+				QueryDataPolicy: v,
+			}
+		}
 	default:
 		return nil, errors.Errorf("invalid policy type %v", policyType)
 	}

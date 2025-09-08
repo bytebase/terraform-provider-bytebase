@@ -40,16 +40,14 @@ func resourceSetting() *schema.Resource {
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_PASSWORD_RESTRICTION.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SQL_RESULT_SIZE_LIMIT.String()),
 				),
 			},
-			"approval_flow":         getWorkspaceApprovalSetting(false),
-			"workspace_profile":     getWorkspaceProfileSetting(false),
-			"classification":        getClassificationSetting(false),
-			"semantic_types":        getSemanticTypesSetting(false),
-			"environment_setting":   getEnvironmentSetting(false),
-			"password_restriction":  getPasswordRestrictionSetting(false),
-			"sql_query_restriction": getSQLQueryRestrictionSetting(false),
+			"approval_flow":        getWorkspaceApprovalSetting(false),
+			"workspace_profile":    getWorkspaceProfileSetting(false),
+			"classification":       getClassificationSetting(false),
+			"semantic_types":       getSemanticTypesSetting(false),
+			"environment_setting":  getEnvironmentSetting(false),
+			"password_restriction": getPasswordRestrictionSetting(false),
 		},
 	}
 }
@@ -131,16 +129,6 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 				PasswordRestrictionSetting: passwordSetting,
 			},
 		}
-	case v1pb.Setting_SQL_RESULT_SIZE_LIMIT:
-		querySetting, err := convertToV1SQLQueryRestrictionSetting(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_SqlQueryRestrictionSetting{
-				SqlQueryRestrictionSetting: querySetting,
-			},
-		}
 	default:
 		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
 	}
@@ -158,19 +146,6 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	return diags
-}
-
-func convertToV1SQLQueryRestrictionSetting(d *schema.ResourceData) (*v1pb.SQLQueryRestrictionSetting, error) {
-	rawList, ok := d.Get("sql_query_restriction").([]interface{})
-	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid sql_query_restriction")
-	}
-
-	raw := rawList[0].(map[string]interface{})
-	return &v1pb.SQLQueryRestrictionSetting{
-		MaximumResultSize: int64(raw["maximum_result_size"].(int)),
-		MaximumResultRows: int32(raw["maximum_result_rows"].(int)),
-	}, nil
 }
 
 func convertToV1PasswordRestrictionSetting(d *schema.ResourceData) (*v1pb.PasswordRestrictionSetting, error) {
@@ -672,17 +647,6 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 				PasswordRestrictionSetting: &v1pb.PasswordRestrictionSetting{
 					MinLength: minimumPasswordLength,
 				},
-			},
-		}
-	case v1pb.Setting_SQL_RESULT_SIZE_LIMIT:
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Unsupport delete sql query restriction setting",
-			Detail:   "We will reset the sql query restriction with default value",
-		})
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_SqlQueryRestrictionSetting{
-				SqlQueryRestrictionSetting: &v1pb.SQLQueryRestrictionSetting{},
 			},
 		}
 	default:

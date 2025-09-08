@@ -23,7 +23,7 @@ func dataSourcePolicyList() *schema.Resource {
 			"parent": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "",
+				Default:  internal.WorkspaceName,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
 					fmt.Sprintf("^%s$", internal.WorkspaceName),
@@ -68,6 +68,7 @@ func dataSourcePolicyList() *schema.Resource {
 						"disable_copy_data_policy": getDisableCopyDataPolicySchema(true),
 						"data_source_query_policy": getDataSourceQueryPolicySchema(true),
 						"rollout_policy":           getRolloutPolicySchema(true),
+						"query_data_policy":        getDataQueryPolicySchema(true),
 					},
 				},
 			},
