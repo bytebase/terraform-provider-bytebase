@@ -32,16 +32,14 @@ func dataSourceSetting() *schema.Resource {
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_PASSWORD_RESTRICTION.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SQL_RESULT_SIZE_LIMIT.String()),
 				),
 			},
-			"approval_flow":         getWorkspaceApprovalSetting(true),
-			"workspace_profile":     getWorkspaceProfileSetting(true),
-			"classification":        getClassificationSetting(true),
-			"semantic_types":        getSemanticTypesSetting(true),
-			"environment_setting":   getEnvironmentSetting(true),
-			"password_restriction":  getPasswordRestrictionSetting(true),
-			"sql_query_restriction": getSQLQueryRestrictionSetting(true),
+			"approval_flow":        getWorkspaceApprovalSetting(true),
+			"workspace_profile":    getWorkspaceProfileSetting(true),
+			"classification":       getClassificationSetting(true),
+			"semantic_types":       getSemanticTypesSetting(true),
+			"environment_setting":  getEnvironmentSetting(true),
+			"password_restriction": getPasswordRestrictionSetting(true),
 		},
 	}
 }
@@ -640,12 +638,6 @@ func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.C
 			return diag.Errorf("cannot set password_restriction: %s", err.Error())
 		}
 	}
-	if value := setting.GetValue().GetSqlQueryRestrictionSetting(); value != nil {
-		settingVal := flattenSQLQueryRestrictionSetting(value)
-		if err := d.Set("sql_query_restriction", settingVal); err != nil {
-			return diag.Errorf("cannot set sql_query_restriction: %s", err.Error())
-		}
-	}
 	if value := setting.GetValue().GetDataClassificationSettingValue(); value != nil {
 		settingVal := flattenClassificationSetting(value)
 		if err := d.Set("classification", settingVal); err != nil {
@@ -842,13 +834,6 @@ func flattenPasswordRestrictionSetting(setting *v1pb.PasswordRestrictionSetting)
 	if v := setting.GetPasswordRotation(); v != nil {
 		raw["password_rotation_in_seconds"] = int(v.Seconds)
 	}
-	return []interface{}{raw}
-}
-
-func flattenSQLQueryRestrictionSetting(setting *v1pb.SQLQueryRestrictionSetting) []interface{} {
-	raw := map[string]interface{}{}
-	raw["maximum_result_size"] = int(setting.MaximumResultSize)
-	raw["maximum_result_rows"] = int(setting.MaximumResultRows)
 	return []interface{}{raw}
 }
 

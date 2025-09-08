@@ -204,32 +204,6 @@ func TestAccSetting_PasswordRestriction(t *testing.T) {
 	})
 }
 
-func TestAccSetting_SQLQueryRestriction(t *testing.T) {
-	identifier := "test_sql_query"
-	resourceName := fmt.Sprintf("bytebase_setting.%s", identifier)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: nil,
-		Steps: []resource.TestStep{
-			// Create SQL query restriction setting
-			{
-				Config: testAccCheckSQLQueryRestrictionSetting(identifier),
-				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "name", "settings/SQL_RESULT_SIZE_LIMIT"),
-					resource.TestCheckResourceAttr(resourceName, "sql_query_restriction.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "sql_query_restriction.0.maximum_result_size", "1048576"),
-					resource.TestCheckResourceAttr(resourceName, "sql_query_restriction.0.maximum_result_rows", "1000"),
-				),
-			},
-		},
-	})
-}
-
 func TestAccSetting_InvalidInput(t *testing.T) {
 	identifier := "invalid_setting"
 
@@ -601,18 +575,6 @@ resource "bytebase_setting" "%s" {
 		require_special_character          = true
 		require_reset_password_for_first_login = true
 		password_rotation_in_seconds       = 7776000
-	}
-}
-`, identifier)
-}
-
-func testAccCheckSQLQueryRestrictionSetting(identifier string) string {
-	return fmt.Sprintf(`
-resource "bytebase_setting" "%s" {
-	name = "settings/SQL_RESULT_SIZE_LIMIT"
-	sql_query_restriction {
-		maximum_result_size = 1048576
-		maximum_result_rows = 1000
 	}
 }
 `, identifier)

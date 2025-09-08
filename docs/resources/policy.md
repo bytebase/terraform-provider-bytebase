@@ -28,6 +28,7 @@ The policy resource.
 - `global_masking_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--global_masking_policy))
 - `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
 - `masking_exception_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exception_policy))
+- `query_data_policy` (Block List, Max: 1) The policy for query data (see [below for nested schema](#nestedblock--query_data_policy))
 - `rollout_policy` (Block List, Max: 1) Control issue rollout. Learn more: https://docs.bytebase.com/administration/environment-policy/rollout-policy (see [below for nested schema](#nestedblock--rollout_policy))
 
 ### Read-Only
@@ -100,6 +101,20 @@ Optional:
 - `schema` (String)
 - `table` (String)
 
+
+
+<a id="nestedblock--query_data_policy"></a>
+### Nested Schema for `query_data_policy`
+
+Required:
+
+- `disable_export` (Boolean) Disable export data in the SQL editor
+
+Optional:
+
+- `maximum_result_rows` (Number) The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.
+- `maximum_result_size` (Number) The size limit in bytes. The default value is 100MB, we will use the default value if the limit <= 0.
+- `timeout_in_seconds` (Number) The maximum time allowed for a query to run in SQL Editor. No limit when the value <= 0
 
 
 <a id="nestedblock--rollout_policy"></a>

@@ -67,6 +67,63 @@ func getMaskingExceptionPolicy(database, table, column string) string {
 	`, database, table, column)
 }
 
+func getQueryDataPolicy(disableExport bool, maxResultSize, maxResultRows, timeoutInSeconds int) string {
+	return fmt.Sprintf(`
+	query_data_policy {
+		disable_export       = %t
+		maximum_result_size  = %d
+		maximum_result_rows  = %d
+		timeout_in_seconds   = %d
+	}
+	`, disableExport, maxResultSize, maxResultRows, timeoutInSeconds)
+}
+
+func TestAccPolicy_QueryData(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPolicyDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckPolicyResource(
+					"query_data_policy",
+					"workspaces/-",
+					getQueryDataPolicy(true, 1000000, 500, 60),
+					v1pb.PolicyType_DATA_QUERY,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists("bytebase_policy.query_data_policy"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "type", v1pb.PolicyType_DATA_QUERY.String()),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.#", "1"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.disable_export", "true"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.maximum_result_size", "1000000"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.maximum_result_rows", "500"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.timeout_in_seconds", "60"),
+				),
+			},
+			{
+				Config: testAccCheckPolicyResource(
+					"query_data_policy",
+					"workspaces/-",
+					getQueryDataPolicy(false, 5000000, 1000, 120),
+					v1pb.PolicyType_DATA_QUERY,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists("bytebase_policy.query_data_policy"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "type", v1pb.PolicyType_DATA_QUERY.String()),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.#", "1"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.disable_export", "false"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.maximum_result_size", "5000000"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.maximum_result_rows", "1000"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.timeout_in_seconds", "120"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckPolicyDestroy(s *terraform.State) error {
 	c, ok := testAccProvider.Meta().(api.Client)
 	if !ok {

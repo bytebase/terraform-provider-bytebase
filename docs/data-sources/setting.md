@@ -24,7 +24,6 @@ The setting data source.
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `password_restriction` (Block List, Max: 1) Restrict for login password (see [below for nested schema](#nestedblock--password_restriction))
 - `semantic_types` (Block Set) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
-- `sql_query_restriction` (Block List, Max: 1) Restrict for SQL query result (see [below for nested schema](#nestedblock--sql_query_restriction))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
 ### Read-Only
@@ -157,15 +156,6 @@ Required:
 
 
 
-
-
-<a id="nestedblock--sql_query_restriction"></a>
-### Nested Schema for `sql_query_restriction`
-
-Optional:
-
-- `maximum_result_rows` (Number) The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.
-- `maximum_result_size` (Number) The size limit in bytes. The default value is 100MB, we will use the default value if the setting not exists, or the limit <= 0.
 
 
 <a id="nestedblock--workspace_profile"></a>

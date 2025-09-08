@@ -47,6 +47,7 @@ func dataSourcePolicy() *schema.Resource {
 					v1pb.PolicyType_DISABLE_COPY_DATA.String(),
 					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
 					v1pb.PolicyType_ROLLOUT_POLICY.String(),
+					v1pb.PolicyType_DATA_QUERY.String(),
 				}, false),
 				Description: "The policy type.",
 			},
@@ -70,6 +71,7 @@ func dataSourcePolicy() *schema.Resource {
 			"disable_copy_data_policy": getDisableCopyDataPolicySchema(true),
 			"data_source_query_policy": getDataSourceQueryPolicySchema(true),
 			"rollout_policy":           getRolloutPolicySchema(true),
+			"query_data_policy":        getDataQueryPolicySchema(true),
 		},
 	}
 }
@@ -217,6 +219,44 @@ func getGlobalMaskingPolicySchema(computed bool) *schema.Schema {
 							},
 						},
 					},
+				},
+			},
+		},
+	}
+}
+
+func getDataQueryPolicySchema(computed bool) *schema.Schema {
+	return &schema.Schema{
+		Computed:    computed,
+		Optional:    true,
+		Default:     nil,
+		Type:        schema.TypeList,
+		MaxItems:    1,
+		MinItems:    1,
+		Description: "The policy for query data",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"maximum_result_size": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Default:     100 * 1024 * 1024,
+					Description: "The size limit in bytes. The default value is 100MB, we will use the default value if the limit <= 0.",
+				},
+				"maximum_result_rows": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Default:     -1,
+					Description: "The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.",
+				},
+				"disable_export": {
+					Type:        schema.TypeBool,
+					Required:    true,
+					Description: "Disable export data in the SQL editor",
+				},
+				"timeout_in_seconds": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Description: "The maximum time allowed for a query to run in SQL Editor. No limit when the value <= 0",
 				},
 			},
 		},
@@ -397,6 +437,11 @@ func flattenPolicyPayload(policy *v1pb.Policy) (string, interface{}, diag.Diagno
 			rolloutPolicy := flattenRolloutPolicy(p)
 			return "rollout_policy", rolloutPolicy, nil
 		}
+	case v1pb.PolicyType_DATA_QUERY:
+		if p := policy.GetQueryDataPolicy(); p != nil {
+			rolloutPolicy := flattenQueryDataPolicy(p)
+			return "query_data_policy", rolloutPolicy, nil
+		}
 	}
 
 	return "", nil, diag.Errorf("unsupported policy: %s", policy.Name)
@@ -425,6 +470,16 @@ func flattenDataSourceQueryPolicy(p *v1pb.DataSourceQueryPolicy) []interface{} {
 func flattenDisableCopyDataPolicy(p *v1pb.DisableCopyDataPolicy) []interface{} {
 	policy := map[string]interface{}{
 		"enable": p.Active,
+	}
+	return []interface{}{policy}
+}
+
+func flattenQueryDataPolicy(p *v1pb.QueryDataPolicy) []interface{} {
+	policy := map[string]interface{}{
+		"maximum_result_size": int(p.MaximumResultSize),
+		"maximum_result_rows": int(p.MaximumResultRows),
+		"disable_export":      p.DisableExport,
+		"timeout_in_seconds":  int(p.Timeout.Seconds),
 	}
 	return []interface{}{policy}
 }
