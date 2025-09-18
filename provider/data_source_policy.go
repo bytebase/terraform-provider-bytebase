@@ -320,7 +320,6 @@ func getDataSourceQueryPolicySchema(computed bool) *schema.Schema {
 	}
 }
 
-
 func getRolloutPolicySchema(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Computed:    computed,
