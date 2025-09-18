@@ -496,11 +496,7 @@ func convertToRolloutPolicy(d *schema.ResourceData) (*v1pb.RolloutPolicy, error)
 
 	for _, rawRole := range roles.List() {
 		role := rawRole.(string)
-		if role == issueLastApproverRole || role == issueCreatorRole {
-			policy.IssueRoles = append(policy.IssueRoles, role)
-		} else {
-			policy.Roles = append(policy.Roles, role)
-		}
+		policy.Roles = append(policy.Roles, role)
 	}
 
 	return policy, nil
