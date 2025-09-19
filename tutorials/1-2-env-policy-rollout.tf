@@ -7,9 +7,7 @@ resource "bytebase_policy" "rollout_policy_test" {
     automatic = true
     roles = [
       "roles/workspaceAdmin",
-      "roles/projectOwner",
-      "roles/LAST_APPROVER",
-      "roles/CREATOR"
+      "roles/projectOwner"
     ]
   }
 }
@@ -23,9 +21,7 @@ resource "bytebase_policy" "rollout_policy_prod" {
     automatic = false
     roles = [
       "roles/workspaceAdmin",
-      "roles/projectOwner",
-      "roles/LAST_APPROVER",
-      "roles/CREATOR"
+      "roles/projectOwner"
     ]
   }
 }

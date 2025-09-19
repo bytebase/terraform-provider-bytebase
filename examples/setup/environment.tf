@@ -46,9 +46,7 @@ resource "bytebase_policy" "rollout_policy" {
     automatic = true
     roles = [
       "roles/workspaceAdmin",
-      "roles/projectOwner",
-      "roles/LAST_APPROVER",
-      "roles/CREATOR"
+      "roles/projectOwner"
     ]
   }
 }

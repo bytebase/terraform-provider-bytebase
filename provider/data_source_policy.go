@@ -320,11 +320,6 @@ func getDataSourceQueryPolicySchema(computed bool) *schema.Schema {
 	}
 }
 
-const (
-	issueLastApproverRole = "roles/LAST_APPROVER"
-	issueCreatorRole      = "roles/CREATOR"
-)
-
 func getRolloutPolicySchema(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Computed:    computed,
@@ -348,10 +343,8 @@ func getRolloutPolicySchema(computed bool) *schema.Schema {
 					Description: "If any roles are specified, Bytebase requires users with those roles to manually roll out the change.",
 					Elem: &schema.Schema{
 						Type:        schema.TypeString,
-						Description: fmt.Sprintf(`Role full name in roles/{id} format. You can also use the "%s" for the last approver of the issue, or "%s" for the creator of the issue.`, issueLastApproverRole, issueCreatorRole),
+						Description: `Role full name in roles/{id} format.`,
 						ValidateDiagFunc: internal.ResourceNameValidation(
-							fmt.Sprintf("^%s$", issueLastApproverRole),
-							fmt.Sprintf("^%s$", issueCreatorRole),
 							fmt.Sprintf("^%s", internal.RoleNamePrefix),
 						),
 					},
