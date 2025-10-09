@@ -134,14 +134,14 @@ func convertToV1Condition(rawSchema interface{}) (*expr.Expr, error) {
 		expressions = append(expressions, fmt.Sprintf(`resource.database == "%s"`, database))
 	}
 	if schema, ok := rawCondition["schema"].(string); ok {
-		expressions = append(expressions, fmt.Sprintf(`resource.schema == "%s"`, schema))
+		expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
 	}
 	if tables, ok := rawCondition["tables"].(*schema.Set); ok && tables.Len() > 0 {
 		tableList := []string{}
 		for _, table := range tables.List() {
 			tableList = append(tableList, fmt.Sprintf(`"%s"`, table.(string)))
 		}
-		expressions = append(expressions, fmt.Sprintf(`resource.table in [%s]`, strings.Join(tableList, ",")))
+		expressions = append(expressions, fmt.Sprintf(`resource.table_name in [%s]`, strings.Join(tableList, ",")))
 	}
 	if rowLimit, ok := rawCondition["row_limit"].(int); ok && rowLimit > 0 {
 		expressions = append(expressions, fmt.Sprintf(`request.row_limit <= %d`, rowLimit))

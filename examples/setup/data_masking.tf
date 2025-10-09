@@ -158,13 +158,13 @@ resource "bytebase_policy" "global_masking_policy" {
 
   global_masking_policy {
     rules {
-      condition     = "environment_id in [\"test\"]"
+      condition     = "resource.environment_id in [\"test\"]"
       id            = "69df1d15-abe5-4bc9-be38-f2a4bef3f7e0"
       semantic_type = "bb.default-partial"
       title         = "Partial masking for test environment"
     }
     rules {
-      condition     = "instance_id in [\"prod-sample-instance\"]"
+      condition     = "resource.instance_id in [\"prod-sample-instance\"]"
       id            = "90adb734-0808-4c9f-b281-1f76f7a1a29a"
       semantic_type = "bb.default"
       title         = "Default masking for prod instance"

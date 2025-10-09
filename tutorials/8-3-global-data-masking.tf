@@ -12,14 +12,14 @@ resource "bytebase_policy" "global_masking_policy" {
   global_masking_policy {
 
     rules {
-      condition     = "column_name == \"birth_date\""
+      condition     = "resource.column_name == \"birth_date\""
       id            = "birth-date-mask"
       semantic_type = "date-year-mask"
       title = "Mask Birth Date Year"
     }
 
     rules {
-      condition     = "column_name == \"last_name\""
+      condition     = "resource.column_name == \"last_name\""
       id            = "last-name-first-letter-only"
       semantic_type = "name-first-letter-only"
       title = "Last Name Only Show First Letter"

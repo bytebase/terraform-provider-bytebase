@@ -3,5 +3,5 @@ resource "bytebase_risk" "risk" {
   source    = "DML"
   level     = 300
   active    = true
-  condition = "environment_id == \"prod\" && affected_rows >= 100"
+  condition = "resource.environment_id == \"prod\" && statement.affected_rows >= 100"
 }
