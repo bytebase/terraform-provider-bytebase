@@ -184,15 +184,15 @@ func flattenIAMPolicy(p *v1pb.IamPolicy) ([]interface{}, error) {
 						`"`,
 					)
 				}
-				if strings.HasPrefix(expression, `resource.schema == "`) {
+				if strings.HasPrefix(expression, `resource.schema_name == "`) {
 					rawCondition["schema"] = strings.TrimSuffix(
-						strings.TrimPrefix(expression, `resource.schema == "`),
+						strings.TrimPrefix(expression, `resource.schema_name == "`),
 						`"`,
 					)
 				}
-				if strings.HasPrefix(expression, `resource.table in [`) {
+				if strings.HasPrefix(expression, `resource.table_name in [`) {
 					tableStr := strings.TrimSuffix(
-						strings.TrimPrefix(expression, `resource.table in [`),
+						strings.TrimPrefix(expression, `resource.table_name in [`),
 						`]`,
 					)
 					rawTableList := []interface{}{}
