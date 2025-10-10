@@ -23,7 +23,6 @@ The policy resource.
 ### Optional
 
 - `data_source_query_policy` (Block List, Max: 1) Restrict querying admin data sources (see [below for nested schema](#nestedblock--data_source_query_policy))
-- `disable_copy_data_policy` (Block List, Max: 1) Restrict data copying in SQL Editor (Admins/DBAs allowed) (see [below for nested schema](#nestedblock--disable_copy_data_policy))
 - `enforce` (Boolean) Decide if the policy is enforced.
 - `global_masking_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--global_masking_policy))
 - `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
@@ -44,14 +43,6 @@ Optional:
 - `disallow_ddl` (Boolean) Disallow running DDL statements in the SQL editor.
 - `disallow_dml` (Boolean) Disallow running DML statements in the SQL editor.
 - `restriction` (String) RESTRICTION_UNSPECIFIED means no restriction; FALLBACK will allows to query admin data sources when there is no read-only data source; DISALLOW will always disallow to query admin data sources.
-
-
-<a id="nestedblock--disable_copy_data_policy"></a>
-### Nested Schema for `disable_copy_data_policy`
-
-Required:
-
-- `enable` (Boolean) Restrict data copying
 
 
 <a id="nestedblock--global_masking_policy"></a>
@@ -106,12 +97,10 @@ Optional:
 <a id="nestedblock--query_data_policy"></a>
 ### Nested Schema for `query_data_policy`
 
-Required:
-
-- `disable_export` (Boolean) Disable export data in the SQL editor
-
 Optional:
 
+- `disable_copy_data` (Boolean) Disable copying data in the SQL editor
+- `disable_export` (Boolean) Disable export data in the SQL editor
 - `maximum_result_rows` (Number) The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.
 - `maximum_result_size` (Number) The size limit in bytes. The default value is 100MB, we will use the default value if the limit <= 0.
 - `timeout_in_seconds` (Number) The maximum time allowed for a query to run in SQL Editor. No limit when the value <= 0

@@ -50,7 +50,6 @@ Optional:
 
 - `database` (String) The accessible database full name in instances/{instance resource id}/databases/{database name} format
 - `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ssZ format
-- `row_limit` (Number) The export row limit for exporter role
 - `schema` (String) The accessible schema in the database
 - `tables` (Set of String) The accessible table list
 

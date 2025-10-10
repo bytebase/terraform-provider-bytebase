@@ -380,27 +380,16 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 			},
 		}
 
-		stepList, ok := rawFlow["steps"].([]interface{})
+		roleList, ok := rawFlow["roles"].([]interface{})
 		if !ok {
-			return nil, errors.Errorf("invalid steps")
+			return nil, errors.Errorf("invalid roles")
 		}
-
-		for _, step := range stepList {
-			approvalStep := &v1pb.ApprovalStep{
-				Type: v1pb.ApprovalStep_ANY,
+		for _, raw := range roleList {
+			role := raw.(string)
+			if !strings.HasPrefix(role, internal.RoleNamePrefix) {
+				return nil, errors.Errorf("invalid role format, role must in roles/{id} format")
 			}
-
-			rawStep := step.(map[string]interface{})
-			role := rawStep["role"].(string)
-			if !strings.HasPrefix(role, "roles/") {
-				return nil, errors.Errorf("invalid role name: %v, role name should in roles/{role} format", role)
-			}
-			approvalStep.Nodes = append(approvalStep.Nodes, &v1pb.ApprovalNode{
-				Type: v1pb.ApprovalNode_ANY_IN_GROUP,
-				Role: role,
-			})
-
-			approvalRule.Template.Flow.Steps = append(approvalRule.Template.Flow.Steps, approvalStep)
+			approvalRule.Template.Flow.Roles = append(approvalRule.Template.Flow.Roles, role)
 		}
 
 		workspaceApprovalSetting.Rules = append(workspaceApprovalSetting.Rules, approvalRule)

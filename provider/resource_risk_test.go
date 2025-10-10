@@ -22,8 +22,8 @@ func TestAccRisk(t *testing.T) {
 	title := "Test Risk"
 	titleUpdated := "Updated Test Risk"
 	source := v1pb.Risk_DDL.String()
-	level := 300
-	levelUpdated := 200
+	level := v1pb.RiskLevel_HIGH.String()
+	levelUpdated := v1pb.RiskLevel_MODERATE.String()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -39,7 +39,7 @@ func TestAccRisk(t *testing.T) {
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", title),
 					resource.TestCheckResourceAttr(resourceName, "source", source),
-					resource.TestCheckResourceAttr(resourceName, "level", fmt.Sprintf("%d", level)),
+					resource.TestCheckResourceAttr(resourceName, "level", level),
 					resource.TestCheckResourceAttr(resourceName, "active", "true"),
 					resource.TestCheckResourceAttrSet(resourceName, "name"),
 				),
@@ -51,7 +51,7 @@ func TestAccRisk(t *testing.T) {
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", titleUpdated),
 					resource.TestCheckResourceAttr(resourceName, "source", source),
-					resource.TestCheckResourceAttr(resourceName, "level", fmt.Sprintf("%d", levelUpdated)),
+					resource.TestCheckResourceAttr(resourceName, "level", levelUpdated),
 					resource.TestCheckResourceAttr(resourceName, "active", "false"),
 				),
 			},
@@ -62,7 +62,7 @@ func TestAccRisk(t *testing.T) {
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", titleUpdated),
 					resource.TestCheckResourceAttr(resourceName, "source", v1pb.Risk_DML.String()),
-					resource.TestCheckResourceAttr(resourceName, "level", fmt.Sprintf("%d", level)),
+					resource.TestCheckResourceAttr(resourceName, "level", level),
 					resource.TestCheckResourceAttr(resourceName, "active", "true"),
 				),
 			},
@@ -92,7 +92,7 @@ func TestAccRisk_AllSources(t *testing.T) {
 				CheckDestroy: testAccCheckRiskDestroy,
 				Steps: []resource.TestStep{
 					{
-						Config: testAccCheckRiskResource(identifier, fmt.Sprintf("Test Risk %s", source), source, 300, true),
+						Config: testAccCheckRiskResource(identifier, fmt.Sprintf("Test Risk %s", source), source, v1pb.RiskLevel_HIGH.String(), true),
 						Check: resource.ComposeTestCheckFunc(
 							internal.TestCheckResourceExists(resourceName),
 							resource.TestCheckResourceAttr(resourceName, "source", source),
@@ -120,7 +120,7 @@ func TestAccRisk_InvalidInput(t *testing.T) {
 resource "bytebase_risk" "%s" {
 	title     = ""
 	source    = "%s"
-	level     = 300
+	level     = "HIGH"
 	active    = true
 	condition = "{\"expressions\":[{\"title\":\"High risk database\",\"expression\":\"resource.database == 'production'\"}]}"
 }
@@ -133,7 +133,7 @@ resource "bytebase_risk" "%s" {
 resource "bytebase_risk" "%s" {
 	title     = "Test Risk"
 	source    = "INVALID_SOURCE"
-	level     = 300
+	level     = "HIGH"
 	active    = true
 	condition = "{\"expressions\":[{\"title\":\"High risk database\",\"expression\":\"resource.database == 'production'\"}]}"
 }
@@ -146,7 +146,7 @@ resource "bytebase_risk" "%s" {
 resource "bytebase_risk" "%s" {
 	title     = "Test Risk"
 	source    = "%s"
-	level     = 150
+	level     = "RISK_LEVEL_UNSPECIFIED"
 	active    = true
 	condition = "{\"expressions\":[{\"title\":\"High risk database\",\"expression\":\"resource.database == 'production'\"}]}"
 }
@@ -157,7 +157,7 @@ resource "bytebase_risk" "%s" {
 	})
 }
 
-func testAccCheckRiskResource(identifier, title, source string, level int, active bool) string {
+func testAccCheckRiskResource(identifier, title, source string, level string, active bool) string {
 	// Different conditions based on source type
 	condition := ""
 	switch source {
@@ -209,7 +209,7 @@ func testAccCheckRiskResource(identifier, title, source string, level int, activ
 resource "bytebase_risk" "%s" {
 	title     = "%s"
 	source    = "%s"
-	level     = %d
+	level     = "%s"
 	active    = %t
 	condition = jsonencode(%s)
 }

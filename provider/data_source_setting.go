@@ -503,31 +503,25 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								Elem: &schema.Resource{
 									Schema: map[string]*schema.Schema{
 										"title": {
-											Type:     schema.TypeString,
-											Computed: computed,
-											Required: !computed,
+											Type:         schema.TypeString,
+											Required:     true,
+											ValidateFunc: validation.StringIsNotEmpty,
 										},
 										"description": {
 											Type:     schema.TypeString,
 											Computed: computed,
 											Optional: true,
 										},
-										"steps": {
+										"roles": {
 											Type:        schema.TypeList,
-											Computed:    computed,
-											Required:    !computed,
-											Description: "Approval flow following the step order.",
-											Elem: &schema.Resource{
-												Schema: map[string]*schema.Schema{
-													"role": {
-														Type:     schema.TypeString,
-														Required: true,
-														ValidateDiagFunc: internal.ResourceNameValidation(
-															fmt.Sprintf("^%s", internal.RoleNamePrefix),
-														),
-														Description: "The role require to review in this step",
-													},
-												},
+											Required:    true,
+											Description: "The role require to review in this step",
+											Elem: &schema.Schema{
+												Type:        schema.TypeString,
+												Description: `Role full name in roles/{id} format.`,
+												ValidateDiagFunc: internal.ResourceNameValidation(
+													fmt.Sprintf("^%s", internal.RoleNamePrefix),
+												),
 											},
 										},
 									},
@@ -717,14 +711,9 @@ func parseApprovalExpression(callExpr *v1alpha1.Expr_Call) ([]map[string]interfa
 func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, setting *v1pb.WorkspaceApprovalSetting) ([]interface{}, error) {
 	ruleList := []interface{}{}
 	for _, rule := range setting.Rules {
-		stepList := []interface{}{}
-		for _, step := range rule.Template.Flow.Steps {
-			rawStep := map[string]interface{}{}
-			for _, node := range step.Nodes {
-				rawStep["role"] = node.Role
-				break
-			}
-			stepList = append(stepList, rawStep)
+		roleList := []interface{}{}
+		for _, role := range rule.Template.Flow.Roles {
+			roleList = append(roleList, role)
 		}
 
 		conditionList := []map[string]interface{}{}
@@ -746,7 +735,7 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 				map[string]interface{}{
 					"title":       rule.Template.Title,
 					"description": rule.Template.Description,
-					"steps":       stepList,
+					"roles":       roleList,
 				},
 			},
 		}

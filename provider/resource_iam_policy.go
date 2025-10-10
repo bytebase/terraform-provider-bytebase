@@ -143,9 +143,6 @@ func convertToV1Condition(rawSchema interface{}) (*expr.Expr, error) {
 		}
 		expressions = append(expressions, fmt.Sprintf(`resource.table_name in [%s]`, strings.Join(tableList, ",")))
 	}
-	if rowLimit, ok := rawCondition["row_limit"].(int); ok && rowLimit > 0 {
-		expressions = append(expressions, fmt.Sprintf(`request.row_limit <= %d`, rowLimit))
-	}
 	if expire, ok := rawCondition["expire_timestamp"].(string); ok && expire != "" {
 		formattedTime, err := time.Parse(time.RFC3339, expire)
 		if err != nil {

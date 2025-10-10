@@ -6,10 +6,11 @@ resource "bytebase_setting" "approval_flow" {
       flow {
         title       = "Project Owner → DBA → Admin"
         description = "Need DBA and workspace admin approval"
-
-        steps { role = "roles/projectOwner" }
-        steps { role = "roles/workspaceDBA" }
-        steps { role = "roles/workspaceAdmin" }
+        roles = [
+          "roles/projectOwner",
+          "roles/workspaceDBA",
+          "roles/workspaceAdmin"
+        ]
       }
       conditions {
         source = "DML"

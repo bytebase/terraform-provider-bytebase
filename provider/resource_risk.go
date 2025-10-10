@@ -51,12 +51,14 @@ func resourceRisk() *schema.Resource {
 				Description: "The risk source. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/risk_service.proto#L138 for details",
 			},
 			"level": {
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: validation.IntInSlice([]int{
-					300, 200, 100,
-				}),
-				Description: "The risk level, should be 300, 200 or 100. Higher number means higher level.",
+				ValidateFunc: validation.StringInSlice([]string{
+					v1pb.RiskLevel_HIGH.String(),
+					v1pb.RiskLevel_MODERATE.String(),
+					v1pb.RiskLevel_LOW.String(),
+				}, false),
+				Description: "The risk level. Check https://github.com/bytebase/bytebase/blob/fd87c6bfe8a0d4883f25eb480a3b05ed3c2e1727/proto/v1/v1/common.proto#L93 for details",
 			},
 			"active": {
 				Type:        schema.TypeBool,
@@ -102,7 +104,7 @@ func setRisk(d *schema.ResourceData, risk *v1pb.Risk) diag.Diagnostics {
 	if err := d.Set("source", risk.Source.String()); err != nil {
 		return diag.Errorf("cannot set source for risk: %s", err.Error())
 	}
-	if err := d.Set("level", int(risk.Level)); err != nil {
+	if err := d.Set("level", risk.Level.String()); err != nil {
 		return diag.Errorf("cannot set level for risk: %s", err.Error())
 	}
 	if err := d.Set("active", risk.Active); err != nil {
@@ -121,7 +123,7 @@ func resourceRiskCreate(ctx context.Context, d *schema.ResourceData, m interface
 	created, err := c.CreateRisk(ctx, &v1pb.Risk{
 		Title:  d.Get("title").(string),
 		Active: d.Get("active").(bool),
-		Level:  int32(d.Get("level").(int)),
+		Level:  v1pb.RiskLevel(v1pb.RiskLevel_value[d.Get("level").(string)]),
 		Source: v1pb.Risk_Source(v1pb.Risk_Source_value[d.Get("source").(string)]),
 		Condition: &expr.Expr{
 			Expression: d.Get("condition").(string),
@@ -156,7 +158,7 @@ func resourceRiskUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	}
 	if d.HasChange("level") {
 		updateMasks = append(updateMasks, "level")
-		existedRisk.Level = int32(d.Get("level").(int))
+		existedRisk.Level = v1pb.RiskLevel(v1pb.RiskLevel_value[d.Get("level").(string)])
 	}
 	if d.HasChange("source") {
 		updateMasks = append(updateMasks, "source")

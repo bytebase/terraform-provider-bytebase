@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -15,20 +16,23 @@ import (
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
-var instanceMap map[string]*v1pb.Instance
-var policyMap map[string]*v1pb.Policy
-var projectMap map[string]*v1pb.Project
-var projectIAMMap map[string]*v1pb.IamPolicy
-var databaseMap map[string]*v1pb.Database
-var databaseCatalogMap map[string]*v1pb.DatabaseCatalog
-var settingMap map[string]*v1pb.Setting
-var userMap map[string]*v1pb.User
-var roleMap map[string]*v1pb.Role
-var groupMap map[string]*v1pb.Group
-var reviewConfigMap map[string]*v1pb.ReviewConfig
-var riskMap map[string]*v1pb.Risk
-var databaseGroupMap map[string]*v1pb.DatabaseGroup
-var workspaceIAMPolicy *v1pb.IamPolicy
+var (
+	mu                 sync.RWMutex
+	instanceMap        map[string]*v1pb.Instance
+	policyMap          map[string]*v1pb.Policy
+	projectMap         map[string]*v1pb.Project
+	projectIAMMap      map[string]*v1pb.IamPolicy
+	databaseMap        map[string]*v1pb.Database
+	databaseCatalogMap map[string]*v1pb.DatabaseCatalog
+	settingMap         map[string]*v1pb.Setting
+	userMap            map[string]*v1pb.User
+	roleMap            map[string]*v1pb.Role
+	groupMap           map[string]*v1pb.Group
+	reviewConfigMap    map[string]*v1pb.ReviewConfig
+	riskMap            map[string]*v1pb.Risk
+	databaseGroupMap   map[string]*v1pb.DatabaseGroup
+	workspaceIAMPolicy *v1pb.IamPolicy
+)
 
 func init() {
 	instanceMap = map[string]*v1pb.Instance{}
@@ -77,6 +81,8 @@ type mockClient struct {
 
 // newMockClient returns the new Bytebase API mock client.
 func newMockClient(_, _, _ string) (api.Client, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	return &mockClient{
 		instanceMap:        instanceMap,
 		policyMap:          policyMap,
@@ -96,6 +102,8 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 
 // ListInstance will return instances in environment.
 func (c *mockClient) ListInstance(_ context.Context, filter *api.InstanceFilter) ([]*v1pb.Instance, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	instances := make([]*v1pb.Instance, 0)
 	for _, ins := range c.instanceMap {
 		if ins.State == v1pb.State_DELETED && filter.State != v1pb.State_DELETED {
@@ -109,6 +117,8 @@ func (c *mockClient) ListInstance(_ context.Context, filter *api.InstanceFilter)
 
 // GetInstance gets the instance by id.
 func (c *mockClient) GetInstance(_ context.Context, instanceName string) (*v1pb.Instance, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	ins, ok := c.instanceMap[instanceName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found instance %s", instanceName)
@@ -166,6 +176,8 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 		},
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
 	c.instanceMap[ins.Name] = ins
 	c.databaseMap[defaultDb.Name] = defaultDb
 	c.databaseMap[testDb.Name] = testDb
@@ -207,7 +219,9 @@ func (c *mockClient) UpdateInstance(ctx context.Context, patch *v1pb.Instance, u
 		ins.MaximumConnections = patch.MaximumConnections
 	}
 
+	mu.Lock()
 	c.instanceMap[ins.Name] = ins
+	mu.Unlock()
 	return ins, nil
 }
 
@@ -219,7 +233,9 @@ func (c *mockClient) DeleteInstance(ctx context.Context, instanceName string) er
 	}
 
 	ins.State = v1pb.State_DELETED
+	mu.Lock()
 	c.instanceMap[ins.Name] = ins
+	mu.Unlock()
 
 	return nil
 }
@@ -232,7 +248,9 @@ func (c *mockClient) UndeleteInstance(ctx context.Context, instanceName string) 
 	}
 
 	ins.State = v1pb.State_ACTIVE
+	mu.Lock()
 	c.instanceMap[ins.Name] = ins
+	mu.Unlock()
 
 	return ins, nil
 }
@@ -244,6 +262,8 @@ func (*mockClient) SyncInstanceSchema(_ context.Context, _ string) error {
 
 // ListPolicies lists policies in a specific resource.
 func (c *mockClient) ListPolicies(_ context.Context, parent string) (*v1pb.ListPoliciesResponse, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	policies := make([]*v1pb.Policy, 0)
 	for _, policy := range c.policyMap {
 		if parent == "" || strings.HasPrefix(policy.Name, parent) {
@@ -258,6 +278,8 @@ func (c *mockClient) ListPolicies(_ context.Context, parent string) (*v1pb.ListP
 
 // GetPolicy gets a policy in a specific resource.
 func (c *mockClient) GetPolicy(_ context.Context, policyName string) (*v1pb.Policy, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	policy, ok := c.policyMap[policyName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found policy %s", policyName)
@@ -273,6 +295,8 @@ func (c *mockClient) UpsertPolicy(_ context.Context, patch *v1pb.Policy, updateM
 		return nil, err
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
 	policy, existed := c.policyMap[patch.Name]
 
 	if !existed {
@@ -335,12 +359,16 @@ func (c *mockClient) UpsertPolicy(_ context.Context, patch *v1pb.Policy, updateM
 
 // DeletePolicy deletes the policy.
 func (c *mockClient) DeletePolicy(_ context.Context, policyName string) error {
+	mu.Lock()
+	defer mu.Unlock()
 	delete(c.policyMap, policyName)
 	return nil
 }
 
 // GetDatabase gets the database by instance resource id and the database name.
 func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*v1pb.Database, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	db, ok := c.databaseMap[databaseName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found database %s", databaseName)
@@ -351,6 +379,8 @@ func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*v1pb.
 
 // ListDatabase list the databases.
 func (c *mockClient) ListDatabase(_ context.Context, instaceID string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	projectID := "-"
 	if filter.Project != "" {
 		projectID = filter.Project
@@ -381,16 +411,20 @@ func (c *mockClient) UpdateDatabase(ctx context.Context, patch *v1pb.Database, u
 	if slices.Contains(updateMasks, "labels") {
 		db.Labels = patch.Labels
 	}
+	mu.Lock()
 	c.databaseMap[db.Name] = db
+	mu.Unlock()
 	return db, nil
 }
 
 // BatchUpdateDatabases batch updates databases.
-func (c *mockClient) BatchUpdateDatabases(ctx context.Context, request *v1pb.BatchUpdateDatabasesRequest) (*v1pb.BatchUpdateDatabasesResponse, error) {
+func (c *mockClient) BatchUpdateDatabases(_ context.Context, request *v1pb.BatchUpdateDatabasesRequest) (*v1pb.BatchUpdateDatabasesResponse, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	for _, req := range request.Requests {
-		db, err := c.GetDatabase(ctx, req.Database.Name)
-		if err != nil {
-			return nil, err
+		db, ok := c.databaseMap[req.Database.Name]
+		if !ok {
+			return nil, errors.Errorf("Cannot found database %s", req.Database.Name)
 		}
 		if slices.Contains(req.UpdateMask.Paths, "project") {
 			db.Project = req.Database.Project
@@ -403,6 +437,8 @@ func (c *mockClient) BatchUpdateDatabases(ctx context.Context, request *v1pb.Bat
 
 // GetDatabaseCatalog gets the database catalog by the database full name.
 func (c *mockClient) GetDatabaseCatalog(_ context.Context, databaseName string) (*v1pb.DatabaseCatalog, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	db, ok := c.databaseCatalogMap[databaseName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found database catalog %s", databaseName)
@@ -413,12 +449,16 @@ func (c *mockClient) GetDatabaseCatalog(_ context.Context, databaseName string) 
 
 // UpdateDatabaseCatalog patches the database catalog.
 func (c *mockClient) UpdateDatabaseCatalog(_ context.Context, patch *v1pb.DatabaseCatalog) (*v1pb.DatabaseCatalog, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	c.databaseCatalogMap[patch.Name] = patch
 	return patch, nil
 }
 
 // GetProject gets the project by resource id.
 func (c *mockClient) GetProject(_ context.Context, projectName string) (*v1pb.Project, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	proj, ok := c.projectMap[projectName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found project %s", projectName)
@@ -429,6 +469,8 @@ func (c *mockClient) GetProject(_ context.Context, projectName string) (*v1pb.Pr
 
 // ListProject list the projects.
 func (c *mockClient) ListProject(_ context.Context, filter *api.ProjectFilter) ([]*v1pb.Project, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	projects := make([]*v1pb.Project, 0)
 	for _, proj := range c.projectMap {
 		if proj.State == v1pb.State_DELETED && filter.State != v1pb.State_DELETED {
@@ -442,6 +484,8 @@ func (c *mockClient) ListProject(_ context.Context, filter *api.ProjectFilter) (
 
 // CreateProject creates the project.
 func (c *mockClient) CreateProject(_ context.Context, projectID string, project *v1pb.Project) (*v1pb.Project, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	proj := &v1pb.Project{
 		Name:  fmt.Sprintf("%s%s", ProjectNamePrefix, projectID),
 		State: v1pb.State_ACTIVE,
@@ -463,7 +507,9 @@ func (c *mockClient) UpdateProject(ctx context.Context, patch *v1pb.Project, upd
 		proj.Title = patch.Title
 	}
 
+	mu.Lock()
 	c.projectMap[proj.Name] = proj
+	mu.Unlock()
 	return proj, nil
 }
 
@@ -475,7 +521,9 @@ func (c *mockClient) DeleteProject(ctx context.Context, projectName string) erro
 	}
 
 	proj.State = v1pb.State_DELETED
+	mu.Lock()
 	c.projectMap[proj.Name] = proj
+	mu.Unlock()
 
 	return nil
 }
@@ -488,13 +536,17 @@ func (c *mockClient) UndeleteProject(ctx context.Context, projectName string) (*
 	}
 
 	proj.State = v1pb.State_ACTIVE
+	mu.Lock()
 	c.projectMap[proj.Name] = proj
+	mu.Unlock()
 
 	return proj, nil
 }
 
 // GetProjectIAMPolicy gets the project IAM policy by project full name.
 func (c *mockClient) GetProjectIAMPolicy(_ context.Context, projectName string) (*v1pb.IamPolicy, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	iamPolicy, ok := c.projectIAMMap[projectName]
 	if !ok {
 		return &v1pb.IamPolicy{}, nil
@@ -504,12 +556,16 @@ func (c *mockClient) GetProjectIAMPolicy(_ context.Context, projectName string) 
 
 // SetProjectIAMPolicy sets the project IAM policy.
 func (c *mockClient) SetProjectIAMPolicy(_ context.Context, projectName string, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	c.projectIAMMap[projectName] = update.Policy
 	return c.projectIAMMap[projectName], nil
 }
 
 // ListSettings lists all settings.
 func (c *mockClient) ListSettings(_ context.Context) (*v1pb.ListSettingsResponse, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	settings := make([]*v1pb.Setting, 0)
 	for _, setting := range c.settingMap {
 		settings = append(settings, setting)
@@ -522,6 +578,8 @@ func (c *mockClient) ListSettings(_ context.Context) (*v1pb.ListSettingsResponse
 
 // ListSettings lists all settings.
 func (c *mockClient) GetSetting(_ context.Context, settingName string) (*v1pb.Setting, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	setting, ok := c.settingMap[settingName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found setting %s", settingName)
@@ -532,6 +590,8 @@ func (c *mockClient) GetSetting(_ context.Context, settingName string) (*v1pb.Se
 
 // UpsertSetting updates or creates the setting.
 func (c *mockClient) UpsertSetting(_ context.Context, upsert *v1pb.Setting, _ []string) (*v1pb.Setting, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	setting, ok := c.settingMap[upsert.Name]
 	if !ok {
 		c.settingMap[upsert.Name] = upsert
@@ -685,6 +745,8 @@ func parseCondition(condition string, baseID int64) *v1alpha1.Expr {
 
 // ListUser list all users.
 func (c *mockClient) ListUser(_ context.Context, filter *api.UserFilter) ([]*v1pb.User, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	users := make([]*v1pb.User, 0)
 	for _, user := range c.userMap {
 		if user.State == v1pb.State_DELETED && filter.State != v1pb.State_DELETED {
@@ -698,6 +760,8 @@ func (c *mockClient) ListUser(_ context.Context, filter *api.UserFilter) ([]*v1p
 
 // GetUser gets the user by name.
 func (c *mockClient) GetUser(_ context.Context, userName string) (*v1pb.User, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	user, ok := c.userMap[userName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found user %s", userName)
@@ -709,6 +773,8 @@ func (c *mockClient) GetUser(_ context.Context, userName string) (*v1pb.User, er
 // CreateUser creates the user.
 func (c *mockClient) CreateUser(_ context.Context, user *v1pb.User) (*v1pb.User, error) {
 	// For service accounts, generate a service key
+	mu.Lock()
+	defer mu.Unlock()
 	if user.UserType == v1pb.UserType_SERVICE_ACCOUNT && user.ServiceKey == "" {
 		user.ServiceKey = fmt.Sprintf("bbs_%s_mock_service_key", strings.ReplaceAll(user.Email, "@", "_"))
 	}
@@ -735,7 +801,9 @@ func (c *mockClient) UpdateUser(ctx context.Context, user *v1pb.User, updateMask
 	if slices.Contains(updateMasks, "phone") {
 		existed.Phone = user.Phone
 	}
+	mu.Lock()
 	c.userMap[user.Name] = existed
+	mu.Unlock()
 	return c.userMap[user.Name], nil
 }
 
@@ -747,7 +815,9 @@ func (c *mockClient) DeleteUser(ctx context.Context, userName string) error {
 	}
 
 	user.State = v1pb.State_DELETED
+	mu.Lock()
 	c.userMap[user.Name] = user
+	mu.Unlock()
 
 	return nil
 }
@@ -760,13 +830,17 @@ func (c *mockClient) UndeleteUser(ctx context.Context, userName string) (*v1pb.U
 	}
 
 	user.State = v1pb.State_ACTIVE
+	mu.Lock()
 	c.userMap[user.Name] = user
+	mu.Unlock()
 
 	return c.userMap[user.Name], nil
 }
 
 // ListGroup list all groups.
 func (c *mockClient) ListGroup(_ context.Context, _ *api.GroupFilter) ([]*v1pb.Group, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	groups := make([]*v1pb.Group, 0)
 	for _, group := range c.groupMap {
 		groups = append(groups, group)
@@ -777,6 +851,8 @@ func (c *mockClient) ListGroup(_ context.Context, _ *api.GroupFilter) ([]*v1pb.G
 
 // GetGroup gets the group by name.
 func (c *mockClient) GetGroup(_ context.Context, name string) (*v1pb.Group, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	group, ok := c.groupMap[name]
 	if !ok {
 		return nil, errors.Errorf("Cannot found group %s", name)
@@ -787,6 +863,8 @@ func (c *mockClient) GetGroup(_ context.Context, name string) (*v1pb.Group, erro
 
 // CreateGroup creates the group.
 func (c *mockClient) CreateGroup(_ context.Context, email string, group *v1pb.Group) (*v1pb.Group, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	groupName := fmt.Sprintf("%s%s", GroupNamePrefix, email)
 	group.Name = groupName
 	c.groupMap[groupName] = group
@@ -808,23 +886,31 @@ func (c *mockClient) UpdateGroup(ctx context.Context, group *v1pb.Group, updateM
 	if slices.Contains(updateMasks, "members") {
 		existed.Members = group.Members
 	}
+	mu.Lock()
 	c.groupMap[existed.Name] = existed
+	mu.Unlock()
 	return existed, nil
 }
 
 // DeleteGroup deletes the group by name.
 func (c *mockClient) DeleteGroup(_ context.Context, name string) error {
+	mu.Lock()
+	defer mu.Unlock()
 	delete(c.groupMap, name)
 	return nil
 }
 
 // GetWorkspaceIAMPolicy gets the workspace IAM policy.
 func (*mockClient) GetWorkspaceIAMPolicy(_ context.Context) (*v1pb.IamPolicy, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	return workspaceIAMPolicy, nil
 }
 
 // SetWorkspaceIAMPolicy sets the workspace IAM policy.
 func (*mockClient) SetWorkspaceIAMPolicy(_ context.Context, update *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	if v := update.Policy; v != nil {
 		workspaceIAMPolicy = v
 	}
@@ -833,6 +919,8 @@ func (*mockClient) SetWorkspaceIAMPolicy(_ context.Context, update *v1pb.SetIamP
 
 // ListRole will returns all roles.
 func (c *mockClient) ListRole(_ context.Context) (*v1pb.ListRolesResponse, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	roles := make([]*v1pb.Role, 0)
 	for _, role := range c.roleMap {
 		roles = append(roles, role)
@@ -845,6 +933,8 @@ func (c *mockClient) ListRole(_ context.Context) (*v1pb.ListRolesResponse, error
 
 // GetRole gets the role by full name.
 func (c *mockClient) GetRole(_ context.Context, roleName string) (*v1pb.Role, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	role, ok := c.roleMap[roleName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found role %s", roleName)
@@ -855,6 +945,8 @@ func (c *mockClient) GetRole(_ context.Context, roleName string) (*v1pb.Role, er
 
 // CreateRole creates the role.
 func (c *mockClient) CreateRole(_ context.Context, roleID string, role *v1pb.Role) (*v1pb.Role, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	roleName := fmt.Sprintf("%s%s", RoleNamePrefix, roleID)
 	role.Name = roleName
 	c.roleMap[roleName] = role
@@ -876,18 +968,24 @@ func (c *mockClient) UpdateRole(ctx context.Context, role *v1pb.Role, updateMask
 	if slices.Contains(updateMasks, "permissions") {
 		existed.Permissions = role.Permissions
 	}
+	mu.Lock()
 	c.roleMap[existed.Name] = existed
+	mu.Unlock()
 	return c.roleMap[existed.Name], nil
 }
 
 // DeleteRole deletes the role by name.
 func (c *mockClient) DeleteRole(_ context.Context, roleName string) error {
+	mu.Lock()
+	defer mu.Unlock()
 	delete(c.roleMap, roleName)
 	return nil
 }
 
 // ListReviewConfig will return review configs.
 func (c *mockClient) ListReviewConfig(_ context.Context) (*v1pb.ListReviewConfigsResponse, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	configs := make([]*v1pb.ReviewConfig, 0)
 	for _, config := range c.reviewConfigMap {
 		configs = append(configs, config)
@@ -899,6 +997,8 @@ func (c *mockClient) ListReviewConfig(_ context.Context) (*v1pb.ListReviewConfig
 
 // GetReviewConfig gets the review config by full name.
 func (c *mockClient) GetReviewConfig(_ context.Context, reviewConfigName string) (*v1pb.ReviewConfig, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	config, ok := c.reviewConfigMap[reviewConfigName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found review config %s", reviewConfigName)
@@ -908,6 +1008,8 @@ func (c *mockClient) GetReviewConfig(_ context.Context, reviewConfigName string)
 
 // UpsertReviewConfig updates or creates the review config.
 func (c *mockClient) UpsertReviewConfig(_ context.Context, reviewConfig *v1pb.ReviewConfig, updateMasks []string) (*v1pb.ReviewConfig, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	existed, ok := c.reviewConfigMap[reviewConfig.Name]
 	if !ok {
 		// Create new review config
@@ -936,12 +1038,16 @@ func (c *mockClient) UpsertReviewConfig(_ context.Context, reviewConfig *v1pb.Re
 
 // DeleteReviewConfig deletes the review config.
 func (c *mockClient) DeleteReviewConfig(_ context.Context, reviewConfigName string) error {
+	mu.Lock()
+	defer mu.Unlock()
 	delete(c.reviewConfigMap, reviewConfigName)
 	return nil
 }
 
 // ListRisk lists the risk.
 func (c *mockClient) ListRisk(_ context.Context) ([]*v1pb.Risk, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	risks := make([]*v1pb.Risk, 0)
 	for _, risk := range c.riskMap {
 		risks = append(risks, risk)
@@ -951,6 +1057,8 @@ func (c *mockClient) ListRisk(_ context.Context) ([]*v1pb.Risk, error) {
 
 // GetRisk gets the risk by full name.
 func (c *mockClient) GetRisk(_ context.Context, riskName string) (*v1pb.Risk, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	risk, ok := c.riskMap[riskName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found risk %s", riskName)
@@ -961,6 +1069,8 @@ func (c *mockClient) GetRisk(_ context.Context, riskName string) (*v1pb.Risk, er
 // CreateRisk creates the risk.
 func (c *mockClient) CreateRisk(_ context.Context, risk *v1pb.Risk) (*v1pb.Risk, error) {
 	// Generate a unique name for the risk if not set
+	mu.Lock()
+	defer mu.Unlock()
 	if risk.Name == "" {
 		risk.Name = fmt.Sprintf("risks/%d", len(c.riskMap)+1)
 	}
@@ -973,6 +1083,8 @@ func (c *mockClient) CreateRisk(_ context.Context, risk *v1pb.Risk) (*v1pb.Risk,
 
 // UpdateRisk updates the risk.
 func (c *mockClient) UpdateRisk(_ context.Context, risk *v1pb.Risk, updateMasks []string) (*v1pb.Risk, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	existed, ok := c.riskMap[risk.Name]
 	if !ok {
 		return nil, errors.Errorf("Cannot found risk %s", risk.Name)
@@ -997,6 +1109,8 @@ func (c *mockClient) UpdateRisk(_ context.Context, risk *v1pb.Risk, updateMasks 
 
 // DeleteRisk deletes the risk by name.
 func (c *mockClient) DeleteRisk(_ context.Context, riskName string) error {
+	mu.Lock()
+	defer mu.Unlock()
 	delete(c.riskMap, riskName)
 	return nil
 }
@@ -1023,6 +1137,8 @@ func FindEnvironment(ctx context.Context, client api.Client, name string) (*v1pb
 
 // ListDatabaseGroup list all database groups in a project.
 func (c *mockClient) ListDatabaseGroup(_ context.Context, projectName string) (*v1pb.ListDatabaseGroupsResponse, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	groups := make([]*v1pb.DatabaseGroup, 0)
 	for name, group := range c.databaseGroupMap {
 		// Only return groups that belong to the specified project
@@ -1037,6 +1153,8 @@ func (c *mockClient) ListDatabaseGroup(_ context.Context, projectName string) (*
 
 // GetDatabaseGroup gets the database group by name.
 func (c *mockClient) GetDatabaseGroup(_ context.Context, groupName string, _ v1pb.DatabaseGroupView) (*v1pb.DatabaseGroup, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 	group, ok := c.databaseGroupMap[groupName]
 	if !ok {
 		return nil, errors.Errorf("Cannot found database group %s", groupName)
@@ -1046,6 +1164,8 @@ func (c *mockClient) GetDatabaseGroup(_ context.Context, groupName string, _ v1p
 
 // CreateDatabaseGroup creates the database group.
 func (c *mockClient) CreateDatabaseGroup(_ context.Context, projectID, groupID string, group *v1pb.DatabaseGroup) (*v1pb.DatabaseGroup, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	groupName := fmt.Sprintf("%s%s/databaseGroups/%s", ProjectNamePrefix, projectID, groupID)
 	group.Name = groupName
 	if _, exists := c.databaseGroupMap[groupName]; exists {
@@ -1057,6 +1177,8 @@ func (c *mockClient) CreateDatabaseGroup(_ context.Context, projectID, groupID s
 
 // UpdateDatabaseGroup updates the database group.
 func (c *mockClient) UpdateDatabaseGroup(_ context.Context, group *v1pb.DatabaseGroup, updateMasks []string) (*v1pb.DatabaseGroup, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	existed, ok := c.databaseGroupMap[group.Name]
 	if !ok {
 		return nil, errors.Errorf("Cannot found database group %s", group.Name)
@@ -1070,9 +1192,6 @@ func (c *mockClient) UpdateDatabaseGroup(_ context.Context, group *v1pb.Database
 	if slices.Contains(updateMasks, "matched_databases") {
 		existed.MatchedDatabases = group.MatchedDatabases
 	}
-	if slices.Contains(updateMasks, "unmatched_databases") {
-		existed.UnmatchedDatabases = group.UnmatchedDatabases
-	}
 
 	c.databaseGroupMap[group.Name] = existed
 	return existed, nil
@@ -1080,6 +1199,8 @@ func (c *mockClient) UpdateDatabaseGroup(_ context.Context, group *v1pb.Database
 
 // DeleteDatabaseGroup deletes the database group by name.
 func (c *mockClient) DeleteDatabaseGroup(_ context.Context, groupName string) error {
+	mu.Lock()
+	defer mu.Unlock()
 	delete(c.databaseGroupMap, groupName)
 	return nil
 }

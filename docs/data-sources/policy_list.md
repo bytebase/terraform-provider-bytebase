@@ -30,7 +30,6 @@ The policy data source list.
 Read-Only:
 
 - `data_source_query_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--data_source_query_policy))
-- `disable_copy_data_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--disable_copy_data_policy))
 - `enforce` (Boolean)
 - `global_masking_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--global_masking_policy))
 - `inherit_from_parent` (Boolean)
@@ -48,14 +47,6 @@ Read-Only:
 - `disallow_ddl` (Boolean)
 - `disallow_dml` (Boolean)
 - `restriction` (String)
-
-
-<a id="nestedobjatt--policies--disable_copy_data_policy"></a>
-### Nested Schema for `policies.disable_copy_data_policy`
-
-Read-Only:
-
-- `enable` (Boolean)
 
 
 <a id="nestedobjatt--policies--global_masking_policy"></a>
@@ -106,6 +97,7 @@ Read-Only:
 
 Read-Only:
 
+- `disable_copy_data` (Boolean)
 - `disable_export` (Boolean)
 - `maximum_result_rows` (Number)
 - `maximum_result_size` (Number)

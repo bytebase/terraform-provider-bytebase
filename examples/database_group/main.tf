@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.10.0"
+      version = "3.11.1"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -36,7 +36,7 @@ resource "bytebase_database_group" "databases_in_test" {
   resource_id = "databases-in-test"
   project     = data.bytebase_project.sample_project.name
   title       = "Databases in test env"
-  condition   = "resource.environment_name == \"test\""
+  condition   = "resource.environment_id == \"test\""
 }
 
 data "bytebase_database_group" "databases_in_test" {

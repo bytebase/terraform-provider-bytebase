@@ -31,7 +31,7 @@ func TestAccSetting_WorkspaceApproval(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.conditions.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.0.steps.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.0.roles.#", "2"),
 				),
 			},
 			// Update workspace approval setting
@@ -44,7 +44,7 @@ func TestAccSetting_WorkspaceApproval(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.conditions.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.0.steps.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.0.roles.#", "1"),
 				),
 			},
 		},
@@ -228,9 +228,7 @@ resource "bytebase_setting" "%s" {
 			flow {
 				title       = "Test"
 				description = "Test"
-				steps {
-					role = "roles/test"
-				}
+				roles = ["roles/test"]
 			}
 		}
 	}
@@ -265,9 +263,7 @@ resource "bytebase_setting" "%s" {
 			flow {
 				title       = "Test"
 				description = "Test"
-				steps {
-					role = "invalid-role"
-				}
+				roles = ["invalid-role"]
 			}
 		}
 	}
@@ -339,12 +335,10 @@ resource "bytebase_setting" "%s" {
 			flow {
 				title       = "DDL Approval Flow"
 				description = "Approval flow for DDL operations"
-				steps {
-					role = bytebase_role.approval_role_%s.name
-				}
-				steps {
-					role = bytebase_role.approval_role_%s.name
-				}
+				roles = [
+					bytebase_role.approval_role_%s.name,
+					bytebase_role.approval_role_%s.name
+				]
 			}
 		}
 	}
@@ -377,9 +371,7 @@ resource "bytebase_setting" "%s" {
 			flow {
 				title       = "Updated Approval Flow"
 				description = "Updated approval flow"
-				steps {
-					role = bytebase_role.approval_role_%s.name
-				}
+				roles = [bytebase_role.approval_role_%s.name]
 			}
 		}
 	}

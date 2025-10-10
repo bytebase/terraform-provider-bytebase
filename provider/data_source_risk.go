@@ -30,7 +30,7 @@ func dataSourceRisk() *schema.Resource {
 				Description: "The risk source.",
 			},
 			"level": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The risk level.",
 			},

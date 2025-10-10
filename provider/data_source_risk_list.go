@@ -37,7 +37,7 @@ func dataSourceRiskList() *schema.Resource {
 							Description: "The risk source.",
 						},
 						"level": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The risk level.",
 						},
@@ -75,7 +75,7 @@ func dataSourceRiskListRead(ctx context.Context, d *schema.ResourceData, m inter
 		raw["name"] = risk.Name
 		raw["title"] = risk.Title
 		raw["source"] = risk.Source.String()
-		raw["level"] = int(risk.Level)
+		raw["level"] = risk.Level.String()
 		raw["active"] = risk.Active
 		raw["condition"] = risk.Condition.Expression
 
