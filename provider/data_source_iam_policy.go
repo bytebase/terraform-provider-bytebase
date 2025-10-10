@@ -3,12 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/pkg/errors"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
@@ -113,12 +111,6 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 								Set:         schema.HashString,
 								Description: "The accessible table list",
 							},
-							"row_limit": {
-								Type:        schema.TypeInt,
-								Computed:    computed,
-								Optional:    true,
-								Description: "The export row limit for exporter role",
-							},
 							"expire_timestamp": {
 								Type:        schema.TypeString,
 								Computed:    computed,
@@ -203,13 +195,6 @@ func flattenIAMPolicy(p *v1pb.IamPolicy) ([]interface{}, error) {
 						))
 					}
 					rawCondition["tables"] = schema.NewSet(schema.HashString, rawTableList)
-				}
-				if strings.HasPrefix(expression, `request.row_limit <= `) {
-					i, err := strconv.Atoi(strings.TrimPrefix(expression, `request.row_limit <= `))
-					if err != nil {
-						return nil, errors.Errorf("cannot convert %s to int with error: %s", expression, err.Error())
-					}
-					rawCondition["row_limit"] = i
 				}
 				if strings.HasPrefix(expression, "request.time < ") {
 					rawCondition["expire_timestamp"] = strings.TrimSuffix(

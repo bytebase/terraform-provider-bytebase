@@ -1,10 +1,10 @@
-resource "bytebase_policy" "disable_copy_data_policy_prod" {
+resource "bytebase_policy" "disable_copy_data_prod" {
   depends_on = [bytebase_setting.environments]
   parent     = bytebase_setting.environments.environment_setting[0].environment[1].name
-  type       = "DISABLE_COPY_DATA"
+  type       = "DATA_QUERY"
 
-  disable_copy_data_policy {
-    enable = true
+  query_data_policy {
+    disable_copy_data = true
   }
 }
 

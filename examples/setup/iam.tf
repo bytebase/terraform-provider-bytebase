@@ -80,7 +80,6 @@ resource "bytebase_iam_policy" "project_iam" {
       condition {
         database         = "instances/test-sample-instance/databases/employee"
         tables           = ["dept_emp", "dept_manager"]
-        row_limit        = 10000
         expire_timestamp = "2027-03-09T16:17:49Z"
       }
     }

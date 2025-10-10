@@ -1,9 +1,15 @@
 buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.18.1-20250908030532-58bfc338601e.1 h1:FQEei3tpJ+OjhAAfLOTzqm+XaFboZI+UpWbXEiQJ1m4=
 buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.18.1-20250908030532-58bfc338601e.1/go.mod h1:/jFGXncqA/NGlTsADOmP7o1PaKo05HUP64uWe4g7UZg=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20251010010834-1aa0c6de76e4.1 h1:WNQflXc5jqg/LZikcsJxwVFfJMB0i1O7olWXgBZ/DVM=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20251010010834-1aa0c6de76e4.1/go.mod h1:EhBo6m8asi2++hICIxqtAJdmw8SGYXdxZxPpytC1xUw=
 buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.8-20250908030532-58bfc338601e.1 h1:9VCImLW8Zda6Tay+4zoS85Y8RwX94/x5XlZeeyQHZ38=
 buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.8-20250908030532-58bfc338601e.1/go.mod h1:dwdKUX0jGgJ7OJe024SNHvANb1TKuBzIrZOzL/3Njtk=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.10-20251010010834-1aa0c6de76e4.1 h1:LKV7Q1GToSWI0IFvWxfw5Ul8AyiR8ItAzq1cKbEGP8U=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.10-20251010010834-1aa0c6de76e4.1/go.mod h1:hCjM3DsxzHQGb3QEnCNYrln9ZgB16AZLOVfRJZRKC0E=
 connectrpc.com/connect v1.18.1 h1:PAg7CjSAGvscaf6YZKUefjoih5Z/qYkyaTrBW8xvYPw=
 connectrpc.com/connect v1.18.1/go.mod h1:0292hj1rnx8oFrStN7cB4jjVBeqs+Yx5yDIC2prWDO8=
+connectrpc.com/connect v1.19.1 h1:R5M57z05+90EfEvCY1b7hBxDVOUl45PrtXtAV2fOC14=
+connectrpc.com/connect v1.19.1/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
 github.com/Masterminds/goutils v1.1.0/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
@@ -296,6 +302,8 @@ google.golang.org/protobuf v1.26.0-rc.1/go.mod h1:jlhhOSvTdKEhbULTjvd4ARK9grFBp0
 google.golang.org/protobuf v1.26.0/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
 google.golang.org/protobuf v1.36.8 h1:xHScyCOEuuwZEc6UtSOvPbAT4zRh0xcNRYekJwfqyMc=
 google.golang.org/protobuf v1.36.8/go.mod h1:fuxRtAxBytpl4zzqUh6/eyUujkJdNiuEkXntxiD/uRU=
+google.golang.org/protobuf v1.36.10 h1:AYd7cD/uASjIL6Q9LiTjz8JLcrh/88q5UObnmY3aOOE=
+google.golang.org/protobuf v1.36.10/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=

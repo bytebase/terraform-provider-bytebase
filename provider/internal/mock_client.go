@@ -1070,9 +1070,6 @@ func (c *mockClient) UpdateDatabaseGroup(_ context.Context, group *v1pb.Database
 	if slices.Contains(updateMasks, "matched_databases") {
 		existed.MatchedDatabases = group.MatchedDatabases
 	}
-	if slices.Contains(updateMasks, "unmatched_databases") {
-		existed.UnmatchedDatabases = group.UnmatchedDatabases
-	}
 
 	c.databaseGroupMap[group.Name] = existed
 	return existed, nil

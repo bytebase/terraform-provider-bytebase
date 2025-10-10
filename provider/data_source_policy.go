@@ -44,7 +44,6 @@ func dataSourcePolicy() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					v1pb.PolicyType_MASKING_EXCEPTION.String(),
 					v1pb.PolicyType_MASKING_RULE.String(),
-					v1pb.PolicyType_DISABLE_COPY_DATA.String(),
 					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
 					v1pb.PolicyType_ROLLOUT_POLICY.String(),
 					v1pb.PolicyType_DATA_QUERY.String(),
@@ -68,7 +67,6 @@ func dataSourcePolicy() *schema.Resource {
 			},
 			"masking_exception_policy": getMaskingExceptionPolicySchema(true),
 			"global_masking_policy":    getGlobalMaskingPolicySchema(true),
-			"disable_copy_data_policy": getDisableCopyDataPolicySchema(true),
 			"data_source_query_policy": getDataSourceQueryPolicySchema(true),
 			"rollout_policy":           getRolloutPolicySchema(true),
 			"query_data_policy":        getDataQueryPolicySchema(true),
@@ -250,34 +248,18 @@ func getDataQueryPolicySchema(computed bool) *schema.Schema {
 				},
 				"disable_export": {
 					Type:        schema.TypeBool,
-					Required:    true,
+					Optional:    true,
 					Description: "Disable export data in the SQL editor",
+				},
+				"disable_copy_data": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Disable copying data in the SQL editor",
 				},
 				"timeout_in_seconds": {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					Description: "The maximum time allowed for a query to run in SQL Editor. No limit when the value <= 0",
-				},
-			},
-		},
-	}
-}
-
-func getDisableCopyDataPolicySchema(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Computed:    computed,
-		Optional:    true,
-		Default:     nil,
-		Type:        schema.TypeList,
-		MinItems:    0,
-		MaxItems:    1,
-		Description: "Restrict data copying in SQL Editor (Admins/DBAs allowed)",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"enable": {
-					Type:        schema.TypeBool,
-					Required:    true,
-					Description: "Restrict data copying",
 				},
 			},
 		},
@@ -415,11 +397,6 @@ func flattenPolicyPayload(policy *v1pb.Policy) (string, interface{}, diag.Diagno
 			}
 			return "global_masking_policy", maskingPolicy, nil
 		}
-	case v1pb.PolicyType_DISABLE_COPY_DATA:
-		if p := policy.GetDisableCopyDataPolicy(); p != nil {
-			disableCopyDataPolicy := flattenDisableCopyDataPolicy(p)
-			return "disable_copy_data_policy", disableCopyDataPolicy, nil
-		}
 	case v1pb.PolicyType_DATA_SOURCE_QUERY:
 		if p := policy.GetDataSourceQueryPolicy(); p != nil {
 			dataSourceQueryPolicy := flattenDataSourceQueryPolicy(p)
@@ -443,7 +420,6 @@ func flattenPolicyPayload(policy *v1pb.Policy) (string, interface{}, diag.Diagno
 func flattenRolloutPolicy(p *v1pb.RolloutPolicy) []interface{} {
 	roles := []string{}
 	roles = append(roles, p.Roles...)
-	roles = append(roles, p.IssueRoles...)
 	policy := map[string]interface{}{
 		"automatic": p.Automatic,
 		"roles":     roles,
@@ -460,18 +436,12 @@ func flattenDataSourceQueryPolicy(p *v1pb.DataSourceQueryPolicy) []interface{} {
 	return []interface{}{policy}
 }
 
-func flattenDisableCopyDataPolicy(p *v1pb.DisableCopyDataPolicy) []interface{} {
-	policy := map[string]interface{}{
-		"enable": p.Active,
-	}
-	return []interface{}{policy}
-}
-
 func flattenQueryDataPolicy(p *v1pb.QueryDataPolicy) []interface{} {
 	policy := map[string]interface{}{
 		"maximum_result_size": int(p.MaximumResultSize),
 		"maximum_result_rows": int(p.MaximumResultRows),
 		"disable_export":      p.DisableExport,
+		"disable_copy_data":   p.DisableCopyData,
 		"timeout_in_seconds":  int(p.Timeout.Seconds),
 	}
 	return []interface{}{policy}

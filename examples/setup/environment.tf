@@ -51,13 +51,13 @@ resource "bytebase_policy" "rollout_policy" {
   }
 }
 
-resource "bytebase_policy" "disable_copy_data_policy" {
+resource "bytebase_policy" "env_query_data_policy" {
   depends_on = [bytebase_setting.environments]
   parent     = bytebase_setting.environments.environment_setting[0].environment[0].name
-  type       = "DISABLE_COPY_DATA"
+  type       = "DATA_QUERY"
 
-  disable_copy_data_policy {
-    enable = false
+  query_data_policy {
+    disable_copy_data = true
   }
 }
 

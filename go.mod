@@ -5,9 +5,9 @@ go 1.24.4
 toolchain go1.24.5
 
 require (
-	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.18.1-20250908030532-58bfc338601e.1
-	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.8-20250908030532-58bfc338601e.1
-	connectrpc.com/connect v1.18.1
+	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20251010010834-1aa0c6de76e4.1
+	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.10-20251010010834-1aa0c6de76e4.1
+	connectrpc.com/connect v1.19.1
 	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
@@ -15,7 +15,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	google.golang.org/genproto v0.0.0-20250528174236-200df99c418a
 	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822
-	google.golang.org/protobuf v1.36.8
+	google.golang.org/protobuf v1.36.10
 )
 
 require (

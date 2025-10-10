@@ -65,7 +65,6 @@ func dataSourcePolicyList() *schema.Resource {
 						},
 						"masking_exception_policy": getMaskingExceptionPolicySchema(true),
 						"global_masking_policy":    getGlobalMaskingPolicySchema(true),
-						"disable_copy_data_policy": getDisableCopyDataPolicySchema(true),
 						"data_source_query_policy": getDataSourceQueryPolicySchema(true),
 						"rollout_policy":           getRolloutPolicySchema(true),
 						"query_data_policy":        getDataQueryPolicySchema(true),

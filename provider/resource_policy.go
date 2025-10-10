@@ -54,7 +54,6 @@ func resourcePolicy() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					v1pb.PolicyType_MASKING_EXCEPTION.String(),
 					v1pb.PolicyType_MASKING_RULE.String(),
-					v1pb.PolicyType_DISABLE_COPY_DATA.String(),
 					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
 					v1pb.PolicyType_ROLLOUT_POLICY.String(),
 					v1pb.PolicyType_DATA_QUERY.String(),
@@ -80,7 +79,6 @@ func resourcePolicy() *schema.Resource {
 			},
 			"masking_exception_policy": getMaskingExceptionPolicySchema(false),
 			"global_masking_policy":    getGlobalMaskingPolicySchema(false),
-			"disable_copy_data_policy": getDisableCopyDataPolicySchema(false),
 			"data_source_query_policy": getDataSourceQueryPolicySchema(false),
 			"rollout_policy":           getRolloutPolicySchema(false),
 			"query_data_policy":        getDataQueryPolicySchema(false),
@@ -153,18 +151,6 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			MaskingRulePolicy: maskingRulePolicy,
 		}
 		updateMasks = append(updateMasks, "masking_rule_policy")
-	case v1pb.PolicyType_DISABLE_COPY_DATA:
-		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
-			return diag.Errorf("policy %v only support environment or project resource", policyName)
-		}
-		disableCopyDataPolicy, err := convertToDisableCopyDataPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.Policy = &v1pb.Policy_DisableCopyDataPolicy{
-			DisableCopyDataPolicy: disableCopyDataPolicy,
-		}
-		updateMasks = append(updateMasks, "disable_copy_data_policy")
 	case v1pb.PolicyType_DATA_SOURCE_QUERY:
 		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
 			return diag.Errorf("policy %v only support environment or project resource", policyName)
@@ -190,8 +176,8 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		updateMasks = append(updateMasks, "rollout_policy")
 	case v1pb.PolicyType_DATA_QUERY:
-		if parent != internal.WorkspaceName {
-			return diag.Errorf("policy %v only support %v parent", policyName, internal.WorkspaceName)
+		if parent != internal.WorkspaceName && !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) {
+			return diag.Errorf("policy %v only support %v or environment resource", policyName, internal.WorkspaceName)
 		}
 		queryDataPolicy, err := convertToQueryDataPolicy(d)
 		if err != nil {
@@ -280,16 +266,6 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		patch.Policy = &v1pb.Policy_MaskingRulePolicy{
 			MaskingRulePolicy: maskingRulePolicy,
-		}
-	}
-	if d.HasChange("disable_copy_data_policy") {
-		updateMasks = append(updateMasks, "disable_copy_data_policy")
-		disableCopyDataPolicy, err := convertToDisableCopyDataPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.Policy = &v1pb.Policy_DisableCopyDataPolicy{
-			DisableCopyDataPolicy: disableCopyDataPolicy,
 		}
 	}
 	if d.HasChange("data_source_query_policy") {
@@ -511,23 +487,12 @@ func convertToQueryDataPolicy(d *schema.ResourceData) (*v1pb.QueryDataPolicy, er
 	raw := rawList[0].(map[string]interface{})
 	return &v1pb.QueryDataPolicy{
 		DisableExport:     raw["disable_export"].(bool),
+		DisableCopyData:   raw["disable_copy_data"].(bool),
 		MaximumResultSize: int64(raw["maximum_result_size"].(int)),
 		MaximumResultRows: int32(raw["maximum_result_rows"].(int)),
 		Timeout: &durationpb.Duration{
 			Seconds: int64(raw["timeout_in_seconds"].(int)),
 		},
-	}, nil
-}
-
-func convertToDisableCopyDataPolicy(d *schema.ResourceData) (*v1pb.DisableCopyDataPolicy, error) {
-	rawList, ok := d.Get("disable_copy_data_policy").([]interface{})
-	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid disable_copy_data_policy")
-	}
-
-	raw := rawList[0].(map[string]interface{})
-	return &v1pb.DisableCopyDataPolicy{
-		Active: raw["enable"].(bool),
 	}, nil
 }
 

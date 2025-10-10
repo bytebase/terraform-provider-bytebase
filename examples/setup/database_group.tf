@@ -4,5 +4,5 @@ resource "bytebase_database_group" "databases_in_test" {
   resource_id = "databases-in-test"
   project     = bytebase_project.sample_project.name
   title       = "Databases in test env"
-  condition   = "resource.environment_name == \"test\""
+  condition   = "resource.environment_id == \"test\""
 }
