@@ -55,20 +55,12 @@ Optional:
 
 Required:
 
-- `steps` (Block List, Min: 1) Approval flow following the step order. (see [below for nested schema](#nestedblock--approval_flow--rules--flow--steps))
+- `roles` (List of String) The role require to review in this step
 - `title` (String)
 
 Optional:
 
 - `description` (String)
-
-<a id="nestedblock--approval_flow--rules--flow--steps"></a>
-### Nested Schema for `approval_flow.rules.flow.steps`
-
-Required:
-
-- `role` (String) The role require to review in this step
-
 
 
 <a id="nestedblock--approval_flow--rules--conditions"></a>

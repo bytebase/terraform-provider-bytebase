@@ -214,16 +214,8 @@ Read-Only:
 Read-Only:
 
 - `description` (String)
-- `steps` (List of Object) (see [below for nested schema](#nestedobjatt--approval_flow--rules--flow--steps))
+- `roles` (List of String)
 - `title` (String)
-
-<a id="nestedobjatt--approval_flow--rules--flow--steps"></a>
-### Nested Schema for `approval_flow.rules.flow.title`
-
-Read-Only:
-
-- `role` (String)
-
 
 
 

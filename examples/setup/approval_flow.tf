@@ -7,17 +7,11 @@ resource "bytebase_setting" "approval_flow" {
         description = "Need DBA and workspace admin approval"
 
         # Approval flow following the step order.
-        steps {
-          role = "roles/projectOwner"
-        }
-
-        steps {
-          role = "roles/workspaceDBA"
-        }
-
-        steps {
-          role = "roles/workspaceAdmin"
-        }
+        roles = [
+          "roles/projectOwner",
+          "roles/workspaceDBA",
+          "roles/workspaceAdmin"
+        ]
       }
 
       # Match any condition will trigger this approval flow.
