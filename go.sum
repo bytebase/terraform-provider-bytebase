@@ -1,7 +1,7 @@
-buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20251010010834-1aa0c6de76e4.1 h1:WNQflXc5jqg/LZikcsJxwVFfJMB0i1O7olWXgBZ/DVM=
-buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20251010010834-1aa0c6de76e4.1/go.mod h1:EhBo6m8asi2++hICIxqtAJdmw8SGYXdxZxPpytC1xUw=
-buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.10-20251010010834-1aa0c6de76e4.1 h1:LKV7Q1GToSWI0IFvWxfw5Ul8AyiR8ItAzq1cKbEGP8U=
-buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.10-20251010010834-1aa0c6de76e4.1/go.mod h1:hCjM3DsxzHQGb3QEnCNYrln9ZgB16AZLOVfRJZRKC0E=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20251010051414-0534aa930702.1 h1:T4v2vd8e4RkC6ccfOdsvmDZ7YnW2YyAT6OFMdwcPgOA=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20251010051414-0534aa930702.1/go.mod h1:A57O99YuSmuL9rUI39AMITcbFfJc6Ikv48Qb6Y2EgCw=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.10-20251010051414-0534aa930702.1 h1:5bZgEFfHz4kUG6fkHH9wmBG3dxyaA5rKpaprSP0csTo=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.10-20251010051414-0534aa930702.1/go.mod h1:hCjM3DsxzHQGb3QEnCNYrln9ZgB16AZLOVfRJZRKC0E=
 connectrpc.com/connect v1.19.1 h1:R5M57z05+90EfEvCY1b7hBxDVOUl45PrtXtAV2fOC14=
 connectrpc.com/connect v1.19.1/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=

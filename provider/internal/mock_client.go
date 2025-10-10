@@ -418,7 +418,7 @@ func (c *mockClient) UpdateDatabase(ctx context.Context, patch *v1pb.Database, u
 }
 
 // BatchUpdateDatabases batch updates databases.
-func (c *mockClient) BatchUpdateDatabases(ctx context.Context, request *v1pb.BatchUpdateDatabasesRequest) (*v1pb.BatchUpdateDatabasesResponse, error) {
+func (c *mockClient) BatchUpdateDatabases(_ context.Context, request *v1pb.BatchUpdateDatabasesRequest) (*v1pb.BatchUpdateDatabasesResponse, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	for _, req := range request.Requests {

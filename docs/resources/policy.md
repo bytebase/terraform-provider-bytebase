@@ -97,13 +97,10 @@ Optional:
 <a id="nestedblock--query_data_policy"></a>
 ### Nested Schema for `query_data_policy`
 
-Required:
+Optional:
 
 - `disable_copy_data` (Boolean) Disable copying data in the SQL editor
 - `disable_export` (Boolean) Disable export data in the SQL editor
-
-Optional:
-
 - `maximum_result_rows` (Number) The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.
 - `maximum_result_size` (Number) The size limit in bytes. The default value is 100MB, we will use the default value if the limit <= 0.
 - `timeout_in_seconds` (Number) The maximum time allowed for a query to run in SQL Editor. No limit when the value <= 0
