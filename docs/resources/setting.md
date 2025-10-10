@@ -55,6 +55,7 @@ Optional:
 
 Required:
 
+- `id` (String) The approval template ID. Built-in templates use 'bb.*' prefix (e.g., 'bb.project-owner', 'bb.workspace-dba'), custom templates use UUIDs.
 - `roles` (List of String) The role require to review in this step
 - `title` (String)
 

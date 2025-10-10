@@ -214,6 +214,7 @@ Read-Only:
 Read-Only:
 
 - `description` (String)
+- `id` (String)
 - `roles` (List of String)
 - `title` (String)
 
