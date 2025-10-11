@@ -27,7 +27,7 @@ Read-Only:
 
 - `active` (Boolean)
 - `condition` (String)
-- `level` (Number)
+- `level` (String)
 - `name` (String)
 - `source` (String)
 - `title` (String)

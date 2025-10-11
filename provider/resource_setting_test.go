@@ -226,6 +226,7 @@ resource "bytebase_setting" "%s" {
 				level  = "LOW"
 			}
 			flow {
+				id          = "test-flow"
 				title       = "Test"
 				description = "Test"
 				roles = ["roles/test"]
@@ -261,6 +262,7 @@ resource "bytebase_setting" "%s" {
 				level  = "LOW"
 			}
 			flow {
+				id          = "test-flow"
 				title       = "Test"
 				description = "Test"
 				roles = ["invalid-role"]
@@ -333,6 +335,7 @@ resource "bytebase_setting" "%s" {
 				level  = "LOW"
 			}
 			flow {
+				id          = "test-ddl-approval-flow"
 				title       = "DDL Approval Flow"
 				description = "Approval flow for DDL operations"
 				roles = [
@@ -369,6 +372,7 @@ resource "bytebase_setting" "%s" {
 				level  = "MODERATE"
 			}
 			flow {
+				id          = "test-updated-approval-flow"
 				title       = "Updated Approval Flow"
 				description = "Updated approval flow"
 				roles = [bytebase_role.approval_role_%s.name]

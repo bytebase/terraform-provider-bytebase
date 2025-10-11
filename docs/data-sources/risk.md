@@ -24,7 +24,7 @@ The risk data source.
 - `active` (Boolean) The risk active.
 - `condition` (String) The risk condition.
 - `id` (String) The ID of this resource.
-- `level` (Number) The risk level.
+- `level` (String) The risk level.
 - `source` (String) The risk source.
 - `title` (String) The risk title.
 

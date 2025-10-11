@@ -371,6 +371,7 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 		rawFlow := flowList[0].(map[string]interface{})
 		approvalRule := &v1pb.WorkspaceApprovalSetting_Rule{
 			Template: &v1pb.ApprovalTemplate{
+				Id:          rawFlow["id"].(string),
 				Title:       rawFlow["title"].(string),
 				Description: rawFlow["description"].(string),
 				Flow:        &v1pb.ApprovalFlow{},

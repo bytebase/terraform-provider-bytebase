@@ -502,6 +502,12 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								Type:     schema.TypeList,
 								Elem: &schema.Resource{
 									Schema: map[string]*schema.Schema{
+										"id": {
+											Type:         schema.TypeString,
+											Required:     true,
+											ValidateFunc: validation.StringIsNotEmpty,
+											Description:  "The approval template ID. Built-in templates use 'bb.*' prefix (e.g., 'bb.project-owner', 'bb.workspace-dba'), custom templates use UUIDs.",
+										},
 										"title": {
 											Type:         schema.TypeString,
 											Required:     true,
@@ -733,6 +739,7 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 			"conditions": conditionList,
 			"flow": []interface{}{
 				map[string]interface{}{
+					"id":          rule.Template.Id,
 					"title":       rule.Template.Title,
 					"description": rule.Template.Description,
 					"roles":       roleList,
