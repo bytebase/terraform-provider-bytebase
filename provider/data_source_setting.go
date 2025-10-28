@@ -718,13 +718,13 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 	ruleList := []interface{}{}
 	for _, rule := range setting.Rules {
 		roleList := []interface{}{}
-		for _, role := range rule.Template.Flow.Roles {
+		for _, role := range rule.GetTemplate().GetFlow().GetRoles() {
 			roleList = append(roleList, role)
 		}
 
 		conditionList := []map[string]interface{}{}
-		if rule.Condition.Expression != "" {
-			parsedExpr, err := client.ParseExpression(ctx, rule.Condition.Expression)
+		if expr := rule.GetCondition().GetExpression(); expr != "" {
+			parsedExpr, err := client.ParseExpression(ctx, expr)
 			if err != nil {
 				return nil, err
 			}
@@ -739,9 +739,9 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 			"conditions": conditionList,
 			"flow": []interface{}{
 				map[string]interface{}{
-					"id":          rule.Template.Id,
-					"title":       rule.Template.Title,
-					"description": rule.Template.Description,
+					"id":          rule.GetTemplate().GetId(),
+					"title":       rule.GetTemplate().GetTitle(),
+					"description": rule.GetTemplate().GetDescription(),
 					"roles":       roleList,
 				},
 			},
