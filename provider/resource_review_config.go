@@ -77,7 +77,6 @@ func resourceReviewConfig() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								v1pb.SQLReviewRuleLevel_WARNING.String(),
 								v1pb.SQLReviewRuleLevel_ERROR.String(),
-								v1pb.SQLReviewRuleLevel_DISABLED.String(),
 							}, false),
 						},
 						"payload": {
