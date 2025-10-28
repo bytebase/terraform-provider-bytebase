@@ -4,8 +4,6 @@ This repository is the Terraform provider for [Bytebase](https://bytebase.com). 
 involves teams using Cloud vendors' Terraform provider to provision database instances, followed by
 using Terraform Bytebase Provider to prepare those instances ready for application use.
 
-![Overview](https://raw.githubusercontent.com/bytebase/terraform-provider-bytebase/main/docs/assets/overview.webp)
-
 ## Usage
 
 1. Download [provider](https://registry.terraform.io/providers/bytebase/bytebase).
