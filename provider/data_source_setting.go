@@ -677,9 +677,10 @@ func parseApprovalExpression(callExpr *v1alpha1.Expr_Call) ([]map[string]interfa
 			}
 
 			argName := argExpr.Args[0].GetIdentExpr().Name
+			constExpr := argExpr.Args[1].GetConstExpr()
 			switch argName {
 			case "source", "level":
-				resp[argName] = argExpr.Args[1].GetConstExpr().GetStringValue()
+				resp[argName] = constExpr.GetStringValue()
 			default:
 				return nil, errors.Errorf("unsupport arg: %v", argName)
 			}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -641,6 +640,12 @@ func (*mockClient) ParseExpression(_ context.Context, expression string) (*v1alp
 }
 
 func parseCondition(condition string, baseID int64) *v1alpha1.Expr {
+	// Trim outer parentheses and whitespace first
+	condition = strings.TrimSpace(condition)
+	condition = strings.TrimPrefix(condition, "(")
+	condition = strings.TrimSuffix(condition, ")")
+	condition = strings.TrimSpace(condition)
+
 	// Parse AND conditions (&&)
 	parts := strings.Split(condition, " && ")
 	if len(parts) != 2 {
@@ -656,22 +661,22 @@ func parseCondition(condition string, baseID int64) *v1alpha1.Expr {
 	}
 
 	var sourceValue string
-	var levelValue int64
+	var levelValue string
 
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if strings.HasPrefix(part, "source ==") {
-			// Extract source value
-			sourceValue = strings.Trim(strings.TrimPrefix(part, "source =="), ` "`)
+			// Extract source value: remove 'source == ' and surrounding quotes
+			val := strings.TrimPrefix(part, "source ==")
+			val = strings.TrimSpace(val)
+			val = strings.Trim(val, `"`)
+			sourceValue = val
 		} else if strings.HasPrefix(part, "level ==") {
-			// Extract level value
-			levelStr := strings.TrimSpace(strings.TrimPrefix(part, "level =="))
-			var err error
-			levelValue, err = strconv.ParseInt(levelStr, 10, 64)
-			if err != nil {
-				// Default to 0 if parsing fails
-				levelValue = 0
-			}
+			// Extract level value as string: remove 'level == ' and surrounding quotes
+			val := strings.TrimPrefix(part, "level ==")
+			val = strings.TrimSpace(val)
+			val = strings.Trim(val, `"`)
+			levelValue = val
 		}
 	}
 
@@ -727,8 +732,8 @@ func parseCondition(condition string, baseID int64) *v1alpha1.Expr {
 										Id: baseID + 6,
 										ExprKind: &v1alpha1.Expr_ConstExpr{
 											ConstExpr: &v1alpha1.Constant{
-												ConstantKind: &v1alpha1.Constant_Int64Value{
-													Int64Value: levelValue,
+												ConstantKind: &v1alpha1.Constant_StringValue{
+													StringValue: levelValue,
 												},
 											},
 										},
