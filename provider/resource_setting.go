@@ -359,8 +359,7 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 		buildCondition := []string{}
 		for _, condition := range conditionList {
 			rawCondition := condition.(map[string]interface{})
-			rawLevel := rawCondition["level"].(string)
-			buildCondition = append(buildCondition, fmt.Sprintf(`source == "%s" && level == %d`, rawCondition["source"].(string), api.RiskLevel(rawLevel).Int()))
+			buildCondition = append(buildCondition, fmt.Sprintf(`(source == "%s" && level == "%s")`, rawCondition["source"].(string), rawCondition["level"].(string)))
 		}
 		expression := strings.Join(buildCondition, " || ")
 
