@@ -558,10 +558,10 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 											Computed: computed,
 											Optional: true,
 											ValidateFunc: validation.StringInSlice([]string{
-												string(api.RiskLevelDefault),
-												string(api.RiskLevelLow),
-												string(api.RiskLevelModerate),
-												string(api.RiskLevelHigh),
+												v1pb.RiskLevel_LOW.String(),
+												v1pb.RiskLevel_MODERATE.String(),
+												v1pb.RiskLevel_HIGH.String(),
+												v1pb.RiskLevel_RISK_LEVEL_UNSPECIFIED.String(),
 											}, false),
 										},
 									},
@@ -677,23 +677,10 @@ func parseApprovalExpression(callExpr *v1alpha1.Expr_Call) ([]map[string]interfa
 			}
 
 			argName := argExpr.Args[0].GetIdentExpr().Name
+			constExpr := argExpr.Args[1].GetConstExpr()
 			switch argName {
-			case "source":
-				resp[argName] = argExpr.Args[1].GetConstExpr().GetStringValue()
-			case "level":
-				levelNumber := argExpr.Args[1].GetConstExpr().GetInt64Value()
-				switch int(levelNumber) {
-				case api.RiskLevelDefault.Int():
-					resp[argName] = api.RiskLevelDefault
-				case api.RiskLevelLow.Int():
-					resp[argName] = api.RiskLevelLow
-				case api.RiskLevelModerate.Int():
-					resp[argName] = api.RiskLevelModerate
-				case api.RiskLevelHigh.Int():
-					resp[argName] = api.RiskLevelHigh
-				default:
-					return nil, errors.Errorf("unknown risk level: %v", levelNumber)
-				}
+			case "source", "level":
+				resp[argName] = constExpr.GetStringValue()
 			default:
 				return nil, errors.Errorf("unsupport arg: %v", argName)
 			}
