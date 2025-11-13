@@ -371,6 +371,11 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 						},
 					},
 				},
+				"enable_audit_log_stdout": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Enable audit logging to stdout in structured JSON format. Requires TEAM or ENTERPRISE license.",
+				},
 			},
 		},
 	}
@@ -774,6 +779,7 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 		}
 		// If announcement is empty, don't set it at all - let Terraform handle it as unset
 	}
+	raw["enable_audit_log_stdout"] = setting.EnableAuditLogStdout
 
 	return []interface{}{raw}
 }
