@@ -73,6 +73,7 @@ func TestAccSetting_WorkspaceProfile(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.disallow_signup", "true"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.disallow_password_signin", "false"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.database_change_mode", "PIPELINE"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.enable_audit_log_stdout", "false"),
 				),
 			},
 			// Update workspace profile setting with domains
@@ -82,6 +83,7 @@ func TestAccSetting_WorkspaceProfile(t *testing.T) {
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.domains.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.enforce_identity_domain", "true"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.enable_audit_log_stdout", "true"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.text", "Test announcement"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.level", "INFO"),
@@ -393,6 +395,7 @@ resource "bytebase_setting" "%s" {
 		disallow_password_signin = false
 		database_change_mode     = "PIPELINE"
 		token_duration_in_seconds = 3600
+		enable_audit_log_stdout  = false
 	}
 }
 `, identifier)
@@ -411,6 +414,7 @@ resource "bytebase_setting" "%s" {
 		enforce_identity_domain            = true
 		token_duration_in_seconds          = 7200
 		maximum_role_expiration_in_seconds = 86400
+		enable_audit_log_stdout            = true
 		announcement {
 			text  = "Test announcement"
 			link  = "https://example.com/announcement"

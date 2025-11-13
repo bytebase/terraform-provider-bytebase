@@ -256,6 +256,10 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 		}
 		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.announcement")
 	}
+	if config := workspaceRawConfig.GetAttr("enable_audit_log_stdout"); !config.IsNull() {
+		workspacePrfile.EnableAuditLogStdout = raw["enable_audit_log_stdout"].(bool)
+		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.enable_audit_log_stdout")
+	}
 
 	return workspacePrfile, updateMasks, nil
 }
@@ -604,6 +608,7 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 			"value.workspace_profile_setting_value.token_duration",
 			"value.workspace_profile_setting_value.maximum_role_expiration",
 			"value.workspace_profile_setting_value.announcement",
+			"value.workspace_profile_setting_value.enable_audit_log_stdout",
 		}
 	case v1pb.Setting_DATA_CLASSIFICATION:
 		setting.Value = &v1pb.Value{
