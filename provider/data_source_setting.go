@@ -566,10 +566,10 @@ func dataSourceSettingRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	d.SetId(setting.Name)
-	return setSettingMessage(ctx, d, c, setting)
+	return setSettingMessage(d, setting)
 }
 
-func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.Client, setting *v1pb.Setting) diag.Diagnostics {
+func setSettingMessage(d *schema.ResourceData, setting *v1pb.Setting) diag.Diagnostics {
 	if value := setting.GetValue().GetWorkspaceApprovalSettingValue(); value != nil {
 		settingVal, err := flattenWorkspaceApprovalSetting(value)
 		if err != nil {

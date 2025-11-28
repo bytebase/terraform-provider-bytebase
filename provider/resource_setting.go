@@ -547,7 +547,7 @@ func resourceSettingRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
-	return setSettingMessage(ctx, d, c, setting)
+	return setSettingMessage(d, setting)
 }
 
 func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

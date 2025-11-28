@@ -872,6 +872,7 @@ func (c *mockClient) CreateGroup(_ context.Context, email string, group *v1pb.Gr
 	defer mu.Unlock()
 	groupName := fmt.Sprintf("%s%s", GroupNamePrefix, email)
 	group.Name = groupName
+	group.Email = email
 	c.groupMap[groupName] = group
 	return c.groupMap[groupName], nil
 }
