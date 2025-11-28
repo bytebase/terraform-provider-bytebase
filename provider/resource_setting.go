@@ -354,19 +354,6 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 	workspaceApprovalSetting := &v1pb.WorkspaceApprovalSetting{}
 	for _, rule := range rules {
 		rawRule := rule.(map[string]interface{})
-
-		// build condition expression.
-		conditionList, ok := rawRule["conditions"].([]interface{})
-		if !ok {
-			return nil, errors.Errorf("invalid conditions")
-		}
-		buildCondition := []string{}
-		for _, condition := range conditionList {
-			rawCondition := condition.(map[string]interface{})
-			buildCondition = append(buildCondition, fmt.Sprintf(`(source == "%s" && level == "%s")`, rawCondition["source"].(string), rawCondition["level"].(string)))
-		}
-		expression := strings.Join(buildCondition, " || ")
-
 		flowList, ok := rawRule["flow"].([]interface{})
 		if !ok || len(flowList) != 1 {
 			return nil, errors.Errorf("invalid flow")
@@ -374,13 +361,13 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 		rawFlow := flowList[0].(map[string]interface{})
 		approvalRule := &v1pb.WorkspaceApprovalSetting_Rule{
 			Template: &v1pb.ApprovalTemplate{
-				Id:          rawFlow["id"].(string),
 				Title:       rawFlow["title"].(string),
 				Description: rawFlow["description"].(string),
 				Flow:        &v1pb.ApprovalFlow{},
 			},
+			Source: v1pb.WorkspaceApprovalSetting_Rule_Source(v1pb.WorkspaceApprovalSetting_Rule_Source_value[d.Get("source").(string)]),
 			Condition: &expr.Expr{
-				Expression: expression,
+				Expression: rawFlow["condition"].(string),
 			},
 		}
 

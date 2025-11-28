@@ -4,7 +4,6 @@ resource "bytebase_setting" "approval_flow" {
   approval_flow {
     rules {
       flow {
-        id          = "bb.project-owner-workspace-dba-workspace-admin"
         title       = "Project Owner → DBA → Admin"
         description = "Need DBA and workspace admin approval"
         roles = [

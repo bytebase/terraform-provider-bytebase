@@ -168,6 +168,7 @@ Optional:
 - `disallow_password_signin` (Boolean) Whether to disallow password signin (except workspace admins). Require ENTERPRISE subscription
 - `disallow_signup` (Boolean) Disallow self-service signup, users can only be invited by the owner. Require PRO subscription.
 - `domains` (List of String) The workspace domain, e.g. bytebase.com. Required for the group
+- `enable_audit_log_stdout` (Boolean) Enable audit logging to stdout in structured JSON format. Requires TEAM or ENTERPRISE license.
 - `enforce_identity_domain` (Boolean) Only user and group from the domains can be created and login.
 - `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
 - `maximum_role_expiration_in_seconds` (Number) The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
@@ -214,7 +215,6 @@ Read-Only:
 Read-Only:
 
 - `description` (String)
-- `id` (String)
 - `roles` (List of String)
 - `title` (String)
 

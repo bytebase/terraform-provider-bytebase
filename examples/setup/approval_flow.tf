@@ -3,7 +3,6 @@ resource "bytebase_setting" "approval_flow" {
   approval_flow {
     rules {
       flow {
-        id          = "bb.project-owner-workspace-dba-workspace-admin"
         title       = "Project Owner -> DBA -> Admin"
         description = "Need DBA and workspace admin approval"
 
@@ -15,15 +14,22 @@ resource "bytebase_setting" "approval_flow" {
         ]
       }
 
-      # Match any condition will trigger this approval flow.
-      conditions {
-        source = "DML"
-        level  = "MODERATE"
+      source    = "DML"
+      condition = "resource.environment_id == \"prod\" && statement.affected_rows >= 100"
+    }
+
+    rules {
+      flow {
+        title = "Project Owner review"
+
+        # Approval flow following the step order.
+        roles = [
+          "roles/projectOwner"
+        ]
       }
-      conditions {
-        source = "DDL"
-        level  = "HIGH"
-      }
+
+      source    = "EXPORT_DATA"
+      condition = "resource.environment_id == \"prod\" && resource.table_name == \"employee\""
     }
   }
 }
