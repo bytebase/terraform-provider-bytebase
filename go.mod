@@ -5,8 +5,8 @@ go 1.24.4
 toolchain go1.24.5
 
 require (
-	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20251126084607-9fc4f93a2f48.2
-	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.10-20251126084607-9fc4f93a2f48.1
+	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20251128062846-919a7a8657b9.2
+	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.10-20251128062846-919a7a8657b9.1
 	connectrpc.com/connect v1.19.1
 	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0

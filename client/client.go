@@ -34,9 +34,8 @@ type client struct {
 	groupClient           bytebasev1connect.GroupServiceClient
 	settingClient         bytebasev1connect.SettingServiceClient
 	orgPolicyClient       bytebasev1connect.OrgPolicyServiceClient
-	reviewConfigClient    bytebasev1connect.ReviewConfigServiceClient
-	riskClient            bytebasev1connect.RiskServiceClient
-	celClient             bytebasev1connect.CelServiceClient
+	reviewConfigClient bytebasev1connect.ReviewConfigServiceClient
+	celClient          bytebasev1connect.CelServiceClient
 }
 
 // NewClient returns the new Bytebase API client.
@@ -86,7 +85,6 @@ func NewClient(url, email, password string) (api.Client, error) {
 	c.settingClient = bytebasev1connect.NewSettingServiceClient(c.client, c.url, interceptors)
 	c.orgPolicyClient = bytebasev1connect.NewOrgPolicyServiceClient(c.client, c.url, interceptors)
 	c.reviewConfigClient = bytebasev1connect.NewReviewConfigServiceClient(c.client, c.url, interceptors)
-	c.riskClient = bytebasev1connect.NewRiskServiceClient(c.client, c.url, interceptors)
 	c.celClient = bytebasev1connect.NewCelServiceClient(c.client, c.url, interceptors)
 
 	return &c, nil
