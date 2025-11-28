@@ -365,9 +365,9 @@ func convertToV1ApprovalSetting(d *schema.ResourceData) (*v1pb.WorkspaceApproval
 				Description: rawFlow["description"].(string),
 				Flow:        &v1pb.ApprovalFlow{},
 			},
-			Source: v1pb.WorkspaceApprovalSetting_Rule_Source(v1pb.WorkspaceApprovalSetting_Rule_Source_value[d.Get("source").(string)]),
+			Source: v1pb.WorkspaceApprovalSetting_Rule_Source(v1pb.WorkspaceApprovalSetting_Rule_Source_value[rawRule["source"].(string)]),
 			Condition: &expr.Expr{
-				Expression: rawFlow["condition"].(string),
+				Expression: rawRule["condition"].(string),
 			},
 		}
 

@@ -571,7 +571,7 @@ func dataSourceSettingRead(ctx context.Context, d *schema.ResourceData, m interf
 
 func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.Client, setting *v1pb.Setting) diag.Diagnostics {
 	if value := setting.GetValue().GetWorkspaceApprovalSettingValue(); value != nil {
-		settingVal, err := flattenWorkspaceApprovalSetting(ctx, client, value)
+		settingVal, err := flattenWorkspaceApprovalSetting(value)
 		if err != nil {
 			return diag.Errorf("failed to parse workspace_approval_setting: %s", err.Error())
 		}
@@ -633,7 +633,7 @@ func flattenEnvironmentSetting(setting *v1pb.EnvironmentSetting) []interface{} {
 	return []interface{}{environmentSetting}
 }
 
-func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, setting *v1pb.WorkspaceApprovalSetting) ([]interface{}, error) {
+func flattenWorkspaceApprovalSetting(setting *v1pb.WorkspaceApprovalSetting) ([]interface{}, error) {
 	ruleList := []interface{}{}
 	for _, rule := range setting.Rules {
 		roleList := []interface{}{}

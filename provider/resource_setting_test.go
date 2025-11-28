@@ -29,7 +29,8 @@ func TestAccSetting_WorkspaceApproval(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", "settings/WORKSPACE_APPROVAL"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.conditions.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.source", "DDL"),
+					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.condition", "request.risk <= 100"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.0.roles.#", "2"),
 				),
@@ -42,7 +43,8 @@ func TestAccSetting_WorkspaceApproval(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", "settings/WORKSPACE_APPROVAL"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.conditions.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.source", "DDL"),
+					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.condition", "request.risk > 100"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.0.roles.#", "1"),
 				),
@@ -223,12 +225,9 @@ resource "bytebase_setting" "%s" {
 	name = "settings/INVALID_SETTING"
 	approval_flow {
 		rules {
-			conditions {
-				source = "DDL"
-				level  = "LOW"
-			}
+			source    = "DDL"
+			condition = "request.risk <= 100"
 			flow {
-				id          = "test-flow"
 				title       = "Test"
 				description = "Test"
 				roles = ["roles/test"]
@@ -250,7 +249,7 @@ resource "bytebase_setting" "%s" {
 	}
 }
 `, identifier),
-				ExpectError: regexp.MustCompile(`(Missing required argument|Blocks of type "conditions" are required|missing expected|Insufficient flow blocks|At least 1 "flow" blocks are required)`),
+				ExpectError: regexp.MustCompile(`(Missing required argument|missing expected|Insufficient flow blocks|At least 1 "flow" blocks are required)`),
 			},
 			// Invalid role format in approval flow
 			{
@@ -259,12 +258,9 @@ resource "bytebase_setting" "%s" {
 	name = "settings/WORKSPACE_APPROVAL"
 	approval_flow {
 		rules {
-			conditions {
-				source = "DDL"
-				level  = "LOW"
-			}
+			source    = "DDL"
+			condition = "request.risk <= 100"
 			flow {
-				id          = "test-flow"
 				title       = "Test"
 				description = "Test"
 				roles = ["invalid-role"]
@@ -332,12 +328,9 @@ resource "bytebase_setting" "%s" {
 	name = "settings/WORKSPACE_APPROVAL"
 	approval_flow {
 		rules {
-			conditions {
-				source = "DDL"
-				level  = "LOW"
-			}
+			source    = "DDL"
+			condition = "request.risk <= 100"
 			flow {
-				id          = "test-ddl-approval-flow"
 				title       = "DDL Approval Flow"
 				description = "Approval flow for DDL operations"
 				roles = [
@@ -365,16 +358,9 @@ resource "bytebase_setting" "%s" {
 	name = "settings/WORKSPACE_APPROVAL"
 	approval_flow {
 		rules {
-			conditions {
-				source = "DDL"
-				level  = "HIGH"
-			}
-			conditions {
-				source = "DML"
-				level  = "MODERATE"
-			}
+			source    = "DDL"
+			condition = "request.risk > 100"
 			flow {
-				id          = "test-updated-approval-flow"
 				title       = "Updated Approval Flow"
 				description = "Updated approval flow"
 				roles = [bytebase_role.approval_role_%s.name]
