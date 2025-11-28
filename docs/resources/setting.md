@@ -37,40 +37,28 @@ The setting resource.
 
 Required:
 
-- `rules` (Block List, Min: 1) (see [below for nested schema](#nestedblock--approval_flow--rules))
+- `rules` (Block List, Min: 1) Rules are evaluated in order, first matching rule applies. (see [below for nested schema](#nestedblock--approval_flow--rules))
 
 <a id="nestedblock--approval_flow--rules"></a>
 ### Nested Schema for `approval_flow.rules`
 
 Required:
 
+- `condition` (String) The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/c7304123902610b8a2c83e49fcd1c4d4eb972f0d/proto/v1/v1/setting_service.proto#L280 for details.
 - `flow` (Block List, Min: 1) (see [below for nested schema](#nestedblock--approval_flow--rules--flow))
-
-Optional:
-
-- `conditions` (Block List) Match any condition will trigger this approval flow. (see [below for nested schema](#nestedblock--approval_flow--rules--conditions))
+- `source` (String)
 
 <a id="nestedblock--approval_flow--rules--flow"></a>
 ### Nested Schema for `approval_flow.rules.flow`
 
 Required:
 
-- `id` (String) The approval template ID. Built-in templates use 'bb.*' prefix (e.g., 'bb.project-owner', 'bb.workspace-dba'), custom templates use UUIDs.
 - `roles` (List of String) The role require to review in this step
 - `title` (String)
 
 Optional:
 
 - `description` (String)
-
-
-<a id="nestedblock--approval_flow--rules--conditions"></a>
-### Nested Schema for `approval_flow.rules.conditions`
-
-Optional:
-
-- `level` (String)
-- `source` (String)
 
 
 
@@ -237,6 +225,7 @@ Optional:
 - `disallow_password_signin` (Boolean) Whether to disallow password signin (except workspace admins). Require ENTERPRISE subscription
 - `disallow_signup` (Boolean) Disallow self-service signup, users can only be invited by the owner. Require PRO subscription.
 - `domains` (List of String) The workspace domain, e.g. bytebase.com. Required for the group
+- `enable_audit_log_stdout` (Boolean) Enable audit logging to stdout in structured JSON format. Requires TEAM or ENTERPRISE license.
 - `enforce_identity_domain` (Boolean) Only user and group from the domains can be created and login.
 - `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
 - `maximum_role_expiration_in_seconds` (Number) The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.

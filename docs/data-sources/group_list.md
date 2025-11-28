@@ -31,6 +31,7 @@ The group data source list.
 Read-Only:
 
 - `description` (String)
+- `email` (String)
 - `members` (Set of Object) (see [below for nested schema](#nestedobjatt--groups--members))
 - `name` (String)
 - `source` (String)

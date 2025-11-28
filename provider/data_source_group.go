@@ -41,6 +41,11 @@ func dataSourceGroup() *schema.Resource {
 				Computed:    true,
 				Description: "Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.",
 			},
+			"email": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The group email.",
+			},
 			"members": {
 				Type:        schema.TypeSet,
 				Computed:    true,
@@ -89,6 +94,9 @@ func setGroup(d *schema.ResourceData, group *v1pb.Group) diag.Diagnostics {
 	}
 	if err := d.Set("source", group.Source); err != nil {
 		return diag.Errorf("cannot set source for group: %s", err.Error())
+	}
+	if err := d.Set("email", group.Email); err != nil {
+		return diag.Errorf("cannot set email for group: %s", err.Error())
 	}
 
 	memberList := []interface{}{}

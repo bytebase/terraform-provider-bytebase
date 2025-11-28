@@ -22,6 +22,7 @@ The group data source.
 ### Read-Only
 
 - `description` (String) The group description.
+- `email` (String) The group email.
 - `id` (String) The ID of this resource.
 - `members` (Set of Object) The members in the group. (see [below for nested schema](#nestedatt--members))
 - `source` (String) Source means where the group comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.

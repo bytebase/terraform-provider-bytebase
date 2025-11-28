@@ -7,10 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/pkg/errors"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
-	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -496,9 +494,10 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"rules": {
-					Type:     schema.TypeList,
-					Computed: computed,
-					Required: !computed,
+					Type:        schema.TypeList,
+					Computed:    computed,
+					Required:    !computed,
+					Description: "Rules are evaluated in order, first matching rule applies.",
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"flow": {
@@ -507,12 +506,6 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								Type:     schema.TypeList,
 								Elem: &schema.Resource{
 									Schema: map[string]*schema.Schema{
-										"id": {
-											Type:         schema.TypeString,
-											Required:     true,
-											ValidateFunc: validation.StringIsNotEmpty,
-											Description:  "The approval template ID. Built-in templates use 'bb.*' prefix (e.g., 'bb.project-owner', 'bb.workspace-dba'), custom templates use UUIDs.",
-										},
 										"title": {
 											Type:         schema.TypeString,
 											Required:     true,
@@ -538,39 +531,22 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 									},
 								},
 							},
-							"conditions": {
-								MinItems:    0,
-								Computed:    computed,
-								Type:        schema.TypeList,
-								Optional:    true,
-								Description: "Match any condition will trigger this approval flow.",
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"source": {
-											Type:     schema.TypeString,
-											Computed: computed,
-											Optional: true,
-											ValidateFunc: validation.StringInSlice([]string{
-												v1pb.Risk_DDL.String(),
-												v1pb.Risk_DML.String(),
-												v1pb.Risk_CREATE_DATABASE.String(),
-												v1pb.Risk_DATA_EXPORT.String(),
-												v1pb.Risk_REQUEST_ROLE.String(),
-											}, false),
-										},
-										"level": {
-											Type:     schema.TypeString,
-											Computed: computed,
-											Optional: true,
-											ValidateFunc: validation.StringInSlice([]string{
-												v1pb.RiskLevel_LOW.String(),
-												v1pb.RiskLevel_MODERATE.String(),
-												v1pb.RiskLevel_HIGH.String(),
-												v1pb.RiskLevel_RISK_LEVEL_UNSPECIFIED.String(),
-											}, false),
-										},
-									},
-								},
+							"source": {
+								Type:     schema.TypeString,
+								Required: true,
+								ValidateFunc: validation.StringInSlice([]string{
+									v1pb.WorkspaceApprovalSetting_Rule_DDL.String(),
+									v1pb.WorkspaceApprovalSetting_Rule_DML.String(),
+									v1pb.WorkspaceApprovalSetting_Rule_CREATE_DATABASE.String(),
+									v1pb.WorkspaceApprovalSetting_Rule_EXPORT_DATA.String(),
+									v1pb.WorkspaceApprovalSetting_Rule_REQUEST_ROLE.String(),
+								}, false),
+							},
+							"condition": {
+								Type:         schema.TypeString,
+								Required:     true,
+								ValidateFunc: validation.StringIsNotEmpty,
+								Description:  "The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/c7304123902610b8a2c83e49fcd1c4d4eb972f0d/proto/v1/v1/setting_service.proto#L280 for details.",
 							},
 						},
 					},
@@ -590,12 +566,12 @@ func dataSourceSettingRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	d.SetId(setting.Name)
-	return setSettingMessage(ctx, d, c, setting)
+	return setSettingMessage(d, setting)
 }
 
-func setSettingMessage(ctx context.Context, d *schema.ResourceData, client api.Client, setting *v1pb.Setting) diag.Diagnostics {
+func setSettingMessage(d *schema.ResourceData, setting *v1pb.Setting) diag.Diagnostics {
 	if value := setting.GetValue().GetWorkspaceApprovalSettingValue(); value != nil {
-		settingVal, err := flattenWorkspaceApprovalSetting(ctx, client, value)
+		settingVal, err := flattenWorkspaceApprovalSetting(value)
 		if err != nil {
 			return diag.Errorf("failed to parse workspace_approval_setting: %s", err.Error())
 		}
@@ -657,56 +633,7 @@ func flattenEnvironmentSetting(setting *v1pb.EnvironmentSetting) []interface{} {
 	return []interface{}{environmentSetting}
 }
 
-func parseApprovalExpression(callExpr *v1alpha1.Expr_Call) ([]map[string]interface{}, error) {
-	if callExpr == nil {
-		return nil, errors.Errorf("failed to parse the expression")
-	}
-
-	switch callExpr.Function {
-	case "_&&_":
-		resp := map[string]interface{}{}
-		for _, arg := range callExpr.Args {
-			argExpr := arg.GetCallExpr()
-			if argExpr == nil {
-				return nil, errors.Errorf("expect call_expr")
-			}
-			if argExpr.Function != "_==_" {
-				return nil, errors.Errorf("expect == operation but found: %v", argExpr.Function)
-			}
-			if len(argExpr.Args) != 2 {
-				return nil, errors.Errorf("expect 2 args")
-			}
-
-			if argExpr.Args[0].GetIdentExpr() == nil || argExpr.Args[1].GetConstExpr() == nil {
-				return nil, errors.Errorf("expect ident expr and const expr")
-			}
-
-			argName := argExpr.Args[0].GetIdentExpr().Name
-			constExpr := argExpr.Args[1].GetConstExpr()
-			switch argName {
-			case "source", "level":
-				resp[argName] = constExpr.GetStringValue()
-			default:
-				return nil, errors.Errorf("unsupport arg: %v", argName)
-			}
-		}
-		return []map[string]interface{}{resp}, nil
-	case "_||_":
-		resp := []map[string]interface{}{}
-		for _, arg := range callExpr.Args {
-			expression, err := parseApprovalExpression(arg.GetCallExpr())
-			if err != nil {
-				return nil, err
-			}
-			resp = append(resp, expression...)
-		}
-		return resp, nil
-	default:
-		return nil, errors.Errorf("unsupport expr function: %v", callExpr.Function)
-	}
-}
-
-func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, setting *v1pb.WorkspaceApprovalSetting) ([]interface{}, error) {
+func flattenWorkspaceApprovalSetting(setting *v1pb.WorkspaceApprovalSetting) ([]interface{}, error) {
 	ruleList := []interface{}{}
 	for _, rule := range setting.Rules {
 		roleList := []interface{}{}
@@ -714,24 +641,11 @@ func flattenWorkspaceApprovalSetting(ctx context.Context, client api.Client, set
 			roleList = append(roleList, role)
 		}
 
-		conditionList := []map[string]interface{}{}
-		if expr := rule.GetCondition().GetExpression(); expr != "" {
-			parsedExpr, err := client.ParseExpression(ctx, expr)
-			if err != nil {
-				return nil, err
-			}
-			expressions, err := parseApprovalExpression(parsedExpr.GetCallExpr())
-			if err != nil {
-				return nil, err
-			}
-			conditionList = expressions
-		}
-
 		raw := map[string]interface{}{
-			"conditions": conditionList,
+			"source":    rule.Source.String(),
+			"condition": rule.Condition.Expression,
 			"flow": []interface{}{
 				map[string]interface{}{
-					"id":          rule.GetTemplate().GetId(),
 					"title":       rule.GetTemplate().GetTitle(),
 					"description": rule.GetTemplate().GetDescription(),
 					"roles":       roleList,
