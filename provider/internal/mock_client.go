@@ -28,7 +28,6 @@ var (
 	roleMap            map[string]*v1pb.Role
 	groupMap           map[string]*v1pb.Group
 	reviewConfigMap    map[string]*v1pb.ReviewConfig
-	riskMap            map[string]*v1pb.Risk
 	databaseGroupMap   map[string]*v1pb.DatabaseGroup
 	workspaceIAMPolicy *v1pb.IamPolicy
 )
@@ -45,7 +44,6 @@ func init() {
 	roleMap = map[string]*v1pb.Role{}
 	groupMap = map[string]*v1pb.Group{}
 	reviewConfigMap = map[string]*v1pb.ReviewConfig{}
-	riskMap = map[string]*v1pb.Risk{}
 	databaseGroupMap = map[string]*v1pb.DatabaseGroup{}
 	workspaceIAMPolicy = &v1pb.IamPolicy{}
 
@@ -74,7 +72,6 @@ type mockClient struct {
 	roleMap            map[string]*v1pb.Role
 	groupMap           map[string]*v1pb.Group
 	reviewConfigMap    map[string]*v1pb.ReviewConfig
-	riskMap            map[string]*v1pb.Risk
 	databaseGroupMap   map[string]*v1pb.DatabaseGroup
 }
 
@@ -94,7 +91,6 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		roleMap:            roleMap,
 		groupMap:           groupMap,
 		reviewConfigMap:    reviewConfigMap,
-		riskMap:            riskMap,
 		databaseGroupMap:   databaseGroupMap,
 	}, nil
 }
@@ -1047,77 +1043,6 @@ func (c *mockClient) DeleteReviewConfig(_ context.Context, reviewConfigName stri
 	mu.Lock()
 	defer mu.Unlock()
 	delete(c.reviewConfigMap, reviewConfigName)
-	return nil
-}
-
-// ListRisk lists the risk.
-func (c *mockClient) ListRisk(_ context.Context) ([]*v1pb.Risk, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	risks := make([]*v1pb.Risk, 0)
-	for _, risk := range c.riskMap {
-		risks = append(risks, risk)
-	}
-	return risks, nil
-}
-
-// GetRisk gets the risk by full name.
-func (c *mockClient) GetRisk(_ context.Context, riskName string) (*v1pb.Risk, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	risk, ok := c.riskMap[riskName]
-	if !ok {
-		return nil, errors.Errorf("Cannot found risk %s", riskName)
-	}
-	return risk, nil
-}
-
-// CreateRisk creates the risk.
-func (c *mockClient) CreateRisk(_ context.Context, risk *v1pb.Risk) (*v1pb.Risk, error) {
-	// Generate a unique name for the risk if not set
-	mu.Lock()
-	defer mu.Unlock()
-	if risk.Name == "" {
-		risk.Name = fmt.Sprintf("risks/%d", len(c.riskMap)+1)
-	}
-	if _, exists := c.riskMap[risk.Name]; exists {
-		return nil, errors.Errorf("risk %s already exists", risk.Name)
-	}
-	c.riskMap[risk.Name] = risk
-	return risk, nil
-}
-
-// UpdateRisk updates the risk.
-func (c *mockClient) UpdateRisk(_ context.Context, risk *v1pb.Risk, updateMasks []string) (*v1pb.Risk, error) {
-	mu.Lock()
-	defer mu.Unlock()
-	existed, ok := c.riskMap[risk.Name]
-	if !ok {
-		return nil, errors.Errorf("Cannot found risk %s", risk.Name)
-	}
-
-	if slices.Contains(updateMasks, "title") {
-		existed.Title = risk.Title
-	}
-	if slices.Contains(updateMasks, "level") {
-		existed.Level = risk.Level
-	}
-	if slices.Contains(updateMasks, "condition") {
-		existed.Condition = risk.Condition
-	}
-	if slices.Contains(updateMasks, "source") {
-		existed.Source = risk.Source
-	}
-
-	c.riskMap[risk.Name] = existed
-	return existed, nil
-}
-
-// DeleteRisk deletes the risk by name.
-func (c *mockClient) DeleteRisk(_ context.Context, riskName string) error {
-	mu.Lock()
-	defer mu.Unlock()
-	delete(c.riskMap, riskName)
 	return nil
 }
 
