@@ -190,24 +190,16 @@ Optional:
 
 Read-Only:
 
-- `rules` (List of Object) (see [below for nested schema](#nestedatt--approval_flow--rules))
+- `rules` (List of Object) Rules are evaluated in order, first matching rule applies. (see [below for nested schema](#nestedatt--approval_flow--rules))
 
 <a id="nestedatt--approval_flow--rules"></a>
 ### Nested Schema for `approval_flow.rules`
 
 Read-Only:
 
-- `conditions` (List of Object) (see [below for nested schema](#nestedobjatt--approval_flow--rules--conditions))
+- `condition` (String)
 - `flow` (List of Object) (see [below for nested schema](#nestedobjatt--approval_flow--rules--flow))
-
-<a id="nestedobjatt--approval_flow--rules--conditions"></a>
-### Nested Schema for `approval_flow.rules.conditions`
-
-Read-Only:
-
-- `level` (String)
 - `source` (String)
-
 
 <a id="nestedobjatt--approval_flow--rules--flow"></a>
 ### Nested Schema for `approval_flow.rules.flow`

@@ -37,18 +37,16 @@ The setting resource.
 
 Required:
 
-- `rules` (Block List, Min: 1) (see [below for nested schema](#nestedblock--approval_flow--rules))
+- `rules` (Block List, Min: 1) Rules are evaluated in order, first matching rule applies. (see [below for nested schema](#nestedblock--approval_flow--rules))
 
 <a id="nestedblock--approval_flow--rules"></a>
 ### Nested Schema for `approval_flow.rules`
 
 Required:
 
+- `condition` (String) The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/c7304123902610b8a2c83e49fcd1c4d4eb972f0d/proto/v1/v1/setting_service.proto#L280 for details.
 - `flow` (Block List, Min: 1) (see [below for nested schema](#nestedblock--approval_flow--rules--flow))
-
-Optional:
-
-- `conditions` (Block List) Match any condition will trigger this approval flow. (see [below for nested schema](#nestedblock--approval_flow--rules--conditions))
+- `source` (String)
 
 <a id="nestedblock--approval_flow--rules--flow"></a>
 ### Nested Schema for `approval_flow.rules.flow`
@@ -61,15 +59,6 @@ Required:
 Optional:
 
 - `description` (String)
-
-
-<a id="nestedblock--approval_flow--rules--conditions"></a>
-### Nested Schema for `approval_flow.rules.conditions`
-
-Optional:
-
-- `level` (String)
-- `source` (String)
 
 
 
