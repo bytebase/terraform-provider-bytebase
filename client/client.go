@@ -34,8 +34,8 @@ type client struct {
 	groupClient           bytebasev1connect.GroupServiceClient
 	settingClient         bytebasev1connect.SettingServiceClient
 	orgPolicyClient       bytebasev1connect.OrgPolicyServiceClient
-	reviewConfigClient bytebasev1connect.ReviewConfigServiceClient
-	celClient          bytebasev1connect.CelServiceClient
+	reviewConfigClient    bytebasev1connect.ReviewConfigServiceClient
+	celClient             bytebasev1connect.CelServiceClient
 }
 
 // NewClient returns the new Bytebase API client.
