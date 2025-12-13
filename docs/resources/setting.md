@@ -17,14 +17,13 @@ The setting resource.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "PASSWORD_RESTRICTION", "SQL_RESULT_SIZE_LIMIT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details
+- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details
 
 ### Optional
 
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
-- `password_restriction` (Block List, Max: 1) Restrict for login password (see [below for nested schema](#nestedblock--password_restriction))
 - `semantic_types` (Block Set) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
@@ -72,10 +71,6 @@ Required:
 - `id` (String) The classification unique uuid.
 - `levels` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--classification--levels))
 - `title` (String) The classification title. Optional.
-
-Optional:
-
-- `classification_from_config` (Boolean) If true, we will only store the classification in the config. Otherwise we will get the classification from table/column comment, and write back to the schema metadata.
 
 <a id="nestedblock--classification--classifications"></a>
 ### Nested Schema for `classification.classifications`
@@ -129,20 +124,6 @@ Read-Only:
 
 - `name` (String) The environment readonly name in environments/{id} format.
 
-
-
-<a id="nestedblock--password_restriction"></a>
-### Nested Schema for `password_restriction`
-
-Optional:
-
-- `min_length` (Number) min_length is the minimum length for password, should no less than 8.
-- `password_rotation_in_seconds` (Number) password_rotation requires users to reset their password after the duration. The duration should be at least 86400 (one day).
-- `require_letter` (Boolean) require_letter requires the password must contains at least one letter, regardless of upper case or lower case.
-- `require_number` (Boolean) require_number requires the password must contains at least one number.
-- `require_reset_password_for_first_login` (Boolean) require_reset_password_for_first_login requires users to reset their password after the 1st login.
-- `require_special_character` (Boolean) require_special_character requires the password must contains at least one special character.
-- `require_uppercase_letter` (Boolean) require_uppercase_letter requires the password must contains at least one upper case letter.
 
 
 <a id="nestedblock--semantic_types"></a>
@@ -221,6 +202,7 @@ Required:
 Optional:
 
 - `announcement` (Block List, Max: 1) Custom announcement. Will show as a banner in the Bytebase UI. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--workspace_profile--announcement))
+- `branding_logo` (String) The branding logo as a data URI (e.g. data:image/png;base64,...).
 - `database_change_mode` (String) The workspace database change mode, support EDITOR or PIPELINE. Default PIPELINE
 - `disallow_password_signin` (Boolean) Whether to disallow password signin (except workspace admins). Require ENTERPRISE subscription
 - `disallow_signup` (Boolean) Disallow self-service signup, users can only be invited by the owner. Require PRO subscription.
@@ -229,7 +211,9 @@ Optional:
 - `enforce_identity_domain` (Boolean) Only user and group from the domains can be created and login.
 - `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
 - `maximum_role_expiration_in_seconds` (Number) The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
+- `password_restriction` (Block List, Max: 1) Password restriction settings. (see [below for nested schema](#nestedblock--workspace_profile--password_restriction))
 - `token_duration_in_seconds` (Number) The duration for login token in seconds. The duration should be at least 3600 (one hour).
+- `watermark` (Boolean) Whether to display watermark on pages. Requires ENTERPRISE license.
 
 <a id="nestedblock--workspace_profile--announcement"></a>
 ### Nested Schema for `workspace_profile.announcement`
@@ -239,5 +223,19 @@ Optional:
 - `level` (String) The alert level of announcement
 - `link` (String) The optional link, user can follow the link to check extra details
 - `text` (String) The text of announcement. Leave it as empty string can clear the announcement
+
+
+<a id="nestedblock--workspace_profile--password_restriction"></a>
+### Nested Schema for `workspace_profile.password_restriction`
+
+Optional:
+
+- `min_length` (Number) min_length is the minimum length for password, should be no less than 8.
+- `password_rotation_in_seconds` (Number) password_rotation requires users to reset their password after the duration. The duration should be at least 86400 (one day).
+- `require_letter` (Boolean) require_letter requires the password must contain at least one letter, regardless of upper case or lower case.
+- `require_number` (Boolean) require_number requires the password must contain at least one number.
+- `require_reset_password_for_first_login` (Boolean) require_reset_password_for_first_login requires users to reset their password after the 1st login.
+- `require_special_character` (Boolean) require_special_character requires the password must contain at least one special character.
+- `require_uppercase_letter` (Boolean) require_uppercase_letter requires the password must contain at least one upper case letter.
 
 

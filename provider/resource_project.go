@@ -487,7 +487,7 @@ func convertToV1Webhook(rawSchema interface{}) *v1pb.Webhook {
 	webhook := &v1pb.Webhook{
 		Title: rawWebhook["title"].(string),
 		Url:   rawWebhook["url"].(string),
-		Type:  v1pb.Webhook_Type(v1pb.Webhook_Type_value[rawWebhook["type"].(string)]),
+		Type:  v1pb.WebhookType(v1pb.WebhookType_value[rawWebhook["type"].(string)]),
 	}
 	if dm, ok := rawWebhook["direct_message"].(bool); ok {
 		webhook.DirectMessage = dm

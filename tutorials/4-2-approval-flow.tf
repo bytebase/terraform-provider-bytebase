@@ -12,14 +12,8 @@ resource "bytebase_setting" "approval_flow" {
           "roles/workspaceAdmin"
         ]
       }
-      conditions {
-        source = "DML"
-        level  = "MODERATE"
-      }
-      conditions {
-        source = "DDL"
-        level  = "HIGH"
-      }
+      source    = "CHANGE_DATABASE"
+      condition = "request.risk >= 100"
     }
   }
 }

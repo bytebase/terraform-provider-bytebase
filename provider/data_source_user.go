@@ -25,7 +25,7 @@ func dataSourceUser() *schema.Resource {
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s", internal.UserNamePrefix),
 				),
-				Description: "The user name in users/{user id or email} format.",
+				Description: "The user name in users/{email} format.",
 			},
 			"title": {
 				Type:        schema.TypeString,

@@ -115,7 +115,6 @@ func TestAccSetting_DataClassification(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "classification.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "classification.0.id", "test-classification"),
 					resource.TestCheckResourceAttr(resourceName, "classification.0.title", "Test Classification"),
-					resource.TestCheckResourceAttr(resourceName, "classification.0.classification_from_config", "true"),
 				),
 			},
 		},
@@ -172,36 +171,6 @@ func TestAccSetting_Environment(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", "settings/ENVIRONMENT"),
 					resource.TestCheckResourceAttr(resourceName, "environment_setting.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "environment_setting.0.environment.#", "3"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccSetting_PasswordRestriction(t *testing.T) {
-	identifier := "test_password"
-	resourceName := fmt.Sprintf("bytebase_setting.%s", identifier)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers:    testAccProviders,
-		CheckDestroy: nil,
-		Steps: []resource.TestStep{
-			// Create password restriction setting
-			{
-				Config: testAccCheckPasswordRestrictionSetting(identifier),
-				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "name", "settings/PASSWORD_RESTRICTION"),
-					resource.TestCheckResourceAttr(resourceName, "password_restriction.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "password_restriction.0.min_length", "10"),
-					resource.TestCheckResourceAttr(resourceName, "password_restriction.0.require_number", "true"),
-					resource.TestCheckResourceAttr(resourceName, "password_restriction.0.require_letter", "true"),
-					resource.TestCheckResourceAttr(resourceName, "password_restriction.0.require_uppercase_letter", "true"),
-					resource.TestCheckResourceAttr(resourceName, "password_restriction.0.require_special_character", "true"),
-					resource.TestCheckResourceAttr(resourceName, "password_restriction.0.password_rotation_in_seconds", "7776000"),
 				),
 			},
 		},
@@ -295,7 +264,6 @@ resource "bytebase_setting" "%s" {
 	name = "settings/DATA_CLASSIFICATION"
 	classification {
 		title                      = "Test Classification"
-		classification_from_config = true
 		levels {
 			id          = "level1"
 			title       = "Level 1"
@@ -418,7 +386,6 @@ resource "bytebase_setting" "%s" {
 	classification {
 		id                         = "test-classification"
 		title                      = "Test Classification"
-		classification_from_config = true
 		
 		levels {
 			id          = "public"
@@ -544,23 +511,6 @@ resource "bytebase_setting" "%s" {
 			color     = "#FF0000"
 			protected = true
 		}
-	}
-}
-`, identifier)
-}
-
-func testAccCheckPasswordRestrictionSetting(identifier string) string {
-	return fmt.Sprintf(`
-resource "bytebase_setting" "%s" {
-	name = "settings/PASSWORD_RESTRICTION"
-	password_restriction {
-		min_length                         = 10
-		require_number                     = true
-		require_letter                     = true
-		require_uppercase_letter           = true
-		require_special_character          = true
-		require_reset_password_for_first_login = true
-		password_rotation_in_seconds       = 7776000
 	}
 }
 `, identifier)

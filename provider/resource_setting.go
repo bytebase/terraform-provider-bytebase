@@ -32,22 +32,20 @@ func resourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "PASSWORD_RESTRICTION", "SQL_RESULT_SIZE_LIMIT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_PASSWORD_RESTRICTION.String()),
 				),
 			},
-			"approval_flow":        getWorkspaceApprovalSetting(false),
-			"workspace_profile":    getWorkspaceProfileSetting(false),
-			"classification":       getClassificationSetting(false),
-			"semantic_types":       getSemanticTypesSetting(false),
-			"environment_setting":  getEnvironmentSetting(false),
-			"password_restriction": getPasswordRestrictionSetting(false),
+			"approval_flow":       getWorkspaceApprovalSetting(false),
+			"workspace_profile":   getWorkspaceProfileSetting(false),
+			"classification":      getClassificationSetting(false),
+			"semantic_types":      getSemanticTypesSetting(false),
+			"environment_setting": getEnvironmentSetting(false),
 		},
 	}
 }
@@ -73,9 +71,9 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_WorkspaceApprovalSettingValue{
-				WorkspaceApprovalSettingValue: workspaceApproval,
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_WorkspaceApproval{
+				WorkspaceApproval: workspaceApproval,
 			},
 		}
 	case v1pb.Setting_WORKSPACE_PROFILE:
@@ -83,9 +81,9 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_WorkspaceProfileSettingValue{
-				WorkspaceProfileSettingValue: workspaceProfile,
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_WorkspaceProfile{
+				WorkspaceProfile: workspaceProfile,
 			},
 		}
 		updateMasks = updatePathes
@@ -94,9 +92,9 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_DataClassificationSettingValue{
-				DataClassificationSettingValue: classificationSetting,
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_DataClassification{
+				DataClassification: classificationSetting,
 			},
 		}
 	case v1pb.Setting_SEMANTIC_TYPES:
@@ -104,9 +102,9 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_SemanticTypeSettingValue{
-				SemanticTypeSettingValue: semanticTypeSetting,
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_SemanticType{
+				SemanticType: semanticTypeSetting,
 			},
 		}
 	case v1pb.Setting_ENVIRONMENT:
@@ -114,19 +112,9 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_EnvironmentSetting{
-				EnvironmentSetting: environmentSetting,
-			},
-		}
-	case v1pb.Setting_PASSWORD_RESTRICTION:
-		passwordSetting, err := convertToV1PasswordRestrictionSetting(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_PasswordRestrictionSetting{
-				PasswordRestrictionSetting: passwordSetting,
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_Environment{
+				Environment: environmentSetting,
 			},
 		}
 	default:
@@ -146,38 +134,6 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	return diags
-}
-
-func convertToV1PasswordRestrictionSetting(d *schema.ResourceData) (*v1pb.PasswordRestrictionSetting, error) {
-	rawList, ok := d.Get("password_restriction").([]interface{})
-	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid password_restriction")
-	}
-
-	rawConfig := d.GetRawConfig().GetAttr("password_restriction")
-	if rawConfig.IsNull() {
-		return nil, errors.Errorf("invalid password_restriction")
-	}
-	if rawConfig.IsKnown() && rawConfig.LengthInt() == 0 {
-		return nil, errors.Errorf("invalid password_restriction")
-	}
-	passwordRawConfig := rawConfig.AsValueSlice()[0]
-	raw := rawList[0].(map[string]interface{})
-
-	setting := &v1pb.PasswordRestrictionSetting{
-		MinLength:                         int32(raw["min_length"].(int)),
-		RequireNumber:                     raw["require_number"].(bool),
-		RequireLetter:                     raw["require_letter"].(bool),
-		RequireUppercaseLetter:            raw["require_uppercase_letter"].(bool),
-		RequireSpecialCharacter:           raw["require_special_character"].(bool),
-		RequireResetPasswordForFirstLogin: raw["require_reset_password_for_first_login"].(bool),
-	}
-	if config := passwordRawConfig.GetAttr("password_rotation_in_seconds"); !config.IsNull() {
-		setting.PasswordRotation = &durationpb.Duration{
-			Seconds: int64(raw["password_rotation_in_seconds"].(int)),
-		}
-	}
-	return setting, nil
 }
 
 func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.WorkspaceProfileSetting, []string, error) {
@@ -202,45 +158,45 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 
 	if config := workspaceRawConfig.GetAttr("external_url"); !config.IsNull() {
 		workspacePrfile.ExternalUrl = raw["external_url"].(string)
-		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.external_url")
+		updateMasks = append(updateMasks, "value.workspace_profile.external_url")
 	}
 	if config := workspaceRawConfig.GetAttr("disallow_signup"); !config.IsNull() {
 		workspacePrfile.DisallowSignup = raw["disallow_signup"].(bool)
-		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.disallow_signup")
+		updateMasks = append(updateMasks, "value.workspace_profile.disallow_signup")
 	}
 	if config := workspaceRawConfig.GetAttr("disallow_password_signin"); !config.IsNull() {
 		workspacePrfile.DisallowPasswordSignin = raw["disallow_password_signin"].(bool)
-		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.disallow_password_signin")
+		updateMasks = append(updateMasks, "value.workspace_profile.disallow_password_signin")
 	}
 	if config := workspaceRawConfig.GetAttr("domains"); !config.IsNull() {
 		if domains, ok := raw["domains"]; ok {
 			if enforceIdentityDomain, ok := raw["enforce_identity_domain"]; ok {
 				workspacePrfile.EnforceIdentityDomain = enforceIdentityDomain.(bool)
-				updateMasks = append(updateMasks, "value.workspace_profile_setting_value.enforce_identity_domain")
+				updateMasks = append(updateMasks, "value.workspace_profile.enforce_identity_domain")
 			}
 			for _, domain := range domains.([]interface{}) {
 				workspacePrfile.Domains = append(workspacePrfile.Domains, domain.(string))
 			}
-			updateMasks = append(updateMasks, "value.workspace_profile_setting_value.domains")
+			updateMasks = append(updateMasks, "value.workspace_profile.domains")
 		} else if _, ok := raw["enforce_identity_domain"]; ok {
 			return nil, nil, errors.Errorf("enforce_identity_domain must works with domains")
 		}
 	}
 	if config := workspaceRawConfig.GetAttr("database_change_mode"); !config.IsNull() {
 		workspacePrfile.DatabaseChangeMode = v1pb.DatabaseChangeMode(v1pb.DatabaseChangeMode_value[raw["database_change_mode"].(string)])
-		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.database_change_mode")
+		updateMasks = append(updateMasks, "value.workspace_profile.database_change_mode")
 	}
 	if config := workspaceRawConfig.GetAttr("token_duration_in_seconds"); !config.IsNull() {
 		workspacePrfile.TokenDuration = &durationpb.Duration{
 			Seconds: int64(raw["token_duration_in_seconds"].(int)),
 		}
-		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.token_duration")
+		updateMasks = append(updateMasks, "value.workspace_profile.token_duration")
 	}
 	if config := workspaceRawConfig.GetAttr("maximum_role_expiration_in_seconds"); !config.IsNull() {
 		workspacePrfile.MaximumRoleExpiration = &durationpb.Duration{
 			Seconds: int64(raw["maximum_role_expiration_in_seconds"].(int)),
 		}
-		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.maximum_role_expiration")
+		updateMasks = append(updateMasks, "value.workspace_profile.maximum_role_expiration")
 	}
 	if config := workspaceRawConfig.GetAttr("announcement"); !config.IsNull() {
 		rawList := raw["announcement"].([]interface{})
@@ -254,11 +210,52 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 				Level: v1pb.Announcement_AlertLevel(v1pb.Announcement_AlertLevel_value[raw["level"].(string)]),
 			}
 		}
-		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.announcement")
+		updateMasks = append(updateMasks, "value.workspace_profile.announcement")
 	}
 	if config := workspaceRawConfig.GetAttr("enable_audit_log_stdout"); !config.IsNull() {
 		workspacePrfile.EnableAuditLogStdout = raw["enable_audit_log_stdout"].(bool)
-		updateMasks = append(updateMasks, "value.workspace_profile_setting_value.enable_audit_log_stdout")
+		updateMasks = append(updateMasks, "value.workspace_profile.enable_audit_log_stdout")
+	}
+	if config := workspaceRawConfig.GetAttr("watermark"); !config.IsNull() {
+		workspacePrfile.Watermark = raw["watermark"].(bool)
+		updateMasks = append(updateMasks, "value.workspace_profile.watermark")
+	}
+	if config := workspaceRawConfig.GetAttr("branding_logo"); !config.IsNull() {
+		workspacePrfile.BrandingLogo = raw["branding_logo"].(string)
+		updateMasks = append(updateMasks, "value.workspace_profile.branding_logo")
+	}
+	if config := workspaceRawConfig.GetAttr("password_restriction"); !config.IsNull() {
+		if pwRestrictionList, ok := raw["password_restriction"].([]interface{}); ok && len(pwRestrictionList) > 0 {
+			pwRaw := pwRestrictionList[0].(map[string]interface{})
+			pwRestriction := &v1pb.WorkspaceProfileSetting_PasswordRestriction{}
+			pwRawConfig := workspaceRawConfig.GetAttr("password_restriction").AsValueSlice()[0]
+
+			if pwConfig := pwRawConfig.GetAttr("min_length"); !pwConfig.IsNull() {
+				pwRestriction.MinLength = int32(pwRaw["min_length"].(int))
+			}
+			if pwConfig := pwRawConfig.GetAttr("require_number"); !pwConfig.IsNull() {
+				pwRestriction.RequireNumber = pwRaw["require_number"].(bool)
+			}
+			if pwConfig := pwRawConfig.GetAttr("require_letter"); !pwConfig.IsNull() {
+				pwRestriction.RequireLetter = pwRaw["require_letter"].(bool)
+			}
+			if pwConfig := pwRawConfig.GetAttr("require_uppercase_letter"); !pwConfig.IsNull() {
+				pwRestriction.RequireUppercaseLetter = pwRaw["require_uppercase_letter"].(bool)
+			}
+			if pwConfig := pwRawConfig.GetAttr("require_special_character"); !pwConfig.IsNull() {
+				pwRestriction.RequireSpecialCharacter = pwRaw["require_special_character"].(bool)
+			}
+			if pwConfig := pwRawConfig.GetAttr("require_reset_password_for_first_login"); !pwConfig.IsNull() {
+				pwRestriction.RequireResetPasswordForFirstLogin = pwRaw["require_reset_password_for_first_login"].(bool)
+			}
+			if pwConfig := pwRawConfig.GetAttr("password_rotation_in_seconds"); !pwConfig.IsNull() {
+				pwRestriction.PasswordRotation = &durationpb.Duration{
+					Seconds: int64(pwRaw["password_rotation_in_seconds"].(int)),
+				}
+			}
+			workspacePrfile.PasswordRestriction = pwRestriction
+			updateMasks = append(updateMasks, "value.workspace_profile.password_restriction")
+		}
 	}
 
 	return workspacePrfile, updateMasks, nil
@@ -296,11 +293,10 @@ func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassif
 	raw := rawList[0].(map[string]interface{})
 
 	dataClassificationConfig := &v1pb.DataClassificationSetting_DataClassificationConfig{
-		Id:                       raw["id"].(string),
-		Title:                    raw["title"].(string),
-		ClassificationFromConfig: raw["classification_from_config"].(bool),
-		Levels:                   []*v1pb.DataClassificationSetting_DataClassificationConfig_Level{},
-		Classification:           map[string]*v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification{},
+		Id:             raw["id"].(string),
+		Title:          raw["title"].(string),
+		Levels:         []*v1pb.DataClassificationSetting_DataClassificationConfig_Level{},
+		Classification: map[string]*v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification{},
 	}
 	if dataClassificationConfig.Id == "" {
 		return nil, errors.Errorf("id is required for classification config")
@@ -567,9 +563,9 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 
 	switch name {
 	case v1pb.Setting_WORKSPACE_APPROVAL:
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_WorkspaceApprovalSettingValue{
-				WorkspaceApprovalSettingValue: &v1pb.WorkspaceApprovalSetting{},
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_WorkspaceApproval{
+				WorkspaceApproval: &v1pb.WorkspaceApprovalSetting{},
 			},
 		}
 	case v1pb.Setting_WORKSPACE_PROFILE:
@@ -578,56 +574,43 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 			Summary:  "Unsupport delete workspace profile setting",
 			Detail:   "We will reset the workspace profile with default value",
 		})
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_WorkspaceProfileSettingValue{
-				WorkspaceProfileSettingValue: &v1pb.WorkspaceProfileSetting{
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_WorkspaceProfile{
+				WorkspaceProfile: &v1pb.WorkspaceProfileSetting{
 					Announcement: &v1pb.Announcement{},
 				},
 			},
 		}
 		updateMasks = []string{
-			"value.workspace_profile_setting_value.disallow_signup",
-			"value.workspace_profile_setting_value.external_url",
-			"value.workspace_profile_setting_value.disallow_password_signin",
-			"value.workspace_profile_setting_value.enforce_identity_domain",
-			"value.workspace_profile_setting_value.domains",
-			"value.workspace_profile_setting_value.database_change_mode",
-			"value.workspace_profile_setting_value.token_duration",
-			"value.workspace_profile_setting_value.maximum_role_expiration",
-			"value.workspace_profile_setting_value.announcement",
-			"value.workspace_profile_setting_value.enable_audit_log_stdout",
+			"value.workspace_profile.disallow_signup",
+			"value.workspace_profile.external_url",
+			"value.workspace_profile.disallow_password_signin",
+			"value.workspace_profile.enforce_identity_domain",
+			"value.workspace_profile.domains",
+			"value.workspace_profile.database_change_mode",
+			"value.workspace_profile.token_duration",
+			"value.workspace_profile.maximum_role_expiration",
+			"value.workspace_profile.announcement",
+			"value.workspace_profile.enable_audit_log_stdout",
 		}
 	case v1pb.Setting_DATA_CLASSIFICATION:
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_DataClassificationSettingValue{
-				DataClassificationSettingValue: &v1pb.DataClassificationSetting{
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_DataClassification{
+				DataClassification: &v1pb.DataClassificationSetting{
 					Configs: []*v1pb.DataClassificationSetting_DataClassificationConfig{},
 				},
 			},
 		}
 	case v1pb.Setting_SEMANTIC_TYPES:
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_SemanticTypeSettingValue{
-				SemanticTypeSettingValue: &v1pb.SemanticTypeSetting{},
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_SemanticType{
+				SemanticType: &v1pb.SemanticTypeSetting{},
 			},
 		}
 	case v1pb.Setting_ENVIRONMENT:
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_EnvironmentSetting{
-				EnvironmentSetting: &v1pb.EnvironmentSetting{},
-			},
-		}
-	case v1pb.Setting_PASSWORD_RESTRICTION:
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Unsupport delete password restriction setting",
-			Detail:   "We will reset the password restriction with default value",
-		})
-		setting.Value = &v1pb.Value{
-			Value: &v1pb.Value_PasswordRestrictionSetting{
-				PasswordRestrictionSetting: &v1pb.PasswordRestrictionSetting{
-					MinLength: minimumPasswordLength,
-				},
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_Environment{
+				Environment: &v1pb.EnvironmentSetting{},
 			},
 		}
 	default:
