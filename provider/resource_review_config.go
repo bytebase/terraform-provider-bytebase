@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -75,21 +76,78 @@ func resourceReviewConfig() *schema.Resource {
 							Required:    true,
 							Description: "The rule level.",
 							ValidateFunc: validation.StringInSlice([]string{
-								v1pb.SQLReviewRuleLevel_WARNING.String(),
-								v1pb.SQLReviewRuleLevel_ERROR.String(),
+								v1pb.SQLReviewRule_WARNING.String(),
+								v1pb.SQLReviewRule_ERROR.String(),
 							}, false),
 						},
-						"payload": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Computed:    true,
-							Description: "The payload is a JSON string that varies by rule type. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#payload-structure-types for all details",
+						// Typed payload fields - use one based on rule type
+						"number_payload": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Description: "Number payload for rules: STATEMENT_INSERT_ROW_LIMIT, STATEMENT_AFFECTED_ROW_LIMIT, " +
+								"STATEMENT_WHERE_MAXIMUM_LOGICAL_OPERATOR_COUNT, STATEMENT_MAXIMUM_LIMIT_VALUE, STATEMENT_MAXIMUM_JOIN_TABLE_COUNT, " +
+								"STATEMENT_MAXIMUM_STATEMENTS_IN_TRANSACTION, COLUMN_MAXIMUM_CHARACTER_LENGTH, COLUMN_MAXIMUM_VARCHAR_LENGTH, " +
+								"COLUMN_AUTO_INCREMENT_INITIAL_VALUE, INDEX_KEY_NUMBER_LIMIT, INDEX_TOTAL_NUMBER_LIMIT, " +
+								"TABLE_TEXT_FIELDS_TOTAL_LENGTH, TABLE_LIMIT_SIZE, SYSTEM_COMMENT_LENGTH, ADVICE_ONLINE_MIGRATION.",
 						},
-						"comment": {
+						"string_payload": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Computed:    true,
-							Description: "The comment for the rule.",
+							Description: "String payload for rule: STATEMENT_QUERY_MINIMUM_PLAN_LEVEL.",
+						},
+						"string_array_payload": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Description: "String array payload for rules: COLUMN_REQUIRED, COLUMN_TYPE_DISALLOW_LIST, INDEX_PRIMARY_KEY_TYPE_ALLOWLIST, " +
+								"INDEX_TYPE_ALLOW_LIST, SYSTEM_CHARSET_ALLOWLIST, SYSTEM_COLLATION_ALLOWLIST, " +
+								"SYSTEM_FUNCTION_DISALLOWED_LIST, TABLE_DISALLOW_DDL, TABLE_DISALLOW_DML.",
+						},
+						"naming_payload": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Description: "Naming payload for rules: NAMING_TABLE, NAMING_COLUMN, NAMING_COLUMN_AUTO_INCREMENT, " +
+								"NAMING_INDEX_FK, NAMING_INDEX_IDX, NAMING_INDEX_UK, NAMING_INDEX_PK, TABLE_DROP_NAMING_CONVENTION.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"format": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The naming format regex pattern.",
+									},
+									"max_length": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "The maximum length for the name.",
+									},
+								},
+							},
+						},
+						"comment_convention_payload": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Description: "Comment convention payload for rules: COLUMN_COMMENT, TABLE_COMMENT.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Whether the comment is required.",
+									},
+									"max_length": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "The maximum length for the comment.",
+									},
+								},
+							},
+						},
+						"naming_case_payload": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Naming case payload for rule: NAMING_IDENTIFIER_CASE. Set to true for UPPER case, false for LOWER case.",
 						},
 					},
 				},
@@ -287,29 +345,176 @@ func flattenReviewRules(rules []*v1pb.SQLReviewRule) []interface{} {
 	ruleList := []interface{}{}
 	for _, rule := range rules {
 		rawRule := map[string]interface{}{}
-		rawRule["type"] = rule.Type
+		rawRule["type"] = rule.Type.String()
 		rawRule["engine"] = rule.Engine.String()
 		rawRule["level"] = rule.Level.String()
-		rawRule["comment"] = rule.Comment
-		rawRule["payload"] = rule.Payload
+		// Set typed payload fields based on rule payload type
+		flattenRulePayload(rule, rawRule)
 		ruleList = append(ruleList, rawRule)
 	}
 	return ruleList
 }
 
-func convertToV1Rule(rawSchema interface{}) *v1pb.SQLReviewRule {
+func flattenRulePayload(rule *v1pb.SQLReviewRule, rawRule map[string]interface{}) {
+	if payload := rule.GetNumberPayload(); payload != nil {
+		rawRule["number_payload"] = int(payload.GetNumber())
+		return
+	}
+	if payload := rule.GetStringPayload(); payload != nil {
+		rawRule["string_payload"] = payload.GetValue()
+		return
+	}
+	if payload := rule.GetStringArrayPayload(); payload != nil {
+		rawRule["string_array_payload"] = payload.GetList()
+		return
+	}
+	if payload := rule.GetNamingPayload(); payload != nil {
+		rawRule["naming_payload"] = []interface{}{
+			map[string]interface{}{
+				"format":     payload.GetFormat(),
+				"max_length": int(payload.GetMaxLength()),
+			},
+		}
+		return
+	}
+	if payload := rule.GetCommentConventionPayload(); payload != nil {
+		rawRule["comment_convention_payload"] = []interface{}{
+			map[string]interface{}{
+				"required":   payload.GetRequired(),
+				"max_length": int(payload.GetMaxLength()),
+			},
+		}
+		return
+	}
+	if payload := rule.GetNamingCasePayload(); payload != nil {
+		rawRule["naming_case_payload"] = payload.GetUpper()
+		return
+	}
+}
+
+func convertToV1Rule(rawSchema interface{}, rawConfig cty.Value) *v1pb.SQLReviewRule {
 	rawRule := rawSchema.(map[string]interface{})
-	payload := rawRule["payload"].(string)
-	if payload == "" {
-		payload = "{}"
+	ruleType := v1pb.SQLReviewRule_Type(v1pb.SQLReviewRule_Type_value[rawRule["type"].(string)])
+	rule := &v1pb.SQLReviewRule{
+		Type:   ruleType,
+		Engine: v1pb.Engine(v1pb.Engine_value[rawRule["engine"].(string)]),
+		Level:  v1pb.SQLReviewRule_Level(v1pb.SQLReviewRule_Level_value[rawRule["level"].(string)]),
 	}
-	return &v1pb.SQLReviewRule{
-		Type:    rawRule["type"].(string),
-		Comment: rawRule["comment"].(string),
-		Payload: payload,
-		Engine:  v1pb.Engine(v1pb.Engine_value[rawRule["engine"].(string)]),
-		Level:   v1pb.SQLReviewRuleLevel(v1pb.SQLReviewRuleLevel_value[rawRule["level"].(string)]),
+	// Set payload from typed fields
+	setRulePayload(rule, rawRule, rawConfig)
+	return rule
+}
+
+// isAttrSet checks if an attribute was explicitly set in the raw config.
+func isAttrSet(rawConfig cty.Value, attrName string) bool {
+	// Check if rawConfig is valid (not cty.NilVal) and not null
+	if rawConfig == cty.NilVal || rawConfig.IsNull() {
+		return false
 	}
+	if !rawConfig.Type().HasAttribute(attrName) {
+		return false
+	}
+	attr := rawConfig.GetAttr(attrName)
+	return !attr.IsNull()
+}
+
+func setRulePayload(rule *v1pb.SQLReviewRule, rawRule map[string]interface{}, rawConfig cty.Value) {
+	// Check each typed payload field and set the appropriate payload
+	// Use rawConfig (via isAttrSet) to check if the field was explicitly configured
+
+	// NumberPayload
+	if isAttrSet(rawConfig, "number_payload") {
+		if num, ok := rawRule["number_payload"].(int); ok {
+			rule.Payload = &v1pb.SQLReviewRule_NumberPayload{
+				NumberPayload: &v1pb.SQLReviewRule_NumberRulePayload{
+					Number: int32(num),
+				},
+			}
+			return
+		}
+	}
+
+	// StringPayload
+	if isAttrSet(rawConfig, "string_payload") {
+		if str, ok := rawRule["string_payload"].(string); ok {
+			rule.Payload = &v1pb.SQLReviewRule_StringPayload{
+				StringPayload: &v1pb.SQLReviewRule_StringRulePayload{
+					Value: str,
+				},
+			}
+			return
+		}
+	}
+
+	// StringArrayPayload
+	if isAttrSet(rawConfig, "string_array_payload") {
+		if list, ok := rawRule["string_array_payload"].([]interface{}); ok && len(list) > 0 {
+			strList := make([]string, 0, len(list))
+			for _, item := range list {
+				if s, ok := item.(string); ok {
+					strList = append(strList, s)
+				}
+			}
+			rule.Payload = &v1pb.SQLReviewRule_StringArrayPayload{
+				StringArrayPayload: &v1pb.SQLReviewRule_StringArrayRulePayload{
+					List: strList,
+				},
+			}
+			return
+		}
+	}
+
+	// NamingPayload
+	if isAttrSet(rawConfig, "naming_payload") {
+		if list, ok := rawRule["naming_payload"].([]interface{}); ok && len(list) > 0 {
+			if raw, ok := list[0].(map[string]interface{}); ok {
+				namingPayload := &v1pb.SQLReviewRule_NamingRulePayload{}
+				if format, ok := raw["format"].(string); ok {
+					namingPayload.Format = format
+				}
+				if maxLen, ok := raw["max_length"].(int); ok {
+					namingPayload.MaxLength = int32(maxLen)
+				}
+				rule.Payload = &v1pb.SQLReviewRule_NamingPayload{
+					NamingPayload: namingPayload,
+				}
+				return
+			}
+		}
+	}
+
+	// CommentConventionPayload
+	if isAttrSet(rawConfig, "comment_convention_payload") {
+		if list, ok := rawRule["comment_convention_payload"].([]interface{}); ok && len(list) > 0 {
+			if raw, ok := list[0].(map[string]interface{}); ok {
+				commentPayload := &v1pb.SQLReviewRule_CommentConventionRulePayload{}
+				if required, ok := raw["required"].(bool); ok {
+					commentPayload.Required = required
+				}
+				if maxLen, ok := raw["max_length"].(int); ok {
+					commentPayload.MaxLength = int32(maxLen)
+				}
+				rule.Payload = &v1pb.SQLReviewRule_CommentConventionPayload{
+					CommentConventionPayload: commentPayload,
+				}
+				return
+			}
+		}
+	}
+
+	// NamingCasePayload
+	if isAttrSet(rawConfig, "naming_case_payload") {
+		if upper, ok := rawRule["naming_case_payload"].(bool); ok {
+			rule.Payload = &v1pb.SQLReviewRule_NamingCasePayload{
+				NamingCasePayload: &v1pb.SQLReviewRule_NamingCaseRulePayload{
+					Upper: upper,
+				},
+			}
+			return
+		}
+	}
+
+	rule.Payload = nil
 }
 
 func convertToV1RuleList(d *schema.ResourceData) ([]*v1pb.SQLReviewRule, error) {
@@ -318,15 +523,45 @@ func convertToV1RuleList(d *schema.ResourceData) ([]*v1pb.SQLReviewRule, error) 
 		return nil, errors.Errorf("rules is required")
 	}
 
+	// Get raw config for rules to check which attributes were explicitly set
+	rawConfig := d.GetRawConfig()
+	rulesConfig := rawConfig.GetAttr("rules")
+
+	// Build a map of (type:engine) -> raw config for matching
+	rawConfigMap := make(map[string]cty.Value)
+	if !rulesConfig.IsNull() && rulesConfig.CanIterateElements() {
+		for it := rulesConfig.ElementIterator(); it.Next(); {
+			_, ruleVal := it.Element()
+			if ruleVal.IsNull() {
+				continue
+			}
+			typeVal := ruleVal.GetAttr("type")
+			engineVal := ruleVal.GetAttr("engine")
+			if !typeVal.IsNull() && !engineVal.IsNull() {
+				key := typeVal.AsString() + ":" + engineVal.AsString()
+				rawConfigMap[key] = ruleVal
+			}
+		}
+	}
+
 	ruleList := []*v1pb.SQLReviewRule{}
 
 	for _, r := range ruleRawList.List() {
-		ruleList = append(ruleList, convertToV1Rule(r))
+		rawRule := r.(map[string]interface{})
+		ruleType := rawRule["type"].(string)
+		ruleEngine := rawRule["engine"].(string)
+		key := ruleType + ":" + ruleEngine
+
+		// Get the matching raw config, or use null value if not found
+		ruleConfig := rawConfigMap[key]
+		ruleList = append(ruleList, convertToV1Rule(r, ruleConfig))
 	}
 	return ruleList, nil
 }
 
 func reviewRuleHash(rawSchema interface{}) int {
-	rule := convertToV1Rule(rawSchema)
+	// For hashing, we use a null cty.Value since we don't have raw config here.
+	// The hash is based on type, engine, level and payload values from the processed map.
+	rule := convertToV1Rule(rawSchema, cty.NilVal)
 	return internal.ToHash(rule)
 }

@@ -198,9 +198,9 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m in
 func updateEnvironmentSetting(ctx context.Context, client api.Client, list []*v1pb.EnvironmentSetting_Environment) error {
 	_, err := client.UpsertSetting(ctx, &v1pb.Setting{
 		Name: fmt.Sprintf("%s%s", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
-		Value: &v1pb.Value{
-			Value: &v1pb.Value_EnvironmentSetting{
-				EnvironmentSetting: &v1pb.EnvironmentSetting{
+		Value: &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_Environment{
+				Environment: &v1pb.EnvironmentSetting{
 					Environments: list,
 				},
 			},
@@ -214,7 +214,7 @@ func getEnvironmentList(ctx context.Context, client api.Client) ([]*v1pb.Environ
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get environment setting")
 	}
-	return environmentSetting.GetValue().GetEnvironmentSetting().Environments, nil
+	return environmentSetting.GetValue().GetEnvironment().Environments, nil
 }
 
 func findEnvironment(ctx context.Context, client api.Client, name string) (*v1pb.EnvironmentSetting_Environment, int, []*v1pb.EnvironmentSetting_Environment, error) {

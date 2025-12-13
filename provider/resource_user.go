@@ -94,7 +94,7 @@ func resourceUser() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The user name in users/{user id or email} format.",
+				Description: "The user name in users/{email} format.",
 			},
 			"mfa_enabled": {
 				Type:        schema.TypeBool,

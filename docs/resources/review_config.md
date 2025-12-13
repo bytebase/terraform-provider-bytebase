@@ -41,7 +41,28 @@ Required:
 
 Optional:
 
-- `comment` (String) The comment for the rule.
-- `payload` (String) The payload is a JSON string that varies by rule type. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#payload-structure-types for all details
+- `comment_convention_payload` (Block List, Max: 1) Comment convention payload for rules: COLUMN_COMMENT, TABLE_COMMENT. (see [below for nested schema](#nestedblock--rules--comment_convention_payload))
+- `naming_case_payload` (Boolean) Naming case payload for rule: NAMING_IDENTIFIER_CASE. Set to true for UPPER case, false for LOWER case.
+- `naming_payload` (Block List, Max: 1) Naming payload for rules: NAMING_TABLE, NAMING_COLUMN, NAMING_COLUMN_AUTO_INCREMENT, NAMING_INDEX_FK, NAMING_INDEX_IDX, NAMING_INDEX_UK, NAMING_INDEX_PK, TABLE_DROP_NAMING_CONVENTION. (see [below for nested schema](#nestedblock--rules--naming_payload))
+- `number_payload` (Number) Number payload for rules: STATEMENT_INSERT_ROW_LIMIT, STATEMENT_AFFECTED_ROW_LIMIT, STATEMENT_WHERE_MAXIMUM_LOGICAL_OPERATOR_COUNT, STATEMENT_MAXIMUM_LIMIT_VALUE, STATEMENT_MAXIMUM_JOIN_TABLE_COUNT, STATEMENT_MAXIMUM_STATEMENTS_IN_TRANSACTION, COLUMN_MAXIMUM_CHARACTER_LENGTH, COLUMN_MAXIMUM_VARCHAR_LENGTH, COLUMN_AUTO_INCREMENT_INITIAL_VALUE, INDEX_KEY_NUMBER_LIMIT, INDEX_TOTAL_NUMBER_LIMIT, TABLE_TEXT_FIELDS_TOTAL_LENGTH, TABLE_LIMIT_SIZE, SYSTEM_COMMENT_LENGTH, ADVICE_ONLINE_MIGRATION.
+- `string_array_payload` (List of String) String array payload for rules: COLUMN_REQUIRED, COLUMN_TYPE_DISALLOW_LIST, INDEX_PRIMARY_KEY_TYPE_ALLOWLIST, INDEX_TYPE_ALLOW_LIST, SYSTEM_CHARSET_ALLOWLIST, SYSTEM_COLLATION_ALLOWLIST, SYSTEM_FUNCTION_DISALLOWED_LIST, TABLE_DISALLOW_DDL, TABLE_DISALLOW_DML.
+- `string_payload` (String) String payload for rule: STATEMENT_QUERY_MINIMUM_PLAN_LEVEL.
+
+<a id="nestedblock--rules--comment_convention_payload"></a>
+### Nested Schema for `rules.comment_convention_payload`
+
+Optional:
+
+- `max_length` (Number) The maximum length for the comment.
+- `required` (Boolean) Whether the comment is required.
+
+
+<a id="nestedblock--rules--naming_payload"></a>
+### Nested Schema for `rules.naming_payload`
+
+Optional:
+
+- `format` (String) The naming format regex pattern.
+- `max_length` (Number) The maximum length for the name.
 
 

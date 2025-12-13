@@ -17,7 +17,7 @@ The user data source.
 
 ### Required
 
-- `name` (String) The user name in users/{user id or email} format.
+- `name` (String) The user name in users/{email} format.
 
 ### Read-Only
 

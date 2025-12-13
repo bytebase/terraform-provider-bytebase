@@ -32,7 +32,7 @@ The user resource.
 - `last_change_password_time` (String) The user last change password time.
 - `last_login_time` (String) The user last login time.
 - `mfa_enabled` (Boolean) The mfa_enabled flag means if the user has enabled MFA.
-- `name` (String) The user name in users/{user id or email} format.
+- `name` (String) The user name in users/{email} format.
 - `service_key` (String) The service key for service account.
 - `source` (String) Source means where the user comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.
 - `state` (String) The user is deleted or not.

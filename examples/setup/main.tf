@@ -33,6 +33,12 @@ resource "bytebase_setting" "workspace_profile" {
   workspace_profile {
     external_url = "https://bytebase.example.com"
     domains      = ["bytebase.com"]
+
+    password_restriction {
+      min_length                             = 8
+      require_number                         = true
+      require_reset_password_for_first_login = true
+    }
   }
 }
 

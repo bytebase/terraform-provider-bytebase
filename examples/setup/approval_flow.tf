@@ -14,7 +14,7 @@ resource "bytebase_setting" "approval_flow" {
         ]
       }
 
-      source    = "DML"
+      source    = "CHANGE_DATABASE"
       condition = "resource.environment_id == \"prod\" && statement.affected_rows >= 100"
     }
 

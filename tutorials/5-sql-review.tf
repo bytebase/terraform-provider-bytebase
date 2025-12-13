@@ -10,31 +10,34 @@ resource "bytebase_review_config" "sample" {
     bytebase_setting.environments.environment_setting[0].environment[1].name
   ])
   rules {
-    type   = "column.no-null"
+    type   = "COLUMN_NO_NULL"
     engine = "POSTGRES"
     level  = "WARNING"
   }
   rules {
-    type    = "column.required"
-    engine  = "POSTGRES"
-    level   = "ERROR"
-    payload = "{\"list\":[\"id\",\"created_ts\",\"updated_ts\",\"creator_id\",\"updater_id\"]}"
+    type                 = "COLUMN_REQUIRED"
+    engine               = "POSTGRES"
+    level                = "ERROR"
+    string_array_payload = ["id", "created_ts", "updated_ts", "creator_id", "updater_id"]
   }
   rules {
-    type   = "table.require-pk"
+    type   = "TABLE_REQUIRE_PK"
     engine = "POSTGRES"
     level  = "ERROR"
   }
   rules {
-    type    = "naming.column"
-    engine  = "POSTGRES"
-    level   = "ERROR"
-    payload = "{\"format\":\"^[a-z]+(_[a-z]+)*$\",\"maxLength\":64}"
+    type   = "NAMING_COLUMN"
+    engine = "POSTGRES"
+    level  = "ERROR"
+    naming_payload {
+      format     = "^[a-z]+(_[a-z]+)*$"
+      max_length = 64
+    }
   }
   rules {
-    type    = "statement.maximum-limit-value"
-    engine  = "POSTGRES"
-    level   = "ERROR"
-    payload = "{\"number\":1000}"
+    type           = "STATEMENT_MAXIMUM_LIMIT_VALUE"
+    engine         = "POSTGRES"
+    level          = "ERROR"
+    number_payload = 1000
   }
 }

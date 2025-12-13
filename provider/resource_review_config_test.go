@@ -85,10 +85,9 @@ resource "bytebase_review_config" "%s" {
 	title       = "Test Review"
 	enabled     = true
 	rules {
-		type    = "naming.table"
-		engine  = "POSTGRES"
-		level   = "WARNING"
-		payload = "{}"
+		type   = "TABLE_NO_FK"
+		engine = "POSTGRES"
+		level  = "WARNING"
 	}
 }
 `, identifier),
@@ -102,10 +101,9 @@ resource "bytebase_review_config" "%s" {
 	title       = ""
 	enabled     = true
 	rules {
-		type    = "naming.table"
-		engine  = "POSTGRES"
-		level   = "WARNING"
-		payload = "{}"
+		type   = "TABLE_NO_FK"
+		engine = "POSTGRES"
+		level  = "WARNING"
 	}
 }
 `, identifier),
@@ -130,10 +128,9 @@ resource "bytebase_review_config" "%s" {
 	title       = "Test Review"
 	enabled     = true
 	rules {
-		type    = "naming.table"
-		engine  = "INVALID_ENGINE"
-		level   = "WARNING"
-		payload = "{}"
+		type   = "TABLE_NO_FK"
+		engine = "INVALID_ENGINE"
+		level  = "WARNING"
 	}
 }
 `, identifier),
@@ -147,10 +144,9 @@ resource "bytebase_review_config" "%s" {
 	title       = "Test Review"
 	enabled     = true
 	rules {
-		type    = "naming.table"
-		engine  = "POSTGRES"
-		level   = "INVALID_LEVEL"
-		payload = "{}"
+		type   = "TABLE_NO_FK"
+		engine = "POSTGRES"
+		level  = "INVALID_LEVEL"
 	}
 }
 `, identifier),
@@ -166,26 +162,28 @@ resource "bytebase_review_config" "%s" {
 	resource_id = "%s"
 	title       = "%s"
 	enabled     = %t
-	
+
 	rules {
-		type    = "naming.table"
-		engine  = "POSTGRES"
-		level   = "%s"
-		payload = "{\"format\":{\"maxLength\":64}}"
-		comment = "Table naming rule"
+		type   = "NAMING_TABLE"
+		engine = "POSTGRES"
+		level  = "%s"
+		naming_payload {
+			max_length = 64
+		}
 	}
-	
+
 	rules {
-		type    = "naming.column"
-		engine  = "MYSQL"
-		level   = "%s"
-		payload = "{\"format\":{\"maxLength\":64}}"
-		comment = "Column naming rule"
+		type   = "NAMING_COLUMN"
+		engine = "MYSQL"
+		level  = "%s"
+		naming_payload {
+			max_length = 64
+		}
 	}
 }
 `, identifier, resourceID, title, enabled,
-		v1pb.SQLReviewRuleLevel_WARNING.String(),
-		v1pb.SQLReviewRuleLevel_ERROR.String())
+		v1pb.SQLReviewRule_WARNING.String(),
+		v1pb.SQLReviewRule_ERROR.String())
 }
 
 func testAccCheckReviewConfigResourceWithMoreRules(identifier, resourceID, title string) string {
@@ -194,35 +192,35 @@ resource "bytebase_review_config" "%s" {
 	resource_id = "%s"
 	title       = "%s"
 	enabled     = true
-	
+
 	rules {
-		type    = "naming.table"
-		engine  = "POSTGRES"
-		level   = "%s"
-		payload = "{\"format\":{\"maxLength\":64}}"
-		comment = "Table naming rule"
+		type   = "NAMING_TABLE"
+		engine = "POSTGRES"
+		level  = "%s"
+		naming_payload {
+			max_length = 64
+		}
 	}
-	
+
 	rules {
-		type    = "naming.column"
-		engine  = "MYSQL"
-		level   = "%s"
-		payload = "{\"format\":{\"maxLength\":64}}"
-		comment = "Column naming rule"
+		type   = "NAMING_COLUMN"
+		engine = "MYSQL"
+		level  = "%s"
+		naming_payload {
+			max_length = 64
+		}
 	}
-	
+
 	rules {
-		type    = "statement.select"
-		engine  = "POSTGRES"
-		level   = "%s"
-		payload = "{}"
-		comment = "Select statement rule"
+		type   = "STATEMENT_WHERE_REQUIRE_SELECT"
+		engine = "POSTGRES"
+		level  = "%s"
 	}
 }
 `, identifier, resourceID, title,
-		v1pb.SQLReviewRuleLevel_WARNING.String(),
-		v1pb.SQLReviewRuleLevel_ERROR.String(),
-		v1pb.SQLReviewRuleLevel_WARNING.String())
+		v1pb.SQLReviewRule_WARNING.String(),
+		v1pb.SQLReviewRule_ERROR.String(),
+		v1pb.SQLReviewRule_WARNING.String())
 }
 
 func testAccCheckReviewConfigDestroy(s *terraform.State) error {

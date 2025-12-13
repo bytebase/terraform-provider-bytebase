@@ -13,31 +13,33 @@ resource "bytebase_review_config" "sample" {
     bytebase_project.sample_project.name
   ])
   rules {
-    type   = "column.no-null"
+    type   = "COLUMN_NO_NULL"
     engine = "MYSQL"
     level  = "WARNING"
   }
   rules {
-    type    = "column.required"
-    engine  = "MYSQL"
-    level   = "ERROR"
-    payload = "{\"list\":[\"id\",\"created_ts\",\"updated_ts\",\"creator_id\",\"updater_id\"]}"
+    type                 = "COLUMN_REQUIRED"
+    engine               = "MYSQL"
+    level                = "ERROR"
+    string_array_payload = ["id", "created_ts", "updated_ts", "creator_id", "updater_id"]
   }
   rules {
-    type   = "table.require-pk"
+    type   = "TABLE_REQUIRE_PK"
     engine = "MYSQL"
     level  = "ERROR"
   }
   rules {
-    type    = "naming.column"
-    engine  = "MYSQL"
-    level   = "ERROR"
-    payload = "{\"format\":\"^[a-z]+(_[a-z]+)*$\",\"maxLength\":64}"
+    type   = "NAMING_COLUMN"
+    engine = "MYSQL"
+    level  = "ERROR"
+    naming_payload {
+      format = "^[a-z]+(_[a-z]+)*$"
+    }
   }
   rules {
-    type    = "statement.maximum-limit-value"
-    engine  = "MYSQL"
-    level   = "ERROR"
-    payload = "{\"number\":1000}"
+    type           = "STATEMENT_MAXIMUM_LIMIT_VALUE"
+    engine         = "MYSQL"
+    level          = "ERROR"
+    number_payload = 1000
   }
 }

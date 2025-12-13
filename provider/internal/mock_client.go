@@ -50,9 +50,9 @@ func init() {
 	// Initialize environment setting with an empty list
 	settingMap[fmt.Sprintf("%s%s", SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String())] = &v1pb.Setting{
 		Name: fmt.Sprintf("%s%s", SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
-		Value: &v1pb.Value{
-			Value: &v1pb.Value_EnvironmentSetting{
-				EnvironmentSetting: &v1pb.EnvironmentSetting{
+		Value: &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_Environment{
+				Environment: &v1pb.EnvironmentSetting{
 					Environments: []*v1pb.EnvironmentSetting_Environment{},
 				},
 			},
@@ -1053,7 +1053,7 @@ func FindEnvironment(ctx context.Context, client api.Client, name string) (*v1pb
 		return nil, 0, nil, errors.Wrapf(err, "failed to get environment setting")
 	}
 
-	enironmentList := environmentSetting.GetValue().GetEnvironmentSetting().GetEnvironments()
+	enironmentList := environmentSetting.GetValue().GetEnvironment().GetEnvironments()
 	if enironmentList == nil {
 		enironmentList = []*v1pb.EnvironmentSetting_Environment{}
 	}

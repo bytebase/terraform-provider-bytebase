@@ -22,22 +22,20 @@ func dataSourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "PASSWORD_RESTRICTION", "SQL_RESULT_SIZE_LIMIT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_PASSWORD_RESTRICTION.String()),
 				),
 			},
-			"approval_flow":        getWorkspaceApprovalSetting(true),
-			"workspace_profile":    getWorkspaceProfileSetting(true),
-			"classification":       getClassificationSetting(true),
-			"semantic_types":       getSemanticTypesSetting(true),
-			"environment_setting":  getEnvironmentSetting(true),
-			"password_restriction": getPasswordRestrictionSetting(true),
+			"approval_flow":       getWorkspaceApprovalSetting(true),
+			"workspace_profile":   getWorkspaceProfileSetting(true),
+			"classification":      getClassificationSetting(true),
+			"semantic_types":      getSemanticTypesSetting(true),
+			"environment_setting": getEnvironmentSetting(true),
 		},
 	}
 }
@@ -209,12 +207,6 @@ func getClassificationSetting(computed bool) *schema.Schema {
 					Required:    true,
 					Description: "The classification title. Optional.",
 				},
-				"classification_from_config": {
-					Type:        schema.TypeBool,
-					Computed:    computed,
-					Optional:    true,
-					Description: "If true, we will only store the classification in the config. Otherwise we will get the classification from table/column comment, and write back to the schema metadata.",
-				},
 				"levels": {
 					Required: true,
 					Type:     schema.TypeSet,
@@ -374,60 +366,62 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					Optional:    true,
 					Description: "Enable audit logging to stdout in structured JSON format. Requires TEAM or ENTERPRISE license.",
 				},
-			},
-		},
-	}
-}
-
-const minimumPasswordLength = 8
-
-func getPasswordRestrictionSetting(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Computed:    computed,
-		Optional:    true,
-		Default:     nil,
-		Type:        schema.TypeList,
-		MaxItems:    1,
-		MinItems:    1,
-		Description: "Restrict for login password",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"min_length": {
-					Type:         schema.TypeInt,
-					Optional:     true,
-					Description:  fmt.Sprintf("min_length is the minimum length for password, should no less than %d.", minimumPasswordLength),
-					ValidateFunc: validation.IntAtLeast(minimumPasswordLength),
-				},
-				"require_number": {
+				"watermark": {
 					Type:        schema.TypeBool,
 					Optional:    true,
-					Description: "require_number requires the password must contains at least one number.",
+					Description: "Whether to display watermark on pages. Requires ENTERPRISE license.",
 				},
-				"require_letter": {
-					Type:        schema.TypeBool,
+				"branding_logo": {
+					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "require_letter requires the password must contains at least one letter, regardless of upper case or lower case.",
+					Description: "The branding logo as a data URI (e.g. data:image/png;base64,...).",
 				},
-				"require_uppercase_letter": {
-					Type:        schema.TypeBool,
+				"password_restriction": {
+					Type:        schema.TypeList,
 					Optional:    true,
-					Description: "require_uppercase_letter requires the password must contains at least one upper case letter.",
-				},
-				"require_special_character": {
-					Type:        schema.TypeBool,
-					Optional:    true,
-					Description: "require_special_character requires the password must contains at least one special character.",
-				},
-				"require_reset_password_for_first_login": {
-					Type:        schema.TypeBool,
-					Optional:    true,
-					Description: "require_reset_password_for_first_login requires users to reset their password after the 1st login.",
-				},
-				"password_rotation_in_seconds": {
-					Type:         schema.TypeInt,
-					Optional:     true,
-					ValidateFunc: validation.IntAtLeast(86400),
-					Description:  "password_rotation requires users to reset their password after the duration. The duration should be at least 86400 (one day).",
+					MaxItems:    1,
+					Description: "Password restriction settings.",
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"min_length": {
+								Type:         schema.TypeInt,
+								Optional:     true,
+								Description:  "min_length is the minimum length for password, should be no less than 8.",
+								ValidateFunc: validation.IntAtLeast(8),
+							},
+							"require_number": {
+								Type:        schema.TypeBool,
+								Optional:    true,
+								Description: "require_number requires the password must contain at least one number.",
+							},
+							"require_letter": {
+								Type:        schema.TypeBool,
+								Optional:    true,
+								Description: "require_letter requires the password must contain at least one letter, regardless of upper case or lower case.",
+							},
+							"require_uppercase_letter": {
+								Type:        schema.TypeBool,
+								Optional:    true,
+								Description: "require_uppercase_letter requires the password must contain at least one upper case letter.",
+							},
+							"require_special_character": {
+								Type:        schema.TypeBool,
+								Optional:    true,
+								Description: "require_special_character requires the password must contain at least one special character.",
+							},
+							"require_reset_password_for_first_login": {
+								Type:        schema.TypeBool,
+								Optional:    true,
+								Description: "require_reset_password_for_first_login requires users to reset their password after the 1st login.",
+							},
+							"password_rotation_in_seconds": {
+								Type:         schema.TypeInt,
+								Optional:     true,
+								ValidateFunc: validation.IntAtLeast(86400),
+								Description:  "password_rotation requires users to reset their password after the duration. The duration should be at least 86400 (one day).",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -535,8 +529,7 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								Type:     schema.TypeString,
 								Required: true,
 								ValidateFunc: validation.StringInSlice([]string{
-									v1pb.WorkspaceApprovalSetting_Rule_DDL.String(),
-									v1pb.WorkspaceApprovalSetting_Rule_DML.String(),
+									v1pb.WorkspaceApprovalSetting_Rule_CHANGE_DATABASE.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_CREATE_DATABASE.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_EXPORT_DATA.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_REQUEST_ROLE.String(),
@@ -570,7 +563,7 @@ func dataSourceSettingRead(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func setSettingMessage(d *schema.ResourceData, setting *v1pb.Setting) diag.Diagnostics {
-	if value := setting.GetValue().GetWorkspaceApprovalSettingValue(); value != nil {
+	if value := setting.GetValue().GetWorkspaceApproval(); value != nil {
 		settingVal, err := flattenWorkspaceApprovalSetting(value)
 		if err != nil {
 			return diag.Errorf("failed to parse workspace_approval_setting: %s", err.Error())
@@ -579,31 +572,25 @@ func setSettingMessage(d *schema.ResourceData, setting *v1pb.Setting) diag.Diagn
 			return diag.Errorf("cannot set workspace_approval_setting: %s", err.Error())
 		}
 	}
-	if value := setting.GetValue().GetWorkspaceProfileSettingValue(); value != nil {
+	if value := setting.GetValue().GetWorkspaceProfile(); value != nil {
 		settingVal := flattenWorkspaceProfileSetting(value)
 		if err := d.Set("workspace_profile", settingVal); err != nil {
 			return diag.Errorf("cannot set workspace_profile: %s", err.Error())
 		}
 	}
-	if value := setting.GetValue().GetPasswordRestrictionSetting(); value != nil {
-		settingVal := flattenPasswordRestrictionSetting(value)
-		if err := d.Set("password_restriction", settingVal); err != nil {
-			return diag.Errorf("cannot set password_restriction: %s", err.Error())
-		}
-	}
-	if value := setting.GetValue().GetDataClassificationSettingValue(); value != nil {
+	if value := setting.GetValue().GetDataClassification(); value != nil {
 		settingVal := flattenClassificationSetting(value)
 		if err := d.Set("classification", settingVal); err != nil {
 			return diag.Errorf("cannot set classification: %s", err.Error())
 		}
 	}
-	if value := setting.GetValue().GetSemanticTypeSettingValue(); value != nil {
+	if value := setting.GetValue().GetSemanticType(); value != nil {
 		settingVal := flattenSemanticTypesSetting(value)
 		if err := d.Set("semantic_types", schema.NewSet(semanticTypeHash, settingVal)); err != nil {
 			return diag.Errorf("cannot set semantic_types: %s", err.Error())
 		}
 	}
-	if value := setting.GetValue().GetEnvironmentSetting(); value != nil {
+	if value := setting.GetValue().GetEnvironment(); value != nil {
 		settingVal := flattenEnvironmentSetting(value)
 		if err := d.Set("environment_setting", settingVal); err != nil {
 			return diag.Errorf("cannot set environment_setting: %s", err.Error())
@@ -694,21 +681,25 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 		// If announcement is empty, don't set it at all - let Terraform handle it as unset
 	}
 	raw["enable_audit_log_stdout"] = setting.EnableAuditLogStdout
+	raw["watermark"] = setting.Watermark
+	raw["branding_logo"] = setting.BrandingLogo
 
-	return []interface{}{raw}
-}
-
-func flattenPasswordRestrictionSetting(setting *v1pb.PasswordRestrictionSetting) []interface{} {
-	raw := map[string]interface{}{}
-	raw["min_length"] = int(setting.MinLength)
-	raw["require_number"] = setting.RequireNumber
-	raw["require_letter"] = setting.RequireLetter
-	raw["require_uppercase_letter"] = setting.RequireUppercaseLetter
-	raw["require_special_character"] = setting.RequireSpecialCharacter
-	raw["require_reset_password_for_first_login"] = setting.RequireResetPasswordForFirstLogin
-	if v := setting.GetPasswordRotation(); v != nil {
-		raw["password_rotation_in_seconds"] = int(v.Seconds)
+	// Handle password_restriction field
+	if v := setting.GetPasswordRestriction(); v != nil {
+		passwordRestriction := map[string]interface{}{
+			"min_length":                             int(v.MinLength),
+			"require_number":                         v.RequireNumber,
+			"require_letter":                         v.RequireLetter,
+			"require_uppercase_letter":               v.RequireUppercaseLetter,
+			"require_special_character":              v.RequireSpecialCharacter,
+			"require_reset_password_for_first_login": v.RequireResetPasswordForFirstLogin,
+		}
+		if v.GetPasswordRotation() != nil {
+			passwordRestriction["password_rotation_in_seconds"] = int(v.GetPasswordRotation().Seconds)
+		}
+		raw["password_restriction"] = []interface{}{passwordRestriction}
 	}
+
 	return []interface{}{raw}
 }
 
@@ -719,7 +710,6 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 		config := setting.GetConfigs()[0]
 		raw["id"] = config.Id
 		raw["title"] = config.Title
-		raw["classification_from_config"] = config.ClassificationFromConfig
 
 		rawLevels := []interface{}{}
 		for _, level := range config.Levels {

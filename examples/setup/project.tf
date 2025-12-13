@@ -15,7 +15,7 @@ resource "bytebase_project" "sample_project" {
   webhooks {
     title = "Sample webhook 1"
     type  = "SLACK"
-    url   = "https://webhook.site/91fcd52a-39f1-4e7b-a43a-ddf72796d6b1"
+    url   = "https://hooks.slack.com"
     notification_types = [
       "NOTIFY_ISSUE_APPROVED",
       "NOTIFY_PIPELINE_ROLLOUT",
@@ -26,7 +26,7 @@ resource "bytebase_project" "sample_project" {
   webhooks {
     title = "Sample webhook 2"
     type  = "LARK"
-    url   = "https://webhook.site/91fcd52a-39f1-4e7b-a43a-ddf72796d6b1"
+    url   = "https://open.larksuite.com"
     notification_types = [
       "ISSUE_APPROVAL_NOTIFY",
       "ISSUE_PIPELINE_STAGE_STATUS_UPDATE"
