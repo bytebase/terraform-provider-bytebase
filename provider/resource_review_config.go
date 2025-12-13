@@ -405,7 +405,7 @@ func convertToV1Rule(rawSchema interface{}, rawConfig cty.Value) *v1pb.SQLReview
 	return rule
 }
 
-// isAttrSet checks if an attribute was explicitly set in the raw config
+// isAttrSet checks if an attribute was explicitly set in the raw config.
 func isAttrSet(rawConfig cty.Value, attrName string) bool {
 	// Check if rawConfig is valid (not cty.NilVal) and not null
 	if rawConfig == cty.NilVal || rawConfig.IsNull() {

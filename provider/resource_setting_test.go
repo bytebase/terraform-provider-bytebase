@@ -29,7 +29,7 @@ func TestAccSetting_WorkspaceApproval(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", "settings/WORKSPACE_APPROVAL"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.source", "DDL"),
+					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.source", "CHANGE_DATABASE"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.condition", "request.risk <= 100"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.0.roles.#", "2"),
@@ -43,7 +43,7 @@ func TestAccSetting_WorkspaceApproval(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", "settings/WORKSPACE_APPROVAL"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.source", "DDL"),
+					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.source", "CHANGE_DATABASE"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.condition", "request.risk > 100"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "approval_flow.0.rules.0.flow.0.roles.#", "1"),
@@ -194,7 +194,7 @@ resource "bytebase_setting" "%s" {
 	name = "settings/INVALID_SETTING"
 	approval_flow {
 		rules {
-			source    = "DDL"
+			source    = "CHANGE_DATABASE"
 			condition = "request.risk <= 100"
 			flow {
 				title       = "Test"
@@ -227,7 +227,7 @@ resource "bytebase_setting" "%s" {
 	name = "settings/WORKSPACE_APPROVAL"
 	approval_flow {
 		rules {
-			source    = "DDL"
+			source    = "CHANGE_DATABASE"
 			condition = "request.risk <= 100"
 			flow {
 				title       = "Test"
@@ -296,7 +296,7 @@ resource "bytebase_setting" "%s" {
 	name = "settings/WORKSPACE_APPROVAL"
 	approval_flow {
 		rules {
-			source    = "DDL"
+			source    = "CHANGE_DATABASE"
 			condition = "request.risk <= 100"
 			flow {
 				title       = "DDL Approval Flow"
@@ -326,7 +326,7 @@ resource "bytebase_setting" "%s" {
 	name = "settings/WORKSPACE_APPROVAL"
 	approval_flow {
 		rules {
-			source    = "DDL"
+			source    = "CHANGE_DATABASE"
 			condition = "request.risk > 100"
 			flow {
 				title       = "Updated Approval Flow"
