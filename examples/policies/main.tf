@@ -17,13 +17,13 @@ provider "bytebase" {
   url = "https://bytebase.example.com"
 }
 
-data "bytebase_policy" "masking_exception_policy" {
+data "bytebase_policy" "masking_exemption_policy" {
   parent = "projects/project-sample"
-  type   = "MASKING_EXCEPTION"
+  type   = "MASKING_EXEMPTION"
 }
 
-output "masking_exception_policy" {
-  value = data.bytebase_policy.masking_exception_policy
+output "masking_exemption_policy" {
+  value = data.bytebase_policy.masking_exemption_policy
 }
 
 data "bytebase_policy" "global_masking_policy" {

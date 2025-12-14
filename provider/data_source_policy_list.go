@@ -63,7 +63,7 @@ func dataSourcePolicyList() *schema.Resource {
 							Computed:    true,
 							Description: "Decide if the policy is enforced.",
 						},
-						"masking_exception_policy": getMaskingExceptionPolicySchema(true),
+						"masking_exemption_policy": getMaskingExemptionPolicySchema(true),
 						"global_masking_policy":    getGlobalMaskingPolicySchema(true),
 						"data_source_query_policy": getDataSourceQueryPolicySchema(true),
 						"rollout_policy":           getRolloutPolicySchema(true),
@@ -90,7 +90,7 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 
 	policies := make([]map[string]interface{}, 0)
 	for _, policy := range response.Policies {
-		if policy.Type != v1pb.PolicyType_MASKING_EXCEPTION && policy.Type != v1pb.PolicyType_MASKING_RULE {
+		if policy.Type != v1pb.PolicyType_MASKING_EXEMPTION && policy.Type != v1pb.PolicyType_MASKING_RULE {
 			continue
 		}
 		raw := make(map[string]interface{})
