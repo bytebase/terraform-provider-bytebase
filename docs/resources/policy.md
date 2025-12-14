@@ -26,7 +26,7 @@ The policy resource.
 - `enforce` (Boolean) Decide if the policy is enforced.
 - `global_masking_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--global_masking_policy))
 - `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
-- `masking_exception_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exception_policy))
+- `masking_exemption_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exemption_policy))
 - `query_data_policy` (Block List, Max: 1) The policy for query data (see [below for nested schema](#nestedblock--query_data_policy))
 - `rollout_policy` (Block List, Max: 1) Control issue rollout. Learn more: https://docs.bytebase.com/administration/environment-policy/rollout-policy (see [below for nested schema](#nestedblock--rollout_policy))
 
@@ -67,15 +67,15 @@ Optional:
 
 
 
-<a id="nestedblock--masking_exception_policy"></a>
-### Nested Schema for `masking_exception_policy`
+<a id="nestedblock--masking_exemption_policy"></a>
+### Nested Schema for `masking_exemption_policy`
 
 Optional:
 
-- `exceptions` (Block Set) (see [below for nested schema](#nestedblock--masking_exception_policy--exceptions))
+- `exemptions` (Block Set) (see [below for nested schema](#nestedblock--masking_exemption_policy--exemptions))
 
-<a id="nestedblock--masking_exception_policy--exceptions"></a>
-### Nested Schema for `masking_exception_policy.exceptions`
+<a id="nestedblock--masking_exemption_policy--exemptions"></a>
+### Nested Schema for `masking_exemption_policy.exemptions`
 
 Required:
 
@@ -87,7 +87,7 @@ Optional:
 - `columns` (Set of String)
 - `database` (String) The database full name in instances/{instance resource id}/databases/{database name} format
 - `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ss.000Z format
-- `raw_expression` (String) The raw CEL expression. We will use it as the masking exception and ignore the "database"/"schema"/"table"/"columns"/"expire_timestamp" fields if you provide the raw expression.
+- `raw_expression` (String) The raw CEL expression. We will use it as the masking exemption and ignore the "database"/"schema"/"table"/"columns"/"expire_timestamp" fields if you provide the raw expression.
 - `reason` (String) The reason for the masking exemption
 - `schema` (String)
 - `table` (String)
