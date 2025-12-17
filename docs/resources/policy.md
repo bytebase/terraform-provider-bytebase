@@ -79,7 +79,6 @@ Optional:
 
 Required:
 
-- `actions` (Set of String)
 - `members` (Set of String)
 
 Optional:

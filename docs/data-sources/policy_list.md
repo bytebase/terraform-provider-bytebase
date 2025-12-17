@@ -80,7 +80,6 @@ Read-Only:
 
 Read-Only:
 
-- `actions` (Set of String)
 - `columns` (Set of String)
 - `database` (String)
 - `expire_timestamp` (String)
