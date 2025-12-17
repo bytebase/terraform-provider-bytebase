@@ -52,7 +52,7 @@ func resourcePolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					v1pb.PolicyType_MASKING_EXCEPTION.String(),
+					v1pb.PolicyType_MASKING_EXEMPTION.String(),
 					v1pb.PolicyType_MASKING_RULE.String(),
 					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
 					v1pb.PolicyType_ROLLOUT_POLICY.String(),
@@ -77,7 +77,7 @@ func resourcePolicy() *schema.Resource {
 				Default:     false,
 				Description: "Decide if the policy should inherit from the parent.",
 			},
-			"masking_exception_policy": getMaskingExceptionPolicySchema(false),
+			"masking_exemption_policy": getMaskingExemptionPolicySchema(false),
 			"global_masking_policy":    getGlobalMaskingPolicySchema(false),
 			"data_source_query_policy": getDataSourceQueryPolicySchema(false),
 			"rollout_policy":           getRolloutPolicySchema(false),
@@ -133,15 +133,15 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	updateMasks := []string{}
 
 	switch policyType {
-	case v1pb.PolicyType_MASKING_EXCEPTION:
-		maskingExceptionPolicy, err := convertToMaskingExceptionPolicy(d)
+	case v1pb.PolicyType_MASKING_EXEMPTION:
+		maskingExemptionPolicy, err := convertToMaskingExemptionPolicy(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		patch.Policy = &v1pb.Policy_MaskingExceptionPolicy{
-			MaskingExceptionPolicy: maskingExceptionPolicy,
+		patch.Policy = &v1pb.Policy_MaskingExemptionPolicy{
+			MaskingExemptionPolicy: maskingExemptionPolicy,
 		}
-		updateMasks = append(updateMasks, "masking_exception_policy")
+		updateMasks = append(updateMasks, "masking_exemption_policy")
 	case v1pb.PolicyType_MASKING_RULE:
 		maskingRulePolicy, err := convertToMaskingRulePolicy(d)
 		if err != nil {
@@ -248,14 +248,14 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		updateMasks = append(updateMasks, "enforce")
 	}
 
-	if d.HasChange("masking_exception_policy") {
-		updateMasks = append(updateMasks, "masking_exception_policy")
-		maskingExceptionPolicy, err := convertToMaskingExceptionPolicy(d)
+	if d.HasChange("masking_exemption_policy") {
+		updateMasks = append(updateMasks, "masking_exemption_policy")
+		maskingExemptionPolicy, err := convertToMaskingExemptionPolicy(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		patch.Policy = &v1pb.Policy_MaskingExceptionPolicy{
-			MaskingExceptionPolicy: maskingExceptionPolicy,
+		patch.Policy = &v1pb.Policy_MaskingExemptionPolicy{
+			MaskingExemptionPolicy: maskingExemptionPolicy,
 		}
 	}
 	if d.HasChange("global_masking_policy") {
@@ -349,16 +349,16 @@ func convertToMaskingRulePolicy(d *schema.ResourceData) (*v1pb.MaskingRulePolicy
 	return policy, nil
 }
 
-func convertToV1Exceptions(rawSchema interface{}) ([]*v1pb.MaskingExceptionPolicy_MaskingException, error) {
-	rawException := rawSchema.(map[string]interface{})
+func convertToV1Exemptions(rawSchema interface{}) ([]*v1pb.MaskingExemptionPolicy_Exemption, error) {
+	rawExemption := rawSchema.(map[string]interface{})
 
 	expressions := []string{}
-	rawExpression := rawException["raw_expression"].(string)
+	rawExpression := rawExemption["raw_expression"].(string)
 
 	if rawExpression != "" {
 		expressions = append(expressions, rawExpression)
 	} else {
-		databaseFullName := rawException["database"].(string)
+		databaseFullName := rawExemption["database"].(string)
 		if databaseFullName != "" {
 			instanceID, databaseName, err := internal.GetInstanceDatabaseID(databaseFullName)
 			if err != nil {
@@ -370,14 +370,14 @@ func convertToV1Exceptions(rawSchema interface{}) ([]*v1pb.MaskingExceptionPolic
 				fmt.Sprintf(`resource.database_name == "%s"`, databaseName),
 			)
 
-			if schema, ok := rawException["schema"].(string); ok && schema != "" {
+			if schema, ok := rawExemption["schema"].(string); ok && schema != "" {
 				expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
 			}
-			if table, ok := rawException["table"].(string); ok && table != "" {
+			if table, ok := rawExemption["table"].(string); ok && table != "" {
 				expressions = append(expressions, fmt.Sprintf(`resource.table_name == "%s"`, table))
 			}
 
-			if rawColumns, ok := rawException["columns"].(*schema.Set); ok && rawColumns.Len() > 0 {
+			if rawColumns, ok := rawExemption["columns"].(*schema.Set); ok && rawColumns.Len() > 0 {
 				columnNames := []string{}
 				for _, column := range rawColumns.List() {
 					columnNames = append(columnNames, fmt.Sprintf(`"%s"`, column.(string)))
@@ -386,7 +386,7 @@ func convertToV1Exceptions(rawSchema interface{}) ([]*v1pb.MaskingExceptionPolic
 			}
 		}
 
-		if expire, ok := rawException["expire_timestamp"].(string); ok && expire != "" {
+		if expire, ok := rawExemption["expire_timestamp"].(string); ok && expire != "" {
 			formattedTime, err := time.Parse(time.RFC3339, expire)
 			if err != nil {
 				return nil, errors.Wrapf(err, "invalid time: %v", expire)
@@ -395,61 +395,56 @@ func convertToV1Exceptions(rawSchema interface{}) ([]*v1pb.MaskingExceptionPolic
 		}
 	}
 
-	exceptions := []*v1pb.MaskingExceptionPolicy_MaskingException{}
-	reason := rawException["reason"].(string)
+	reason := rawExemption["reason"].(string)
 
-	rawMembers, ok := rawException["members"].(*schema.Set)
+	rawMembers, ok := rawExemption["members"].(*schema.Set)
 	if !ok || rawMembers.Len() == 0 {
-		return nil, errors.Errorf("invalid members in masking_exception_policy.exceptions")
+		return nil, errors.Errorf("invalid members in masking_exemption_policy.exemptions")
 	}
 
-	rawActions, ok := rawException["actions"].(*schema.Set)
-	if !ok || rawActions.Len() == 0 {
-		return nil, errors.Errorf("invalid actions in masking_exception_policy.exceptions")
-	}
+	// Note: The "actions" field is deprecated in the new API and is ignored.
+	// The new API doesn't support per-member actions.
 
+	members := []string{}
 	for _, rawMember := range rawMembers.List() {
 		member := rawMember.(string)
 		if err := internal.ValidateMemberBinding(member); err != nil {
 			return nil, err
 		}
-		for _, action := range rawActions.List() {
-			exceptions = append(exceptions, &v1pb.MaskingExceptionPolicy_MaskingException{
-				Member: member,
-				Action: v1pb.MaskingExceptionPolicy_MaskingException_Action(
-					v1pb.MaskingExceptionPolicy_MaskingException_Action_value[action.(string)],
-				),
-				Condition: &expr.Expr{
-					Description: reason,
-					Expression:  strings.Join(expressions, " && "),
-				},
-			})
-		}
+		members = append(members, member)
 	}
 
-	return exceptions, nil
+	exemption := &v1pb.MaskingExemptionPolicy_Exemption{
+		Members: members,
+		Condition: &expr.Expr{
+			Title:      reason,
+			Expression: strings.Join(expressions, " && "),
+		},
+	}
+
+	return []*v1pb.MaskingExemptionPolicy_Exemption{exemption}, nil
 }
 
-func convertToMaskingExceptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExceptionPolicy, error) {
-	rawList, ok := d.Get("masking_exception_policy").([]interface{})
+func convertToMaskingExemptionPolicy(d *schema.ResourceData) (*v1pb.MaskingExemptionPolicy, error) {
+	rawList, ok := d.Get("masking_exemption_policy").([]interface{})
 	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid masking_exception_policy")
+		return nil, errors.Errorf("invalid masking_exemption_policy")
 	}
 
 	raw := rawList[0].(map[string]interface{})
-	exceptionList, ok := raw["exceptions"].(*schema.Set)
+	exemptionList, ok := raw["exemptions"].(*schema.Set)
 	if !ok {
-		return nil, errors.Errorf("invalid exceptions")
+		return nil, errors.Errorf("invalid exemptions")
 	}
 
-	policy := &v1pb.MaskingExceptionPolicy{}
+	policy := &v1pb.MaskingExemptionPolicy{}
 
-	for _, raw := range exceptionList.List() {
-		exceptions, err := convertToV1Exceptions(raw)
+	for _, raw := range exemptionList.List() {
+		exemptions, err := convertToV1Exemptions(raw)
 		if err != nil {
 			return nil, err
 		}
-		policy.MaskingExceptions = append(policy.MaskingExceptions, exceptions...)
+		policy.Exemptions = append(policy.Exemptions, exemptions...)
 	}
 	return policy, nil
 }

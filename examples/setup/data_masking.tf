@@ -97,7 +97,7 @@ resource "bytebase_setting" "semantic_types" {
   }
 }
 
-resource "bytebase_policy" "masking_exception_policy" {
+resource "bytebase_policy" "masking_exemption_policy" {
   depends_on = [
     bytebase_project.sample_project,
     bytebase_instance.test,
@@ -106,12 +106,12 @@ resource "bytebase_policy" "masking_exception_policy" {
   ]
 
   parent              = bytebase_project.sample_project.name
-  type                = "MASKING_EXCEPTION"
+  type                = "MASKING_EXEMPTION"
   enforce             = true
   inherit_from_parent = false
 
-  masking_exception_policy {
-    exceptions {
+  masking_exemption_policy {
+    exemptions {
       database = "instances/test-sample-instance/databases/employee"
       table    = "salary"
       columns  = ["amount", "emp_no"]
@@ -119,26 +119,23 @@ resource "bytebase_policy" "masking_exception_policy" {
         format("user:%s", bytebase_user.project_developer.email),
         format("user:%s", bytebase_user.workspace_dba.email),
       ]
-      actions = ["QUERY", "EXPORT"]
       reason  = "Grant access"
     }
 
-    exceptions {
+    exemptions {
       database = "instances/test-sample-instance/databases/employee"
       table    = "employee"
       columns  = ["emp_no"]
       members = [
         format("user:%s", bytebase_user.workspace_dba.email),
       ]
-      actions = ["EXPORT"]
       reason  = "Grant export access"
     }
 
-    exceptions {
+    exemptions {
       members = [
         format("user:%s", bytebase_user.project_developer.email),
       ]
-      actions        = ["QUERY"]
       reason         = "Grant query access"
       raw_expression = "resource.instance_id == \"test-sample-instance\" && resource.database_name == \"employee\" && resource.table_name == \"employee\" && resource.column_name in [\"first_name\", \"last_name\", \"gender\"]"
     }

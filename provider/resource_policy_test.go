@@ -24,18 +24,18 @@ func TestAccPolicy(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckPolicyResource(
-					"masking_exception_policy",
+					"masking_exemption_policy",
 					"projects/project-sample",
-					getMaskingExceptionPolicy("instances/test-sample-instance/databases/employee", "salary", "amount"),
-					v1pb.PolicyType_MASKING_EXCEPTION,
+					getMaskingExemptionPolicy("instances/test-sample-instance/databases/employee", "salary", "amount"),
+					v1pb.PolicyType_MASKING_EXEMPTION,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists("bytebase_policy.masking_exception_policy"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "type", v1pb.PolicyType_MASKING_EXCEPTION.String()),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.table", "salary"),
-					resource.TestCheckResourceAttr("bytebase_policy.masking_exception_policy", "masking_exception_policy.0.exceptions.0.columns.0", "amount"),
+					internal.TestCheckResourceExists("bytebase_policy.masking_exemption_policy"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exemption_policy", "type", v1pb.PolicyType_MASKING_EXEMPTION.String()),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exemption_policy", "masking_exemption_policy.#", "1"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exemption_policy", "masking_exemption_policy.0.exemptions.#", "1"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exemption_policy", "masking_exemption_policy.0.exemptions.0.table", "salary"),
+					resource.TestCheckResourceAttr("bytebase_policy.masking_exemption_policy", "masking_exemption_policy.0.exemptions.0.columns.0", "amount"),
 				),
 			},
 		},
@@ -53,15 +53,14 @@ func testAccCheckPolicyResource(identifier, parent, payload string, pType v1pb.P
 	`, identifier, parent, pType.String(), payload)
 }
 
-func getMaskingExceptionPolicy(database, table, column string) string {
+func getMaskingExemptionPolicy(database, table, column string) string {
 	return fmt.Sprintf(`
-	masking_exception_policy {
-		exceptions {
+	masking_exemption_policy {
+		exemptions {
 			database      = "%s"
 			table         = "%s"
 			columns       = ["%s"]
 			members       = ["user:ed@bytebase.com"]
-			actions       = ["QUERY"]
 		}
 	}
 	`, database, table, column)

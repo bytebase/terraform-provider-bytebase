@@ -303,15 +303,15 @@ func (c *mockClient) UpsertPolicy(_ context.Context, patch *v1pb.Policy, updateM
 	}
 
 	switch policyType {
-	case v1pb.PolicyType_MASKING_EXCEPTION:
+	case v1pb.PolicyType_MASKING_EXEMPTION:
 		if !existed {
-			if patch.GetMaskingExceptionPolicy() == nil {
+			if patch.GetMaskingExemptionPolicy() == nil {
 				return nil, errors.Errorf("payload is required to create the policy")
 			}
 		}
-		if v := patch.GetMaskingExceptionPolicy(); v != nil {
-			policy.Policy = &v1pb.Policy_MaskingExceptionPolicy{
-				MaskingExceptionPolicy: v,
+		if v := patch.GetMaskingExemptionPolicy(); v != nil {
+			policy.Policy = &v1pb.Policy_MaskingExemptionPolicy{
+				MaskingExemptionPolicy: v,
 			}
 		}
 	case v1pb.PolicyType_MASKING_RULE:

@@ -33,7 +33,7 @@ Read-Only:
 - `enforce` (Boolean)
 - `global_masking_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--global_masking_policy))
 - `inherit_from_parent` (Boolean)
-- `masking_exception_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy))
+- `masking_exemption_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exemption_policy))
 - `name` (String)
 - `query_data_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--query_data_policy))
 - `rollout_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--rollout_policy))
@@ -68,15 +68,15 @@ Read-Only:
 
 
 
-<a id="nestedobjatt--policies--masking_exception_policy"></a>
-### Nested Schema for `policies.masking_exception_policy`
+<a id="nestedobjatt--policies--masking_exemption_policy"></a>
+### Nested Schema for `policies.masking_exemption_policy`
 
 Read-Only:
 
-- `exceptions` (Set of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exception_policy--exceptions))
+- `exemptions` (Set of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exemption_policy--exemptions))
 
-<a id="nestedobjatt--policies--masking_exception_policy--exceptions"></a>
-### Nested Schema for `policies.masking_exception_policy.exceptions`
+<a id="nestedobjatt--policies--masking_exemption_policy--exemptions"></a>
+### Nested Schema for `policies.masking_exemption_policy.exemptions`
 
 Read-Only:
 

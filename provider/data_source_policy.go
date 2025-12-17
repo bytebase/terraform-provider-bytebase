@@ -42,7 +42,7 @@ func dataSourcePolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					v1pb.PolicyType_MASKING_EXCEPTION.String(),
+					v1pb.PolicyType_MASKING_EXEMPTION.String(),
 					v1pb.PolicyType_MASKING_RULE.String(),
 					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
 					v1pb.PolicyType_ROLLOUT_POLICY.String(),
@@ -65,7 +65,7 @@ func dataSourcePolicy() *schema.Resource {
 				Computed:    true,
 				Description: "Decide if the policy is enforced.",
 			},
-			"masking_exception_policy": getMaskingExceptionPolicySchema(true),
+			"masking_exemption_policy": getMaskingExemptionPolicySchema(true),
 			"global_masking_policy":    getGlobalMaskingPolicySchema(true),
 			"data_source_query_policy": getDataSourceQueryPolicySchema(true),
 			"rollout_policy":           getRolloutPolicySchema(true),
@@ -74,7 +74,7 @@ func dataSourcePolicy() *schema.Resource {
 	}
 }
 
-func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
+func getMaskingExemptionPolicySchema(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Computed: computed,
 		Optional: true,
@@ -84,7 +84,7 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"exceptions": {
+				"exemptions": {
 					Computed: computed,
 					Optional: true,
 					Default:  nil,
@@ -135,19 +135,6 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 									),
 								},
 							},
-							"actions": {
-								Type:     schema.TypeSet,
-								Required: true,
-								MinItems: 1,
-								Elem: &schema.Schema{
-									Type:        schema.TypeString,
-									Description: "The action to allow for members. Support QUERY or EXPORT",
-									ValidateFunc: validation.StringInSlice([]string{
-										v1pb.MaskingExceptionPolicy_MaskingException_QUERY.String(),
-										v1pb.MaskingExceptionPolicy_MaskingException_EXPORT.String(),
-									}, false),
-								},
-							},
 							"reason": {
 								Type:        schema.TypeString,
 								Optional:    true,
@@ -163,11 +150,11 @@ func getMaskingExceptionPolicySchema(computed bool) *schema.Schema {
 								Type:        schema.TypeString,
 								Computed:    computed,
 								Optional:    true,
-								Description: `The raw CEL expression. We will use it as the masking exception and ignore the "database"/"schema"/"table"/"columns"/"expire_timestamp" fields if you provide the raw expression.`,
+								Description: `The raw CEL expression. We will use it as the masking exemption and ignore the "database"/"schema"/"table"/"columns"/"expire_timestamp" fields if you provide the raw expression.`,
 							},
 						},
 					},
-					Set: exceptionHash,
+					Set: exemptionHash,
 				},
 			},
 		},
@@ -381,13 +368,13 @@ func flattenPolicyPayload(policy *v1pb.Policy) (string, interface{}, diag.Diagno
 		return "", nil, diag.Errorf("cannot parse name for policy: %s", err.Error())
 	}
 	switch policyType {
-	case v1pb.PolicyType_MASKING_EXCEPTION:
-		if p := policy.GetMaskingExceptionPolicy(); p != nil {
-			exceptionPolicy, err := flattenMaskingExceptionPolicy(p)
+	case v1pb.PolicyType_MASKING_EXEMPTION:
+		if p := policy.GetMaskingExemptionPolicy(); p != nil {
+			exemptionPolicy, err := flattenMaskingExemptionPolicy(p)
 			if err != nil {
 				return "", nil, diag.FromErr(err)
 			}
-			return "masking_exception_policy", exceptionPolicy, nil
+			return "masking_exemption_policy", exemptionPolicy, nil
 		}
 	case v1pb.PolicyType_MASKING_RULE:
 		if p := policy.GetMaskingRulePolicy(); p != nil {
@@ -469,45 +456,34 @@ func flattenGlobalMaskingPolicy(p *v1pb.MaskingRulePolicy) ([]interface{}, error
 	return []interface{}{policy}, nil
 }
 
-type combineException struct {
-	expression string
-	reason     string
-	members    []interface{}
-	actions    []interface{}
-}
+func flattenMaskingExemptionPolicy(p *v1pb.MaskingExemptionPolicy) ([]interface{}, error) {
+	exemptionList := []interface{}{}
 
-func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{}, error) {
-	exceptionList := []interface{}{}
-	exceptionMap := map[string]*combineException{}
-
-	for _, exception := range p.MaskingExceptions {
-		if exception.Condition == nil || exception.Condition.Expression == "" {
+	for _, exemption := range p.Exemptions {
+		if exemption.Condition == nil || exemption.Condition.Expression == "" {
 			// Skip invalid data.
 			continue
 		}
 
-		key := fmt.Sprintf("[expression:%s] [reason:%s]", exception.Condition.Expression, exception.Condition.Description)
-		if _, ok := exceptionMap[key]; !ok {
-			exceptionMap[key] = &combineException{
-				expression: exception.Condition.Expression,
-				reason:     exception.Condition.Description,
-				members:    []interface{}{},
-				actions:    []interface{}{},
-			}
+		// The new API uses Condition.Title for the reason/description
+		reason := exemption.Condition.Title
+		if reason == "" {
+			reason = exemption.Condition.Description
 		}
-		exceptionMap[key].members = append(exceptionMap[key].members, exception.Member)
-		exceptionMap[key].actions = append(exceptionMap[key].actions, exception.Action.String())
-	}
 
-	for _, combine := range exceptionMap {
+		// Convert members to interface slice for schema.Set
+		members := []interface{}{}
+		for _, member := range exemption.Members {
+			members = append(members, member)
+		}
+
 		raw := map[string]interface{}{
-			"members":        schema.NewSet(schema.HashString, combine.members),
-			"actions":        schema.NewSet(schema.HashString, combine.actions),
-			"reason":         combine.reason,
-			"raw_expression": combine.expression,
+			"members":        schema.NewSet(schema.HashString, members),
+			"reason":         reason,
+			"raw_expression": exemption.Condition.Expression,
 		}
 
-		expressions := strings.Split(combine.expression, " && ")
+		expressions := strings.Split(exemption.Condition.Expression, " && ")
 		instanceID := ""
 		databaseName := ""
 		columns := []interface{}{}
@@ -571,21 +547,21 @@ func flattenMaskingExceptionPolicy(p *v1pb.MaskingExceptionPolicy) ([]interface{
 		if len(columns) > 0 {
 			raw["columns"] = schema.NewSet(schema.HashString, columns)
 		}
-		exceptionList = append(exceptionList, raw)
+		exemptionList = append(exemptionList, raw)
 	}
 
 	policy := map[string]interface{}{
-		"exceptions": exceptionList,
+		"exemptions": exemptionList,
 	}
 	return []interface{}{policy}, nil
 }
 
-func exceptionHash(rawSchema interface{}) int {
-	exceptions, err := convertToV1Exceptions(rawSchema)
+func exemptionHash(rawSchema interface{}) int {
+	exemptions, err := convertToV1Exemptions(rawSchema)
 	if err != nil {
 		return 0
 	}
-	return internal.ToHash(&v1pb.MaskingExceptionPolicy{
-		MaskingExceptions: exceptions,
+	return internal.ToHash(&v1pb.MaskingExemptionPolicy{
+		Exemptions: exemptions,
 	})
 }
