@@ -1577,7 +1577,7 @@ func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb
 	return dataSourceList, nil
 }
 
-// validateAuthenticationTypeForEngine validates that the authentication type is supported for the given engine:
+// validateAuthenticationTypeForEngine validates that the authentication type is supported for the given engine
 // Engine-specific rules:
 // - COSMOSDB: only AZURE_IAM
 // - MSSQL: PASSWORD, AZURE_IAM
