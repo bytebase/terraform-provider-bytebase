@@ -1361,7 +1361,7 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 	sshUser, _ := obj["ssh_user"].(string)
 	sshPassword, _ := obj["ssh_password"].(string)
 	sshPrivateKey, _ := obj["ssh_private_key"].(string)
-	hasSshConfig := sshHost != "" || sshPort != "" || sshUser != "" || sshPassword != "" || sshPrivateKey != ""
+	hasSSHConfig := sshHost != "" || sshPort != "" || sshUser != "" || sshPassword != "" || sshPrivateKey != ""
 
 	dataSource.SshHost = sshHost
 	dataSource.SshPort = sshPort
@@ -1373,7 +1373,7 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 		dataSource.SshPrivateKey = sshPrivateKey
 	}
 	// SSH tunneling requires PASSWORD authentication
-	if hasSshConfig && authType != v1pb.DataSource_PASSWORD && authType != v1pb.DataSource_AUTHENTICATION_UNSPECIFIED {
+	if hasSSHConfig && authType != v1pb.DataSource_PASSWORD && authType != v1pb.DataSource_AUTHENTICATION_UNSPECIFIED {
 		return nil, errors.Errorf("SSH tunneling is only available when authentication_type is PASSWORD")
 	}
 
@@ -1442,8 +1442,8 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 			if roleArn, ok := awsMap["role_arn"].(string); ok && roleArn != "" {
 				awsCred.RoleArn = roleArn
 			}
-			if externalId, ok := awsMap["external_id"].(string); ok && externalId != "" {
-				awsCred.ExternalId = externalId
+			if externalID, ok := awsMap["external_id"].(string); ok && externalID != "" {
+				awsCred.ExternalId = externalID
 			}
 			dataSource.IamExtension = &v1pb.DataSource_AwsCredential{
 				AwsCredential: awsCred,
