@@ -1583,7 +1583,7 @@ func convertDataSourceCreateList(d *schema.ResourceData, validate bool) ([]*v1pb
 // - MSSQL: PASSWORD, AZURE_IAM
 // - ELASTICSEARCH: PASSWORD, AWS_RDS_IAM
 // - SPANNER, BIGQUERY: only GOOGLE_CLOUD_SQL_IAM
-// - Others: PASSWORD, GOOGLE_CLOUD_SQL_IAM, AWS_RDS_IAM
+// - Others: PASSWORD, GOOGLE_CLOUD_SQL_IAM, AWS_RDS_IAM.
 func validateAuthenticationTypeForEngine(engine v1pb.Engine, authType v1pb.DataSource_AuthenticationType) error {
 	// Treat AUTHENTICATION_UNSPECIFIED as PASSWORD
 	if authType == v1pb.DataSource_AUTHENTICATION_UNSPECIFIED {
