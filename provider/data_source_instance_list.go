@@ -104,7 +104,7 @@ func dataSourceInstanceList() *schema.Resource {
 						"engine": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, COCKROACHDB.",
+							Description: "The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.",
 						},
 						"engine_version": {
 							Type:        schema.TypeString,
@@ -131,68 +131,7 @@ func dataSourceInstanceList() *schema.Resource {
 							Type:     schema.TypeSet,
 							Computed: true,
 							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"id": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Description: "The unique data source id in this instance.",
-									},
-									"type": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Description: "The data source type. Should be ADMIN or READ_ONLY.",
-									},
-									"username": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Description: "The connection user name used by Bytebase to perform DDL and DML operations.",
-									},
-									"host": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Description: "Host or socket for your instance, or the account name if the instance type is Snowflake.",
-									},
-									"port": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Description: "The port for your instance.",
-									},
-									"database": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Description: "The database for the instance, you can set this if the engine type is POSTGRES.",
-									},
-									"password": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Sensitive:   true,
-										Description: "The connection user password used by Bytebase to perform DDL and DML operations.",
-									},
-									"external_secret": getExternalSecretSchema(),
-									"use_ssl": {
-										Type:        schema.TypeBool,
-										Computed:    true,
-										Description: "Enable SSL connection. Required to use SSL certificates.",
-									},
-									"ssl_ca": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Sensitive:   true,
-										Description: "The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.",
-									},
-									"ssl_cert": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Sensitive:   true,
-										Description: "The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.",
-									},
-									"ssl_key": {
-										Type:        schema.TypeString,
-										Computed:    true,
-										Sensitive:   true,
-										Description: "The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB, CLICKHOUSE or COCKROACHDB.",
-									},
-								},
+								Schema: getDataSourceComputedSchema(),
 							},
 							Set: dataSourceHash,
 						},

@@ -73,7 +73,7 @@ resource "bytebase_iam_policy" "project_iam" {
     }
 
     binding {
-      role = "roles/projectExporter"
+      role = "roles/sqlEditorUser"
       members = [
         format("user:%s", bytebase_user.project_developer.email)
       ]

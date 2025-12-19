@@ -18,7 +18,7 @@ The instance resource.
 ### Required
 
 - `data_sources` (Block Set, Min: 1) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_sources))
-- `engine` (String) The instance engine. Support MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, COCKROACHDB.
+- `engine` (String) The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.
 - `resource_id` (String) The instance unique resource id.
 - `title` (String) The instance title.
 
@@ -44,21 +44,83 @@ The instance resource.
 
 Required:
 
-- `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake.
 - `id` (String) The unique data source id in this instance.
-- `port` (String) The port for your instance.
 - `type` (String) The data source type. Should be ADMIN or READ_ONLY. The READ_ONLY data source requires the instance license.
 
 Optional:
 
+- `additional_addresses` (Block List) Additional addresses for MongoDB replica set. Only available for MONGODB engine. (see [below for nested schema](#nestedblock--data_sources--additional_addresses))
+- `authentication_database` (String) The database to authenticate against for MongoDB. Only available for MONGODB engine.
+- `authentication_private_key` (String, Sensitive) PKCS#8 private key for authentication.
+- `authentication_private_key_passphrase` (String, Sensitive) Passphrase for encrypted private key.
+- `authentication_type` (String) Authentication type. Supported values depend on engine: COSMOSDB only supports AZURE_IAM; MSSQL supports PASSWORD, AZURE_IAM; ELASTICSEARCH supports PASSWORD, AWS_RDS_IAM; SPANNER, BIGQUERY only support GOOGLE_CLOUD_SQL_IAM; Most other engines support PASSWORD, GOOGLE_CLOUD_SQL_IAM, AWS_RDS_IAM. Default is PASSWORD.
+- `aws_credential` (Block List, Max: 1) AWS IAM credential. Only valid when authentication_type is AWS_RDS_IAM. (see [below for nested schema](#nestedblock--data_sources--aws_credential))
+- `azure_credential` (Block List, Max: 1) Azure IAM credential. Only valid when authentication_type is AZURE_IAM. (see [below for nested schema](#nestedblock--data_sources--azure_credential))
+- `cluster` (String) CockroachDB cluster name. Only available for COCKROACHDB engine.
 - `database` (String) The database for the instance, you can set this if the engine type is POSTGRES.
-- `external_secret` (Block List, Max: 1) The external secret to get the database password. Require instance license to enable this feature. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager (see [below for nested schema](#nestedblock--data_sources--external_secret))
+- `direct_connection` (Boolean) Use direct connection to MongoDB node. Only available for MONGODB engine.
+- `external_secret` (Block List, Max: 1) The external secret to get the database password. Only available when authentication_type is PASSWORD. Requires instance license. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager (see [below for nested schema](#nestedblock--data_sources--external_secret))
+- `extra_connection_parameters` (Map of String) Extra connection parameters as key-value pairs. Only available for MYSQL, MARIADB, OCEANBASE, POSTGRES, ORACLE, MSSQL, MONGODB.
+- `gcp_credential` (Block List, Max: 1) GCP IAM credential (service account JSON). Only valid when authentication_type is GOOGLE_CLOUD_SQL_IAM. (see [below for nested schema](#nestedblock--data_sources--gcp_credential))
+- `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake. Not required for some engines like DYNAMODB.
+- `master_name` (String) Redis Sentinel master name. Only available for REDIS engine.
+- `master_password` (String, Sensitive) Redis Sentinel master password. Only available for REDIS engine.
+- `master_username` (String) Redis Sentinel master username. Only available for REDIS engine.
 - `password` (String, Sensitive) The connection user password used by Bytebase to perform DDL and DML operations.
+- `port` (String) The port for your instance. Not required for some engines like SPANNER, BIGQUERY.
+- `redis_type` (String) Redis deployment type: STANDALONE, SENTINEL, CLUSTER. Only available for REDIS engine.
+- `region` (String) AWS region (e.g., us-east-1). Only available when authentication_type is AWS_RDS_IAM.
+- `replica_set` (String) The replica set name for MongoDB. Only available for MONGODB engine.
+- `sasl_config` (Block List, Max: 1) SASL authentication configuration. Only available for HIVE engine. (see [below for nested schema](#nestedblock--data_sources--sasl_config))
+- `service_name` (String) Oracle service name. Only available for ORACLE engine.
+- `sid` (String) Oracle System Identifier (SID). Only available for ORACLE engine.
+- `srv` (Boolean) Use DNS SRV record for MongoDB connection. Only available for MONGODB engine.
+- `ssh_host` (String) SSH tunnel server hostname. Only available for MYSQL, TIDB, MARIADB, OCEANBASE, POSTGRES, REDIS with PASSWORD authentication.
+- `ssh_password` (String, Sensitive) SSH tunnel password. Only available for MYSQL, TIDB, MARIADB, OCEANBASE, POSTGRES, REDIS with PASSWORD authentication.
+- `ssh_port` (String) SSH tunnel server port. Only available for MYSQL, TIDB, MARIADB, OCEANBASE, POSTGRES, REDIS with PASSWORD authentication.
+- `ssh_private_key` (String, Sensitive) SSH tunnel private key. Only available for MYSQL, TIDB, MARIADB, OCEANBASE, POSTGRES, REDIS with PASSWORD authentication.
+- `ssh_user` (String) SSH tunnel username. Only available for MYSQL, TIDB, MARIADB, OCEANBASE, POSTGRES, REDIS with PASSWORD authentication.
 - `ssl_ca` (String, Sensitive) The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `ssl_key` (String, Sensitive) The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
 - `use_ssl` (Boolean) Enable SSL connection. Required to use SSL certificates.
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
+- `verify_tls_certificate` (Boolean) Enable TLS certificate verification for SSL connections.
+- `warehouse_id` (String) Databricks warehouse ID. Only available for DATABRICKS engine.
+
+<a id="nestedblock--data_sources--additional_addresses"></a>
+### Nested Schema for `data_sources.additional_addresses`
+
+Required:
+
+- `host` (String) The hostname of the additional address.
+- `port` (String) The port of the additional address.
+
+
+<a id="nestedblock--data_sources--aws_credential"></a>
+### Nested Schema for `data_sources.aws_credential`
+
+Required:
+
+- `access_key_id` (String) AWS access key ID.
+- `secret_access_key` (String, Sensitive) AWS secret access key.
+
+Optional:
+
+- `external_id` (String) External ID for additional security when assuming role.
+- `role_arn` (String) ARN of IAM role to assume for cross-account access.
+- `session_token` (String, Sensitive) AWS session token.
+
+
+<a id="nestedblock--data_sources--azure_credential"></a>
+### Nested Schema for `data_sources.azure_credential`
+
+Required:
+
+- `client_id` (String) Azure client ID.
+- `client_secret` (String, Sensitive) Azure client secret.
+- `tenant_id` (String) Azure tenant ID.
+
 
 <a id="nestedblock--data_sources--external_secret"></a>
 ### Nested Schema for `data_sources.external_secret`
@@ -109,5 +171,39 @@ Required:
 - `role_id` (String, Sensitive) The app role id.
 - `secret` (String, Sensitive) The secret id for the role without ttl.
 - `secret_type` (String) The secret id type, can be PLAIN (plain text for the secret) or ENVIRONMENT (envirionment name for the secret).
+
+
+
+
+<a id="nestedblock--data_sources--gcp_credential"></a>
+### Nested Schema for `data_sources.gcp_credential`
+
+Required:
+
+- `content` (String, Sensitive) GCP service account JSON content.
+
+
+<a id="nestedblock--data_sources--sasl_config"></a>
+### Nested Schema for `data_sources.sasl_config`
+
+Optional:
+
+- `kerberos` (Block List, Max: 1) Kerberos configuration. (see [below for nested schema](#nestedblock--data_sources--sasl_config--kerberos))
+
+<a id="nestedblock--data_sources--sasl_config--kerberos"></a>
+### Nested Schema for `data_sources.sasl_config.kerberos`
+
+Required:
+
+- `kdc_host` (String) The hostname of the Key Distribution Center (KDC).
+- `keytab` (String, Sensitive) The keytab file contents for authentication (base64 encoded).
+- `primary` (String) The primary component of the Kerberos principal.
+- `realm` (String) The Kerberos realm.
+
+Optional:
+
+- `instance` (String) The instance component of the Kerberos principal.
+- `kdc_port` (String) The port of the Key Distribution Center (KDC).
+- `kdc_transport_protocol` (String) The transport protocol for KDC communication (tcp or udp).
 
 

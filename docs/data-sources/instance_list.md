@@ -53,18 +53,77 @@ Read-Only:
 
 Read-Only:
 
+- `additional_addresses` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--additional_addresses))
+- `authentication_database` (String)
+- `authentication_private_key` (String)
+- `authentication_private_key_passphrase` (String)
+- `authentication_type` (String)
+- `aws_credential` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--aws_credential))
+- `azure_credential` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--azure_credential))
+- `cluster` (String)
 - `database` (String)
+- `direct_connection` (Boolean)
 - `external_secret` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--external_secret))
+- `extra_connection_parameters` (Map of String)
+- `gcp_credential` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--gcp_credential))
 - `host` (String)
 - `id` (String)
+- `master_name` (String)
+- `master_password` (String)
+- `master_username` (String)
 - `password` (String)
 - `port` (String)
+- `redis_type` (String)
+- `region` (String)
+- `replica_set` (String)
+- `sasl_config` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--sasl_config))
+- `service_name` (String)
+- `sid` (String)
+- `srv` (Boolean)
+- `ssh_host` (String)
+- `ssh_password` (String)
+- `ssh_port` (String)
+- `ssh_private_key` (String)
+- `ssh_user` (String)
 - `ssl_ca` (String)
 - `ssl_cert` (String)
 - `ssl_key` (String)
 - `type` (String)
 - `use_ssl` (Boolean)
 - `username` (String)
+- `verify_tls_certificate` (Boolean)
+- `warehouse_id` (String)
+
+<a id="nestedobjatt--instances--data_sources--additional_addresses"></a>
+### Nested Schema for `instances.data_sources.additional_addresses`
+
+Read-Only:
+
+- `host` (String)
+- `port` (String)
+
+
+<a id="nestedobjatt--instances--data_sources--aws_credential"></a>
+### Nested Schema for `instances.data_sources.aws_credential`
+
+Read-Only:
+
+- `access_key_id` (String)
+- `external_id` (String)
+- `role_arn` (String)
+- `secret_access_key` (String)
+- `session_token` (String)
+
+
+<a id="nestedobjatt--instances--data_sources--azure_credential"></a>
+### Nested Schema for `instances.data_sources.azure_credential`
+
+Read-Only:
+
+- `client_id` (String)
+- `client_secret` (String)
+- `tenant_id` (String)
+
 
 <a id="nestedobjatt--instances--data_sources--external_secret"></a>
 ### Nested Schema for `instances.data_sources.external_secret`
@@ -112,5 +171,36 @@ Read-Only:
 - `role_id` (String)
 - `secret` (String)
 - `secret_type` (String)
+
+
+
+
+<a id="nestedobjatt--instances--data_sources--gcp_credential"></a>
+### Nested Schema for `instances.data_sources.gcp_credential`
+
+Read-Only:
+
+- `content` (String)
+
+
+<a id="nestedobjatt--instances--data_sources--sasl_config"></a>
+### Nested Schema for `instances.data_sources.sasl_config`
+
+Read-Only:
+
+- `kerberos` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--sasl_config--kerberos))
+
+<a id="nestedobjatt--instances--data_sources--sasl_config--kerberos"></a>
+### Nested Schema for `instances.data_sources.sasl_config.kerberos`
+
+Read-Only:
+
+- `instance` (String)
+- `kdc_host` (String)
+- `kdc_port` (String)
+- `kdc_transport_protocol` (String)
+- `keytab` (String)
+- `primary` (String)
+- `realm` (String)
 
 
