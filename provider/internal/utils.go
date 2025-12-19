@@ -110,7 +110,13 @@ var EngineValidation = validation.StringInSlice([]string{
 	v1pb.Engine_DORIS.String(),
 	v1pb.Engine_HIVE.String(),
 	v1pb.Engine_ELASTICSEARCH.String(),
+	v1pb.Engine_BIGQUERY.String(),
+	v1pb.Engine_DYNAMODB.String(),
+	v1pb.Engine_DATABRICKS.String(),
 	v1pb.Engine_COCKROACHDB.String(),
+	v1pb.Engine_COSMOSDB.String(),
+	v1pb.Engine_TRINO.String(),
+	v1pb.Engine_CASSANDRA.String(),
 }, false)
 
 // GetPolicyParentAndType returns the policy parent and type by the name.
