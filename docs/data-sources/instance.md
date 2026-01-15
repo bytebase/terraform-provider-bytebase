@@ -33,7 +33,6 @@ The instance data source.
 - `environment` (String) The environment name for your instance in "environments/{resource id}" format.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
 - `id` (String) The ID of this resource.
-- `maximum_connections` (Number) The maximum number of connections. The default value is 10.
 - `name` (String) The instance full name in instances/{resource id} format.
 - `sync_databases` (Set of String) Enable sync for following databases. Default empty, means sync all schemas & databases.
 - `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync.

@@ -45,9 +45,9 @@ resource "bytebase_instance" "test" {
   }
 
   # You can specific the databases to sync.
-  # sync_databases = [
-  #   "employee"
-  # ]
+  sync_databases = [
+    "employee"
+  ]
 }
 
 # Create a new instance named "prod instance"
@@ -64,8 +64,6 @@ resource "bytebase_instance" "prod" {
 
   # Require instance license
   sync_interval = 60 * 60 * 2 # 2 hour
-  # Require instance license
-  maximum_connections = 20
 
   # You need to specific the data source
   data_sources {

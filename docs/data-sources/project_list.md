@@ -31,18 +31,34 @@ The project data source list.
 
 Read-Only:
 
-- `allow_modify_statement` (Boolean)
+- `allow_request_role` (Boolean)
 - `allow_self_approval` (Boolean)
 - `auto_enable_backup` (Boolean)
-- `auto_resolve_issue` (Boolean)
+- `data_classification_config_id` (String)
 - `databases` (Set of String)
 - `enforce_issue_title` (Boolean)
+- `enforce_sql_review` (Boolean)
+- `force_issue_labels` (Boolean)
+- `issue_labels` (List of Object) (see [below for nested schema](#nestedobjatt--projects--issue_labels))
+- `labels` (Map of String)
 - `name` (String)
 - `postgres_database_tenant_mode` (Boolean)
+- `require_issue_approval` (Boolean)
+- `require_plan_check_no_error` (Boolean)
 - `resource_id` (String)
 - `skip_backup_errors` (Boolean)
 - `title` (String)
 - `webhooks` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--webhooks))
+
+<a id="nestedobjatt--projects--issue_labels"></a>
+### Nested Schema for `projects.issue_labels`
+
+Read-Only:
+
+- `color` (String)
+- `group` (String)
+- `value` (String)
+
 
 <a id="nestedobjatt--projects--webhooks"></a>
 ### Nested Schema for `projects.webhooks`

@@ -41,7 +41,6 @@ Read-Only:
 - `engine_version` (String)
 - `environment` (String)
 - `external_link` (String)
-- `maximum_connections` (Number)
 - `name` (String)
 - `resource_id` (String)
 - `sync_databases` (Set of String)

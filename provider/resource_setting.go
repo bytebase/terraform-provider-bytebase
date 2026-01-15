@@ -186,12 +186,6 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 		workspacePrfile.DatabaseChangeMode = v1pb.DatabaseChangeMode(v1pb.DatabaseChangeMode_value[raw["database_change_mode"].(string)])
 		updateMasks = append(updateMasks, "value.workspace_profile.database_change_mode")
 	}
-	if config := workspaceRawConfig.GetAttr("token_duration_in_seconds"); !config.IsNull() {
-		workspacePrfile.TokenDuration = &durationpb.Duration{
-			Seconds: int64(raw["token_duration_in_seconds"].(int)),
-		}
-		updateMasks = append(updateMasks, "value.workspace_profile.token_duration")
-	}
 	if config := workspaceRawConfig.GetAttr("maximum_role_expiration_in_seconds"); !config.IsNull() {
 		workspacePrfile.MaximumRoleExpiration = &durationpb.Duration{
 			Seconds: int64(raw["maximum_role_expiration_in_seconds"].(int)),
@@ -588,7 +582,6 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 			"value.workspace_profile.enforce_identity_domain",
 			"value.workspace_profile.domains",
 			"value.workspace_profile.database_change_mode",
-			"value.workspace_profile.token_duration",
 			"value.workspace_profile.maximum_role_expiration",
 			"value.workspace_profile.announcement",
 			"value.workspace_profile.enable_audit_log_stdout",

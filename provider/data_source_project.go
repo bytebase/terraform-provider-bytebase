@@ -37,16 +37,6 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "The project full name in projects/{resource id} format.",
 			},
-			"allow_modify_statement": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "Allow modifying statement after issue is created.",
-			},
-			"auto_resolve_issue": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "Enable auto resolve issue.",
-			},
 			"enforce_issue_title": {
 				Type:        schema.TypeBool,
 				Computed:    true,
@@ -71,6 +61,68 @@ func dataSourceProject() *schema.Resource {
 				Type:        schema.TypeBool,
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
+			},
+			"data_classification_config_id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The data classification configuration ID for the project.",
+			},
+			"force_issue_labels": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Force issue labels to be used when creating an issue.",
+			},
+			"enforce_sql_review": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether to enforce SQL review checks to pass before issue creation.",
+			},
+			"require_issue_approval": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether to require issue approval before rollout.",
+			},
+			"require_plan_check_no_error": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether to require plan check to have no error before rollout.",
+			},
+			"allow_request_role": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether to allow requesting roles in this project.",
+			},
+			"issue_labels": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Labels available for tagging issues in this project.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"value": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The label value/name.",
+						},
+						"color": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The color code for the label.",
+						},
+						"group": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The group this label belongs to.",
+						},
+					},
+				},
+			},
+			"labels": {
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Description: "Labels are key-value pairs that can be attached to the project.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"databases": getDatabasesSchema(true),
 			"webhooks":  getWebhooksSchema(true),
@@ -131,17 +183,13 @@ func getWebhooksSchema(computed bool) *schema.Schema {
 					Description: "notification_types is the list of activities types that the webhook is interested in. Bytebase will only send notifications to the webhook if the activity type is in the list.",
 					Elem: &schema.Schema{
 						Type:        schema.TypeString,
-						Description: "Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/project_service.proto#L486 for support types.",
+						Description: "Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/project_service.proto for support types.",
 						ValidateFunc: validation.StringInSlice([]string{
-							v1pb.Activity_NOTIFY_ISSUE_APPROVED.String(),
-							v1pb.Activity_NOTIFY_PIPELINE_ROLLOUT.String(),
-							v1pb.Activity_ISSUE_CREATE.String(),
-							v1pb.Activity_ISSUE_COMMENT_CREATE.String(),
-							v1pb.Activity_ISSUE_FIELD_UPDATE.String(),
-							v1pb.Activity_ISSUE_STATUS_UPDATE.String(),
-							v1pb.Activity_ISSUE_APPROVAL_NOTIFY.String(),
-							v1pb.Activity_ISSUE_PIPELINE_STAGE_STATUS_UPDATE.String(),
-							v1pb.Activity_ISSUE_PIPELINE_TASK_RUN_STATUS_UPDATE.String(),
+							v1pb.Activity_ISSUE_CREATED.String(),
+							v1pb.Activity_ISSUE_APPROVAL_REQUESTED.String(),
+							v1pb.Activity_ISSUE_SENT_BACK.String(),
+							v1pb.Activity_PIPELINE_FAILED.String(),
+							v1pb.Activity_PIPELINE_COMPLETED.String(),
 						}, false),
 					},
 				},
@@ -240,12 +288,6 @@ func setProject(
 	if err := d.Set("title", project.Title); err != nil {
 		return diag.Errorf("cannot set title for project: %s", err.Error())
 	}
-	if err := d.Set("allow_modify_statement", project.AllowModifyStatement); err != nil {
-		return diag.Errorf("cannot set allow_modify_statement for project: %s", err.Error())
-	}
-	if err := d.Set("auto_resolve_issue", project.AutoResolveIssue); err != nil {
-		return diag.Errorf("cannot set auto_resolve_issue for project: %s", err.Error())
-	}
 	if err := d.Set("enforce_issue_title", project.EnforceIssueTitle); err != nil {
 		return diag.Errorf("cannot set enforce_issue_title for project: %s", err.Error())
 	}
@@ -260,6 +302,30 @@ func setProject(
 	}
 	if err := d.Set("postgres_database_tenant_mode", project.PostgresDatabaseTenantMode); err != nil {
 		return diag.Errorf("cannot set postgres_database_tenant_mode for project: %s", err.Error())
+	}
+	if err := d.Set("data_classification_config_id", project.DataClassificationConfigId); err != nil {
+		return diag.Errorf("cannot set data_classification_config_id for project: %s", err.Error())
+	}
+	if err := d.Set("force_issue_labels", project.ForceIssueLabels); err != nil {
+		return diag.Errorf("cannot set force_issue_labels for project: %s", err.Error())
+	}
+	if err := d.Set("enforce_sql_review", project.EnforceSqlReview); err != nil {
+		return diag.Errorf("cannot set enforce_sql_review for project: %s", err.Error())
+	}
+	if err := d.Set("require_issue_approval", project.RequireIssueApproval); err != nil {
+		return diag.Errorf("cannot set require_issue_approval for project: %s", err.Error())
+	}
+	if err := d.Set("require_plan_check_no_error", project.RequirePlanCheckNoError); err != nil {
+		return diag.Errorf("cannot set require_plan_check_no_error for project: %s", err.Error())
+	}
+	if err := d.Set("allow_request_role", project.AllowRequestRole); err != nil {
+		return diag.Errorf("cannot set allow_request_role for project: %s", err.Error())
+	}
+	if err := d.Set("issue_labels", flattenIssueLabels(project.IssueLabels)); err != nil {
+		return diag.Errorf("cannot set issue_labels for project: %s", err.Error())
+	}
+	if err := d.Set("labels", project.Labels); err != nil {
+		return diag.Errorf("cannot set labels for project: %s", err.Error())
 	}
 
 	startTime := time.Now()

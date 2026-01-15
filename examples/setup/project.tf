@@ -4,11 +4,39 @@ resource "bytebase_project" "sample_project" {
     bytebase_instance.test
   ]
 
-  resource_id            = local.project_id
-  title                  = "Sample project"
-  allow_modify_statement = true
-  auto_resolve_issue     = false
-  auto_enable_backup     = false
+  resource_id        = local.project_id
+  title              = "Sample project"
+  auto_enable_backup = false
+
+  # New project settings
+  enforce_sql_review           = true
+  require_issue_approval       = true
+  require_plan_check_no_error  = true
+  allow_request_role           = true
+  force_issue_labels           = false
+
+  # Issue labels for categorizing issues
+  issue_labels {
+    value = "bug"
+    color = "#FF0000"
+    group = "type"
+  }
+  issue_labels {
+    value = "feature"
+    color = "#00FF00"
+    group = "type"
+  }
+  issue_labels {
+    value = "urgent"
+    color = "#FFA500"
+    group = "priority"
+  }
+
+  # Project labels
+  labels = {
+    environment = "production"
+    team        = "backend"
+  }
 
   databases = bytebase_instance.test.databases
 
@@ -17,9 +45,9 @@ resource "bytebase_project" "sample_project" {
     type  = "SLACK"
     url   = "https://hooks.slack.com"
     notification_types = [
-      "NOTIFY_ISSUE_APPROVED",
-      "NOTIFY_PIPELINE_ROLLOUT",
-      "ISSUE_CREATE",
+      "ISSUE_CREATED",
+      "ISSUE_APPROVAL_REQUESTED",
+      "PIPELINE_COMPLETED",
     ]
   }
 
@@ -28,8 +56,8 @@ resource "bytebase_project" "sample_project" {
     type  = "LARK"
     url   = "https://open.larksuite.com"
     notification_types = [
-      "ISSUE_APPROVAL_NOTIFY",
-      "ISSUE_PIPELINE_STAGE_STATUS_UPDATE"
+      "ISSUE_SENT_BACK",
+      "PIPELINE_FAILED"
     ]
   }
 }
