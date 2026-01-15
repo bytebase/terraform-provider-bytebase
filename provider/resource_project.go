@@ -48,18 +48,6 @@ func resourceProjct() *schema.Resource {
 				Computed:    true,
 				Description: "The project full name in projects/{resource id} format.",
 			},
-			"allow_modify_statement": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Computed:    true,
-				Description: "Allow modifying statement after issue is created.",
-			},
-			"auto_resolve_issue": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Computed:    true,
-				Description: "Enable auto resolve issue.",
-			},
 			"enforce_issue_title": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -108,6 +96,76 @@ func resourceProjct() *schema.Resource {
 				Computed:    true,
 				Description: "The maximum number of parallel tasks to run during the rollout.",
 			},
+			"data_classification_config_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The data classification configuration ID for the project.",
+			},
+			"force_issue_labels": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Force issue labels to be used when creating an issue.",
+			},
+			"enforce_sql_review": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether to enforce SQL review checks to pass before issue creation. If enabled, issues cannot be created when SQL review finds errors.",
+			},
+			"require_issue_approval": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether to require issue approval before rollout.",
+			},
+			"require_plan_check_no_error": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether to require plan check to have no error before rollout.",
+			},
+			"allow_request_role": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether to allow requesting roles in this project.",
+			},
+			"issue_labels": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
+				Description: "Labels available for tagging issues in this project.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"value": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The label value/name.",
+						},
+						"color": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The color code for the label (e.g., hex color).",
+						},
+						"group": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The group this label belongs to.",
+						},
+					},
+				},
+			},
+			"labels": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Computed:    true,
+				Description: "Labels are key-value pairs that can be attached to the project. For example, { \"environment\": \"production\", \"team\": \"backend\" }",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"databases": getDatabasesSchema(false),
 			"webhooks":  getWebhooksSchema(false),
 		},
@@ -123,8 +181,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		Name:                       projectName,
 		Title:                      d.Get("title").(string),
 		State:                      v1pb.State_ACTIVE,
-		AllowModifyStatement:       d.Get("allow_modify_statement").(bool),
-		AutoResolveIssue:           d.Get("auto_resolve_issue").(bool),
 		EnforceIssueTitle:          d.Get("enforce_issue_title").(bool),
 		AutoEnableBackup:           d.Get("auto_enable_backup").(bool),
 		SkipBackupErrors:           d.Get("skip_backup_errors").(bool),
@@ -133,8 +189,16 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		ExecutionRetryPolicy: &v1pb.Project_ExecutionRetryPolicy{
 			MaximumRetries: int32(d.Get("execution_retry_policy").(int)),
 		},
-		CiSamplingSize:          int32(d.Get("ci_sampling_size").(int)),
-		ParallelTasksPerRollout: int32(d.Get("parallel_tasks_per_rollout").(int)),
+		CiSamplingSize:             int32(d.Get("ci_sampling_size").(int)),
+		ParallelTasksPerRollout:    int32(d.Get("parallel_tasks_per_rollout").(int)),
+		DataClassificationConfigId: d.Get("data_classification_config_id").(string),
+		ForceIssueLabels:           d.Get("force_issue_labels").(bool),
+		EnforceSqlReview:           d.Get("enforce_sql_review").(bool),
+		RequireIssueApproval:       d.Get("require_issue_approval").(bool),
+		RequirePlanCheckNoError:    d.Get("require_plan_check_no_error").(bool),
+		AllowRequestRole:           d.Get("allow_request_role").(bool),
+		IssueLabels:                convertToV1IssueLabels(d.Get("issue_labels").([]interface{})),
+		Labels:                     convertToStringMap(d.Get("labels").(map[string]interface{})),
 	}
 
 	existedProject, err := c.GetProject(ctx, projectName)
@@ -144,12 +208,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	rawConfig := d.GetRawConfig()
 	updateMasks := []string{}
-	if config := rawConfig.GetAttr("allow_modify_statement"); !config.IsNull() {
-		updateMasks = append(updateMasks, "allow_modify_statement")
-	}
-	if config := rawConfig.GetAttr("auto_resolve_issue"); !config.IsNull() {
-		updateMasks = append(updateMasks, "auto_resolve_issue")
-	}
 	if config := rawConfig.GetAttr("enforce_issue_title"); !config.IsNull() {
 		updateMasks = append(updateMasks, "enforce_issue_title")
 	}
@@ -173,6 +231,30 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	if config := rawConfig.GetAttr("parallel_tasks_per_rollout"); !config.IsNull() {
 		updateMasks = append(updateMasks, "parallel_tasks_per_rollout")
+	}
+	if config := rawConfig.GetAttr("data_classification_config_id"); !config.IsNull() {
+		updateMasks = append(updateMasks, "data_classification_config_id")
+	}
+	if config := rawConfig.GetAttr("force_issue_labels"); !config.IsNull() {
+		updateMasks = append(updateMasks, "force_issue_labels")
+	}
+	if config := rawConfig.GetAttr("enforce_sql_review"); !config.IsNull() {
+		updateMasks = append(updateMasks, "enforce_sql_review")
+	}
+	if config := rawConfig.GetAttr("require_issue_approval"); !config.IsNull() {
+		updateMasks = append(updateMasks, "require_issue_approval")
+	}
+	if config := rawConfig.GetAttr("require_plan_check_no_error"); !config.IsNull() {
+		updateMasks = append(updateMasks, "require_plan_check_no_error")
+	}
+	if config := rawConfig.GetAttr("allow_request_role"); !config.IsNull() {
+		updateMasks = append(updateMasks, "allow_request_role")
+	}
+	if config := rawConfig.GetAttr("issue_labels"); !config.IsNull() {
+		updateMasks = append(updateMasks, "issue_labels")
+	}
+	if config := rawConfig.GetAttr("labels"); !config.IsNull() {
+		updateMasks = append(updateMasks, "labels")
 	}
 
 	var diags diag.Diagnostics
@@ -281,12 +363,6 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("title") {
 		paths = append(paths, "title")
 	}
-	if d.HasChange("allow_modify_statement") {
-		paths = append(paths, "allow_modify_statement")
-	}
-	if d.HasChange("auto_resolve_issue") {
-		paths = append(paths, "auto_resolve_issue")
-	}
 	if d.HasChange("enforce_issue_title") {
 		paths = append(paths, "enforce_issue_title")
 	}
@@ -311,14 +387,36 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("parallel_tasks_per_rollout") {
 		paths = append(paths, "parallel_tasks_per_rollout")
 	}
+	if d.HasChange("data_classification_config_id") {
+		paths = append(paths, "data_classification_config_id")
+	}
+	if d.HasChange("force_issue_labels") {
+		paths = append(paths, "force_issue_labels")
+	}
+	if d.HasChange("enforce_sql_review") {
+		paths = append(paths, "enforce_sql_review")
+	}
+	if d.HasChange("require_issue_approval") {
+		paths = append(paths, "require_issue_approval")
+	}
+	if d.HasChange("require_plan_check_no_error") {
+		paths = append(paths, "require_plan_check_no_error")
+	}
+	if d.HasChange("allow_request_role") {
+		paths = append(paths, "allow_request_role")
+	}
+	if d.HasChange("issue_labels") {
+		paths = append(paths, "issue_labels")
+	}
+	if d.HasChange("labels") {
+		paths = append(paths, "labels")
+	}
 
 	if len(paths) > 0 {
 		if _, err := c.UpdateProject(ctx, &v1pb.Project{
 			Name:                       projectName,
 			Title:                      d.Get("title").(string),
 			State:                      v1pb.State_ACTIVE,
-			AllowModifyStatement:       d.Get("allow_modify_statement").(bool),
-			AutoResolveIssue:           d.Get("auto_resolve_issue").(bool),
 			EnforceIssueTitle:          d.Get("enforce_issue_title").(bool),
 			AutoEnableBackup:           d.Get("auto_enable_backup").(bool),
 			SkipBackupErrors:           d.Get("skip_backup_errors").(bool),
@@ -327,8 +425,16 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			ExecutionRetryPolicy: &v1pb.Project_ExecutionRetryPolicy{
 				MaximumRetries: int32(d.Get("execution_retry_policy").(int)),
 			},
-			CiSamplingSize:          int32(d.Get("ci_sampling_size").(int)),
-			ParallelTasksPerRollout: int32(d.Get("parallel_tasks_per_rollout").(int)),
+			CiSamplingSize:             int32(d.Get("ci_sampling_size").(int)),
+			ParallelTasksPerRollout:    int32(d.Get("parallel_tasks_per_rollout").(int)),
+			DataClassificationConfigId: d.Get("data_classification_config_id").(string),
+			ForceIssueLabels:           d.Get("force_issue_labels").(bool),
+			EnforceSqlReview:           d.Get("enforce_sql_review").(bool),
+			RequireIssueApproval:       d.Get("require_issue_approval").(bool),
+			RequirePlanCheckNoError:    d.Get("require_plan_check_no_error").(bool),
+			AllowRequestRole:           d.Get("allow_request_role").(bool),
+			IssueLabels:                convertToV1IssueLabels(d.Get("issue_labels").([]interface{})),
+			Labels:                     convertToStringMap(d.Get("labels").(map[string]interface{})),
 		}, paths); err != nil {
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
@@ -548,4 +654,42 @@ func updateWebhooksInProject(ctx context.Context, d *schema.ResourceData, client
 	}
 
 	return nil
+}
+
+func convertToV1IssueLabels(rawLabels []interface{}) []*v1pb.Label {
+	labels := make([]*v1pb.Label, 0, len(rawLabels))
+	for _, raw := range rawLabels {
+		rawLabel := raw.(map[string]interface{})
+		label := &v1pb.Label{
+			Value: rawLabel["value"].(string),
+		}
+		if color, ok := rawLabel["color"].(string); ok {
+			label.Color = color
+		}
+		if group, ok := rawLabel["group"].(string); ok {
+			label.Group = group
+		}
+		labels = append(labels, label)
+	}
+	return labels
+}
+
+func flattenIssueLabels(labels []*v1pb.Label) []interface{} {
+	result := make([]interface{}, 0, len(labels))
+	for _, label := range labels {
+		result = append(result, map[string]interface{}{
+			"value": label.Value,
+			"color": label.Color,
+			"group": label.Group,
+		})
+	}
+	return result
+}
+
+func convertToStringMap(rawMap map[string]interface{}) map[string]string {
+	result := make(map[string]string, len(rawMap))
+	for k, v := range rawMap {
+		result[k] = v.(string)
+	}
+	return result
 }

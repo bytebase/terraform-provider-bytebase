@@ -348,7 +348,6 @@ resource "bytebase_setting" "%s" {
 		disallow_signup          = true
 		disallow_password_signin = false
 		database_change_mode     = "PIPELINE"
-		token_duration_in_seconds = 3600
 		enable_audit_log_stdout  = false
 	}
 }
@@ -366,7 +365,6 @@ resource "bytebase_setting" "%s" {
 		database_change_mode               = "EDITOR"
 		domains                            = ["example.com", "test.com"]
 		enforce_identity_domain            = true
-		token_duration_in_seconds          = 7200
 		maximum_role_expiration_in_seconds = 86400
 		enable_audit_log_stdout            = true
 		announcement {

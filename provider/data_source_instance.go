@@ -62,11 +62,6 @@ func dataSourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: "How often the instance is synced in seconds. Default 0, means never sync.",
 			},
-			"maximum_connections": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "The maximum number of connections. The default value is 10.",
-			},
 			"data_sources": {
 				Type:     schema.TypeSet,
 				Computed: true,

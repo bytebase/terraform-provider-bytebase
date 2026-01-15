@@ -60,16 +60,6 @@ func dataSourceProjectList() *schema.Resource {
 							Computed:    true,
 							Description: "The project title.",
 						},
-						"allow_modify_statement": {
-							Type:        schema.TypeBool,
-							Computed:    true,
-							Description: "Allow modifying statement after issue is created.",
-						},
-						"auto_resolve_issue": {
-							Type:        schema.TypeBool,
-							Computed:    true,
-							Description: "Enable auto resolve issue.",
-						},
 						"enforce_issue_title": {
 							Type:        schema.TypeBool,
 							Computed:    true,
@@ -94,6 +84,64 @@ func dataSourceProjectList() *schema.Resource {
 							Type:        schema.TypeBool,
 							Computed:    true,
 							Description: "Whether to allow the issue creator to self-approve the issue.",
+						},
+						"data_classification_config_id": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The data classification configuration ID for the project.",
+						},
+						"force_issue_labels": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Force issue labels to be used when creating an issue.",
+						},
+						"enforce_sql_review": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether to enforce SQL review checks to pass before issue creation.",
+						},
+						"require_issue_approval": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether to require issue approval before rollout.",
+						},
+						"require_plan_check_no_error": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether to require plan check to have no error before rollout.",
+						},
+						"allow_request_role": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether to allow requesting roles in this project.",
+						},
+						"issue_labels": {
+							Type:        schema.TypeList,
+							Computed:    true,
+							Description: "Labels available for tagging issues in this project.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"value": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"color": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"group": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"labels": {
+							Type:     schema.TypeMap,
+							Computed: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
 						},
 						"databases": getDatabasesSchema(true),
 						"webhooks":  getWebhooksSchema(true),
@@ -136,13 +184,19 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["resource_id"] = projectID
 		proj["name"] = project.Name
 		proj["title"] = project.Title
-		proj["allow_modify_statement"] = project.AllowModifyStatement
-		proj["auto_resolve_issue"] = project.AutoResolveIssue
 		proj["enforce_issue_title"] = project.EnforceIssueTitle
 		proj["auto_enable_backup"] = project.AutoEnableBackup
 		proj["skip_backup_errors"] = project.SkipBackupErrors
 		proj["allow_self_approval"] = project.AllowSelfApproval
 		proj["postgres_database_tenant_mode"] = project.PostgresDatabaseTenantMode
+		proj["data_classification_config_id"] = project.DataClassificationConfigId
+		proj["force_issue_labels"] = project.ForceIssueLabels
+		proj["enforce_sql_review"] = project.EnforceSqlReview
+		proj["require_issue_approval"] = project.RequireIssueApproval
+		proj["require_plan_check_no_error"] = project.RequirePlanCheckNoError
+		proj["allow_request_role"] = project.AllowRequestRole
+		proj["issue_labels"] = flattenIssueLabels(project.IssueLabels)
+		proj["labels"] = project.Labels
 
 		databases, err := c.ListDatabase(ctx, project.Name, &api.DatabaseFilter{}, false)
 		if err != nil {

@@ -83,12 +83,6 @@ func resourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: "How often the instance is synced in seconds. Default 0, means never sync. Require instance license to enable this feature.",
 			},
-			"maximum_connections": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: "The maximum number of connections. Require instance license to enable this feature.",
-			},
 			"sync_databases": getSyncDatabasesSchema(false),
 			"data_sources": {
 				Type:        schema.TypeSet,
@@ -671,15 +665,14 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	instance := &v1pb.Instance{
-		Name:               instanceName,
-		Title:              d.Get("title").(string),
-		ExternalLink:       d.Get("external_link").(string),
-		DataSources:        dataSourceList,
-		Activation:         d.Get("activation").(bool),
-		State:              v1pb.State_ACTIVE,
-		MaximumConnections: int32(d.Get("maximum_connections").(int)),
-		Engine:             v1pb.Engine(v1pb.Engine_value[d.Get("engine").(string)]),
-		SyncDatabases:      getSyncDatabases(d),
+		Name:          instanceName,
+		Title:         d.Get("title").(string),
+		ExternalLink:  d.Get("external_link").(string),
+		DataSources:   dataSourceList,
+		Activation:    d.Get("activation").(bool),
+		State:         v1pb.State_ACTIVE,
+		Engine:        v1pb.Engine(v1pb.Engine_value[d.Get("engine").(string)]),
+		SyncDatabases: getSyncDatabases(d),
 	}
 	environment := d.Get("environment").(string)
 	if environment != "" {
@@ -740,9 +733,6 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 		if config := rawConfig.GetAttr("sync_interval"); !config.IsNull() && instance.SyncInterval.GetSeconds() != existedInstance.GetSyncInterval().GetSeconds() {
 			updateMasks = append(updateMasks, "sync_interval")
-		}
-		if config := rawConfig.GetAttr("maximum_connections"); !config.IsNull() && instance.MaximumConnections != existedInstance.GetMaximumConnections() {
-			updateMasks = append(updateMasks, "maximum_connections")
 		}
 		if config := rawConfig.GetAttr("sync_databases"); !config.IsNull() {
 			updateMasks = append(updateMasks, "sync_databases")
@@ -892,9 +882,6 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if d.HasChange("sync_databases") {
 		paths = append(paths, "sync_databases")
 	}
-	if d.HasChange("maximum_connections") {
-		paths = append(paths, "maximum_connections")
-	}
 
 	if len(paths) > 0 {
 		if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
@@ -908,8 +895,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			SyncInterval: &durationpb.Duration{
 				Seconds: int64(d.Get("sync_interval").(int)),
 			},
-			MaximumConnections: int32(d.Get("maximum_connections").(int)),
-			SyncDatabases:      getSyncDatabases(d),
+			SyncDatabases: getSyncDatabases(d),
 		}, paths); err != nil {
 			return diag.FromErr(err)
 		}
@@ -977,9 +963,6 @@ func setInstanceMessage(
 		if err := d.Set("sync_interval", v.GetSeconds()); err != nil {
 			return diag.Errorf("cannot set sync_interval for instance: %s", err.Error())
 		}
-	}
-	if err := d.Set("maximum_connections", instance.GetMaximumConnections()); err != nil {
-		return diag.Errorf("cannot set maximum_connections for instance: %s", err.Error())
 	}
 
 	dataSources, err := flattenDataSourceList(d, instance.DataSources)

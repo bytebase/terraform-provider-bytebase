@@ -210,9 +210,6 @@ func (c *mockClient) UpdateInstance(ctx context.Context, patch *v1pb.Instance, u
 	if slices.Contains(updateMasks, "sync_interval") {
 		ins.SyncInterval = patch.SyncInterval
 	}
-	if slices.Contains(updateMasks, "maximum_connections") {
-		ins.MaximumConnections = patch.MaximumConnections
-	}
 
 	mu.Lock()
 	c.instanceMap[ins.Name] = ins
@@ -482,9 +479,25 @@ func (c *mockClient) CreateProject(_ context.Context, projectID string, project 
 	mu.Lock()
 	defer mu.Unlock()
 	proj := &v1pb.Project{
-		Name:  fmt.Sprintf("%s%s", ProjectNamePrefix, projectID),
-		State: v1pb.State_ACTIVE,
-		Title: project.Title,
+		Name:                       fmt.Sprintf("%s%s", ProjectNamePrefix, projectID),
+		State:                      v1pb.State_ACTIVE,
+		Title:                      project.Title,
+		EnforceIssueTitle:          project.EnforceIssueTitle,
+		AutoEnableBackup:           project.AutoEnableBackup,
+		SkipBackupErrors:           project.SkipBackupErrors,
+		AllowSelfApproval:          project.AllowSelfApproval,
+		PostgresDatabaseTenantMode: project.PostgresDatabaseTenantMode,
+		ExecutionRetryPolicy:       project.ExecutionRetryPolicy,
+		CiSamplingSize:             project.CiSamplingSize,
+		ParallelTasksPerRollout:    project.ParallelTasksPerRollout,
+		DataClassificationConfigId: project.DataClassificationConfigId,
+		ForceIssueLabels:           project.ForceIssueLabels,
+		EnforceSqlReview:           project.EnforceSqlReview,
+		RequireIssueApproval:       project.RequireIssueApproval,
+		RequirePlanCheckNoError:    project.RequirePlanCheckNoError,
+		AllowRequestRole:           project.AllowRequestRole,
+		IssueLabels:                project.IssueLabels,
+		Labels:                     project.Labels,
 	}
 
 	c.projectMap[proj.Name] = proj
@@ -500,6 +513,54 @@ func (c *mockClient) UpdateProject(ctx context.Context, patch *v1pb.Project, upd
 
 	if slices.Contains(updateMasks, "title") {
 		proj.Title = patch.Title
+	}
+	if slices.Contains(updateMasks, "enforce_issue_title") {
+		proj.EnforceIssueTitle = patch.EnforceIssueTitle
+	}
+	if slices.Contains(updateMasks, "auto_enable_backup") {
+		proj.AutoEnableBackup = patch.AutoEnableBackup
+	}
+	if slices.Contains(updateMasks, "skip_backup_errors") {
+		proj.SkipBackupErrors = patch.SkipBackupErrors
+	}
+	if slices.Contains(updateMasks, "allow_self_approval") {
+		proj.AllowSelfApproval = patch.AllowSelfApproval
+	}
+	if slices.Contains(updateMasks, "postgres_database_tenant_mode") {
+		proj.PostgresDatabaseTenantMode = patch.PostgresDatabaseTenantMode
+	}
+	if slices.Contains(updateMasks, "execution_retry_policy") {
+		proj.ExecutionRetryPolicy = patch.ExecutionRetryPolicy
+	}
+	if slices.Contains(updateMasks, "ci_sampling_size") {
+		proj.CiSamplingSize = patch.CiSamplingSize
+	}
+	if slices.Contains(updateMasks, "parallel_tasks_per_rollout") {
+		proj.ParallelTasksPerRollout = patch.ParallelTasksPerRollout
+	}
+	if slices.Contains(updateMasks, "data_classification_config_id") {
+		proj.DataClassificationConfigId = patch.DataClassificationConfigId
+	}
+	if slices.Contains(updateMasks, "force_issue_labels") {
+		proj.ForceIssueLabels = patch.ForceIssueLabels
+	}
+	if slices.Contains(updateMasks, "enforce_sql_review") {
+		proj.EnforceSqlReview = patch.EnforceSqlReview
+	}
+	if slices.Contains(updateMasks, "require_issue_approval") {
+		proj.RequireIssueApproval = patch.RequireIssueApproval
+	}
+	if slices.Contains(updateMasks, "require_plan_check_no_error") {
+		proj.RequirePlanCheckNoError = patch.RequirePlanCheckNoError
+	}
+	if slices.Contains(updateMasks, "allow_request_role") {
+		proj.AllowRequestRole = patch.AllowRequestRole
+	}
+	if slices.Contains(updateMasks, "issue_labels") {
+		proj.IssueLabels = patch.IssueLabels
+	}
+	if slices.Contains(updateMasks, "labels") {
+		proj.Labels = patch.Labels
 	}
 
 	mu.Lock()

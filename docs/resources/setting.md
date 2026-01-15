@@ -212,7 +212,6 @@ Optional:
 - `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
 - `maximum_role_expiration_in_seconds` (Number) The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
 - `password_restriction` (Block List, Max: 1) Password restriction settings. (see [below for nested schema](#nestedblock--workspace_profile--password_restriction))
-- `token_duration_in_seconds` (Number) The duration for login token in seconds. The duration should be at least 3600 (one hour).
 - `watermark` (Boolean) Whether to display watermark on pages. Requires ENTERPRISE license.
 
 <a id="nestedblock--workspace_profile--announcement"></a>

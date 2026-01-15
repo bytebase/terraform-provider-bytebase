@@ -318,12 +318,6 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					}, false),
 					Description: "The workspace database change mode, support EDITOR or PIPELINE. Default PIPELINE",
 				},
-				"token_duration_in_seconds": {
-					Type:         schema.TypeInt,
-					Optional:     true,
-					ValidateFunc: validation.IntAtLeast(3600),
-					Description:  "The duration for login token in seconds. The duration should be at least 3600 (one hour).",
-				},
 				"maximum_role_expiration_in_seconds": {
 					Type:        schema.TypeInt,
 					Optional:    true,
@@ -659,9 +653,6 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	raw["domains"] = setting.Domains
 	raw["database_change_mode"] = setting.DatabaseChangeMode.String()
 
-	if v := setting.GetTokenDuration(); v != nil {
-		raw["token_duration_in_seconds"] = int(v.Seconds)
-	}
 	if v := setting.GetMaximumRoleExpiration(); v != nil {
 		raw["maximum_role_expiration_in_seconds"] = int(v.Seconds)
 	}
