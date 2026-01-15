@@ -665,14 +665,14 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	instance := &v1pb.Instance{
-		Name:               instanceName,
-		Title:              d.Get("title").(string),
-		ExternalLink:       d.Get("external_link").(string),
-		DataSources:        dataSourceList,
+		Name:          instanceName,
+		Title:         d.Get("title").(string),
+		ExternalLink:  d.Get("external_link").(string),
+		DataSources:   dataSourceList,
 		Activation:    d.Get("activation").(bool),
 		State:         v1pb.State_ACTIVE,
 		Engine:        v1pb.Engine(v1pb.Engine_value[d.Get("engine").(string)]),
-		SyncDatabases:      getSyncDatabases(d),
+		SyncDatabases: getSyncDatabases(d),
 	}
 	environment := d.Get("environment").(string)
 	if environment != "" {
