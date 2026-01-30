@@ -520,8 +520,9 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								},
 							},
 							"source": {
-								Type:     schema.TypeString,
-								Required: true,
+								Optional:    true,
+								Type:        schema.TypeString,
+								Description: `The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, EXPORT_DATA, or REQUEST_ROLE. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.`,
 								ValidateFunc: validation.StringInSlice([]string{
 									v1pb.WorkspaceApprovalSetting_Rule_CHANGE_DATABASE.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_CREATE_DATABASE.String(),
@@ -623,7 +624,6 @@ func flattenWorkspaceApprovalSetting(setting *v1pb.WorkspaceApprovalSetting) ([]
 		}
 
 		raw := map[string]interface{}{
-			"source":    rule.Source.String(),
 			"condition": rule.Condition.Expression,
 			"flow": []interface{}{
 				map[string]interface{}{
@@ -632,6 +632,9 @@ func flattenWorkspaceApprovalSetting(setting *v1pb.WorkspaceApprovalSetting) ([]
 					"roles":       roleList,
 				},
 			},
+		}
+		if rule.Source != v1pb.WorkspaceApprovalSetting_Rule_SOURCE_UNSPECIFIED {
+			raw["source"] = rule.Source.String()
 		}
 
 		ruleList = append(ruleList, raw)
