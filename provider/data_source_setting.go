@@ -520,8 +520,8 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								},
 							},
 							"source": {
+								Optional: true,
 								Type:     schema.TypeString,
-								Required: true,
 								ValidateFunc: validation.StringInSlice([]string{
 									v1pb.WorkspaceApprovalSetting_Rule_CHANGE_DATABASE.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_CREATE_DATABASE.String(),
@@ -623,7 +623,6 @@ func flattenWorkspaceApprovalSetting(setting *v1pb.WorkspaceApprovalSetting) ([]
 		}
 
 		raw := map[string]interface{}{
-			"source":    rule.Source.String(),
 			"condition": rule.Condition.Expression,
 			"flow": []interface{}{
 				map[string]interface{}{
@@ -632,6 +631,9 @@ func flattenWorkspaceApprovalSetting(setting *v1pb.WorkspaceApprovalSetting) ([]
 					"roles":       roleList,
 				},
 			},
+		}
+		if rule.Source != v1pb.WorkspaceApprovalSetting_Rule_SOURCE_UNSPECIFIED {
+			raw["source"] = rule.Source.String()
 		}
 
 		ruleList = append(ruleList, raw)

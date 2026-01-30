@@ -31,5 +31,18 @@ resource "bytebase_setting" "approval_flow" {
       source    = "EXPORT_DATA"
       condition = "resource.environment_id == \"prod\" && resource.table_name == \"employee\""
     }
+
+    rules {
+      flow {
+        title = "Fallback rule"
+
+        # Approval flow following the step order.
+        roles = [
+          "roles/workspaceDBA"
+        ]
+      }
+
+      condition = "true"
+    }
   }
 }

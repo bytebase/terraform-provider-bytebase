@@ -45,6 +45,9 @@ Required:
 
 - `condition` (String) The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/c7304123902610b8a2c83e49fcd1c4d4eb972f0d/proto/v1/v1/setting_service.proto#L280 for details.
 - `flow` (Block List, Min: 1) (see [below for nested schema](#nestedblock--approval_flow--rules--flow))
+
+Optional:
+
 - `source` (String)
 
 <a id="nestedblock--approval_flow--rules--flow"></a>

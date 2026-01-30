@@ -15,5 +15,16 @@ resource "bytebase_setting" "approval_flow" {
       source    = "CHANGE_DATABASE"
       condition = "request.risk >= 100"
     }
+
+    rules {
+      flow {
+        title = "Fallback rule"
+        # Approval flow following the step order.
+        roles = [
+          "roles/workspaceDBA"
+        ]
+      }
+      condition = "true"
+    }
   }
 }
