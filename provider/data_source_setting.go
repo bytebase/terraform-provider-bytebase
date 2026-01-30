@@ -520,8 +520,9 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								},
 							},
 							"source": {
-								Optional: true,
-								Type:     schema.TypeString,
+								Optional:    true,
+								Type:        schema.TypeString,
+								Description: `The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, EXPORT_DATA, or REQUEST_ROLE. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.`,
 								ValidateFunc: validation.StringInSlice([]string{
 									v1pb.WorkspaceApprovalSetting_Rule_CHANGE_DATABASE.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_CREATE_DATABASE.String(),
