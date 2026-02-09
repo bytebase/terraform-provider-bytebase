@@ -50,25 +50,3 @@ resource "bytebase_policy" "rollout_policy" {
     ]
   }
 }
-
-resource "bytebase_policy" "env_query_data_policy" {
-  depends_on = [bytebase_setting.environments]
-  parent     = bytebase_setting.environments.environment_setting[0].environment[0].name
-  type       = "DATA_QUERY"
-
-  query_data_policy {
-    disable_copy_data = true
-  }
-}
-
-resource "bytebase_policy" "data_source_query_policy" {
-  depends_on = [bytebase_setting.environments]
-  parent     = bytebase_setting.environments.environment_setting[0].environment[0].name
-  type       = "DATA_SOURCE_QUERY"
-
-  data_source_query_policy {
-    restriction  = "FALLBACK"
-    disallow_ddl = false
-    disallow_dml = false
-  }
-}

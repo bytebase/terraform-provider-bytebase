@@ -26,7 +26,6 @@ The database data source.
 - `id` (String) The ID of this resource.
 - `labels` (Map of String) The deployment and policy control labels.
 - `project` (String) The project full name for the database in projects/{project} format.
-- `schema_version` (String) The version of database schema.
 - `state` (String) The existence of a database.
 - `successful_sync_time` (String) The latest synchronization time.
 

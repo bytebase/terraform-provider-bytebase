@@ -149,6 +149,34 @@ type Client interface {
 	// DeleteUser deletes the user.
 	DeleteUser(ctx context.Context, userName string) error
 
+	// ServiceAccount
+	// ListServiceAccount list all service accounts.
+	ListServiceAccount(ctx context.Context, parent string, showDeleted bool) ([]*v1pb.ServiceAccount, error)
+	// CreateServiceAccount creates the service account.
+	CreateServiceAccount(ctx context.Context, parent, serviceAccountID string, serviceAccount *v1pb.ServiceAccount) (*v1pb.ServiceAccount, error)
+	// GetServiceAccount gets the service account by name.
+	GetServiceAccount(ctx context.Context, name string) (*v1pb.ServiceAccount, error)
+	// UpdateServiceAccount updates the service account.
+	UpdateServiceAccount(ctx context.Context, patch *v1pb.ServiceAccount, updateMasks []string) (*v1pb.ServiceAccount, error)
+	// UndeleteServiceAccount undeletes the service account by name.
+	UndeleteServiceAccount(ctx context.Context, name string) (*v1pb.ServiceAccount, error)
+	// DeleteServiceAccount deletes the service account.
+	DeleteServiceAccount(ctx context.Context, name string) error
+
+	// WorkloadIdentity
+	// ListWorkloadIdentity list all workload identities.
+	ListWorkloadIdentity(ctx context.Context, parent string, showDeleted bool) ([]*v1pb.WorkloadIdentity, error)
+	// CreateWorkloadIdentity creates the workload identity.
+	CreateWorkloadIdentity(ctx context.Context, parent, workloadIdentityID string, workloadIdentity *v1pb.WorkloadIdentity) (*v1pb.WorkloadIdentity, error)
+	// GetWorkloadIdentity gets the workload identity by name.
+	GetWorkloadIdentity(ctx context.Context, name string) (*v1pb.WorkloadIdentity, error)
+	// UpdateWorkloadIdentity updates the workload identity.
+	UpdateWorkloadIdentity(ctx context.Context, patch *v1pb.WorkloadIdentity, updateMasks []string) (*v1pb.WorkloadIdentity, error)
+	// UndeleteWorkloadIdentity undeletes the workload identity by name.
+	UndeleteWorkloadIdentity(ctx context.Context, name string) (*v1pb.WorkloadIdentity, error)
+	// DeleteWorkloadIdentity deletes the workload identity.
+	DeleteWorkloadIdentity(ctx context.Context, name string) error
+
 	// Role
 	// ListRole will returns all roles.
 	ListRole(ctx context.Context) (*v1pb.ListRolesResponse, error)

@@ -1,7 +1,8 @@
 resource "bytebase_iam_policy" "workspace_iam" {
   depends_on = [
     bytebase_user.workspace_admin,
-    bytebase_user.tf_service_account,
+    bytebase_service_account.tf_service_account,
+    bytebase_workload_identity.github_ci,
     bytebase_user.workspace_dba1,
     bytebase_user.workspace_dba2,
     bytebase_group.qa
@@ -15,7 +16,6 @@ resource "bytebase_iam_policy" "workspace_iam" {
       role = "roles/workspaceAdmin"
       members = [
         format("user:%s", bytebase_user.workspace_admin.email),
-        format("user:%s", bytebase_user.tf_service_account.email),
       ]
     }
 
@@ -23,7 +23,9 @@ resource "bytebase_iam_policy" "workspace_iam" {
       role = "roles/workspaceDBA"
       members = [
         format("user:%s", bytebase_user.workspace_dba1.email),
-        format("user:%s", bytebase_user.workspace_dba2.email)
+        format("user:%s", bytebase_user.workspace_dba2.email),
+        format("serviceAccount:%s", bytebase_service_account.tf_service_account.email),
+        format("workloadIdentity:%s", bytebase_workload_identity.github_ci.email),
       ]
     }
 

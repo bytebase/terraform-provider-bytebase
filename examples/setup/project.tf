@@ -4,16 +4,14 @@ resource "bytebase_project" "sample_project" {
     bytebase_instance.test
   ]
 
-  resource_id        = local.project_id
-  title              = "Sample project"
-  auto_enable_backup = false
-
-  # New project settings
-  enforce_sql_review           = true
-  require_issue_approval       = true
-  require_plan_check_no_error  = true
-  allow_request_role           = true
-  force_issue_labels           = false
+  resource_id = local.project_id
+  title       = "Sample project"
+  # Project settings
+  enforce_sql_review          = true
+  require_issue_approval      = true
+  require_plan_check_no_error = true
+  allow_request_role          = true
+  force_issue_labels          = false
 
   # Issue labels for categorizing issues
   issue_labels {
@@ -59,5 +57,13 @@ resource "bytebase_project" "sample_project" {
       "ISSUE_SENT_BACK",
       "PIPELINE_FAILED"
     ]
+  }
+}
+
+resource "bytebase_policy" "project_query_data_policy" {
+  parent = bytebase_project.sample_project.name
+  type   = "DATA_QUERY"
+  query_data_policy {
+    maximum_result_rows = 50
   }
 }

@@ -370,6 +370,16 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					Optional:    true,
 					Description: "The branding logo as a data URI (e.g. data:image/png;base64,...).",
 				},
+				"sql_result_size": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Description: "The size limit in bytes for SQL query results. The default value is 100MB.",
+				},
+				"query_timeout_in_seconds": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Description: "The maximum time allowed for a query to run in SQL Editor, in seconds. No limit when the value <= 0.",
+				},
 				"password_restriction": {
 					Type:        schema.TypeList,
 					Optional:    true,
@@ -677,6 +687,10 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	raw["enable_audit_log_stdout"] = setting.EnableAuditLogStdout
 	raw["watermark"] = setting.Watermark
 	raw["branding_logo"] = setting.BrandingLogo
+	raw["sql_result_size"] = int(setting.SqlResultSize)
+	if v := setting.GetQueryTimeout(); v != nil {
+		raw["query_timeout_in_seconds"] = int(v.Seconds)
+	}
 
 	// Handle password_restriction field
 	if v := setting.GetPasswordRestriction(); v != nil {

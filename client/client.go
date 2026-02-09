@@ -22,20 +22,22 @@ type client struct {
 	client *http.Client
 
 	// Connect RPC clients
-	authClient            bytebasev1connect.AuthServiceClient
-	workspaceClient       bytebasev1connect.WorkspaceServiceClient
-	instanceClient        bytebasev1connect.InstanceServiceClient
-	databaseClient        bytebasev1connect.DatabaseServiceClient
-	databaseCatalogClient bytebasev1connect.DatabaseCatalogServiceClient
-	databaseGroupClient   bytebasev1connect.DatabaseGroupServiceClient
-	projectClient         bytebasev1connect.ProjectServiceClient
-	userClient            bytebasev1connect.UserServiceClient
-	roleClient            bytebasev1connect.RoleServiceClient
-	groupClient           bytebasev1connect.GroupServiceClient
-	settingClient         bytebasev1connect.SettingServiceClient
-	orgPolicyClient       bytebasev1connect.OrgPolicyServiceClient
-	reviewConfigClient    bytebasev1connect.ReviewConfigServiceClient
-	celClient             bytebasev1connect.CelServiceClient
+	authClient             bytebasev1connect.AuthServiceClient
+	workspaceClient        bytebasev1connect.WorkspaceServiceClient
+	instanceClient         bytebasev1connect.InstanceServiceClient
+	databaseClient         bytebasev1connect.DatabaseServiceClient
+	databaseCatalogClient  bytebasev1connect.DatabaseCatalogServiceClient
+	databaseGroupClient    bytebasev1connect.DatabaseGroupServiceClient
+	projectClient          bytebasev1connect.ProjectServiceClient
+	userClient             bytebasev1connect.UserServiceClient
+	roleClient             bytebasev1connect.RoleServiceClient
+	groupClient            bytebasev1connect.GroupServiceClient
+	settingClient          bytebasev1connect.SettingServiceClient
+	orgPolicyClient        bytebasev1connect.OrgPolicyServiceClient
+	reviewConfigClient     bytebasev1connect.ReviewConfigServiceClient
+	celClient              bytebasev1connect.CelServiceClient
+	serviceAccountClient   bytebasev1connect.ServiceAccountServiceClient
+	workloadIdentityClient bytebasev1connect.WorkloadIdentityServiceClient
 }
 
 // NewClient returns the new Bytebase API client.
@@ -86,6 +88,8 @@ func NewClient(url, email, password string) (api.Client, error) {
 	c.orgPolicyClient = bytebasev1connect.NewOrgPolicyServiceClient(c.client, c.url, interceptors)
 	c.reviewConfigClient = bytebasev1connect.NewReviewConfigServiceClient(c.client, c.url, interceptors)
 	c.celClient = bytebasev1connect.NewCelServiceClient(c.client, c.url, interceptors)
+	c.serviceAccountClient = bytebasev1connect.NewServiceAccountServiceClient(c.client, c.url, interceptors)
+	c.workloadIdentityClient = bytebasev1connect.NewWorkloadIdentityServiceClient(c.client, c.url, interceptors)
 
 	return &c, nil
 }

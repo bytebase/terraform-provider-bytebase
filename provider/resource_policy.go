@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
-	"google.golang.org/protobuf/types/known/durationpb"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 
@@ -54,7 +53,6 @@ func resourcePolicy() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					v1pb.PolicyType_MASKING_EXEMPTION.String(),
 					v1pb.PolicyType_MASKING_RULE.String(),
-					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
 					v1pb.PolicyType_ROLLOUT_POLICY.String(),
 					v1pb.PolicyType_DATA_QUERY.String(),
 				}, false),
@@ -79,7 +77,6 @@ func resourcePolicy() *schema.Resource {
 			},
 			"masking_exemption_policy": getMaskingExemptionPolicySchema(false),
 			"global_masking_policy":    getGlobalMaskingPolicySchema(false),
-			"data_source_query_policy": getDataSourceQueryPolicySchema(false),
 			"rollout_policy":           getRolloutPolicySchema(false),
 			"query_data_policy":        getDataQueryPolicySchema(false),
 		},
@@ -151,18 +148,6 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			MaskingRulePolicy: maskingRulePolicy,
 		}
 		updateMasks = append(updateMasks, "masking_rule_policy")
-	case v1pb.PolicyType_DATA_SOURCE_QUERY:
-		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
-			return diag.Errorf("policy %v only support environment or project resource", policyName)
-		}
-		dataSourceQueryPolicy, err := convertToDataSourceQueryPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.Policy = &v1pb.Policy_DataSourceQueryPolicy{
-			DataSourceQueryPolicy: dataSourceQueryPolicy,
-		}
-		updateMasks = append(updateMasks, "data_source_query_policy")
 	case v1pb.PolicyType_ROLLOUT_POLICY:
 		if !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) {
 			return diag.Errorf("policy %v only support environment resource", policyName)
@@ -176,7 +161,7 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		updateMasks = append(updateMasks, "rollout_policy")
 	case v1pb.PolicyType_DATA_QUERY:
-		if parent != internal.WorkspaceName && !strings.HasPrefix(policyName, internal.EnvironmentNamePrefix) {
+		if parent != internal.WorkspaceName && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
 			return diag.Errorf("policy %v only support %v or environment resource", policyName, internal.WorkspaceName)
 		}
 		queryDataPolicy, err := convertToQueryDataPolicy(d)
@@ -266,16 +251,6 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		patch.Policy = &v1pb.Policy_MaskingRulePolicy{
 			MaskingRulePolicy: maskingRulePolicy,
-		}
-	}
-	if d.HasChange("data_source_query_policy") {
-		updateMasks = append(updateMasks, "data_source_query_policy")
-		dataSourceQueryPolicy, err := convertToDataSourceQueryPolicy(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		patch.Policy = &v1pb.Policy_DataSourceQueryPolicy{
-			DataSourceQueryPolicy: dataSourceQueryPolicy,
 		}
 	}
 	if d.HasChange("rollout_policy") {
@@ -408,9 +383,6 @@ func convertToV1Exemptions(rawSchema interface{}) ([]*v1pb.MaskingExemptionPolic
 	members := []string{}
 	for _, rawMember := range rawMembers.List() {
 		member := rawMember.(string)
-		if err := internal.ValidateMemberBinding(member); err != nil {
-			return nil, err
-		}
 		members = append(members, member)
 	}
 
@@ -481,28 +453,9 @@ func convertToQueryDataPolicy(d *schema.ResourceData) (*v1pb.QueryDataPolicy, er
 
 	raw := rawList[0].(map[string]interface{})
 	return &v1pb.QueryDataPolicy{
-		DisableExport:     raw["disable_export"].(bool),
-		DisableCopyData:   raw["disable_copy_data"].(bool),
-		MaximumResultSize: int64(raw["maximum_result_size"].(int)),
-		MaximumResultRows: int32(raw["maximum_result_rows"].(int)),
-		Timeout: &durationpb.Duration{
-			Seconds: int64(raw["timeout_in_seconds"].(int)),
-		},
-	}, nil
-}
-
-func convertToDataSourceQueryPolicy(d *schema.ResourceData) (*v1pb.DataSourceQueryPolicy, error) {
-	rawList, ok := d.Get("data_source_query_policy").([]interface{})
-	if !ok || len(rawList) != 1 {
-		return nil, errors.Errorf("invalid data_source_query_policy")
-	}
-
-	raw := rawList[0].(map[string]interface{})
-	return &v1pb.DataSourceQueryPolicy{
-		AdminDataSourceRestriction: v1pb.DataSourceQueryPolicy_Restriction(
-			v1pb.DataSourceQueryPolicy_Restriction_value[raw["restriction"].(string)],
-		),
-		DisallowDdl: raw["disallow_ddl"].(bool),
-		DisallowDml: raw["disallow_dml"].(bool),
+		DisableExport:        raw["disable_export"].(bool),
+		DisableCopyData:      raw["disable_copy_data"].(bool),
+		MaximumResultRows:    int32(raw["maximum_result_rows"].(int)),
+		AllowAdminDataSource: raw["allow_admin_data_source"].(bool),
 	}, nil
 }

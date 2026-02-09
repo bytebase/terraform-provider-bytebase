@@ -44,7 +44,6 @@ func dataSourcePolicy() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					v1pb.PolicyType_MASKING_EXEMPTION.String(),
 					v1pb.PolicyType_MASKING_RULE.String(),
-					v1pb.PolicyType_DATA_SOURCE_QUERY.String(),
 					v1pb.PolicyType_ROLLOUT_POLICY.String(),
 					v1pb.PolicyType_DATA_QUERY.String(),
 				}, false),
@@ -67,7 +66,6 @@ func dataSourcePolicy() *schema.Resource {
 			},
 			"masking_exemption_policy": getMaskingExemptionPolicySchema(true),
 			"global_masking_policy":    getGlobalMaskingPolicySchema(true),
-			"data_source_query_policy": getDataSourceQueryPolicySchema(true),
 			"rollout_policy":           getRolloutPolicySchema(true),
 			"query_data_policy":        getDataQueryPolicySchema(true),
 		},
@@ -221,12 +219,6 @@ func getDataQueryPolicySchema(computed bool) *schema.Schema {
 		Description: "The policy for query data",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"maximum_result_size": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Default:     100 * 1024 * 1024,
-					Description: "The size limit in bytes. The default value is 100MB, we will use the default value if the limit <= 0.",
-				},
 				"maximum_result_rows": {
 					Type:        schema.TypeInt,
 					Optional:    true,
@@ -243,46 +235,10 @@ func getDataQueryPolicySchema(computed bool) *schema.Schema {
 					Optional:    true,
 					Description: "Disable copying data in the SQL editor",
 				},
-				"timeout_in_seconds": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Description: "The maximum time allowed for a query to run in SQL Editor. No limit when the value <= 0",
-				},
-			},
-		},
-	}
-}
-
-func getDataSourceQueryPolicySchema(computed bool) *schema.Schema {
-	return &schema.Schema{
-		Computed:    computed,
-		Optional:    true,
-		Default:     nil,
-		Type:        schema.TypeList,
-		MinItems:    0,
-		MaxItems:    1,
-		Description: "Restrict querying admin data sources",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"restriction": {
-					Type:     schema.TypeString,
-					Optional: true,
-					ValidateFunc: validation.StringInSlice([]string{
-						v1pb.DataSourceQueryPolicy_FALLBACK.String(),
-						v1pb.DataSourceQueryPolicy_DISALLOW.String(),
-						v1pb.DataSourceQueryPolicy_RESTRICTION_UNSPECIFIED.String(),
-					}, false),
-					Description: "RESTRICTION_UNSPECIFIED means no restriction; FALLBACK will allows to query admin data sources when there is no read-only data source; DISALLOW will always disallow to query admin data sources.",
-				},
-				"disallow_ddl": {
+				"allow_admin_data_source": {
 					Type:        schema.TypeBool,
 					Optional:    true,
-					Description: "Disallow running DDL statements in the SQL editor.",
-				},
-				"disallow_dml": {
-					Type:        schema.TypeBool,
-					Optional:    true,
-					Description: "Disallow running DML statements in the SQL editor.",
+					Description: "Allow using the admin data source to query in the SQL editor. If true, users can select the admin data source or read-only data source. If false, when read-only data source is configured, users are forced to use the read-only data source; otherwise fallback to admin data source.",
 				},
 			},
 		},
@@ -384,11 +340,6 @@ func flattenPolicyPayload(policy *v1pb.Policy) (string, interface{}, diag.Diagno
 			}
 			return "global_masking_policy", maskingPolicy, nil
 		}
-	case v1pb.PolicyType_DATA_SOURCE_QUERY:
-		if p := policy.GetDataSourceQueryPolicy(); p != nil {
-			dataSourceQueryPolicy := flattenDataSourceQueryPolicy(p)
-			return "data_source_query_policy", dataSourceQueryPolicy, nil
-		}
 	case v1pb.PolicyType_ROLLOUT_POLICY:
 		if p := policy.GetRolloutPolicy(); p != nil {
 			rolloutPolicy := flattenRolloutPolicy(p)
@@ -414,22 +365,12 @@ func flattenRolloutPolicy(p *v1pb.RolloutPolicy) []interface{} {
 	return []interface{}{policy}
 }
 
-func flattenDataSourceQueryPolicy(p *v1pb.DataSourceQueryPolicy) []interface{} {
-	policy := map[string]interface{}{
-		"restriction":  p.AdminDataSourceRestriction.String(),
-		"disallow_ddl": p.DisallowDdl,
-		"disallow_dml": p.DisallowDml,
-	}
-	return []interface{}{policy}
-}
-
 func flattenQueryDataPolicy(p *v1pb.QueryDataPolicy) []interface{} {
 	policy := map[string]interface{}{
-		"maximum_result_size": int(p.MaximumResultSize),
-		"maximum_result_rows": int(p.MaximumResultRows),
-		"disable_export":      p.DisableExport,
-		"disable_copy_data":   p.DisableCopyData,
-		"timeout_in_seconds":  int(p.Timeout.Seconds),
+		"maximum_result_rows":     int(p.MaximumResultRows),
+		"disable_export":          p.DisableExport,
+		"disable_copy_data":       p.DisableCopyData,
+		"allow_admin_data_source": p.AllowAdminDataSource,
 	}
 	return []interface{}{policy}
 }

@@ -21,10 +21,23 @@ resource "bytebase_user" "project_developer" {
   email = "developer@bytebase.com"
 }
 
-resource "bytebase_user" "service_account" {
-  title = "CI Bot"
-  email = local.service_account
-  type  = "SERVICE_ACCOUNT"
+# Create or update the service account.
+resource "bytebase_service_account" "ci_bot" {
+  parent             = "workspaces/-"
+  service_account_id = "terraform"
+  title              = "CI Bot"
+}
+
+# Create or update the workload identity for GitHub Actions CI/CD.
+resource "bytebase_workload_identity" "github_ci" {
+  parent               = "workspaces/-"
+  workload_identity_id = "github-ci"
+  title                = "GitHub CI"
+
+  workload_identity_config {
+    provider_type   = "GITHUB"
+    subject_pattern = "repo:bytebase/sample:ref:refs/heads/main"
+  }
 }
 
 # Create or update the group.

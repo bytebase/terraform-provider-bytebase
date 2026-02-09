@@ -30,6 +30,5 @@ The user data source.
 - `source` (String) Source means where the user comes from. For now we support Entra ID SCIM sync, so the source could be Entra ID.
 - `state` (String) The user is deleted or not.
 - `title` (String) The user title.
-- `type` (String) The user type.
 
 

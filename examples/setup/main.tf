@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.14.1"
+      version = "3.15.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -31,8 +31,10 @@ resource "bytebase_setting" "workspace_profile" {
   name = "settings/WORKSPACE_PROFILE"
 
   workspace_profile {
-    external_url = "https://bytebase.example.com"
-    domains      = ["bytebase.com"]
+    external_url             = "https://bytebase.example.com"
+    domains                  = ["bytebase.com"]
+    sql_result_size          = 200 * 1024 * 1024 # 200MB
+    query_timeout_in_seconds = 60                # 60 seconds
 
     password_restriction {
       min_length                             = 8
@@ -46,9 +48,9 @@ resource "bytebase_policy" "query_data_policy" {
   parent = "workspaces/-"
   type   = "DATA_QUERY"
   query_data_policy {
-    maximum_result_size = 200 * 1024 * 1024 # 200MB
-    maximum_result_rows = 100
-    disable_export      = false
-    timeout_in_seconds  = 60 # 60 seconds
+    maximum_result_rows     = 100
+    disable_export          = true
+    disable_copy_data       = true
+    allow_admin_data_source = false
   }
 }

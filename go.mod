@@ -5,8 +5,8 @@ go 1.24.4
 toolchain go1.24.5
 
 require (
-	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20260114032510-ea6fbab7b3fa.2
-	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260114032510-ea6fbab7b3fa.1
+	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20260208072011-98c2d3188075.2
+	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260208072011-98c2d3188075.1
 	connectrpc.com/connect v1.19.1
 	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
@@ -19,7 +19,7 @@ require (
 )
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20250912141014-52f32327d4b0.1 // indirect
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect

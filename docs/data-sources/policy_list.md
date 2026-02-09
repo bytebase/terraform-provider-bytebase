@@ -29,7 +29,6 @@ The policy data source list.
 
 Read-Only:
 
-- `data_source_query_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--data_source_query_policy))
 - `enforce` (Boolean)
 - `global_masking_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--global_masking_policy))
 - `inherit_from_parent` (Boolean)
@@ -38,16 +37,6 @@ Read-Only:
 - `query_data_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--query_data_policy))
 - `rollout_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--rollout_policy))
 - `type` (String)
-
-<a id="nestedobjatt--policies--data_source_query_policy"></a>
-### Nested Schema for `policies.data_source_query_policy`
-
-Read-Only:
-
-- `disallow_ddl` (Boolean)
-- `disallow_dml` (Boolean)
-- `restriction` (String)
-
 
 <a id="nestedobjatt--policies--global_masking_policy"></a>
 ### Nested Schema for `policies.global_masking_policy`
@@ -96,11 +85,10 @@ Read-Only:
 
 Read-Only:
 
+- `allow_admin_data_source` (Boolean)
 - `disable_copy_data` (Boolean)
 - `disable_export` (Boolean)
 - `maximum_result_rows` (Number)
-- `maximum_result_size` (Number)
-- `timeout_in_seconds` (Number)
 
 
 <a id="nestedobjatt--policies--rollout_policy"></a>

@@ -33,7 +33,6 @@ Read-Only:
 
 - `allow_request_role` (Boolean)
 - `allow_self_approval` (Boolean)
-- `auto_enable_backup` (Boolean)
 - `data_classification_config_id` (String)
 - `databases` (Set of String)
 - `enforce_issue_title` (Boolean)
@@ -46,7 +45,6 @@ Read-Only:
 - `require_issue_approval` (Boolean)
 - `require_plan_check_no_error` (Boolean)
 - `resource_id` (String)
-- `skip_backup_errors` (Boolean)
 - `title` (String)
 - `webhooks` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--webhooks))
 

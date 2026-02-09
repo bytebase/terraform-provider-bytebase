@@ -101,9 +101,6 @@ func convertToV1Binding(rawSchema interface{}) (*v1pb.Binding, error) {
 		return nil, errors.Errorf("empty members")
 	}
 	for _, member := range members.List() {
-		if err := internal.ValidateMemberBinding(member.(string)); err != nil {
-			return nil, errors.Wrapf(err, "invalid member: %v", member)
-		}
 		binding.Members = append(binding.Members, member.(string))
 	}
 

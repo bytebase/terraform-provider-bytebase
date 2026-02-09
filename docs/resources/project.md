@@ -24,7 +24,6 @@ The project resource.
 
 - `allow_request_role` (Boolean) Whether to allow requesting roles in this project.
 - `allow_self_approval` (Boolean) Whether to allow the issue creator to self-approve the issue.
-- `auto_enable_backup` (Boolean) Whether to automatically enable backup.
 - `ci_sampling_size` (Number) The maximum databases of rows to sample during CI data validation. Without specification, sampling is disabled, resulting in a full validation.
 - `data_classification_config_id` (String) The data classification configuration ID for the project.
 - `databases` (Set of String) The databases full name in the resource.
@@ -38,7 +37,6 @@ The project resource.
 - `postgres_database_tenant_mode` (Boolean) Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended "set role <db_owner>" statement.
 - `require_issue_approval` (Boolean) Whether to require issue approval before rollout.
 - `require_plan_check_no_error` (Boolean) Whether to require plan check to have no error before rollout.
-- `skip_backup_errors` (Boolean) Whether to skip backup errors and continue the data migration.
 - `webhooks` (Set of Object) The webhooks in the project. (see [below for nested schema](#nestedatt--webhooks))
 
 ### Read-Only

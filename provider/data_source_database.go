@@ -40,11 +40,6 @@ func dataSourceDatabase() *schema.Resource {
 				Computed:    true,
 				Description: "The latest synchronization time.",
 			},
-			"schema_version": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The version of database schema.",
-			},
 			"labels": {
 				Type:        schema.TypeMap,
 				Computed:    true,

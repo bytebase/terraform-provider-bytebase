@@ -148,7 +148,7 @@ resource "bytebase_user" "test_user_%s" {
 	email    = "iam-test@example.com"
 	title    = "Test IAM User"
 	password = "test_password"
-	type     = "USER"
+
 }
 
 resource "bytebase_iam_policy" "%s" {
@@ -192,14 +192,14 @@ resource "bytebase_user" "test_user_%s" {
 	email    = "iam-test@example.com"
 	title    = "Test IAM User"
 	password = "test_password"
-	type     = "USER"
+
 }
 
 resource "bytebase_user" "test_user2_%s" {
 	email    = "iam-test2@example.com"
 	title    = "Test IAM User 2"
 	password = "test_password"
-	type     = "USER"
+
 }
 
 resource "bytebase_iam_policy" "%s" {
@@ -237,7 +237,7 @@ resource "bytebase_user" "workspace_user_%s" {
 	email    = "workspace-iam@example.com"
 	title    = "Workspace IAM User"
 	password = "test_password"
-	type     = "USER"
+
 }
 
 resource "bytebase_iam_policy" "%s" {

@@ -49,19 +49,6 @@ func dataSourceUserList() *schema.Resource {
 				}, false),
 				Description: "Filter users by state. Default ACTIVE.",
 			},
-			"user_types": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-					ValidateFunc: validation.StringInSlice([]string{
-						v1pb.UserType_USER.String(),
-						v1pb.UserType_SERVICE_ACCOUNT.String(),
-						v1pb.UserType_SYSTEM_BOT.String(),
-					}, false),
-				},
-				Description: "Filter users by types.",
-			},
 			"users": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -86,11 +73,6 @@ func dataSourceUserList() *schema.Resource {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "The user phone.",
-						},
-						"type": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The user type.",
 						},
 						"mfa_enabled": {
 							Type:        schema.TypeBool,
@@ -138,15 +120,6 @@ func dataSourceUserListRead(ctx context.Context, d *schema.ResourceData, m inter
 		filter.State = v1pb.State(stateValue)
 	}
 
-	userTypes := d.Get("user_types").(*schema.Set)
-	for _, userType := range userTypes.List() {
-		userTypeString := userType.(string)
-		userTypeValue, ok := v1pb.UserType_value[userTypeString]
-		if ok {
-			filter.UserTypes = append(filter.UserTypes, v1pb.UserType(userTypeValue))
-		}
-	}
-
 	allUsers, err := c.ListUser(ctx, filter)
 	if err != nil {
 		return diag.FromErr(err)
@@ -159,7 +132,6 @@ func dataSourceUserListRead(ctx context.Context, d *schema.ResourceData, m inter
 		raw["email"] = user.Email
 		raw["title"] = user.Title
 		raw["phone"] = user.Phone
-		raw["type"] = user.UserType.String()
 		raw["mfa_enabled"] = user.MfaEnabled
 		raw["state"] = user.State.String()
 		if p := user.Profile; p != nil {
