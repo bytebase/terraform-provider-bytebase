@@ -22,21 +22,21 @@ type client struct {
 	client *http.Client
 
 	// Connect RPC clients
-	authClient            bytebasev1connect.AuthServiceClient
-	workspaceClient       bytebasev1connect.WorkspaceServiceClient
-	instanceClient        bytebasev1connect.InstanceServiceClient
-	databaseClient        bytebasev1connect.DatabaseServiceClient
-	databaseCatalogClient bytebasev1connect.DatabaseCatalogServiceClient
-	databaseGroupClient   bytebasev1connect.DatabaseGroupServiceClient
-	projectClient         bytebasev1connect.ProjectServiceClient
-	userClient            bytebasev1connect.UserServiceClient
-	roleClient            bytebasev1connect.RoleServiceClient
-	groupClient           bytebasev1connect.GroupServiceClient
-	settingClient         bytebasev1connect.SettingServiceClient
-	orgPolicyClient       bytebasev1connect.OrgPolicyServiceClient
-	reviewConfigClient    bytebasev1connect.ReviewConfigServiceClient
-	celClient             bytebasev1connect.CelServiceClient
-	serviceAccountClient  bytebasev1connect.ServiceAccountServiceClient
+	authClient             bytebasev1connect.AuthServiceClient
+	workspaceClient        bytebasev1connect.WorkspaceServiceClient
+	instanceClient         bytebasev1connect.InstanceServiceClient
+	databaseClient         bytebasev1connect.DatabaseServiceClient
+	databaseCatalogClient  bytebasev1connect.DatabaseCatalogServiceClient
+	databaseGroupClient    bytebasev1connect.DatabaseGroupServiceClient
+	projectClient          bytebasev1connect.ProjectServiceClient
+	userClient             bytebasev1connect.UserServiceClient
+	roleClient             bytebasev1connect.RoleServiceClient
+	groupClient            bytebasev1connect.GroupServiceClient
+	settingClient          bytebasev1connect.SettingServiceClient
+	orgPolicyClient        bytebasev1connect.OrgPolicyServiceClient
+	reviewConfigClient     bytebasev1connect.ReviewConfigServiceClient
+	celClient              bytebasev1connect.CelServiceClient
+	serviceAccountClient   bytebasev1connect.ServiceAccountServiceClient
 	workloadIdentityClient bytebasev1connect.WorkloadIdentityServiceClient
 }
 

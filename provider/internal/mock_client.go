@@ -16,22 +16,22 @@ import (
 )
 
 var (
-	mu                 sync.RWMutex
-	instanceMap        map[string]*v1pb.Instance
-	policyMap          map[string]*v1pb.Policy
-	projectMap         map[string]*v1pb.Project
-	projectIAMMap      map[string]*v1pb.IamPolicy
-	databaseMap        map[string]*v1pb.Database
-	databaseCatalogMap map[string]*v1pb.DatabaseCatalog
-	settingMap         map[string]*v1pb.Setting
-	serviceAccountMap  map[string]*v1pb.ServiceAccount
+	mu                  sync.RWMutex
+	instanceMap         map[string]*v1pb.Instance
+	policyMap           map[string]*v1pb.Policy
+	projectMap          map[string]*v1pb.Project
+	projectIAMMap       map[string]*v1pb.IamPolicy
+	databaseMap         map[string]*v1pb.Database
+	databaseCatalogMap  map[string]*v1pb.DatabaseCatalog
+	settingMap          map[string]*v1pb.Setting
+	serviceAccountMap   map[string]*v1pb.ServiceAccount
 	workloadIdentityMap map[string]*v1pb.WorkloadIdentity
-	userMap            map[string]*v1pb.User
-	roleMap            map[string]*v1pb.Role
-	groupMap           map[string]*v1pb.Group
-	reviewConfigMap    map[string]*v1pb.ReviewConfig
-	databaseGroupMap   map[string]*v1pb.DatabaseGroup
-	workspaceIAMPolicy *v1pb.IamPolicy
+	userMap             map[string]*v1pb.User
+	roleMap             map[string]*v1pb.Role
+	groupMap            map[string]*v1pb.Group
+	reviewConfigMap     map[string]*v1pb.ReviewConfig
+	databaseGroupMap    map[string]*v1pb.DatabaseGroup
+	workspaceIAMPolicy  *v1pb.IamPolicy
 )
 
 func init() {
@@ -75,10 +75,10 @@ type mockClient struct {
 	serviceAccountMap   map[string]*v1pb.ServiceAccount
 	workloadIdentityMap map[string]*v1pb.WorkloadIdentity
 	userMap             map[string]*v1pb.User
-	roleMap            map[string]*v1pb.Role
-	groupMap           map[string]*v1pb.Group
-	reviewConfigMap    map[string]*v1pb.ReviewConfig
-	databaseGroupMap   map[string]*v1pb.DatabaseGroup
+	roleMap             map[string]*v1pb.Role
+	groupMap            map[string]*v1pb.Group
+	reviewConfigMap     map[string]*v1pb.ReviewConfig
+	databaseGroupMap    map[string]*v1pb.DatabaseGroup
 }
 
 // newMockClient returns the new Bytebase API mock client.
@@ -96,10 +96,10 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 		serviceAccountMap:   serviceAccountMap,
 		workloadIdentityMap: workloadIdentityMap,
 		userMap:             userMap,
-		roleMap:            roleMap,
-		groupMap:           groupMap,
-		reviewConfigMap:    reviewConfigMap,
-		databaseGroupMap:   databaseGroupMap,
+		roleMap:             roleMap,
+		groupMap:            groupMap,
+		reviewConfigMap:     reviewConfigMap,
+		databaseGroupMap:    databaseGroupMap,
 	}, nil
 }
 

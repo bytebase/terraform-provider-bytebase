@@ -367,9 +367,9 @@ func flattenRolloutPolicy(p *v1pb.RolloutPolicy) []interface{} {
 
 func flattenQueryDataPolicy(p *v1pb.QueryDataPolicy) []interface{} {
 	policy := map[string]interface{}{
-		"maximum_result_rows":    int(p.MaximumResultRows),
-		"disable_export":         p.DisableExport,
-		"disable_copy_data":      p.DisableCopyData,
+		"maximum_result_rows":     int(p.MaximumResultRows),
+		"disable_export":          p.DisableExport,
+		"disable_copy_data":       p.DisableCopyData,
 		"allow_admin_data_source": p.AllowAdminDataSource,
 	}
 	return []interface{}{policy}
