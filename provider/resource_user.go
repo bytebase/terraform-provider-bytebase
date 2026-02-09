@@ -81,16 +81,6 @@ func resourceUser() *schema.Resource {
 				Computed:    true,
 				Description: "The service key for service account.",
 			},
-			"type": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The user type, should be USER or SERVICE_ACCOUNT. Cannot change after creation.",
-				Default:     v1pb.UserType_USER.String(),
-				ValidateFunc: validation.StringInSlice([]string{
-					v1pb.UserType_SERVICE_ACCOUNT.String(),
-					v1pb.UserType_USER.String(),
-				}, false),
-			},
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -161,8 +151,8 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 		Password: d.Get("password").(string),
 		Phone:    d.Get("phone").(string),
 		Email:    email,
-		UserType: v1pb.UserType(v1pb.UserType_value[d.Get("type").(string)]),
 		State:    v1pb.State_ACTIVE,
+		UserType: v1pb.UserType_USER,
 	}
 
 	var diags diag.Diagnostics
@@ -173,15 +163,6 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 			Summary:  "User already exists",
 			Detail:   fmt.Sprintf("User %s already exists, try to exec the update operation", userName),
 		})
-
-		if user.UserType != existedUser.UserType {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Cannot change the user type",
-				Detail:   fmt.Sprintf("User %s should be %v type", userName, existedUser.UserType.String()),
-			})
-			return diags
-		}
 
 		if existedUser.State == v1pb.State_DELETED {
 			diags = append(diags, diag.Diagnostic{
@@ -244,10 +225,6 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	c := m.(api.Client)
 	userName := d.Id()
 
-	if d.HasChange("type") {
-		return diag.Errorf("cannot change the user type")
-	}
-
 	title := d.Get("title").(string)
 	phone := d.Get("phone").(string)
 	email := d.Get("email").(string)
@@ -296,7 +273,6 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 			Email:    email,
 			Phone:    phone,
 			Password: password,
-			UserType: existedUser.UserType,
 			State:    v1pb.State_ACTIVE,
 		}, paths); err != nil {
 			diags = append(diags, diag.Diagnostic{

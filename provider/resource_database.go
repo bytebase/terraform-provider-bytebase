@@ -65,11 +65,6 @@ func resourceDatabase() *schema.Resource {
 				Computed:    true,
 				Description: "The latest synchronization time.",
 			},
-			"schema_version": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The version of database schema.",
-			},
 			"labels": {
 				Type:        schema.TypeMap,
 				Computed:    true,
@@ -269,9 +264,6 @@ func setDatabase(
 	}
 	if err := d.Set("successful_sync_time", database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)); err != nil {
 		return diag.Errorf("cannot set successful_sync_time for database: %s", err.Error())
-	}
-	if err := d.Set("schema_version", database.SchemaVersion); err != nil {
-		return diag.Errorf("cannot set schema_version for database: %s", err.Error())
 	}
 	if err := d.Set("labels", database.Labels); err != nil {
 		return diag.Errorf("cannot set labels for database: %s", err.Error())

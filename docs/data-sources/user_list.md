@@ -21,7 +21,6 @@ The user data source list.
 - `name` (String) Filter users by name with wildcard
 - `project` (String) The project full name. Filter users by project.
 - `state` (String) Filter users by state. Default ACTIVE.
-- `user_types` (Set of String) Filter users by types.
 
 ### Read-Only
 
@@ -42,6 +41,5 @@ Read-Only:
 - `source` (String)
 - `state` (String)
 - `title` (String)
-- `type` (String)
 
 

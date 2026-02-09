@@ -79,6 +79,8 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 							"allUsers",
 							"^user:",
 							"^group:",
+							"^serviceAccount:",
+							"^workloadIdentity:",
 						),
 					},
 				},

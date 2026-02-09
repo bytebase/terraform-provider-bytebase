@@ -43,7 +43,6 @@ Read-Only:
 - `labels` (Map of String)
 - `name` (String)
 - `project` (String)
-- `schema_version` (String)
 - `state` (String)
 - `successful_sync_time` (String)
 

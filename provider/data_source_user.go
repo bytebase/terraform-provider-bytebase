@@ -42,11 +42,6 @@ func dataSourceUser() *schema.Resource {
 				Computed:    true,
 				Description: "The user phone.",
 			},
-			"type": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The user type.",
-			},
 			"mfa_enabled": {
 				Type:        schema.TypeBool,
 				Computed:    true,
@@ -102,9 +97,6 @@ func setUser(d *schema.ResourceData, user *v1pb.User) diag.Diagnostics {
 	}
 	if err := d.Set("phone", user.Phone); err != nil {
 		return diag.Errorf("cannot set phone for user: %s", err.Error())
-	}
-	if err := d.Set("type", user.UserType.String()); err != nil {
-		return diag.Errorf("cannot set type for user: %s", err.Error())
 	}
 	if user.ServiceKey != "" {
 		if err := d.Set("service_key", user.ServiceKey); err != nil {

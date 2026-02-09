@@ -46,6 +46,10 @@ const (
 	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
 	// WorkspaceName is the name for workspace resource.
 	WorkspaceName = "workspaces/-"
+	// ServiceAccountNamePrefix is the prefix for service account name.
+	ServiceAccountNamePrefix = "serviceAccounts/"
+	// WorkloadIdentityNamePrefix is the prefix for workload identity name.
+	WorkloadIdentityNamePrefix = "workloadIdentities/"
 	// WebhookNamePrefix is the prefix for webhook name.
 	WebhookNamePrefix = "webhooks/"
 )
@@ -228,17 +232,6 @@ func getNameParentTokens(name string, tokenPrefixes ...string) ([]string, error)
 		tokens = append(tokens, parts[2*i+1])
 	}
 	return tokens, nil
-}
-
-// ValidateMemberBinding checks the member binding format.
-func ValidateMemberBinding(member string) error {
-	if member == "allUsers" {
-		return nil
-	}
-	if !strings.HasPrefix(member, "user:") && !strings.HasPrefix(member, "group:") {
-		return errors.Errorf("invalid member format")
-	}
-	return nil
 }
 
 // ToHashcodeInt returns int by string.

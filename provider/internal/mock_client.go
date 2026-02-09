@@ -24,6 +24,8 @@ var (
 	databaseMap        map[string]*v1pb.Database
 	databaseCatalogMap map[string]*v1pb.DatabaseCatalog
 	settingMap         map[string]*v1pb.Setting
+	serviceAccountMap  map[string]*v1pb.ServiceAccount
+	workloadIdentityMap map[string]*v1pb.WorkloadIdentity
 	userMap            map[string]*v1pb.User
 	roleMap            map[string]*v1pb.Role
 	groupMap           map[string]*v1pb.Group
@@ -40,6 +42,8 @@ func init() {
 	databaseMap = map[string]*v1pb.Database{}
 	databaseCatalogMap = map[string]*v1pb.DatabaseCatalog{}
 	settingMap = map[string]*v1pb.Setting{}
+	serviceAccountMap = map[string]*v1pb.ServiceAccount{}
+	workloadIdentityMap = map[string]*v1pb.WorkloadIdentity{}
 	userMap = map[string]*v1pb.User{}
 	roleMap = map[string]*v1pb.Role{}
 	groupMap = map[string]*v1pb.Group{}
@@ -61,14 +65,16 @@ func init() {
 }
 
 type mockClient struct {
-	instanceMap        map[string]*v1pb.Instance
-	policyMap          map[string]*v1pb.Policy
-	projectMap         map[string]*v1pb.Project
-	projectIAMMap      map[string]*v1pb.IamPolicy
-	databaseMap        map[string]*v1pb.Database
-	databaseCatalogMap map[string]*v1pb.DatabaseCatalog
-	settingMap         map[string]*v1pb.Setting
-	userMap            map[string]*v1pb.User
+	instanceMap         map[string]*v1pb.Instance
+	policyMap           map[string]*v1pb.Policy
+	projectMap          map[string]*v1pb.Project
+	projectIAMMap       map[string]*v1pb.IamPolicy
+	databaseMap         map[string]*v1pb.Database
+	databaseCatalogMap  map[string]*v1pb.DatabaseCatalog
+	settingMap          map[string]*v1pb.Setting
+	serviceAccountMap   map[string]*v1pb.ServiceAccount
+	workloadIdentityMap map[string]*v1pb.WorkloadIdentity
+	userMap             map[string]*v1pb.User
 	roleMap            map[string]*v1pb.Role
 	groupMap           map[string]*v1pb.Group
 	reviewConfigMap    map[string]*v1pb.ReviewConfig
@@ -80,14 +86,16 @@ func newMockClient(_, _, _ string) (api.Client, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	return &mockClient{
-		instanceMap:        instanceMap,
-		policyMap:          policyMap,
-		projectMap:         projectMap,
-		projectIAMMap:      projectIAMMap,
-		databaseMap:        databaseMap,
-		databaseCatalogMap: databaseCatalogMap,
-		settingMap:         settingMap,
-		userMap:            userMap,
+		instanceMap:         instanceMap,
+		policyMap:           policyMap,
+		projectMap:          projectMap,
+		projectIAMMap:       projectIAMMap,
+		databaseMap:         databaseMap,
+		databaseCatalogMap:  databaseCatalogMap,
+		settingMap:          settingMap,
+		serviceAccountMap:   serviceAccountMap,
+		workloadIdentityMap: workloadIdentityMap,
+		userMap:             userMap,
 		roleMap:            roleMap,
 		groupMap:           groupMap,
 		reviewConfigMap:    reviewConfigMap,
@@ -483,8 +491,6 @@ func (c *mockClient) CreateProject(_ context.Context, projectID string, project 
 		State:                      v1pb.State_ACTIVE,
 		Title:                      project.Title,
 		EnforceIssueTitle:          project.EnforceIssueTitle,
-		AutoEnableBackup:           project.AutoEnableBackup,
-		SkipBackupErrors:           project.SkipBackupErrors,
 		AllowSelfApproval:          project.AllowSelfApproval,
 		PostgresDatabaseTenantMode: project.PostgresDatabaseTenantMode,
 		ExecutionRetryPolicy:       project.ExecutionRetryPolicy,
@@ -516,12 +522,6 @@ func (c *mockClient) UpdateProject(ctx context.Context, patch *v1pb.Project, upd
 	}
 	if slices.Contains(updateMasks, "enforce_issue_title") {
 		proj.EnforceIssueTitle = patch.EnforceIssueTitle
-	}
-	if slices.Contains(updateMasks, "auto_enable_backup") {
-		proj.AutoEnableBackup = patch.AutoEnableBackup
-	}
-	if slices.Contains(updateMasks, "skip_backup_errors") {
-		proj.SkipBackupErrors = patch.SkipBackupErrors
 	}
 	if slices.Contains(updateMasks, "allow_self_approval") {
 		proj.AllowSelfApproval = patch.AllowSelfApproval
@@ -803,6 +803,187 @@ func parseCondition(condition string, baseID int64) *v1alpha1.Expr {
 			},
 		},
 	}
+}
+
+// ListServiceAccount list all service accounts.
+func (c *mockClient) ListServiceAccount(_ context.Context, _ string, showDeleted bool) ([]*v1pb.ServiceAccount, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	serviceAccounts := make([]*v1pb.ServiceAccount, 0)
+	for _, sa := range c.serviceAccountMap {
+		if sa.State == v1pb.State_DELETED && !showDeleted {
+			continue
+		}
+		serviceAccounts = append(serviceAccounts, sa)
+	}
+
+	return serviceAccounts, nil
+}
+
+// GetServiceAccount gets the service account by name.
+func (c *mockClient) GetServiceAccount(_ context.Context, name string) (*v1pb.ServiceAccount, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	sa, ok := c.serviceAccountMap[name]
+	if !ok {
+		return nil, errors.Errorf("Cannot found service account %s", name)
+	}
+
+	return sa, nil
+}
+
+// CreateServiceAccount creates the service account.
+func (c *mockClient) CreateServiceAccount(_ context.Context, _ string, serviceAccountID string, serviceAccount *v1pb.ServiceAccount) (*v1pb.ServiceAccount, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	email := fmt.Sprintf("%s@service.bytebase.com", serviceAccountID)
+	saName := fmt.Sprintf("%s%s", ServiceAccountNamePrefix, email)
+	sa := &v1pb.ServiceAccount{
+		Name:       saName,
+		State:      v1pb.State_ACTIVE,
+		Email:      email,
+		Title:      serviceAccount.Title,
+		ServiceKey: fmt.Sprintf("bbs_%s_mock_service_key", serviceAccountID),
+	}
+	c.serviceAccountMap[saName] = sa
+	return sa, nil
+}
+
+// UpdateServiceAccount updates the service account.
+func (c *mockClient) UpdateServiceAccount(ctx context.Context, sa *v1pb.ServiceAccount, updateMasks []string) (*v1pb.ServiceAccount, error) {
+	existed, err := c.GetServiceAccount(ctx, sa.Name)
+	if err != nil {
+		return nil, err
+	}
+	if slices.Contains(updateMasks, "title") {
+		existed.Title = sa.Title
+	}
+	mu.Lock()
+	c.serviceAccountMap[sa.Name] = existed
+	mu.Unlock()
+	return existed, nil
+}
+
+// DeleteServiceAccount deletes the service account by name.
+func (c *mockClient) DeleteServiceAccount(ctx context.Context, name string) error {
+	sa, err := c.GetServiceAccount(ctx, name)
+	if err != nil {
+		return err
+	}
+
+	sa.State = v1pb.State_DELETED
+	mu.Lock()
+	c.serviceAccountMap[sa.Name] = sa
+	mu.Unlock()
+
+	return nil
+}
+
+// UndeleteServiceAccount undeletes the service account by name.
+func (c *mockClient) UndeleteServiceAccount(ctx context.Context, name string) (*v1pb.ServiceAccount, error) {
+	sa, err := c.GetServiceAccount(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	sa.State = v1pb.State_ACTIVE
+	mu.Lock()
+	c.serviceAccountMap[sa.Name] = sa
+	mu.Unlock()
+
+	return sa, nil
+}
+
+// ListWorkloadIdentity list all workload identities.
+func (c *mockClient) ListWorkloadIdentity(_ context.Context, _ string, showDeleted bool) ([]*v1pb.WorkloadIdentity, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	workloadIdentities := make([]*v1pb.WorkloadIdentity, 0)
+	for _, wi := range c.workloadIdentityMap {
+		if wi.State == v1pb.State_DELETED && !showDeleted {
+			continue
+		}
+		workloadIdentities = append(workloadIdentities, wi)
+	}
+
+	return workloadIdentities, nil
+}
+
+// GetWorkloadIdentity gets the workload identity by name.
+func (c *mockClient) GetWorkloadIdentity(_ context.Context, name string) (*v1pb.WorkloadIdentity, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	wi, ok := c.workloadIdentityMap[name]
+	if !ok {
+		return nil, errors.Errorf("Cannot found workload identity %s", name)
+	}
+
+	return wi, nil
+}
+
+// CreateWorkloadIdentity creates the workload identity.
+func (c *mockClient) CreateWorkloadIdentity(_ context.Context, _ string, workloadIdentityID string, workloadIdentity *v1pb.WorkloadIdentity) (*v1pb.WorkloadIdentity, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	email := fmt.Sprintf("%s@workload.bytebase.com", workloadIdentityID)
+	wiName := fmt.Sprintf("%s%s", WorkloadIdentityNamePrefix, email)
+	wi := &v1pb.WorkloadIdentity{
+		Name:                   wiName,
+		State:                  v1pb.State_ACTIVE,
+		Email:                  email,
+		Title:                  workloadIdentity.Title,
+		WorkloadIdentityConfig: workloadIdentity.WorkloadIdentityConfig,
+	}
+	c.workloadIdentityMap[wiName] = wi
+	return wi, nil
+}
+
+// UpdateWorkloadIdentity updates the workload identity.
+func (c *mockClient) UpdateWorkloadIdentity(ctx context.Context, wi *v1pb.WorkloadIdentity, updateMasks []string) (*v1pb.WorkloadIdentity, error) {
+	existed, err := c.GetWorkloadIdentity(ctx, wi.Name)
+	if err != nil {
+		return nil, err
+	}
+	if slices.Contains(updateMasks, "title") {
+		existed.Title = wi.Title
+	}
+	if slices.Contains(updateMasks, "workload_identity_config") {
+		existed.WorkloadIdentityConfig = wi.WorkloadIdentityConfig
+	}
+	mu.Lock()
+	c.workloadIdentityMap[wi.Name] = existed
+	mu.Unlock()
+	return existed, nil
+}
+
+// DeleteWorkloadIdentity deletes the workload identity by name.
+func (c *mockClient) DeleteWorkloadIdentity(ctx context.Context, name string) error {
+	wi, err := c.GetWorkloadIdentity(ctx, name)
+	if err != nil {
+		return err
+	}
+
+	wi.State = v1pb.State_DELETED
+	mu.Lock()
+	c.workloadIdentityMap[wi.Name] = wi
+	mu.Unlock()
+
+	return nil
+}
+
+// UndeleteWorkloadIdentity undeletes the workload identity by name.
+func (c *mockClient) UndeleteWorkloadIdentity(ctx context.Context, name string) (*v1pb.WorkloadIdentity, error) {
+	wi, err := c.GetWorkloadIdentity(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	wi.State = v1pb.State_ACTIVE
+	mu.Lock()
+	c.workloadIdentityMap[wi.Name] = wi
+	mu.Unlock()
+
+	return wi, nil
 }
 
 // ListUser list all users.

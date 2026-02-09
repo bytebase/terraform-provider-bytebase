@@ -108,11 +108,6 @@ func dataSourceDatabaseList() *schema.Resource {
 							Computed:    true,
 							Description: "The latest synchronization time.",
 						},
-						"schema_version": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The version of database schema.",
-						},
 						"labels": {
 							Type:        schema.TypeMap,
 							Computed:    true,
@@ -168,7 +163,6 @@ func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m i
 		}
 		db["state"] = database.State.String()
 		db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
-		db["schema_version"] = database.SchemaVersion
 		db["labels"] = database.Labels
 
 		dbList = append(dbList, db)

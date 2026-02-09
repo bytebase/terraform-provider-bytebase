@@ -218,6 +218,16 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 		workspacePrfile.BrandingLogo = raw["branding_logo"].(string)
 		updateMasks = append(updateMasks, "value.workspace_profile.branding_logo")
 	}
+	if config := workspaceRawConfig.GetAttr("sql_result_size"); !config.IsNull() {
+		workspacePrfile.SqlResultSize = int64(raw["sql_result_size"].(int))
+		updateMasks = append(updateMasks, "value.workspace_profile.sql_result_size")
+	}
+	if config := workspaceRawConfig.GetAttr("query_timeout_in_seconds"); !config.IsNull() {
+		workspacePrfile.QueryTimeout = &durationpb.Duration{
+			Seconds: int64(raw["query_timeout_in_seconds"].(int)),
+		}
+		updateMasks = append(updateMasks, "value.workspace_profile.query_timeout")
+	}
 	if config := workspaceRawConfig.GetAttr("password_restriction"); !config.IsNull() {
 		if pwRestrictionList, ok := raw["password_restriction"].([]interface{}); ok && len(pwRestrictionList) > 0 {
 			pwRaw := pwRestrictionList[0].(map[string]interface{})
@@ -585,6 +595,8 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 			"value.workspace_profile.maximum_role_expiration",
 			"value.workspace_profile.announcement",
 			"value.workspace_profile.enable_audit_log_stdout",
+			"value.workspace_profile.sql_result_size",
+			"value.workspace_profile.query_timeout",
 		}
 	case v1pb.Setting_DATA_CLASSIFICATION:
 		setting.Value = &v1pb.SettingValue{

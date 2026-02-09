@@ -39,7 +39,7 @@ resource "bytebase_user" "test_owner" {
 	email    = "owner@example.com"
 	title    = "Test Owner"
 	password = "test_password_123"
-	type     = "USER"
+
 }
 
 resource "bytebase_group" "%s" {
@@ -69,21 +69,21 @@ resource "bytebase_user" "test_owner" {
 	email    = "owner@example.com"
 	title    = "Test Owner"
 	password = "test_password_123"
-	type     = "USER"
+
 }
 
 resource "bytebase_user" "test_member1" {
 	email    = "member1@example.com"
 	title    = "Test Member 1"
 	password = "test_password_123"
-	type     = "USER"
+
 }
 
 resource "bytebase_user" "test_member2" {
 	email    = "member2@example.com"
 	title    = "Test Member 2"
 	password = "test_password_123"
-	type     = "USER"
+
 }
 
 resource "bytebase_group" "%s" {
@@ -121,21 +121,21 @@ resource "bytebase_user" "test_owner" {
 	email    = "owner@example.com"
 	title    = "Test Owner"
 	password = "test_password_123"
-	type     = "USER"
+
 }
 
 resource "bytebase_user" "test_member1" {
 	email    = "member1@example.com"
 	title    = "Test Member 1"
 	password = "test_password_123"
-	type     = "USER"
+
 }
 
 resource "bytebase_user" "test_member2" {
 	email    = "member2@example.com"
 	title    = "Test Member 2"
 	password = "test_password_123"
-	type     = "USER"
+
 }
 
 resource "bytebase_group" "%s" {
@@ -170,14 +170,14 @@ resource "bytebase_user" "test_owner" {
 	email    = "owner@example.com"
 	title    = "Test Owner"
 	password = "test_password_123"
-	type     = "USER"
+
 }
 
 resource "bytebase_user" "test_member1" {
 	email    = "member1@example.com"
 	title    = "Test Member 1"
 	password = "test_password_123"
-	type     = "USER"
+
 }
 
 resource "bytebase_group" "%s" {
@@ -222,7 +222,7 @@ resource "bytebase_user" "test_user_%s" {
 	email    = "test@example.com"
 	title    = "Test User"
 	password = "test_password"
-	type     = "USER"
+
 }
 
 resource "bytebase_group" "%s" {
@@ -244,7 +244,7 @@ resource "bytebase_user" "test_user2_%s" {
 	email    = "test2@example.com"
 	title    = "Test User 2"
 	password = "test_password"
-	type     = "USER"
+
 }
 
 resource "bytebase_group" "%s" {
