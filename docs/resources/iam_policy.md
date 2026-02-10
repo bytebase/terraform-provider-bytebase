@@ -40,7 +40,7 @@ Optional:
 Optional:
 
 - `condition` (Block Set) Match the condition limit. (see [below for nested schema](#nestedblock--iam_policy--binding--condition))
-- `members` (Set of String) A set of memebers. The value can be "allUsers", "user:{email}" or "group:{email}".
+- `members` (Set of String) A set of memebers. The value can be "allUsers", "user:{email}", "group:{email}", "serviceAccount:{email}" or "workloadIdentity:{email}".
 - `role` (String) The role full name in roles/{id} format.
 
 <a id="nestedblock--iam_policy--binding--condition"></a>
@@ -49,6 +49,7 @@ Optional:
 Optional:
 
 - `database` (String) The accessible database full name in instances/{instance resource id}/databases/{database name} format
+- `environment_ids` (Set of String) The environment ID list to allow the DDL/DML operation in the SQL Editor. Only works for the role with bb.sql.ddl or bb.sql.dml permissions.
 - `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ssZ format
 - `schema` (String) The accessible schema in the database
 - `tables` (Set of String) The accessible table list

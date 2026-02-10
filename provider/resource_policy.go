@@ -366,7 +366,7 @@ func convertToV1Exemptions(rawSchema interface{}) ([]*v1pb.MaskingExemptionPolic
 			if err != nil {
 				return nil, errors.Wrapf(err, "invalid time: %v", expire)
 			}
-			expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
+			expressions = append(expressions, fmt.Sprintf(`%s < timestamp("%s")`, internal.CELAttributeRequestTime, formattedTime.Format(time.RFC3339)))
 		}
 	}
 

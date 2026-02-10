@@ -92,6 +92,7 @@ resource "bytebase_iam_policy" "project_iam" {
         database         = "instances/test-sample-instance/databases/employee"
         tables           = ["dept_emp", "dept_manager"]
         expire_timestamp = "2027-03-09T16:17:49Z"
+        environment_ids  = ["test"] # allow DDL/DML in test environment.
       }
     }
   }

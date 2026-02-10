@@ -72,7 +72,7 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 					Type:        schema.TypeSet,
 					Computed:    computed,
 					Optional:    !computed,
-					Description: `A set of memebers. The value can be "allUsers", "user:{email}" or "group:{email}".`,
+					Description: `A set of memebers. The value can be "allUsers", "user:{email}", "group:{email}", "serviceAccount:{email}" or "workloadIdentity:{email}".`,
 					Elem: &schema.Schema{
 						Type: schema.TypeString,
 						ValidateDiagFunc: internal.ResourceNameValidation(
@@ -118,6 +118,16 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 								Computed:    computed,
 								Optional:    true,
 								Description: "The expiration timestamp in YYYY-MM-DDThh:mm:ssZ format",
+							},
+							"environment_ids": {
+								Type:     schema.TypeSet,
+								Computed: computed,
+								Optional: true,
+								Elem: &schema.Schema{
+									Type: schema.TypeString,
+								},
+								Set:         schema.HashString,
+								Description: "The environment ID list to allow the DDL/DML operation in the SQL Editor. Only works for the role with bb.sql.ddl or bb.sql.dml permissions.",
 							},
 						},
 					},
@@ -189,14 +199,32 @@ func flattenIAMPolicy(p *v1pb.IamPolicy) ([]interface{}, error) {
 						strings.TrimPrefix(expression, `resource.table_name in [`),
 						`]`,
 					)
-					rawTableList := []interface{}{}
-					for _, t := range strings.Split(tableStr, ",") {
-						rawTableList = append(rawTableList, strings.TrimSuffix(
-							strings.TrimPrefix(t, `"`),
-							`"`,
-						))
+					if tableStr != "" {
+						rawTableList := []interface{}{}
+						for _, t := range strings.Split(tableStr, ",") {
+							rawTableList = append(rawTableList, strings.TrimSuffix(
+								strings.TrimPrefix(t, `"`),
+								`"`,
+							))
+						}
+						rawCondition["tables"] = schema.NewSet(schema.HashString, rawTableList)
 					}
-					rawCondition["tables"] = schema.NewSet(schema.HashString, rawTableList)
+				}
+				if strings.HasPrefix(expression, `resource.environment_id in [`) {
+					envStr := strings.TrimSuffix(
+						strings.TrimPrefix(expression, `resource.environment_id in [`),
+						`]`,
+					)
+					rawEnvList := []interface{}{}
+					if envStr != "" {
+						for _, e := range strings.Split(envStr, ",") {
+							rawEnvList = append(rawEnvList, strings.TrimSuffix(
+								strings.TrimPrefix(e, `"`),
+								`"`,
+							))
+						}
+					}
+					rawCondition["environment_ids"] = schema.NewSet(schema.HashString, rawEnvList)
 				}
 				if strings.HasPrefix(expression, "request.time < ") {
 					rawCondition["expire_timestamp"] = strings.TrimSuffix(

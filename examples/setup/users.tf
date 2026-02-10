@@ -1,4 +1,9 @@
 # Create or update the user.
+resource "bytebase_user" "workspace_owner" {
+  title = "Owner"
+  email = "owner@bytebase.com"
+}
+
 resource "bytebase_user" "workspace_dba" {
   title = "DBA"
   email = "dba@bytebase.com"

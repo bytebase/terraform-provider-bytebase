@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -48,7 +49,7 @@ func resourceIAMPolicyUpsert(ctx context.Context, d *schema.ResourceData, m inte
 	c := m.(api.Client)
 	parent := d.Get("parent").(string)
 
-	iamPolicy, err := convertToIAMPolicy(d)
+	iamPolicy, err := convertToIAMPolicy(ctx, c, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -84,13 +85,13 @@ func resourceIAMPolicyDelete(_ context.Context, d *schema.ResourceData, _ interf
 func convertToV1Binding(rawSchema interface{}) (*v1pb.Binding, error) {
 	rawBinding := rawSchema.(map[string]interface{})
 
-	role := rawBinding["role"].(string)
-	if !strings.HasPrefix(role, internal.RoleNamePrefix) {
+	roleName := rawBinding["role"].(string)
+	if !strings.HasPrefix(roleName, internal.RoleNamePrefix) {
 		return nil, errors.Errorf("invalid role format, role must in roles/{id} format")
 	}
 
 	binding := &v1pb.Binding{
-		Role: role,
+		Role: roleName,
 	}
 
 	members, ok := rawBinding["members"].(*schema.Set)
@@ -128,24 +129,32 @@ func convertToV1Condition(rawSchema interface{}) (*expr.Expr, error) {
 	expressions := []string{}
 
 	if database, ok := rawCondition["database"].(string); ok && database != "" {
-		expressions = append(expressions, fmt.Sprintf(`resource.database == "%s"`, database))
-	}
-	if schema, ok := rawCondition["schema"].(string); ok {
-		expressions = append(expressions, fmt.Sprintf(`resource.schema_name == "%s"`, schema))
-	}
-	if tables, ok := rawCondition["tables"].(*schema.Set); ok && tables.Len() > 0 {
-		tableList := []string{}
-		for _, table := range tables.List() {
-			tableList = append(tableList, fmt.Sprintf(`"%s"`, table.(string)))
+		expressions = append(expressions, fmt.Sprintf(`%s == "%s"`, internal.CELAttributeResourceDatabase, database))
+
+		if schema, ok := rawCondition["schema"].(string); ok && schema != "" {
+			expressions = append(expressions, fmt.Sprintf(`%s == "%s"`, internal.CELAttributeResourceSchemaName, schema))
 		}
-		expressions = append(expressions, fmt.Sprintf(`resource.table_name in [%s]`, strings.Join(tableList, ",")))
+		if tables, ok := rawCondition["tables"].(*schema.Set); ok && tables.Len() > 0 {
+			tableList := []string{}
+			for _, table := range tables.List() {
+				tableList = append(tableList, fmt.Sprintf(`"%s"`, table.(string)))
+			}
+			expressions = append(expressions, fmt.Sprintf(`%s in [%s]`, internal.CELAttributeResourceTableName, strings.Join(tableList, ",")))
+		}
+	}
+	if environments, ok := rawCondition["environment_ids"].(*schema.Set); ok {
+		envList := []string{}
+		for _, env := range environments.List() {
+			envList = append(envList, fmt.Sprintf(`"%s"`, env.(string)))
+		}
+		expressions = append(expressions, fmt.Sprintf(`%s in [%s]`, internal.CELAttributeResourceEnvironmentID, strings.Join(envList, ",")))
 	}
 	if expire, ok := rawCondition["expire_timestamp"].(string); ok && expire != "" {
 		formattedTime, err := time.Parse(time.RFC3339, expire)
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid time: %v", expire)
 		}
-		expressions = append(expressions, fmt.Sprintf(`request.time < timestamp("%s")`, formattedTime.Format(time.RFC3339)))
+		expressions = append(expressions, fmt.Sprintf(`%s < timestamp("%s")`, internal.CELAttributeRequestTime, formattedTime.Format(time.RFC3339)))
 	}
 
 	return &expr.Expr{
@@ -153,7 +162,7 @@ func convertToV1Condition(rawSchema interface{}) (*expr.Expr, error) {
 	}, nil
 }
 
-func convertToIAMPolicy(d *schema.ResourceData) (*v1pb.IamPolicy, error) {
+func convertToIAMPolicy(ctx context.Context, client api.Client, d *schema.ResourceData) (*v1pb.IamPolicy, error) {
 	rawList, ok := d.Get("iam_policy").([]interface{})
 	if !ok || len(rawList) != 1 {
 		return nil, errors.Errorf("invalid iam_policy")
@@ -172,7 +181,45 @@ func convertToIAMPolicy(d *schema.ResourceData) (*v1pb.IamPolicy, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		role, err := client.GetRole(ctx, binding.Role)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get role %v", binding.Role)
+		}
+
+		var expression string
+		if binding.Condition != nil {
+			expression = binding.Condition.Expression
+		}
+		if strings.Contains(expression, internal.CELAttributeResourceDatabase) && !roleContainsAnyPermission(
+			role,
+			"bb.sql.select",
+			"bb.sql.ddl",
+			"bb.sql.dml",
+			"bb.sql.explain",
+			"bb.sql.info",
+		) {
+			return nil, errors.Errorf(`role "%s" without "bb.sql." permissions shouldn't configure the database condition`, binding.Role)
+		}
+
+		if strings.Contains(expression, internal.CELAttributeResourceEnvironmentID) && !roleContainsAnyPermission(
+			role,
+			"bb.sql.ddl",
+			"bb.sql.dml",
+		) {
+			return nil, errors.Errorf(`role "%s" without "bb.sql.ddl" or "bb.sql.dml" permissions shouldn't configure the environment_ids condition`, binding.Role)
+		}
+
 		policy.Bindings = append(policy.Bindings, binding)
 	}
 	return policy, nil
+}
+
+func roleContainsAnyPermission(role *v1pb.Role, permissions ...string) bool {
+	for _, permission := range permissions {
+		if slices.Contains(role.Permissions, permission) {
+			return true
+		}
+	}
+	return false
 }
