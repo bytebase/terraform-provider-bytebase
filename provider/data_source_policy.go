@@ -126,10 +126,12 @@ func getMaskingExemptionPolicySchema(computed bool) *schema.Schema {
 								MinItems: 1,
 								Elem: &schema.Schema{
 									Type:        schema.TypeString,
-									Description: "The member in user:{email} or group:{email} format.",
+									Description: "The member in user:{email}, group:{email}, serviceAccount:{email} or workloadIdentity:{email} format.",
 									ValidateDiagFunc: internal.ResourceNameValidation(
 										"^user:",
 										"^group:",
+										"^serviceAccount:",
+										"^workloadIdentity:",
 									),
 								},
 							},
