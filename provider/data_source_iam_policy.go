@@ -95,13 +95,13 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 								Type:        schema.TypeString,
 								Computed:    computed,
 								Optional:    true,
-								Description: "The accessible database full name in instances/{instance resource id}/databases/{database name} format",
+								Description: "The accessible database full name in instances/{instance resource id}/databases/{database name} format. Only works for the role with bb.sql.x permissions.",
 							},
 							"schema": {
 								Type:        schema.TypeString,
 								Computed:    computed,
 								Optional:    true,
-								Description: "The accessible schema in the database",
+								Description: "The accessible schema in the database. Must configure with the database.",
 							},
 							"tables": {
 								Type:     schema.TypeSet,
@@ -111,7 +111,7 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 									Type: schema.TypeString,
 								},
 								Set:         schema.HashString,
-								Description: "The accessible table list",
+								Description: "The accessible table list. Must configure with the database.",
 							},
 							"expire_timestamp": {
 								Type:        schema.TypeString,

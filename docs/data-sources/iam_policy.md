@@ -48,10 +48,10 @@ Optional:
 
 Optional:
 
-- `database` (String) The accessible database full name in instances/{instance resource id}/databases/{database name} format
+- `database` (String) The accessible database full name in instances/{instance resource id}/databases/{database name} format. Only works for the role with bb.sql.x permissions.
 - `environment_ids` (Set of String) The environment ID list to allow the DDL/DML operation in the SQL Editor. Only works for the role with bb.sql.ddl or bb.sql.dml permissions.
 - `expire_timestamp` (String) The expiration timestamp in YYYY-MM-DDThh:mm:ssZ format
-- `schema` (String) The accessible schema in the database
-- `tables` (Set of String) The accessible table list
+- `schema` (String) The accessible schema in the database. Must configure with the database.
+- `tables` (Set of String) The accessible table list. Must configure with the database.
 
 
