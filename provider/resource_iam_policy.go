@@ -202,14 +202,6 @@ func convertToIAMPolicy(ctx context.Context, client api.Client, d *schema.Resour
 			return nil, errors.Errorf(`role "%s" without "bb.sql." permissions shouldn't configure the database condition`, binding.Role)
 		}
 
-		if strings.Contains(expression, internal.CELAttributeResourceEnvironmentID) && !roleContainsAnyPermission(
-			role,
-			"bb.sql.ddl",
-			"bb.sql.dml",
-		) {
-			return nil, errors.Errorf(`role "%s" without "bb.sql.ddl" or "bb.sql.dml" permissions shouldn't configure the environment_ids condition`, binding.Role)
-		}
-
 		policy.Bindings = append(policy.Bindings, binding)
 	}
 	return policy, nil
