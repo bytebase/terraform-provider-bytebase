@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/pkg/errors"
@@ -82,7 +83,7 @@ func resourceIAMPolicyDelete(_ context.Context, d *schema.ResourceData, _ interf
 	return diags
 }
 
-func convertToV1Binding(rawSchema interface{}) (*v1pb.Binding, error) {
+func convertToV1Binding(ctx context.Context, rawSchema interface{}, hasEnvIDsInConfig bool) (*v1pb.Binding, error) {
 	rawBinding := rawSchema.(map[string]interface{})
 
 	roleName := rawBinding["role"].(string)
@@ -110,7 +111,7 @@ func convertToV1Binding(rawSchema interface{}) (*v1pb.Binding, error) {
 			return nil, errors.Errorf("should only set one condition")
 		}
 		if condition.Len() == 1 && condition.List()[0] != nil {
-			conditionExpr, err := convertToV1Condition(condition.List()[0])
+			conditionExpr, err := convertToV1Condition(ctx, condition.List()[0], hasEnvIDsInConfig)
 			if err != nil {
 				return nil, err
 			}
@@ -124,7 +125,7 @@ func convertToV1Binding(rawSchema interface{}) (*v1pb.Binding, error) {
 	return binding, nil
 }
 
-func convertToV1Condition(rawSchema interface{}) (*expr.Expr, error) {
+func convertToV1Condition(ctx context.Context, rawSchema interface{}, hasEnvIDsInConfig bool) (*expr.Expr, error) {
 	rawCondition := rawSchema.(map[string]interface{})
 	expressions := []string{}
 
@@ -142,13 +143,21 @@ func convertToV1Condition(rawSchema interface{}) (*expr.Expr, error) {
 			expressions = append(expressions, fmt.Sprintf(`%s in [%s]`, internal.CELAttributeResourceTableName, strings.Join(tableList, ",")))
 		}
 	}
-	if environments, ok := rawCondition["environment_ids"].(*schema.Set); ok {
-		envList := []string{}
-		for _, env := range environments.List() {
-			envList = append(envList, fmt.Sprintf(`"%s"`, env.(string)))
+
+	// Only process environment_ids if it was explicitly set AND has elements
+	// Due to Terraform SDK limitations, we cannot distinguish:
+	//   condition {} vs condition { environment_ids = [] }
+	// So we only support non-empty environment_ids
+	if hasEnvIDsInConfig {
+		if environments, ok := rawCondition["environment_ids"].(*schema.Set); ok && environments.Len() > 0 {
+			envList := []string{}
+			for _, env := range environments.List() {
+				envList = append(envList, fmt.Sprintf(`"%s"`, env.(string)))
+			}
+			expressions = append(expressions, fmt.Sprintf(`%s in [%s]`, internal.CELAttributeResourceEnvironmentID, strings.Join(envList, ",")))
 		}
-		expressions = append(expressions, fmt.Sprintf(`%s in [%s]`, internal.CELAttributeResourceEnvironmentID, strings.Join(envList, ",")))
 	}
+
 	if expire, ok := rawCondition["expire_timestamp"].(string); ok && expire != "" {
 		formattedTime, err := time.Parse(time.RFC3339, expire)
 		if err != nil {
@@ -174,10 +183,15 @@ func convertToIAMPolicy(ctx context.Context, client api.Client, d *schema.Resour
 		return nil, errors.Errorf("invalid binding")
 	}
 
+	// Check if environment_ids is set anywhere in the config
+	// Note: Due to Set ordering, we can't match individual bindings reliably
+	// So we check globally - if ANY condition has environment_ids, we process ALL
+	hasEnvIDsInConfig := hasEnvironmentIDsInConfig(ctx, d.GetRawConfig())
+
 	policy := &v1pb.IamPolicy{}
 
 	for _, raw := range bindingList.List() {
-		binding, err := convertToV1Binding(raw)
+		binding, err := convertToV1Binding(ctx, raw, hasEnvIDsInConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -219,6 +233,45 @@ func roleContainsAnyPermission(role *v1pb.Role, permissions ...string) bool {
 	for _, permission := range permissions {
 		if slices.Contains(role.Permissions, permission) {
 			return true
+		}
+	}
+	return false
+}
+
+func hasEnvironmentIDsInConfig(ctx context.Context, rawConfig cty.Value) bool {
+	if rawConfig.IsNull() {
+		return false
+	}
+	iamPolicyAttr := rawConfig.GetAttr("iam_policy")
+	if iamPolicyAttr.IsNull() || iamPolicyAttr.LengthInt() == 0 {
+		return false
+	}
+	policyBlock := iamPolicyAttr.Index(cty.NumberIntVal(0))
+	if policyBlock.IsNull() {
+		return false
+	}
+	bindingSetAttr := policyBlock.GetAttr("binding")
+	if bindingSetAttr.IsNull() {
+		return false
+	}
+	iter := bindingSetAttr.ElementIterator()
+	for iter.Next() {
+		_, bindingVal := iter.Element()
+		if !bindingVal.IsNull() {
+			conditionSetAttr := bindingVal.GetAttr("condition")
+			if !conditionSetAttr.IsNull() && conditionSetAttr.LengthInt() > 0 {
+				condIter := conditionSetAttr.ElementIterator()
+				for condIter.Next() {
+					_, conditionVal := condIter.Element()
+					if !conditionVal.IsNull() {
+						envIDsAttr := conditionVal.GetAttr("environment_ids")
+						// Only return true if environment_ids exists AND has elements
+						if !envIDsAttr.IsNull() && envIDsAttr.IsKnown() && envIDsAttr.LengthInt() > 0 {
+							return true
+						}
+					}
+				}
+			}
 		}
 	}
 	return false

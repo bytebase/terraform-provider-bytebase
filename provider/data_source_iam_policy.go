@@ -256,7 +256,7 @@ func flattenIAMPolicy(p *v1pb.IamPolicy) ([]interface{}, error) {
 }
 
 func bindingHash(rawBinding interface{}) int {
-	binding, err := convertToV1Binding(rawBinding)
+	binding, err := convertToV1Binding(context.Background(), rawBinding, true)
 	if err != nil {
 		return 0
 	}
@@ -264,7 +264,7 @@ func bindingHash(rawBinding interface{}) int {
 }
 
 func conditionHash(rawCondition interface{}) int {
-	condition, err := convertToV1Condition(rawCondition)
+	condition, err := convertToV1Condition(context.Background(), rawCondition, true)
 	if err != nil {
 		return 0
 	}
