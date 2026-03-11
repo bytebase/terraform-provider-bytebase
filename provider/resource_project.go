@@ -120,6 +120,12 @@ func resourceProjct() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to allow requesting roles in this project.",
 			},
+			"allow_just_in_time_access": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Whether to allow just-in-time access in this project.",
+			},
 			"issue_labels": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -183,6 +189,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		RequireIssueApproval:       d.Get("require_issue_approval").(bool),
 		RequirePlanCheckNoError:    d.Get("require_plan_check_no_error").(bool),
 		AllowRequestRole:           d.Get("allow_request_role").(bool),
+		AllowJustInTimeAccess:      d.Get("allow_just_in_time_access").(bool),
 		IssueLabels:                convertToV1IssueLabels(d.Get("issue_labels").([]interface{})),
 		Labels:                     convertToStringMap(d.Get("labels").(map[string]interface{})),
 	}
@@ -229,6 +236,9 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	if config := rawConfig.GetAttr("allow_request_role"); !config.IsNull() {
 		updateMasks = append(updateMasks, "allow_request_role")
+	}
+	if config := rawConfig.GetAttr("allow_just_in_time_access"); !config.IsNull() {
+		updateMasks = append(updateMasks, "allow_just_in_time_access")
 	}
 	if config := rawConfig.GetAttr("issue_labels"); !config.IsNull() {
 		updateMasks = append(updateMasks, "issue_labels")
@@ -379,6 +389,9 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("allow_request_role") {
 		paths = append(paths, "allow_request_role")
 	}
+	if d.HasChange("allow_just_in_time_access") {
+		paths = append(paths, "allow_just_in_time_access")
+	}
 	if d.HasChange("issue_labels") {
 		paths = append(paths, "issue_labels")
 	}
@@ -405,6 +418,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			RequireIssueApproval:       d.Get("require_issue_approval").(bool),
 			RequirePlanCheckNoError:    d.Get("require_plan_check_no_error").(bool),
 			AllowRequestRole:           d.Get("allow_request_role").(bool),
+			AllowJustInTimeAccess:      d.Get("allow_just_in_time_access").(bool),
 			IssueLabels:                convertToV1IssueLabels(d.Get("issue_labels").([]interface{})),
 			Labels:                     convertToStringMap(d.Get("labels").(map[string]interface{})),
 		}, paths); err != nil {
