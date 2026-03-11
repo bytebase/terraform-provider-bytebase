@@ -11,6 +11,7 @@ resource "bytebase_project" "sample_project" {
   require_issue_approval      = true
   require_plan_check_no_error = true
   allow_request_role          = true
+  allow_just_in_time_access   = true
   force_issue_labels          = false
 
   # Issue labels for categorizing issues

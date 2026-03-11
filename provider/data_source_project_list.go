@@ -105,6 +105,11 @@ func dataSourceProjectList() *schema.Resource {
 							Computed:    true,
 							Description: "Whether to allow requesting roles in this project.",
 						},
+						"allow_just_in_time_access": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether to allow just-in-time access in this project.",
+						},
 						"issue_labels": {
 							Type:        schema.TypeList,
 							Computed:    true,
@@ -183,6 +188,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["require_issue_approval"] = project.RequireIssueApproval
 		proj["require_plan_check_no_error"] = project.RequirePlanCheckNoError
 		proj["allow_request_role"] = project.AllowRequestRole
+		proj["allow_just_in_time_access"] = project.AllowJustInTimeAccess
 		proj["issue_labels"] = flattenIssueLabels(project.IssueLabels)
 		proj["labels"] = project.Labels
 

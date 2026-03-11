@@ -82,6 +82,11 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to allow requesting roles in this project.",
 			},
+			"allow_just_in_time_access": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether to allow just-in-time access in this project.",
+			},
 			"issue_labels": {
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -304,6 +309,9 @@ func setProject(
 	}
 	if err := d.Set("allow_request_role", project.AllowRequestRole); err != nil {
 		return diag.Errorf("cannot set allow_request_role for project: %s", err.Error())
+	}
+	if err := d.Set("allow_just_in_time_access", project.AllowJustInTimeAccess); err != nil {
+		return diag.Errorf("cannot set allow_just_in_time_access for project: %s", err.Error())
 	}
 	if err := d.Set("issue_labels", flattenIssueLabels(project.IssueLabels)); err != nil {
 		return diag.Errorf("cannot set issue_labels for project: %s", err.Error())
