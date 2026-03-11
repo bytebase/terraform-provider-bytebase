@@ -59,7 +59,7 @@ func TestAccIAMPolicy_Workspace(t *testing.T) {
 				Config: testAccCheckWorkspaceIAMPolicyResource(identifier),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(fmt.Sprintf("bytebase_iam_policy.%s", identifier)),
-					resource.TestCheckResourceAttr(fmt.Sprintf("bytebase_iam_policy.%s", identifier), "parent", "workspaces/-"),
+					resource.TestCheckResourceAttr(fmt.Sprintf("bytebase_iam_policy.%s", identifier), "parent", fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID)),
 					resource.TestCheckResourceAttr(fmt.Sprintf("bytebase_iam_policy.%s", identifier), "iam_policy.#", "1"),
 					resource.TestCheckResourceAttr(fmt.Sprintf("bytebase_iam_policy.%s", identifier), "iam_policy.0.binding.#", "1"),
 				),
@@ -223,6 +223,7 @@ resource "bytebase_iam_policy" "%s" {
 }
 
 func testAccCheckWorkspaceIAMPolicyResource(identifier string) string {
+	parent := fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID)
 	return fmt.Sprintf(`
 # Create a role to use in the IAM policy
 resource "bytebase_role" "workspace_role_%s" {
@@ -241,8 +242,8 @@ resource "bytebase_user" "workspace_user_%s" {
 }
 
 resource "bytebase_iam_policy" "%s" {
-	parent = "workspaces/-"
-	
+	parent = "%s"
+
 	iam_policy {
 		binding {
 			role    = bytebase_role.workspace_role_%s.name
@@ -250,5 +251,5 @@ resource "bytebase_iam_policy" "%s" {
 		}
 	}
 }
-`, identifier, identifier, identifier, identifier)
+`, identifier, identifier, identifier, parent, identifier)
 }

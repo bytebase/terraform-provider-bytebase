@@ -23,10 +23,10 @@ func dataSourcePolicyList() *schema.Resource {
 			"parent": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  internal.WorkspaceName,
+				Computed: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					fmt.Sprintf("^%s$", internal.WorkspaceName),
+					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					// environment policy
 					fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern),
 					// instance policy
@@ -36,7 +36,7 @@ func dataSourcePolicyList() *schema.Resource {
 					// database policy
 					fmt.Sprintf(`^%s%s/%s\S+$`, internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix),
 				),
-				Description: "The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}",
+				Description: "The policy parent name for the policy, support workspaces/{workspace id}, projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}. Defaults to the workspace if not specified.",
 			},
 			"policies": {
 				Type:     schema.TypeList,
@@ -77,10 +77,7 @@ func dataSourcePolicyList() *schema.Resource {
 func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	parent := d.Get("parent").(string)
-	if parent == internal.WorkspaceName {
-		parent = ""
-	}
+	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), c.GetWorkspaceName())
 
 	response, err := c.ListPolicies(ctx, parent)
 	if err != nil {

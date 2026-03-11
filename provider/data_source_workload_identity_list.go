@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -19,11 +20,12 @@ func dataSourceWorkloadIdentityList() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"parent": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The parent resource. Format: projects/{project} for project-level, workspaces/- for workspace-level.",
+				Optional:    true,
+				Computed:    true,
+				Description: "The parent resource. Format: projects/{project} for project-level, workspaces/{workspace id} for workspace-level. Defaults to the workspace if not specified.",
 				ValidateDiagFunc: internal.ResourceNameValidation(
-					"^workspaces/-$",
-					"^projects/[a-z]([a-z0-9-]{0,61}[a-z0-9])?$",
+					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
 				),
 			},
 			"show_deleted": {
@@ -80,7 +82,7 @@ func dataSourceWorkloadIdentityList() *schema.Resource {
 func dataSourceWorkloadIdentityListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	parent := d.Get("parent").(string)
+	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), c.GetWorkspaceName())
 	showDeleted := d.Get("show_deleted").(bool)
 
 	allWorkloadIdentities, err := c.ListWorkloadIdentity(ctx, parent, showDeleted)

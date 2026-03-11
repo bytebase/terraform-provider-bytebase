@@ -27,12 +27,13 @@ func resourceServiceAccount() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"parent": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
+				Computed:    true,
 				ForceNew:    true,
-				Description: "The parent resource. Format: projects/{project} for project-level, workspaces/- for workspace-level.",
+				Description: "The parent resource. Format: projects/{project} for project-level, workspaces/{workspace id} for workspace-level. Defaults to the workspace if not specified.",
 				ValidateDiagFunc: internal.ResourceNameValidation(
-					"^workspaces/-$",
-					"^projects/[a-z]([a-z0-9-]{0,61}[a-z0-9])?$",
+					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
 				),
 			},
 			"service_account_id": {
@@ -92,7 +93,10 @@ func resourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, m i
 func resourceServiceAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	parent := d.Get("parent").(string)
+	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), c.GetWorkspaceName())
+	if err := d.Set("parent", parent); err != nil {
+		return diag.Errorf("cannot set parent: %s", err.Error())
+	}
 	serviceAccountID := d.Get("service_account_id").(string)
 	title := d.Get("title").(string)
 

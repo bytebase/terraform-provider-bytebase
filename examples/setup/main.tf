@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.15.2"
+      version = "3.16.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -45,8 +45,9 @@ resource "bytebase_setting" "workspace_profile" {
 }
 
 resource "bytebase_policy" "query_data_policy" {
-  parent = "workspaces/-"
-  type   = "DATA_QUERY"
+  # The workspace parent is auto-resolved from the provider.
+  # You can also explicitly set: parent = "workspaces/your-workspace-id"
+  type = "DATA_QUERY"
   query_data_policy {
     maximum_result_rows     = 100
     disable_export          = true

@@ -77,7 +77,7 @@ func TestAccPolicy_QueryData(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"query_data_policy",
-					"workspaces/-",
+					fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID),
 					getQueryDataPolicy(true, 500),
 					v1pb.PolicyType_DATA_QUERY,
 				),
@@ -92,7 +92,7 @@ func TestAccPolicy_QueryData(t *testing.T) {
 			{
 				Config: testAccCheckPolicyResource(
 					"query_data_policy",
-					"workspaces/-",
+					fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID),
 					getQueryDataPolicy(false, 1000),
 					v1pb.PolicyType_DATA_QUERY,
 				),

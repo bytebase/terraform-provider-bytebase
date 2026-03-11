@@ -15,6 +15,11 @@ import (
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
+const (
+	// MockWorkspaceID is the mock workspace ID used in tests.
+	MockWorkspaceID = "mock-workspace"
+)
+
 var (
 	mu                  sync.RWMutex
 	instanceMap         map[string]*v1pb.Instance
@@ -65,6 +70,7 @@ func init() {
 }
 
 type mockClient struct {
+	workspaceName       string
 	instanceMap         map[string]*v1pb.Instance
 	policyMap           map[string]*v1pb.Policy
 	projectMap          map[string]*v1pb.Project
@@ -81,11 +87,17 @@ type mockClient struct {
 	databaseGroupMap    map[string]*v1pb.DatabaseGroup
 }
 
+// GetWorkspaceName returns the workspace resource name.
+func (c *mockClient) GetWorkspaceName() string {
+	return c.workspaceName
+}
+
 // newMockClient returns the new Bytebase API mock client.
 func newMockClient(_, _, _ string) (api.Client, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	return &mockClient{
+		workspaceName:       fmt.Sprintf("%s%s", WorkspaceNamePrefix, MockWorkspaceID),
 		instanceMap:         instanceMap,
 		policyMap:           policyMap,
 		projectMap:          projectMap,
@@ -1018,9 +1030,6 @@ func (c *mockClient) CreateUser(_ context.Context, user *v1pb.User) (*v1pb.User,
 	// For service accounts, generate a service key
 	mu.Lock()
 	defer mu.Unlock()
-	if user.UserType == v1pb.UserType_SERVICE_ACCOUNT && user.ServiceKey == "" {
-		user.ServiceKey = fmt.Sprintf("bbs_%s_mock_service_key", strings.ReplaceAll(user.Email, "@", "_"))
-	}
 	c.userMap[user.Name] = user
 	return c.userMap[user.Name], nil
 }

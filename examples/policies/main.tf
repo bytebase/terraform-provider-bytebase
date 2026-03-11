@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.15.2"
+      version = "3.16.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -27,8 +27,8 @@ output "masking_exemption_policy" {
 }
 
 data "bytebase_policy" "global_masking_policy" {
-  parent = "workspaces/-"
-  type   = "MASKING_RULE"
+  # parent defaults to workspace when not specified.
+  type = "MASKING_RULE"
 }
 
 output "global_masking_policy" {

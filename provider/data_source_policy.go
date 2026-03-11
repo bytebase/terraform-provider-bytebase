@@ -23,10 +23,11 @@ func dataSourcePolicy() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"parent": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					fmt.Sprintf("^%s$", internal.WorkspaceName),
+					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					// environment policy
 					fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern),
 					// instance policy
@@ -36,7 +37,7 @@ func dataSourcePolicy() *schema.Resource {
 					// database policy
 					fmt.Sprintf(`^%s%s/%s\S+$`, internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix),
 				),
-				Description: "The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}",
+				Description: "The policy parent name for the policy, support workspaces/{workspace id}, projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}. Defaults to the workspace if not specified.",
 			},
 			"type": {
 				Type:     schema.TypeString,
@@ -284,10 +285,8 @@ func getRolloutPolicySchema(computed bool) *schema.Schema {
 func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	policyName := fmt.Sprintf("%s/%s%s", d.Get("parent").(string), internal.PolicyNamePrefix, d.Get("type").(string))
-	if strings.HasPrefix(policyName, internal.WorkspaceName) {
-		policyName = strings.TrimPrefix(policyName, fmt.Sprintf("%s/", internal.WorkspaceName))
-	}
+	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), c.GetWorkspaceName())
+	policyName := fmt.Sprintf("%s/%s%s", parent, internal.PolicyNamePrefix, d.Get("type").(string))
 
 	policy, err := c.GetPolicy(ctx, policyName)
 	if err != nil {

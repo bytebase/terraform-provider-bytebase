@@ -3,6 +3,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -18,10 +19,12 @@ import (
 
 // client is the API message for Bytebase API client.
 type client struct {
-	url    string
-	client *http.Client
+	url           string
+	workspaceName string
+	client        *http.Client
 
 	// Connect RPC clients
+	actuatorClient         bytebasev1connect.ActuatorServiceClient
 	authClient             bytebasev1connect.AuthServiceClient
 	workspaceClient        bytebasev1connect.WorkspaceServiceClient
 	instanceClient         bytebasev1connect.InstanceServiceClient
@@ -40,6 +43,11 @@ type client struct {
 	workloadIdentityClient bytebasev1connect.WorkloadIdentityServiceClient
 }
 
+// GetWorkspaceName returns the workspace resource name.
+func (c *client) GetWorkspaceName() string {
+	return c.workspaceName
+}
+
 // NewClient returns the new Bytebase API client.
 func NewClient(url, email, password string) (api.Client, error) {
 	c := client{
@@ -55,7 +63,6 @@ func NewClient(url, email, password string) (api.Client, error) {
 	interceptors := connect.WithInterceptors(authInt)
 
 	// Create auth client without token first
-	// Try without WithGRPC first to see if it's a standard Connect/gRPC-Web service
 	c.authClient = bytebasev1connect.NewAuthServiceClient(
 		c.client,
 		c.url,
@@ -75,6 +82,7 @@ func NewClient(url, email, password string) (api.Client, error) {
 	authInt.token = loginResp.Msg.Token
 
 	// Initialize other clients with auth token
+	c.actuatorClient = bytebasev1connect.NewActuatorServiceClient(c.client, c.url, interceptors)
 	c.workspaceClient = bytebasev1connect.NewWorkspaceServiceClient(c.client, c.url, interceptors)
 	c.instanceClient = bytebasev1connect.NewInstanceServiceClient(c.client, c.url, interceptors)
 	c.databaseClient = bytebasev1connect.NewDatabaseServiceClient(c.client, c.url, interceptors)
@@ -90,6 +98,13 @@ func NewClient(url, email, password string) (api.Client, error) {
 	c.celClient = bytebasev1connect.NewCelServiceClient(c.client, c.url, interceptors)
 	c.serviceAccountClient = bytebasev1connect.NewServiceAccountServiceClient(c.client, c.url, interceptors)
 	c.workloadIdentityClient = bytebasev1connect.NewWorkloadIdentityServiceClient(c.client, c.url, interceptors)
+
+	// Fetch workspace ID from actuator
+	actuatorResp, err := c.actuatorClient.GetActuatorInfo(context.Background(), connect.NewRequest(&v1pb.GetActuatorInfoRequest{}))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get actuator info")
+	}
+	c.workspaceName = fmt.Sprintf("workspaces/%s", actuatorResp.Msg.GetWorkspaceId())
 
 	return &c, nil
 }

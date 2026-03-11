@@ -15,7 +15,7 @@ func (c *client) GetWorkspaceIAMPolicy(ctx context.Context) (*v1pb.IamPolicy, er
 	}
 
 	req := connect.NewRequest(&v1pb.GetIamPolicyRequest{
-		Resource: "workspaces/-",
+		Resource: c.workspaceName,
 	})
 
 	resp, err := c.workspaceClient.GetIamPolicy(ctx, req)
@@ -34,7 +34,7 @@ func (c *client) SetWorkspaceIAMPolicy(ctx context.Context, setIamPolicyRequest 
 
 	// Ensure the resource is set correctly
 	if setIamPolicyRequest.Resource == "" {
-		setIamPolicyRequest.Resource = "workspaces/-"
+		setIamPolicyRequest.Resource = c.workspaceName
 	}
 
 	req := connect.NewRequest(setIamPolicyRequest)

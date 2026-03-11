@@ -18,15 +18,16 @@ func TestAccPolicyListDataSource(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPolicyDestroy,
 		Steps: []resource.TestStep{
-			internal.GetTestStepForDataSourceList(
+			internal.GetTestStepForDataSourceListWithParent(
 				"",
 				"",
 				"bytebase_policy_list",
 				"before",
 				"policies",
+				"projects/project-sample",
 				0,
 			),
-			internal.GetTestStepForDataSourceList(
+			internal.GetTestStepForDataSourceListWithParent(
 				testAccCheckPolicyResource(
 					"masking_exemption_policy",
 					"projects/project-sample",
@@ -37,6 +38,7 @@ func TestAccPolicyListDataSource(t *testing.T) {
 				"bytebase_policy_list",
 				"after",
 				"policies",
+				"projects/project-sample",
 				1,
 			),
 		},

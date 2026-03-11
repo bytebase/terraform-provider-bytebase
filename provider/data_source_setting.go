@@ -532,19 +532,20 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 							"source": {
 								Optional:    true,
 								Type:        schema.TypeString,
-								Description: `The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, EXPORT_DATA, or REQUEST_ROLE. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.`,
+								Description: `The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, EXPORT_DATA, REQUEST_ROLE, or REQUEST_ACCESS. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.`,
 								ValidateFunc: validation.StringInSlice([]string{
 									v1pb.WorkspaceApprovalSetting_Rule_CHANGE_DATABASE.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_CREATE_DATABASE.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_EXPORT_DATA.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_REQUEST_ROLE.String(),
+									v1pb.WorkspaceApprovalSetting_Rule_REQUEST_ACCESS.String(),
 								}, false),
 							},
 							"condition": {
 								Type:         schema.TypeString,
 								Required:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
-								Description:  "The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/c7304123902610b8a2c83e49fcd1c4d4eb972f0d/proto/v1/v1/setting_service.proto#L280 for details.",
+								Description:  "The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L307 for details.",
 							},
 						},
 					},

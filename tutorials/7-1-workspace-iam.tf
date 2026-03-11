@@ -8,7 +8,7 @@ resource "bytebase_iam_policy" "workspace_iam" {
     bytebase_group.qa
   ]
 
-  parent = "workspaces/-"
+  # parent defaults to workspace when not specified.
 
   iam_policy {
 

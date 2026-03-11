@@ -4,7 +4,7 @@ resource "bytebase_policy" "global_masking_policy" {
     bytebase_setting.environments
   ]
 
-  parent              = "workspaces/-"
+  # parent defaults to workspace when not specified.
   type                = "MASKING_RULE"
   enforce             = true
   inherit_from_parent = false

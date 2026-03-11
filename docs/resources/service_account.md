@@ -17,9 +17,12 @@ The service account resource.
 
 ### Required
 
-- `parent` (String) The parent resource. Format: projects/{project} for project-level, workspaces/- for workspace-level.
 - `service_account_id` (String) The ID for the service account, which becomes part of the email.
 - `title` (String) The display title of the service account.
+
+### Optional
+
+- `parent` (String) The parent resource. Format: projects/{project} for project-level, workspaces/{workspace id} for workspace-level. Defaults to the workspace if not specified.
 
 ### Read-Only
 

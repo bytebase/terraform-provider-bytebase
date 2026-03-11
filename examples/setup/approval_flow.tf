@@ -20,6 +20,49 @@ resource "bytebase_setting" "approval_flow" {
 
     rules {
       flow {
+        title = "DBA -> Admin"
+
+        # Approval flow following the step order.
+        roles = [
+          "roles/workspaceDBA",
+          "roles/workspaceAdmin"
+        ]
+      }
+
+      source    = "CREATE_DATABASE"
+      condition = "resource.environment_id == \"prod\" || resource.instance_id == \"prod-sample-instance\""
+    }
+
+    rules {
+      flow {
+        title = "Project Owner review"
+
+        # Approval flow following the step order.
+        roles = [
+          "roles/projectOwner"
+        ]
+      }
+
+      source    = "REQUEST_ROLE"
+      condition = "resource.role == \"roles/projectOwner\""
+    }
+
+    rules {
+      flow {
+        title = "Project Owner review"
+
+        # Approval flow following the step order.
+        roles = [
+          "roles/projectOwner"
+        ]
+      }
+
+      source    = "REQUEST_ACCESS"
+      condition = "resource.unmask == true"
+    }
+
+    rules {
+      flow {
         title = "Project Owner review"
 
         # Approval flow following the step order.

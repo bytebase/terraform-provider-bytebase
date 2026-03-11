@@ -32,10 +32,11 @@ func resourcePolicy() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"parent": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					fmt.Sprintf("^%s$", internal.WorkspaceName),
+					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					// environment policy
 					fmt.Sprintf("^%s%s$", internal.EnvironmentNamePrefix, internal.ResourceIDPattern),
 					// instance policy
@@ -45,7 +46,7 @@ func resourcePolicy() *schema.Resource {
 					// database policy
 					fmt.Sprintf(`^%s%s/%s\S+$`, internal.InstanceNamePrefix, internal.ResourceIDPattern, internal.DatabaseIDPrefix),
 				),
-				Description: "The policy parent name for the policy, support projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}",
+				Description: "The policy parent name for the policy, support workspaces/{workspace id}, projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}. Defaults to the workspace if not specified.",
 			},
 			"type": {
 				Type:     schema.TypeString,
@@ -110,11 +111,11 @@ func resourcePolicyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 
-	parent := d.Get("parent").(string)
-	policyName := fmt.Sprintf("%s/%s%s", parent, internal.PolicyNamePrefix, d.Get("type").(string))
-	if strings.HasPrefix(policyName, internal.WorkspaceName) {
-		policyName = strings.TrimPrefix(policyName, fmt.Sprintf("%s/", internal.WorkspaceName))
+	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), c.GetWorkspaceName())
+	if err := d.Set("parent", parent); err != nil {
+		return diag.Errorf("cannot set parent: %s", err.Error())
 	}
+	policyName := fmt.Sprintf("%s/%s%s", parent, internal.PolicyNamePrefix, d.Get("type").(string))
 
 	_, policyType, err := internal.GetPolicyParentAndType(policyName)
 	if err != nil {
@@ -161,8 +162,8 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		updateMasks = append(updateMasks, "rollout_policy")
 	case v1pb.PolicyType_DATA_QUERY:
-		if parent != internal.WorkspaceName && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
-			return diag.Errorf("policy %v only support %v or environment resource", policyName, internal.WorkspaceName)
+		if !strings.HasPrefix(parent, internal.WorkspaceNamePrefix) && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
+			return diag.Errorf("policy %v only support workspace or project resource", policyName)
 		}
 		queryDataPolicy, err := convertToQueryDataPolicy(d)
 		if err != nil {

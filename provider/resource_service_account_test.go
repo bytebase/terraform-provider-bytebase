@@ -19,7 +19,7 @@ func TestAccServiceAccount(t *testing.T) {
 	identifier := "test_sa"
 	resourceName := fmt.Sprintf("bytebase_service_account.%s", identifier)
 
-	parent := "workspaces/-"
+	parent := fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID)
 	serviceAccountID := "test-sa"
 	title := "Test Service Account"
 	titleUpdated := "Updated Service Account"
@@ -70,12 +70,12 @@ func TestAccServiceAccount_InvalidInput(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Empty title
 			{
-				Config:      testAccCheckServiceAccountResourceConfig(identifier, "workspaces/-", "test-sa", ""),
+				Config:      testAccCheckServiceAccountResourceConfig(identifier, fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID), "test-sa", ""),
 				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
 			// Empty service_account_id
 			{
-				Config:      testAccCheckServiceAccountResourceConfig(identifier, "workspaces/-", "", "Test SA"),
+				Config:      testAccCheckServiceAccountResourceConfig(identifier, fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID), "", "Test SA"),
 				ExpectError: regexp.MustCompile(`expected "service_account_id" to not be an empty string`),
 			},
 			// Invalid parent
@@ -93,7 +93,7 @@ func TestAccServiceAccount_DataSource(t *testing.T) {
 	resourceName := fmt.Sprintf("bytebase_service_account.%s", resourceIdentifier)
 	dataSourceName := fmt.Sprintf("data.bytebase_service_account.%s", dataSourceIdentifier)
 
-	parent := "workspaces/-"
+	parent := fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID)
 	serviceAccountID := "test-sa-ds"
 	title := "Test SA Data Source"
 
@@ -124,7 +124,7 @@ func TestAccServiceAccount_DataSourceList(t *testing.T) {
 	resourceName := fmt.Sprintf("bytebase_service_account.%s", resourceIdentifier)
 	dataSourceName := fmt.Sprintf("data.bytebase_service_account_list.%s", dataSourceIdentifier)
 
-	parent := "workspaces/-"
+	parent := fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID)
 	serviceAccountID := "test-sa-list"
 	title := "Test SA List"
 

@@ -44,11 +44,10 @@ type DatabaseFilter struct {
 
 // UserFilter is the filter for list users API.
 type UserFilter struct {
-	Name      string
-	Email     string
-	Project   string
-	UserTypes []v1pb.UserType
-	State     v1pb.State
+	Name    string
+	Email   string
+	Project string
+	State   v1pb.State
 }
 
 // GroupFilter is the filter for list group API.
@@ -59,6 +58,9 @@ type GroupFilter struct {
 
 // Client is the API message for Bytebase OpenAPI client.
 type Client interface {
+	// GetWorkspaceName returns the workspace resource name in "workspaces/{workspace-id}" format.
+	GetWorkspaceName() string
+
 	// Instance
 	// ListInstance will return instances.
 	ListInstance(ctx context.Context, filter *InstanceFilter) ([]*v1pb.Instance, error)
