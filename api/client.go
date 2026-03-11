@@ -44,10 +44,10 @@ type DatabaseFilter struct {
 
 // UserFilter is the filter for list users API.
 type UserFilter struct {
-	Name      string
-	Email     string
-	Project   string
-	State v1pb.State
+	Name    string
+	Email   string
+	Project string
+	State   v1pb.State
 }
 
 // GroupFilter is the filter for list group API.
