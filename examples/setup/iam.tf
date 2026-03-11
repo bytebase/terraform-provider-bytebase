@@ -11,7 +11,7 @@ resource "bytebase_iam_policy" "workspace_iam" {
     bytebase_role.auditor
   ]
 
-  parent = "workspaces/-"
+  # parent defaults to workspace. You can also explicitly set: parent = "workspaces/{id}"
 
   iam_policy {
     binding {

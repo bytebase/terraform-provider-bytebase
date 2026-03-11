@@ -28,14 +28,14 @@ resource "bytebase_user" "project_developer" {
 
 # Create or update the service account.
 resource "bytebase_service_account" "ci_bot" {
-  parent             = "workspaces/-"
+  # parent defaults to workspace. You can also explicitly set: parent = "workspaces/{id}"
   service_account_id = "terraform"
   title              = "CI Bot"
 }
 
 # Create or update the workload identity for GitHub Actions CI/CD.
 resource "bytebase_workload_identity" "github_ci" {
-  parent               = "workspaces/-"
+  # parent defaults to workspace. You can also explicitly set: parent = "workspaces/{id}"
   workload_identity_id = "github-ci"
   title                = "GitHub CI"
 

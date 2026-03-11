@@ -27,13 +27,6 @@ func buildUserFilter(filter *api.UserFilter) string {
 	if v := filter.Project; v != "" {
 		params = append(params, fmt.Sprintf(`project == "%s"`, v))
 	}
-	if v := filter.UserTypes; len(v) > 0 {
-		userTypes := []string{}
-		for _, t := range v {
-			userTypes = append(userTypes, fmt.Sprintf(`"%s"`, t.String()))
-		}
-		params = append(params, fmt.Sprintf(`user_type in [%s]`, strings.Join(userTypes, ", ")))
-	}
 	if filter.State == v1pb.State_DELETED {
 		params = append(params, fmt.Sprintf(`state == "%s"`, filter.State.String()))
 	}

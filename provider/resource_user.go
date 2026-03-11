@@ -152,7 +152,6 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 		Phone:    d.Get("phone").(string),
 		Email:    email,
 		State:    v1pb.State_ACTIVE,
-		UserType: v1pb.UserType_USER,
 	}
 
 	var diags diag.Diagnostics

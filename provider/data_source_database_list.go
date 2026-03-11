@@ -22,12 +22,14 @@ func dataSourceDatabaseList() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"parent": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
-					fmt.Sprintf("^%s$", internal.WorkspaceName),
+					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern),
 					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
 				),
+				Description: "The parent resource. Format: workspaces/{workspace id}, instances/{instance id}, or projects/{project id}. Defaults to the workspace if not specified.",
 			},
 			"query": {
 				Type:        schema.TypeString,
@@ -123,7 +125,7 @@ func dataSourceDatabaseList() *schema.Resource {
 
 func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(api.Client)
-	parent := d.Get("parent").(string)
+	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), client.GetWorkspaceName())
 
 	filter := &api.DatabaseFilter{
 		Query:             d.Get("query").(string),

@@ -2,7 +2,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.15.2"
+      version = "3.16.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -19,7 +19,7 @@ provider "bytebase" {
 }
 
 data "bytebase_database_list" "all" {
-  parent      = "workspaces/-"
+  # parent defaults to workspace when not specified.
   environment = "environments/test"
   project     = "projects/sample-project"
 }

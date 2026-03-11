@@ -19,7 +19,7 @@ func TestAccWorkloadIdentity(t *testing.T) {
 	identifier := "test_wi"
 	resourceName := fmt.Sprintf("bytebase_workload_identity.%s", identifier)
 
-	parent := "workspaces/-"
+	parent := fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID)
 	workloadIdentityID := "test-wi"
 	title := "Test Workload Identity"
 	titleUpdated := "Updated Workload Identity"
@@ -76,12 +76,12 @@ func TestAccWorkloadIdentity_InvalidInput(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Empty title
 			{
-				Config:      testAccCheckWorkloadIdentityResourceConfigSimple(identifier, "workspaces/-", "test-wi", ""),
+				Config:      testAccCheckWorkloadIdentityResourceConfigSimple(identifier, fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID), "test-wi", ""),
 				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
 			// Empty workload_identity_id
 			{
-				Config:      testAccCheckWorkloadIdentityResourceConfigSimple(identifier, "workspaces/-", "", "Test WI"),
+				Config:      testAccCheckWorkloadIdentityResourceConfigSimple(identifier, fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID), "", "Test WI"),
 				ExpectError: regexp.MustCompile(`expected "workload_identity_id" to not be an empty string`),
 			},
 			// Invalid parent
@@ -99,7 +99,7 @@ func TestAccWorkloadIdentity_DataSource(t *testing.T) {
 	resourceName := fmt.Sprintf("bytebase_workload_identity.%s", resourceIdentifier)
 	dataSourceName := fmt.Sprintf("data.bytebase_workload_identity.%s", dataSourceIdentifier)
 
-	parent := "workspaces/-"
+	parent := fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID)
 	workloadIdentityID := "test-wi-ds"
 	title := "Test WI Data Source"
 
@@ -130,7 +130,7 @@ func TestAccWorkloadIdentity_DataSourceList(t *testing.T) {
 	resourceName := fmt.Sprintf("bytebase_workload_identity.%s", resourceIdentifier)
 	dataSourceName := fmt.Sprintf("data.bytebase_workload_identity_list.%s", dataSourceIdentifier)
 
-	parent := "workspaces/-"
+	parent := fmt.Sprintf("%s%s", internal.WorkspaceNamePrefix, internal.MockWorkspaceID)
 	workloadIdentityID := "test-wi-list"
 	title := "Test WI List"
 

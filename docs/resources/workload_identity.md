@@ -17,12 +17,12 @@ The workload identity resource.
 
 ### Required
 
-- `parent` (String) The parent resource. Format: projects/{project} for project-level, workspaces/- for workspace-level.
 - `title` (String) The display title of the workload identity.
 - `workload_identity_id` (String) The ID for the workload identity, which becomes part of the email.
 
 ### Optional
 
+- `parent` (String) The parent resource. Format: projects/{project} for project-level, workspaces/{workspace id} for workspace-level. Defaults to the workspace if not specified.
 - `workload_identity_config` (Block List, Max: 1) The workload identity configuration for OIDC token validation. (see [below for nested schema](#nestedblock--workload_identity_config))
 
 ### Read-Only

@@ -21,14 +21,15 @@ func dataSourceIAMPolicy() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"parent": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					// workspace policy
-					fmt.Sprintf("^%s$", internal.WorkspaceName),
+					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					// project policy
 					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
 				),
-				Description: `The IAM policy parent name for the policy, support "projects/{resource id}" or "workspaces/-"`,
+				Description: `The IAM policy parent name for the policy, support "projects/{resource id}" or "workspaces/{workspace id}". Defaults to the workspace if not specified.`,
 			},
 			"iam_policy": getIAMPolicySchema(true),
 		},
@@ -141,7 +142,7 @@ func getIAMBindingSchema(computed bool) *schema.Schema {
 
 func dataSourceIAMPolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	parent := d.Get("parent").(string)
+	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), c.GetWorkspaceName())
 
 	var iamPolicy *v1pb.IamPolicy
 
@@ -160,6 +161,9 @@ func dataSourceIAMPolicyRead(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	d.SetId(parent)
+	if err := d.Set("parent", parent); err != nil {
+		return diag.Errorf("cannot set parent: %s", err.Error())
+	}
 	return setIAMPolicyMessage(d, iamPolicy)
 }
 

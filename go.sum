@@ -2,8 +2,16 @@ buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-202512091757
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1/go.mod h1:tvtbpgaVXZX4g6Pn+AnzFycuRK3MOz5HJfEGeEllXYM=
 buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20260208072011-98c2d3188075.2 h1:szWiahWBZPvE5LMajHWa4dNxzE+1dmQqB8cu/skI/6U=
 buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20260208072011-98c2d3188075.2/go.mod h1:D8I5bmCpWiXfVn41l77ikZ0zH8Wk8/LZ87TWAQnPD5A=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20260304040810-0f7f1cd11a0a.2 h1:KlmMcBTD5wwFnToXzTwJPur+qdTLriAL9FVzu/ZOCT8=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20260304040810-0f7f1cd11a0a.2/go.mod h1:wBdI6OoVs3xQk1QCmBbSYceUjsQG6MdNOsRYzDdIRQU=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20260310081735-55b2ae04267a.2 h1:FDocglaaiXQ4Nz7bD1oU6VRpHUniWvjvOEp8B7pUHY4=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.1-20260310081735-55b2ae04267a.2/go.mod h1:4gDtFDUdgRWeq/xgy/8RP82dV0CFUPILB2U2/18n4Vo=
 buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260208072011-98c2d3188075.1 h1:EpTge66cxYeFbanzOllk9VIi9j4N4D3l26smh2zdH2U=
 buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260208072011-98c2d3188075.1/go.mod h1:58Dgdo27pJRAZyhYEHsVpeVoZGGKP09/PW9k1p5a3J0=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260304040810-0f7f1cd11a0a.1 h1:+DRkl/vZHr8KYLk4rJtn9Ljvd5ojWyhRY83GN5/QnSU=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260304040810-0f7f1cd11a0a.1/go.mod h1:58Dgdo27pJRAZyhYEHsVpeVoZGGKP09/PW9k1p5a3J0=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260310081735-55b2ae04267a.1 h1:Pld/jyCMb4DbotjNkwfV+sKui9PIuMJfYxx94AcqhTA=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260310081735-55b2ae04267a.1/go.mod h1:58Dgdo27pJRAZyhYEHsVpeVoZGGKP09/PW9k1p5a3J0=
 connectrpc.com/connect v1.19.1 h1:R5M57z05+90EfEvCY1b7hBxDVOUl45PrtXtAV2fOC14=
 connectrpc.com/connect v1.19.1/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=

@@ -44,8 +44,8 @@ const (
 	DatabaseCatalogNameSuffix = "/catalog"
 	// ResourceIDPattern is the pattern for resource id.
 	ResourceIDPattern = "[a-z]([a-z0-9-]{0,61}[a-z0-9])?"
-	// WorkspaceName is the name for workspace resource.
-	WorkspaceName = "workspaces/-"
+	// WorkspaceNamePrefix is the prefix for workspace resource name.
+	WorkspaceNamePrefix = "workspaces/"
 	// ServiceAccountNamePrefix is the prefix for service account name.
 	ServiceAccountNamePrefix = "serviceAccounts/"
 	// WorkloadIdentityNamePrefix is the prefix for workload identity name.
@@ -58,6 +58,17 @@ var (
 	// ResourceIDRegex is the regex for resource id.
 	ResourceIDRegex = regexp.MustCompile(fmt.Sprintf("^%s$", ResourceIDPattern))
 )
+
+// ResolveWorkspaceParent resolves the workspace parent using the actual workspace name.
+// If parent is empty, returns the workspace name.
+// If parent starts with "workspaces/", returns the actual workspace name from the client.
+// Otherwise, returns parent as-is.
+func ResolveWorkspaceParent(parent, workspaceName string) string {
+	if parent == "" || strings.HasPrefix(parent, WorkspaceNamePrefix) {
+		return workspaceName
+	}
+	return parent
+}
 
 // ResourceIDValidation is the resource id regexp validation.
 var ResourceIDValidation = validation.StringMatch(ResourceIDRegex, fmt.Sprintf("resource id must matches %v", ResourceIDRegex))

@@ -41,14 +41,14 @@ resource "bytebase_user" "qa2" {
 
 # Create service account for Terraform automation
 resource "bytebase_service_account" "tf_service_account" {
-  parent             = "workspaces/-"
+  # parent defaults to workspace when not specified.
   service_account_id = "tf"
   title              = "Terraform Service Account"
 }
 
 # Create workload identity for GitHub Actions CI/CD
 resource "bytebase_workload_identity" "github_ci" {
-  parent               = "workspaces/-"
+  # parent defaults to workspace when not specified.
   workload_identity_id = "github-ci"
   title                = "GitHub CI"
 
