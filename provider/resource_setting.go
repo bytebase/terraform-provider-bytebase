@@ -228,6 +228,18 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 		}
 		updateMasks = append(updateMasks, "value.workspace_profile.query_timeout")
 	}
+	if config := workspaceRawConfig.GetAttr("refresh_token_duration_in_seconds"); !config.IsNull() {
+		workspacePrfile.RefreshTokenDuration = &durationpb.Duration{
+			Seconds: int64(raw["refresh_token_duration_in_seconds"].(int)),
+		}
+		updateMasks = append(updateMasks, "value.workspace_profile.refresh_token_duration")
+	}
+	if config := workspaceRawConfig.GetAttr("access_token_duration_in_seconds"); !config.IsNull() {
+		workspacePrfile.AccessTokenDuration = &durationpb.Duration{
+			Seconds: int64(raw["access_token_duration_in_seconds"].(int)),
+		}
+		updateMasks = append(updateMasks, "value.workspace_profile.access_token_duration")
+	}
 	if config := workspaceRawConfig.GetAttr("password_restriction"); !config.IsNull() {
 		if pwRestrictionList, ok := raw["password_restriction"].([]interface{}); ok && len(pwRestrictionList) > 0 {
 			pwRaw := pwRestrictionList[0].(map[string]interface{})
@@ -597,6 +609,8 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 			"value.workspace_profile.enable_audit_log_stdout",
 			"value.workspace_profile.sql_result_size",
 			"value.workspace_profile.query_timeout",
+			"value.workspace_profile.refresh_token_duration",
+			"value.workspace_profile.access_token_duration",
 		}
 	case v1pb.Setting_DATA_CLASSIFICATION:
 		setting.Value = &v1pb.SettingValue{

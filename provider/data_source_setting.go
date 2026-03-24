@@ -380,6 +380,18 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					Optional:    true,
 					Description: "The maximum time allowed for a query to run in SQL Editor, in seconds. No limit when the value <= 0.",
 				},
+				"refresh_token_duration_in_seconds": {
+					Type:         schema.TypeInt,
+					Optional:     true,
+					ValidateFunc: validation.IntAtLeast(3600),
+					Description:  "The duration for refresh token in seconds. Default is 604800 (7 days). The duration should be at least 3600 (one hour).",
+				},
+				"access_token_duration_in_seconds": {
+					Type:         schema.TypeInt,
+					Optional:     true,
+					ValidateFunc: validation.IntAtLeast(60),
+					Description:  "The duration for access token in seconds. Default is 3600 (1 hour). The duration should be at least 60 (one minute).",
+				},
 				"password_restriction": {
 					Type:        schema.TypeList,
 					Optional:    true,
@@ -691,6 +703,12 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	raw["sql_result_size"] = int(setting.SqlResultSize)
 	if v := setting.GetQueryTimeout(); v != nil {
 		raw["query_timeout_in_seconds"] = int(v.Seconds)
+	}
+	if v := setting.GetRefreshTokenDuration(); v != nil {
+		raw["refresh_token_duration_in_seconds"] = int(v.Seconds)
+	}
+	if v := setting.GetAccessTokenDuration(); v != nil {
+		raw["access_token_duration_in_seconds"] = int(v.Seconds)
 	}
 
 	// Handle password_restriction field
