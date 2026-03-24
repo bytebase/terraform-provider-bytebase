@@ -381,18 +381,18 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					Description: "The maximum time allowed for a query to run in SQL Editor, in seconds. No limit when the value <= 0.",
 				},
 				"refresh_token_duration_in_seconds": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: validation.IntAtLeast(3600),
-				Description:  "The duration for refresh token in seconds. Default is 604800 (7 days). The duration should be at least 3600 (one hour).",
-			},
-			"access_token_duration_in_seconds": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ValidateFunc: validation.IntAtLeast(60),
-				Description:  "The duration for access token in seconds. Default is 3600 (1 hour). The duration should be at least 60 (one minute).",
-			},
-			"password_restriction": {
+					Type:         schema.TypeInt,
+					Optional:     true,
+					ValidateFunc: validation.IntAtLeast(3600),
+					Description:  "The duration for refresh token in seconds. Default is 604800 (7 days). The duration should be at least 3600 (one hour).",
+				},
+				"access_token_duration_in_seconds": {
+					Type:         schema.TypeInt,
+					Optional:     true,
+					ValidateFunc: validation.IntAtLeast(60),
+					Description:  "The duration for access token in seconds. Default is 3600 (1 hour). The duration should be at least 60 (one minute).",
+				},
+				"password_restriction": {
 					Type:        schema.TypeList,
 					Optional:    true,
 					MaxItems:    1,
