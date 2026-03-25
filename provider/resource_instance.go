@@ -965,7 +965,7 @@ func setInstanceMessage(
 		}
 	}
 
-	dataSources, err := flattenDataSourceList(d, instance.DataSources)
+	dataSources, err := flattenDataSourceList(d, instance.DataSources, instance.Engine)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -994,7 +994,7 @@ func setInstanceMessage(
 	return nil
 }
 
-func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSource) ([]interface{}, error) {
+func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSource, engine v1pb.Engine) ([]interface{}, error) {
 	oldDataSourceList, err := convertDataSourceCreateList(d, false)
 	if err != nil {
 		return nil, err
@@ -1050,12 +1050,15 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 			raw["authentication_type"] = dataSource.AuthenticationType.String()
 		}
 
-		// Redis - non-sensitive fields
-		if dataSource.RedisType != v1pb.DataSource_REDIS_TYPE_UNSPECIFIED {
-			raw["redis_type"] = dataSource.RedisType.String()
+		// Redis - non-sensitive fields (only for Redis engine to avoid hash mismatch
+		// from spurious default values the API returns for non-Redis instances)
+		if engine == v1pb.Engine_REDIS {
+			if dataSource.RedisType != v1pb.DataSource_REDIS_TYPE_UNSPECIFIED {
+				raw["redis_type"] = dataSource.RedisType.String()
+			}
+			raw["master_name"] = dataSource.MasterName
+			raw["master_username"] = dataSource.MasterUsername
 		}
-		raw["master_name"] = dataSource.MasterName
-		raw["master_username"] = dataSource.MasterUsername
 
 		// Cloud-specific
 		raw["region"] = dataSource.Region
