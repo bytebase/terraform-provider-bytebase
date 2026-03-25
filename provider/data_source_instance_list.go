@@ -193,7 +193,7 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		}
 		ins["sync_databases"] = instance.SyncDatabases
 
-		dataSources, err := flattenDataSourceList(d, instance.DataSources)
+		dataSources, err := flattenDataSourceList(d, instance.DataSources, instance.Engine)
 		if err != nil {
 			return diag.FromErr(err)
 		}

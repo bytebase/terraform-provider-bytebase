@@ -283,6 +283,7 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 				"external_url": {
 					Type:        schema.TypeString,
 					Optional:    true,
+					Computed:    true,
 					Description: "The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.",
 				},
 				"disallow_signup": {
@@ -321,6 +322,7 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 				"maximum_role_expiration_in_seconds": {
 					Type:        schema.TypeInt,
 					Optional:    true,
+					Computed:    true,
 					Description: "The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
 				},
 				"announcement": {
@@ -373,28 +375,33 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 				"sql_result_size": {
 					Type:        schema.TypeInt,
 					Optional:    true,
+					Computed:    true,
 					Description: "The size limit in bytes for SQL query results. The default value is 100MB.",
 				},
 				"query_timeout_in_seconds": {
 					Type:        schema.TypeInt,
 					Optional:    true,
+					Computed:    true,
 					Description: "The maximum time allowed for a query to run in SQL Editor, in seconds. No limit when the value <= 0.",
 				},
 				"refresh_token_duration_in_seconds": {
 					Type:         schema.TypeInt,
 					Optional:     true,
+					Computed:     true,
 					ValidateFunc: validation.IntAtLeast(3600),
 					Description:  "The duration for refresh token in seconds. Default is 604800 (7 days). The duration should be at least 3600 (one hour).",
 				},
 				"access_token_duration_in_seconds": {
 					Type:         schema.TypeInt,
 					Optional:     true,
+					Computed:     true,
 					ValidateFunc: validation.IntAtLeast(60),
 					Description:  "The duration for access token in seconds. Default is 3600 (1 hour). The duration should be at least 60 (one minute).",
 				},
 				"password_restriction": {
 					Type:        schema.TypeList,
 					Optional:    true,
+					Computed:    true,
 					MaxItems:    1,
 					Description: "Password restriction settings.",
 					Elem: &schema.Resource{
@@ -402,37 +409,44 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 							"min_length": {
 								Type:         schema.TypeInt,
 								Optional:     true,
+								Computed:     true,
 								Description:  "min_length is the minimum length for password, should be no less than 8.",
 								ValidateFunc: validation.IntAtLeast(8),
 							},
 							"require_number": {
 								Type:        schema.TypeBool,
 								Optional:    true,
+								Computed:    true,
 								Description: "require_number requires the password must contain at least one number.",
 							},
 							"require_letter": {
 								Type:        schema.TypeBool,
 								Optional:    true,
+								Computed:    true,
 								Description: "require_letter requires the password must contain at least one letter, regardless of upper case or lower case.",
 							},
 							"require_uppercase_letter": {
 								Type:        schema.TypeBool,
 								Optional:    true,
+								Computed:    true,
 								Description: "require_uppercase_letter requires the password must contain at least one upper case letter.",
 							},
 							"require_special_character": {
 								Type:        schema.TypeBool,
 								Optional:    true,
+								Computed:    true,
 								Description: "require_special_character requires the password must contain at least one special character.",
 							},
 							"require_reset_password_for_first_login": {
 								Type:        schema.TypeBool,
 								Optional:    true,
+								Computed:    true,
 								Description: "require_reset_password_for_first_login requires users to reset their password after the 1st login.",
 							},
 							"password_rotation_in_seconds": {
 								Type:         schema.TypeInt,
 								Optional:     true,
+								Computed:     true,
 								ValidateFunc: validation.IntAtLeast(86400),
 								Description:  "password_rotation requires users to reset their password after the duration. The duration should be at least 86400 (one day).",
 							},
