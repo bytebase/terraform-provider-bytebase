@@ -22,6 +22,7 @@ The project resource.
 
 ### Optional
 
+- `allow_just_in_time_access` (Boolean) Whether to allow just-in-time access in this project.
 - `allow_request_role` (Boolean) Whether to allow requesting roles in this project.
 - `allow_self_approval` (Boolean) Whether to allow the issue creator to self-approve the issue.
 - `ci_sampling_size` (Number) The maximum databases of rows to sample during CI data validation. Without specification, sampling is disabled, resulting in a full validation.

@@ -21,6 +21,7 @@ The project data source.
 
 ### Read-Only
 
+- `allow_just_in_time_access` (Boolean) Whether to allow just-in-time access in this project.
 - `allow_request_role` (Boolean) Whether to allow requesting roles in this project.
 - `allow_self_approval` (Boolean) Whether to allow the issue creator to self-approve the issue.
 - `data_classification_config_id` (String) The data classification configuration ID for the project.

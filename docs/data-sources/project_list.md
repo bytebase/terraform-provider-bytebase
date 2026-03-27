@@ -31,6 +31,7 @@ The project data source list.
 
 Read-Only:
 
+- `allow_just_in_time_access` (Boolean)
 - `allow_request_role` (Boolean)
 - `allow_self_approval` (Boolean)
 - `data_classification_config_id` (String)

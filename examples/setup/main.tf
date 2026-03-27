@@ -31,10 +31,12 @@ resource "bytebase_setting" "workspace_profile" {
   name = "settings/WORKSPACE_PROFILE"
 
   workspace_profile {
-    external_url             = "https://bytebase.example.com"
-    domains                  = ["bytebase.com"]
-    sql_result_size          = 200 * 1024 * 1024 # 200MB
-    query_timeout_in_seconds = 60                # 60 seconds
+    external_url                      = "https://bytebase.example.com"
+    domains                           = ["bytebase.com"]
+    sql_result_size                   = 200 * 1024 * 1024 # 200MB
+    query_timeout_in_seconds          = 60                # 60 seconds
+    refresh_token_duration_in_seconds = 604800            # 7 days
+    access_token_duration_in_seconds  = 3600              # 1 hour
 
     password_restriction {
       min_length                             = 8

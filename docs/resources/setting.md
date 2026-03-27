@@ -204,6 +204,7 @@ Required:
 
 Optional:
 
+- `access_token_duration_in_seconds` (Number) The duration for access token in seconds. Default is 3600 (1 hour). The duration should be at least 60 (one minute).
 - `announcement` (Block List, Max: 1) Custom announcement. Will show as a banner in the Bytebase UI. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--workspace_profile--announcement))
 - `branding_logo` (String) The branding logo as a data URI (e.g. data:image/png;base64,...).
 - `database_change_mode` (String) The workspace database change mode, support EDITOR or PIPELINE. Default PIPELINE
@@ -215,7 +216,6 @@ Optional:
 - `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
 - `maximum_role_expiration_in_seconds` (Number) The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
 - `password_restriction` (Block List, Max: 1) Password restriction settings. (see [below for nested schema](#nestedblock--workspace_profile--password_restriction))
-- `access_token_duration_in_seconds` (Number) The duration for access token in seconds. Default is 3600 (1 hour). The duration should be at least 60 (one minute).
 - `query_timeout_in_seconds` (Number) The maximum time allowed for a query to run in SQL Editor, in seconds. No limit when the value <= 0.
 - `refresh_token_duration_in_seconds` (Number) The duration for refresh token in seconds. Default is 604800 (7 days). The duration should be at least 3600 (one hour).
 - `sql_result_size` (Number) The size limit in bytes for SQL query results. The default value is 100MB.
