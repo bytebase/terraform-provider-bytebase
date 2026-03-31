@@ -63,7 +63,7 @@ func resourceReviewConfig() *schema.Resource {
 						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "The rule unique type. Check https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#rule-categories for all rules",
+							Description: "The rule unique type. Check https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#rule-categories for all rules",
 						},
 						"engine": {
 							Type:         schema.TypeString,

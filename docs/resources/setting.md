@@ -17,7 +17,7 @@ The setting resource.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details
+- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/setting_service.proto#L109 for details
 
 ### Optional
 
@@ -43,7 +43,7 @@ Required:
 
 Required:
 
-- `condition` (String) The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L307 for details.
+- `condition` (String) The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/setting_service.proto#L307 for details.
 - `flow` (Block List, Min: 1) (see [below for nested schema](#nestedblock--approval_flow--rules--flow))
 
 Optional:

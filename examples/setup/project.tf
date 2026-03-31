@@ -56,6 +56,7 @@ resource "bytebase_project" "sample_project" {
     url   = "https://open.larksuite.com"
     notification_types = [
       "ISSUE_SENT_BACK",
+      "ISSUE_APPROVED",
       "PIPELINE_FAILED"
     ]
   }

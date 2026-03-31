@@ -50,7 +50,7 @@ func resourceDatabaseGroup() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The database group condition. Check the proto message https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/database_group_service.proto#L185 for details.",
+				Description:  "The database group condition. Check the proto message https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/database_group_service.proto#L185 for details.",
 			},
 			"matched_databases": {
 				Type:        schema.TypeSet,

@@ -17,7 +17,7 @@ The database group resource.
 
 ### Required
 
-- `condition` (String) The database group condition. Check the proto message https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/database_group_service.proto#L185 for details.
+- `condition` (String) The database group condition. Check the proto message https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/database_group_service.proto#L185 for details.
 - `project` (String) The project fullname in projects/{id} format.
 - `resource_id` (String) The database group unique resource id.
 - `title` (String) The database group title.
