@@ -22,7 +22,7 @@ func dataSourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L109 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/setting_service.proto#L109 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
@@ -571,7 +571,7 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								Type:         schema.TypeString,
 								Required:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
-								Description:  "The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/main/proto/v1/v1/setting_service.proto#L307 for details.",
+								Description:  "The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/setting_service.proto#L307 for details.",
 							},
 						},
 					},
