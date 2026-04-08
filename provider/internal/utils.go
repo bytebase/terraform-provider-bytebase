@@ -36,6 +36,8 @@ const (
 	GroupNamePrefix = "groups/"
 	// RoleNamePrefix is the prefix for role name.
 	RoleNamePrefix = "roles/"
+	// IDPNamePrefix is the prefix for identity provider name.
+	IDPNamePrefix = "idps/"
 	// DatabaseGroupNamePrefix is the prefix for database group name.
 	DatabaseGroupNamePrefix = "databaseGroups/"
 	// ReviewConfigNamePrefix is the prefix for the review config name.
@@ -191,6 +193,15 @@ func GetProjectID(name string) (string, error) {
 // GetRoleID will parse the role resource id.
 func GetRoleID(name string) (string, error) {
 	tokens, err := getNameParentTokens(name, RoleNamePrefix)
+	if err != nil {
+		return "", err
+	}
+	return tokens[0], nil
+}
+
+// GetIDPID will parse the identity provider resource id.
+func GetIDPID(name string) (string, error) {
+	tokens, err := getNameParentTokens(name, IDPNamePrefix)
 	if err != nil {
 		return "", err
 	}

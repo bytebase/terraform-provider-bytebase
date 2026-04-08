@@ -138,7 +138,7 @@ func getWebhooksSchema(computed bool) *schema.Schema {
 				"type": {
 					Type:        schema.TypeString,
 					Required:    true,
-					Description: "The webhook type. Check https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/project_service.proto#L449 for support types.",
+					Description: "The webhook type. Check https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/project_service.proto#L449 for support types.",
 					ValidateFunc: validation.StringInSlice([]string{
 						v1pb.WebhookType_SLACK.String(),
 						v1pb.WebhookType_DISCORD.String(),
@@ -178,7 +178,15 @@ func getWebhooksSchema(computed bool) *schema.Schema {
 					Description: "notification_types is the list of activities types that the webhook is interested in. Bytebase will only send notifications to the webhook if the activity type is in the list.",
 					Elem: &schema.Schema{
 						Type:        schema.TypeString,
-						Description: "Check https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/project_service.proto for support types.",
+						Description: "Check https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/project_service.proto for support types.",
+						ValidateFunc: validation.StringInSlice([]string{
+							v1pb.Activity_ISSUE_CREATED.String(),
+							v1pb.Activity_ISSUE_APPROVED.String(),
+							v1pb.Activity_ISSUE_APPROVAL_REQUESTED.String(),
+							v1pb.Activity_ISSUE_SENT_BACK.String(),
+							v1pb.Activity_PIPELINE_FAILED.String(),
+							v1pb.Activity_PIPELINE_COMPLETED.String(),
+						}, false),
 					},
 				},
 			},

@@ -37,7 +37,7 @@ Required:
 
 - `engine` (String) The rule for the database engine.
 - `level` (String) The rule level.
-- `type` (String) The rule unique type. Check https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#rule-categories for all rules
+- `type` (String) The rule unique type. Check https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/SQL_REVIEW_RULES_DOCUMENTATION.md#rule-categories for all rules
 
 Optional:
 

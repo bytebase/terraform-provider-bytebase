@@ -1153,6 +1153,32 @@ func (c *mockClient) DeleteGroup(_ context.Context, name string) error {
 	return nil
 }
 
+// GetWorkspace gets the workspace.
+func (c *mockClient) GetWorkspace(_ context.Context, _ string) (*v1pb.Workspace, error) {
+	return &v1pb.Workspace{
+		Name: c.workspaceName,
+	}, nil
+}
+
+// UpdateWorkspace updates the workspace.
+func (*mockClient) UpdateWorkspace(_ context.Context, patch *v1pb.Workspace, _ []string) (*v1pb.Workspace, error) {
+	return patch, nil
+}
+
+// GetSubscription gets the current subscription.
+func (*mockClient) GetSubscription(_ context.Context) (*v1pb.Subscription, error) {
+	return &v1pb.Subscription{
+		Plan: v1pb.PlanType_FREE,
+	}, nil
+}
+
+// UploadLicense uploads a license.
+func (*mockClient) UploadLicense(_ context.Context, _ string) (*v1pb.Subscription, error) {
+	return &v1pb.Subscription{
+		Plan: v1pb.PlanType_ENTERPRISE,
+	}, nil
+}
+
 // GetWorkspaceIAMPolicy gets the workspace IAM policy.
 func (*mockClient) GetWorkspaceIAMPolicy(_ context.Context) (*v1pb.IamPolicy, error) {
 	mu.RLock()
@@ -1399,5 +1425,30 @@ func (*mockClient) UpdateProjectWebhook(_ context.Context, _ *v1pb.Webhook, _ []
 
 // DeleteProjectWebhook deletes the webhook.
 func (*mockClient) DeleteProjectWebhook(_ context.Context, _ string) error {
+	return nil
+}
+
+// ListIdentityProvider lists all identity providers.
+func (*mockClient) ListIdentityProvider(_ context.Context) ([]*v1pb.IdentityProvider, error) {
+	return nil, nil
+}
+
+// GetIdentityProvider gets the identity provider by name.
+func (*mockClient) GetIdentityProvider(_ context.Context, _ string) (*v1pb.IdentityProvider, error) {
+	return &v1pb.IdentityProvider{}, nil
+}
+
+// CreateIdentityProvider creates the identity provider.
+func (*mockClient) CreateIdentityProvider(_ context.Context, _ string, _ *v1pb.IdentityProvider) (*v1pb.IdentityProvider, error) {
+	return &v1pb.IdentityProvider{}, nil
+}
+
+// UpdateIdentityProvider updates the identity provider.
+func (*mockClient) UpdateIdentityProvider(_ context.Context, _ *v1pb.IdentityProvider, _ []string) (*v1pb.IdentityProvider, error) {
+	return &v1pb.IdentityProvider{}, nil
+}
+
+// DeleteIdentityProvider deletes the identity provider.
+func (*mockClient) DeleteIdentityProvider(_ context.Context, _ string) error {
 	return nil
 }

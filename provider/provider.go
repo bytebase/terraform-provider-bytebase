@@ -70,8 +70,11 @@ func NewProvider() *schema.Provider {
 			"bytebase_environment":            dataSourceEnvironment(),
 			"bytebase_service_account":        dataSourceServiceAccount(),
 			"bytebase_service_account_list":   dataSourceServiceAccountList(),
+			"bytebase_workspace":              dataSourceWorkspace(),
 			"bytebase_workload_identity":      dataSourceWorkloadIdentity(),
 			"bytebase_workload_identity_list": dataSourceWorkloadIdentityList(),
+			"bytebase_idp":                    dataSourceIdentityProvider(),
+			"bytebase_idp_list":               dataSourceIdentityProviderList(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"bytebase_instance":          resourceInstance(),
@@ -87,7 +90,9 @@ func NewProvider() *schema.Provider {
 			"bytebase_iam_policy":        resourceIAMPolicy(),
 			"bytebase_environment":       resourceEnvironment(),
 			"bytebase_service_account":   resourceServiceAccount(),
+			"bytebase_workspace":         resourceWorkspace(),
 			"bytebase_workload_identity": resourceWorkloadIdentity(),
+			"bytebase_idp":               resourceIdentityProvider(),
 		},
 	}
 }

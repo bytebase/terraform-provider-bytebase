@@ -22,7 +22,7 @@ func dataSourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/setting_service.proto#L109 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L109 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
@@ -213,21 +213,15 @@ func getClassificationSetting(computed bool) *schema.Schema {
 					MinItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
-							"id": {
-								Type:        schema.TypeString,
-								Required:    true,
-								Description: "The classification level unique uuid.",
-							},
 							"title": {
 								Type:        schema.TypeString,
 								Required:    true,
 								Description: "The classification level title.",
 							},
-							"description": {
-								Type:        schema.TypeString,
-								Computed:    computed,
-								Optional:    true,
-								Description: "The classification level description.",
+							"level": {
+								Type:        schema.TypeInt,
+								Required:    true,
+								Description: "The numeric level for ordering. Higher means more sensitive.",
 							},
 						},
 					},
@@ -249,17 +243,11 @@ func getClassificationSetting(computed bool) *schema.Schema {
 								Required:    true,
 								Description: "The classification title.",
 							},
-							"description": {
-								Type:        schema.TypeString,
-								Computed:    computed,
-								Optional:    true,
-								Description: "The classification description.",
-							},
 							"level": {
-								Type:        schema.TypeString,
+								Type:        schema.TypeInt,
 								Computed:    computed,
 								Optional:    true,
-								Description: "The classification level id.",
+								Description: "The classification sensitivity level. Maps to Level.level.",
 							},
 						},
 					},
@@ -366,11 +354,6 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					Type:        schema.TypeBool,
 					Optional:    true,
 					Description: "Whether to display watermark on pages. Requires ENTERPRISE license.",
-				},
-				"branding_logo": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "The branding logo as a data URI (e.g. data:image/png;base64,...).",
 				},
 				"sql_result_size": {
 					Type:        schema.TypeInt,
@@ -571,7 +554,7 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 								Type:         schema.TypeString,
 								Required:     true,
 								ValidateFunc: validation.StringIsNotEmpty,
-								Description:  "The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/setting_service.proto#L307 for details.",
+								Description:  "The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L307 for details.",
 							},
 						},
 					},
@@ -713,7 +696,6 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	}
 	raw["enable_audit_log_stdout"] = setting.EnableAuditLogStdout
 	raw["watermark"] = setting.Watermark
-	raw["branding_logo"] = setting.BrandingLogo
 	raw["sql_result_size"] = int(setting.SqlResultSize)
 	if v := setting.GetQueryTimeout(); v != nil {
 		raw["query_timeout_in_seconds"] = int(v.Seconds)
@@ -755,9 +737,8 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 		rawLevels := []interface{}{}
 		for _, level := range config.Levels {
 			rawLevel := map[string]interface{}{}
-			rawLevel["id"] = level.Id
 			rawLevel["title"] = level.Title
-			rawLevel["description"] = level.Description
+			rawLevel["level"] = int(level.Level)
 			rawLevels = append(rawLevels, rawLevel)
 		}
 		raw["levels"] = schema.NewSet(levelHash, rawLevels)
@@ -767,8 +748,9 @@ func flattenClassificationSetting(setting *v1pb.DataClassificationSetting) []int
 			rawClassification := map[string]interface{}{}
 			rawClassification["id"] = classification.Id
 			rawClassification["title"] = classification.Title
-			rawClassification["description"] = classification.Description
-			rawClassification["level"] = classification.LevelId
+			if classification.Level != nil {
+				rawClassification["level"] = int(*classification.Level)
+			}
 			rawClassifications = append(rawClassifications, rawClassification)
 		}
 		raw["classifications"] = schema.NewSet(classificationHash, rawClassifications)

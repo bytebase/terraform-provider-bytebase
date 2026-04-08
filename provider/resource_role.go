@@ -58,7 +58,7 @@ func resourceRole() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				MinItems:    1,
-				Description: "The role permissions. Permissions should start with \"bb.\" prefix. Check https://github.com/bytebase/bytebase/blob/release/3.16.1/backend/component/iam/permission.yaml for all permissions.",
+				Description: "The role permissions. Permissions should start with \"bb.\" prefix. Check https://github.com/bytebase/bytebase/blob/release/3.17.0/backend/component/iam/permission.yaml for all permissions.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

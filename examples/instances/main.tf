@@ -2,7 +2,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.16.3"
+      version = "3.17.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -677,7 +677,7 @@ resource "bytebase_instance" "cassandra" {
 # Data Sources - Query existing instances
 ###############################################################################
 
-List all instances in an environment
+# List all instances in an environment
 data "bytebase_instance_list" "all" {
   environment = "environments/test"
   engines = [
