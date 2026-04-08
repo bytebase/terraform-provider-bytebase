@@ -1161,7 +1161,7 @@ func (c *mockClient) GetWorkspace(_ context.Context, _ string) (*v1pb.Workspace,
 }
 
 // UpdateWorkspace updates the workspace.
-func (c *mockClient) UpdateWorkspace(_ context.Context, patch *v1pb.Workspace, _ []string) (*v1pb.Workspace, error) {
+func (*mockClient) UpdateWorkspace(_ context.Context, patch *v1pb.Workspace, _ []string) (*v1pb.Workspace, error) {
 	return patch, nil
 }
 
