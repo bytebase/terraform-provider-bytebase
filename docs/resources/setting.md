@@ -17,7 +17,7 @@ The setting resource.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/setting_service.proto#L109 for details
+- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L109 for details
 
 ### Optional
 
@@ -43,7 +43,7 @@ Required:
 
 Required:
 
-- `condition` (String) The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/setting_service.proto#L307 for details.
+- `condition` (String) The condition that is associated with the rule. Check the proto message https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L307 for details.
 - `flow` (Block List, Min: 1) (see [below for nested schema](#nestedblock--approval_flow--rules--flow))
 
 Optional:
@@ -85,8 +85,7 @@ Required:
 
 Optional:
 
-- `description` (String) The classification description.
-- `level` (String) The classification level id.
+- `level` (Number) The classification sensitivity level. Maps to Level.level.
 
 
 <a id="nestedblock--classification--levels"></a>
@@ -94,12 +93,8 @@ Optional:
 
 Required:
 
-- `id` (String) The classification level unique uuid.
+- `level` (Number) The numeric level for ordering. Higher means more sensitive.
 - `title` (String) The classification level title.
-
-Optional:
-
-- `description` (String) The classification level description.
 
 
 
@@ -206,7 +201,6 @@ Optional:
 
 - `access_token_duration_in_seconds` (Number) The duration for access token in seconds. Default is 3600 (1 hour). The duration should be at least 60 (one minute).
 - `announcement` (Block List, Max: 1) Custom announcement. Will show as a banner in the Bytebase UI. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--workspace_profile--announcement))
-- `branding_logo` (String) The branding logo as a data URI (e.g. data:image/png;base64,...).
 - `database_change_mode` (String) The workspace database change mode, support EDITOR or PIPELINE. Default PIPELINE
 - `disallow_password_signin` (Boolean) Whether to disallow password signin (except workspace admins). Require ENTERPRISE subscription
 - `disallow_signup` (Boolean) Disallow self-service signup, users can only be invited by the owner. Require PRO subscription.

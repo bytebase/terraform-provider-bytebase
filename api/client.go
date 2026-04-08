@@ -204,10 +204,20 @@ type Client interface {
 	DeleteGroup(ctx context.Context, groupName string) error
 
 	// Workspace
+	// GetWorkspace gets the workspace.
+	GetWorkspace(ctx context.Context, workspaceName string) (*v1pb.Workspace, error)
+	// UpdateWorkspace updates the workspace.
+	UpdateWorkspace(ctx context.Context, patch *v1pb.Workspace, updateMasks []string) (*v1pb.Workspace, error)
 	// GetWorkspaceIAMPolicy gets the workspace IAM policy.
 	GetWorkspaceIAMPolicy(ctx context.Context) (*v1pb.IamPolicy, error)
 	// SetWorkspaceIAMPolicy sets the workspace IAM policy.
 	SetWorkspaceIAMPolicy(ctx context.Context, setIamPolicyRequest *v1pb.SetIamPolicyRequest) (*v1pb.IamPolicy, error)
+
+	// Subscription
+	// GetSubscription gets the current subscription.
+	GetSubscription(ctx context.Context) (*v1pb.Subscription, error)
+	// UploadLicense uploads a license.
+	UploadLicense(ctx context.Context, license string) (*v1pb.Subscription, error)
 
 	// Review config
 	// ListReviewConfig will return review configs.
@@ -229,4 +239,16 @@ type Client interface {
 	UpdateDatabaseGroup(ctx context.Context, patch *v1pb.DatabaseGroup, updateMasks []string) (*v1pb.DatabaseGroup, error)
 	// DeleteDatabaseGroup deletes the database group.
 	DeleteDatabaseGroup(ctx context.Context, databaseGroupName string) error
+
+	// IdentityProvider
+	// ListIdentityProvider lists all identity providers.
+	ListIdentityProvider(ctx context.Context) ([]*v1pb.IdentityProvider, error)
+	// GetIdentityProvider gets the identity provider by name.
+	GetIdentityProvider(ctx context.Context, name string) (*v1pb.IdentityProvider, error)
+	// CreateIdentityProvider creates the identity provider.
+	CreateIdentityProvider(ctx context.Context, idpID string, idp *v1pb.IdentityProvider) (*v1pb.IdentityProvider, error)
+	// UpdateIdentityProvider updates the identity provider.
+	UpdateIdentityProvider(ctx context.Context, patch *v1pb.IdentityProvider, updateMasks []string) (*v1pb.IdentityProvider, error)
+	// DeleteIdentityProvider deletes the identity provider.
+	DeleteIdentityProvider(ctx context.Context, name string) error
 }

@@ -3,7 +3,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -41,6 +40,8 @@ type client struct {
 	celClient              bytebasev1connect.CelServiceClient
 	serviceAccountClient   bytebasev1connect.ServiceAccountServiceClient
 	workloadIdentityClient bytebasev1connect.WorkloadIdentityServiceClient
+	subscriptionClient     bytebasev1connect.SubscriptionServiceClient
+	idpClient              bytebasev1connect.IdentityProviderServiceClient
 }
 
 // GetWorkspaceName returns the workspace resource name.
@@ -98,13 +99,15 @@ func NewClient(url, email, password string) (api.Client, error) {
 	c.celClient = bytebasev1connect.NewCelServiceClient(c.client, c.url, interceptors)
 	c.serviceAccountClient = bytebasev1connect.NewServiceAccountServiceClient(c.client, c.url, interceptors)
 	c.workloadIdentityClient = bytebasev1connect.NewWorkloadIdentityServiceClient(c.client, c.url, interceptors)
+	c.subscriptionClient = bytebasev1connect.NewSubscriptionServiceClient(c.client, c.url, interceptors)
+	c.idpClient = bytebasev1connect.NewIdentityProviderServiceClient(c.client, c.url, interceptors)
 
 	// Fetch workspace ID from actuator
 	actuatorResp, err := c.actuatorClient.GetActuatorInfo(context.Background(), connect.NewRequest(&v1pb.GetActuatorInfoRequest{}))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get actuator info")
 	}
-	c.workspaceName = fmt.Sprintf("workspaces/%s", actuatorResp.Msg.GetWorkspaceId())
+	c.workspaceName = actuatorResp.Msg.GetWorkspace()
 
 	return &c, nil
 }

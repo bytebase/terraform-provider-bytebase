@@ -32,7 +32,7 @@ func resourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.16.1/proto/v1/v1/setting_service.proto#L109 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L109 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
@@ -214,10 +214,6 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 		workspacePrfile.Watermark = raw["watermark"].(bool)
 		updateMasks = append(updateMasks, "value.workspace_profile.watermark")
 	}
-	if config := workspaceRawConfig.GetAttr("branding_logo"); !config.IsNull() {
-		workspacePrfile.BrandingLogo = raw["branding_logo"].(string)
-		updateMasks = append(updateMasks, "value.workspace_profile.branding_logo")
-	}
 	if config := workspaceRawConfig.GetAttr("sql_result_size"); !config.IsNull() {
 		workspacePrfile.SqlResultSize = int64(raw["sql_result_size"].(int))
 		updateMasks = append(updateMasks, "value.workspace_profile.sql_result_size")
@@ -280,22 +276,20 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 func convertToV1Level(rawSchema interface{}) *v1pb.DataClassificationSetting_DataClassificationConfig_Level {
 	rawLevel := rawSchema.(map[string]interface{})
 	return &v1pb.DataClassificationSetting_DataClassificationConfig_Level{
-		Id:          rawLevel["id"].(string),
-		Title:       rawLevel["title"].(string),
-		Description: rawLevel["description"].(string),
+		Title: rawLevel["title"].(string),
+		Level: int32(rawLevel["level"].(int)),
 	}
 }
 
 func convertToV1Classification(rawSchema interface{}) *v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification {
 	rawClassification := rawSchema.(map[string]interface{})
 	classificationData := &v1pb.DataClassificationSetting_DataClassificationConfig_DataClassification{
-		Id:          rawClassification["id"].(string),
-		Title:       rawClassification["title"].(string),
-		Description: rawClassification["description"].(string),
+		Id:    rawClassification["id"].(string),
+		Title: rawClassification["title"].(string),
 	}
-	levelID, ok := rawClassification["level"].(string)
-	if ok {
-		classificationData.LevelId = &levelID
+	if level, ok := rawClassification["level"].(int); ok {
+		l := int32(level)
+		classificationData.Level = &l
 	}
 	return classificationData
 }
@@ -324,9 +318,6 @@ func convertToV1ClassificationSetting(d *schema.ResourceData) (*v1pb.DataClassif
 	}
 	for _, level := range rawLevels.List() {
 		classificationLevel := convertToV1Level(level)
-		if classificationLevel.Id == "" {
-			return nil, errors.Errorf("classification level id is required")
-		}
 		if classificationLevel.Title == "" {
 			return nil, errors.Errorf("classification level title is required")
 		}

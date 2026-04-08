@@ -6,36 +6,38 @@ resource "bytebase_setting" "classification" {
     title = "Classification Example"
 
     levels {
-      id    = "1"
       title = "Level 1"
+      level = 1
     }
     levels {
-      id    = "2"
       title = "Level 2"
+      level = 2
     }
 
     classifications {
       id    = "1"
       title = "Basic"
+      level = 1
     }
     classifications {
       id    = "1-1"
       title = "User basic info"
-      level = "2"
+      level = 2
     }
     classifications {
       id    = "1-2"
       title = "User contact info"
-      level = "2"
+      level = 2
     }
     classifications {
       id    = "2"
       title = "Relationship"
+      level = 1
     }
     classifications {
       id    = "2-1"
       title = "Social info"
-      level = "2"
+      level = 2
     }
   }
 }
@@ -119,7 +121,7 @@ resource "bytebase_policy" "masking_exemption_policy" {
         format("user:%s", bytebase_user.project_developer.email),
         format("user:%s", bytebase_user.workspace_dba.email),
       ]
-      reason  = "Grant access"
+      reason = "Grant access"
     }
 
     exemptions {
@@ -129,7 +131,7 @@ resource "bytebase_policy" "masking_exemption_policy" {
       members = [
         format("user:%s", bytebase_user.workspace_dba.email),
       ]
-      reason  = "Grant export access"
+      reason = "Grant export access"
     }
 
     exemptions {
