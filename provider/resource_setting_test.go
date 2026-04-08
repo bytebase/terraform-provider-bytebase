@@ -386,32 +386,27 @@ resource "bytebase_setting" "%s" {
 		title                      = "Test Classification"
 		
 		levels {
-			id          = "public"
-			title       = "Public"
-			description = "Public data"
+			title = "Public"
+			level = 0
 		}
 		levels {
-			id          = "sensitive"
-			title       = "Sensitive"
-			description = "Sensitive data"
+			title = "Sensitive"
+			level = 1
 		}
 		levels {
-			id          = "confidential"
-			title       = "Confidential"
-			description = "Confidential data"
+			title = "Confidential"
+			level = 2
 		}
-		
+
 		classifications {
-			id          = "email"
-			title       = "Email Address"
-			description = "Email addresses"
-			level       = "sensitive"
+			id    = "0-0"
+			title = "Email Address"
+			level = 1
 		}
 		classifications {
-			id          = "ssn"
-			title       = "SSN"
-			description = "Social Security Numbers"
-			level       = "confidential"
+			id    = "0-1"
+			title = "SSN"
+			level = 2
 		}
 	}
 }
