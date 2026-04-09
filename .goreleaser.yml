@@ -41,9 +41,6 @@ checksum:
   algorithm: sha256
 signs:
   - artifacts: checksum
-    # Do not include the signature in the checksum file.
-    # Terraform Registry rejects SHA256SUMS that contain the .sig file.
-    checksum: false
     args:
       # if you are using this in a GitHub action or some other automated pipeline, you 
       # need to pass the batch flag to indicate its not interactive.
