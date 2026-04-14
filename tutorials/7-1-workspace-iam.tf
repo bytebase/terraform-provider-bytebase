@@ -16,6 +16,9 @@ resource "bytebase_iam_policy" "workspace_iam" {
       role = "roles/workspaceAdmin"
       members = [
         format("user:%s", bytebase_user.workspace_admin.email),
+        # Keep the Terraform-running service account as Workspace Admin so
+        # subsequent `terraform apply` runs retain full permissions.
+        format("serviceAccount:%s", bytebase_service_account.tf_service_account.email),
       ]
     }
 
@@ -24,7 +27,6 @@ resource "bytebase_iam_policy" "workspace_iam" {
       members = [
         format("user:%s", bytebase_user.workspace_dba1.email),
         format("user:%s", bytebase_user.workspace_dba2.email),
-        format("serviceAccount:%s", bytebase_service_account.tf_service_account.email),
         format("workloadIdentity:%s", bytebase_workload_identity.github_ci.email),
       ]
     }
