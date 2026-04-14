@@ -27,7 +27,19 @@ func resourcePolicy() *schema.Resource {
 		UpdateContext: resourcePolicyUpdate,
 		DeleteContext: resourcePolicyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(_ context.Context, d *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
+				parent, policyType, err := internal.GetPolicyParentAndType(d.Id())
+				if err != nil {
+					return nil, err
+				}
+				if err := d.Set("parent", parent); err != nil {
+					return nil, err
+				}
+				if err := d.Set("type", policyType.String()); err != nil {
+					return nil, err
+				}
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 		Schema: map[string]*schema.Schema{
 			"parent": {
