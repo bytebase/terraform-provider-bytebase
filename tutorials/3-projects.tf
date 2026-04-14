@@ -6,7 +6,6 @@ resource "bytebase_project" "project-one" {
   resource_id = "project-one"
   title       = "Project One"
 
-  auto_enable_backup          = false
   enforce_sql_review          = true
   require_issue_approval      = true
   require_plan_check_no_error = false
