@@ -26,7 +26,7 @@ func resourceIAMPolicy() *schema.Resource {
 		UpdateContext: resourceIAMPolicyUpsert,
 		DeleteContext: resourceIAMPolicyDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: func(_ context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+			StateContext: func(_ context.Context, d *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
 				if err := d.Set("parent", d.Id()); err != nil {
 					return nil, err
 				}
