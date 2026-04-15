@@ -26,7 +26,7 @@ resource "bytebase_policy" "global_masking_policy" {
     }
     
     rules {
-      condition     = "classification_level in [\"2\"]"
+      condition     = "resource.classification_level == 2"
       id            = "classification-level-2"
       semantic_type = "full-mask"
       title = "Full Mask for Classification Level 2"
