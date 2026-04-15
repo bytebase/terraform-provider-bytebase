@@ -25,6 +25,8 @@ func dataSourceDatabaseList() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
+					// allow empty to default to workspace
+					"^$",
 					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					fmt.Sprintf("^%s%s$", internal.InstanceNamePrefix, internal.ResourceIDPattern),
 					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),

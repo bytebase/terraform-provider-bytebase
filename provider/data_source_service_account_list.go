@@ -24,6 +24,8 @@ func dataSourceServiceAccountList() *schema.Resource {
 				Computed:    true,
 				Description: "The parent resource. Format: projects/{project} for project-level, workspaces/{workspace id} for workspace-level. Defaults to the workspace if not specified.",
 				ValidateDiagFunc: internal.ResourceNameValidation(
+					// allow empty to default to workspace
+					"^$",
 					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
 				),

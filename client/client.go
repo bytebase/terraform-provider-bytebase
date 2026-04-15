@@ -108,6 +108,9 @@ func NewClient(url, email, password string) (api.Client, error) {
 		return nil, errors.Wrapf(err, "failed to get actuator info")
 	}
 	c.workspaceName = actuatorResp.Msg.GetWorkspace()
+	if c.workspaceName == "" {
+		return nil, errors.New("actuator returned empty workspace name; cannot initialize provider")
+	}
 
 	return &c, nil
 }
