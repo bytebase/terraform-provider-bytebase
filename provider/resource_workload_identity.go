@@ -32,6 +32,8 @@ func resourceWorkloadIdentity() *schema.Resource {
 				ForceNew:    true,
 				Description: "The parent resource. Format: projects/{project} for project-level, workspaces/{workspace id} for workspace-level. Defaults to the workspace if not specified.",
 				ValidateDiagFunc: internal.ResourceNameValidation(
+					// allow empty to default to workspace
+					"^$",
 					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
 				),
@@ -130,6 +132,9 @@ func resourceWorkloadIdentityCreate(ctx context.Context, d *schema.ResourceData,
 	c := m.(api.Client)
 
 	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), c.GetWorkspaceName())
+	if parent == "" {
+		return diag.Errorf("cannot resolve workload identity parent: workspace name is empty, check provider connection")
+	}
 	if err := d.Set("parent", parent); err != nil {
 		return diag.Errorf("cannot set parent: %s", err.Error())
 	}

@@ -47,6 +47,8 @@ func resourcePolicy() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
+					// allow empty to default to workspace
+					"^$",
 					// workspace policy
 					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					// environment policy
@@ -99,6 +101,17 @@ func resourcePolicy() *schema.Resource {
 func resourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 	policyName := d.Id()
+
+	// Self-heal legacy dirty state where the id was written with an empty parent
+	// (e.g. "/policies/MASKING_RULE") because c.GetWorkspaceName() was empty at create time.
+	if strings.HasPrefix(policyName, "/"+internal.PolicyNamePrefix) {
+		ws := c.GetWorkspaceName()
+		if ws == "" {
+			return diag.Errorf("policy id %q has empty parent and workspace name is unavailable; re-import the resource", policyName)
+		}
+		policyName = ws + policyName
+		d.SetId(policyName)
+	}
 
 	policy, err := c.GetPolicy(ctx, policyName)
 	if err != nil {

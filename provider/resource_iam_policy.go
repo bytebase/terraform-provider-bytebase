@@ -39,6 +39,8 @@ func resourceIAMPolicy() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ValidateDiagFunc: internal.ResourceNameValidation(
+					// allow empty to default to workspace
+					"^$",
 					// workspace policy
 					fmt.Sprintf("^%s%s$", internal.WorkspaceNamePrefix, internal.ResourceIDPattern),
 					// project policy
