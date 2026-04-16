@@ -321,16 +321,31 @@ func flattenDatabaseCatalog(catalog *v1pb.DatabaseCatalog) []interface{} {
 			rawTable["name"] = table.Name
 			rawTable["classification"] = table.Classification
 
-			columnList := []interface{}{}
-			for _, column := range table.GetColumns().Columns {
-				rawColumn := map[string]interface{}{}
-				rawColumn["name"] = column.Name
-				rawColumn["semantic_type"] = column.SemanticType
-				rawColumn["classification"] = column.Classification
-				rawColumn["labels"] = column.Labels
-				columnList = append(columnList, rawColumn)
+			columnList := []any{}
+			if cols := table.GetColumns(); cols != nil {
+				for _, column := range cols.Columns {
+					rawColumn := map[string]any{}
+					rawColumn["name"] = column.Name
+					rawColumn["semantic_type"] = column.SemanticType
+					rawColumn["classification"] = column.Classification
+					rawColumn["labels"] = column.Labels
+					columnList = append(columnList, rawColumn)
+				}
 			}
 			rawTable["columns"] = schema.NewSet(columnHash, columnList)
+
+			if obj := table.GetObjectSchema(); obj != nil {
+				// Best-effort marshal; if it fails we surface an empty string and
+				// rely on the next plan to make the drift visible rather than
+				// silently swallowing the server's value.
+				if encoded, err := internal.MarshalObjectSchemaToJSON(obj); err == nil {
+					rawTable["object_schema_json"] = encoded
+				} else {
+					rawTable["object_schema_json"] = ""
+				}
+			} else {
+				rawTable["object_schema_json"] = ""
+			}
 			tableList = append(tableList, rawTable)
 		}
 		rawSchema["tables"] = schema.NewSet(tableHash, tableList)

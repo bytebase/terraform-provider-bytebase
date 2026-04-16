@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -94,5 +95,84 @@ func TestConvertToV1TableCatalog_NeitherSet_EmitsEmptyColumns(t *testing.T) {
 	}
 	if len(got.GetColumns().Columns) != 0 {
 		t.Errorf("expected zero columns, got %d", len(got.GetColumns().Columns))
+	}
+}
+
+func TestFlattenDatabaseCatalog_ObjectSchema(t *testing.T) {
+	catalog := &v1pb.DatabaseCatalog{
+		Name: "instances/x/databases/y/catalog",
+		Schemas: []*v1pb.SchemaCatalog{{
+			Name: "",
+			Tables: []*v1pb.TableCatalog{{
+				Name: "users_index",
+				Kind: &v1pb.TableCatalog_ObjectSchema{
+					ObjectSchema: &v1pb.ObjectSchema{
+						Type: v1pb.ObjectSchema_OBJECT,
+						Kind: &v1pb.ObjectSchema_StructKind_{
+							StructKind: &v1pb.ObjectSchema_StructKind{
+								Properties: map[string]*v1pb.ObjectSchema{
+									"email": {Type: v1pb.ObjectSchema_STRING, SemanticType: "abc"},
+								},
+							},
+						},
+					},
+				},
+			}},
+		}},
+	}
+	out := flattenDatabaseCatalog(catalog)
+	if len(out) != 1 {
+		t.Fatalf("expected 1 catalog, got %d", len(out))
+	}
+	schemas := out[0].(map[string]any)["schemas"].(*schema.Set).List()
+	if len(schemas) == 0 {
+		t.Fatal("no schemas in flattened catalog")
+	}
+	tables := schemas[0].(map[string]any)["tables"].(*schema.Set).List()
+	if len(tables) == 0 {
+		t.Fatal("no tables in flattened catalog")
+	}
+	rawTable := tables[0].(map[string]any)
+	got, _ := rawTable["object_schema_json"].(string)
+	if got == "" {
+		t.Fatal("object_schema_json not populated in flattened state")
+	}
+	// Ensure the canonical form contains the expected semantic type.
+	if !strings.Contains(got, `"abc"`) {
+		t.Errorf("canonical JSON missing semantic type abc: %s", got)
+	}
+}
+
+func TestFlattenDatabaseCatalog_ColumnsPathUnchanged(t *testing.T) {
+	catalog := &v1pb.DatabaseCatalog{
+		Name: "instances/x/databases/y/catalog",
+		Schemas: []*v1pb.SchemaCatalog{{
+			Name: "",
+			Tables: []*v1pb.TableCatalog{{
+				Name: "users",
+				Kind: &v1pb.TableCatalog_Columns_{
+					Columns: &v1pb.TableCatalog_Columns{
+						Columns: []*v1pb.ColumnCatalog{{
+							Name:         "email",
+							SemanticType: "email-mask",
+						}},
+					},
+				},
+			}},
+		}},
+	}
+	out := flattenDatabaseCatalog(catalog)
+	schemas := out[0].(map[string]any)["schemas"].(*schema.Set).List()
+	tables := schemas[0].(map[string]any)["tables"].(*schema.Set).List()
+	rawTable := tables[0].(map[string]any)
+
+	// object_schema_json should be empty for a Columns-variant table.
+	if got, _ := rawTable["object_schema_json"].(string); got != "" {
+		t.Errorf("expected empty object_schema_json for columns table, got %q", got)
+	}
+	// Columns must still be populated.
+	cols := rawTable["columns"].(*schema.Set).List()
+	if len(cols) != 1 {
+		t.Fatalf("expected 1 column, got %d", len(cols))
 	}
 }
