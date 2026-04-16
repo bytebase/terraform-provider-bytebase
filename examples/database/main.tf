@@ -27,11 +27,3 @@ data "bytebase_database_list" "all" {
 output "all_databases" {
   value = data.bytebase_database_list.all
 }
-
-data "bytebase_database_catalog" "employee" {
-  database = "instances/test-sample-instance/databases/employee"
-}
-
-output "employee_catalog" {
-  value = data.bytebase_database_catalog.employee
-}

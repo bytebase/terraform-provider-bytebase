@@ -463,7 +463,10 @@ func (c *mockClient) GetDatabaseCatalog(_ context.Context, databaseName string) 
 func (c *mockClient) UpdateDatabaseCatalog(_ context.Context, patch *v1pb.DatabaseCatalog) (*v1pb.DatabaseCatalog, error) {
 	mu.Lock()
 	defer mu.Unlock()
-	c.databaseCatalogMap[patch.Name] = patch
+	// The catalog proto's Name carries the "/catalog" suffix. Key by the
+	// bare database name so GetDatabaseCatalog(databaseName) round-trips.
+	key := strings.TrimSuffix(patch.Name, DatabaseCatalogNameSuffix)
+	c.databaseCatalogMap[key] = patch
 	return patch, nil
 }
 
