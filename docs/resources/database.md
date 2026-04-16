@@ -55,12 +55,13 @@ Optional:
 
 Required:
 
-- `columns` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--catalog--schemas--tables--columns))
 - `name` (String)
 
 Optional:
 
 - `classification` (String) The classification id
+- `columns` (Block Set) (see [below for nested schema](#nestedblock--catalog--schemas--tables--columns))
+- `object_schema_json` (String) JSON-encoded ObjectSchema for document-oriented databases (e.g. OpenSearch, Elasticsearch). Mutually exclusive with `columns` on the same table. The JSON must match the v1.ObjectSchema proto shape; see the Bytebase API docs.
 
 <a id="nestedblock--catalog--schemas--tables--columns"></a>
 ### Nested Schema for `catalog.schemas.tables.columns`
