@@ -369,29 +369,43 @@ func convertToV1ColumnCatalog(raw interface{}) *v1pb.ColumnCatalog {
 	}
 }
 
-func convertToV1TableCatalog(raw interface{}) (*v1pb.TableCatalog, error) {
-	rawTable := raw.(map[string]interface{})
+func convertToV1TableCatalog(raw any) (*v1pb.TableCatalog, error) {
+	rawTable := raw.(map[string]any)
 	table := &v1pb.TableCatalog{
 		Name:           rawTable["name"].(string),
 		Classification: rawTable["classification"].(string),
 	}
 
 	columnList := []*v1pb.ColumnCatalog{}
-	rawColumnList, ok := rawTable["columns"].(*schema.Set)
-	if !ok {
-		return nil, errors.Errorf("invalid columns")
+	if rawColumnSet, ok := rawTable["columns"].(*schema.Set); ok && rawColumnSet != nil {
+		for _, r := range rawColumnSet.List() {
+			columnList = append(columnList, convertToV1ColumnCatalog(r))
+		}
 	}
-	for _, raw := range rawColumnList.List() {
-		column := convertToV1ColumnCatalog(raw)
-		columnList = append(columnList, column)
+
+	objectSchemaJSON, _ := rawTable["object_schema_json"].(string)
+	hasColumns := len(columnList) > 0
+	hasObjectSchema := objectSchemaJSON != ""
+
+	if hasColumns && hasObjectSchema {
+		return nil, errors.Errorf(
+			"table %q: `columns` and `object_schema_json` are mutually exclusive; set exactly one",
+			table.Name,
+		)
+	}
+
+	if hasObjectSchema {
+		obj, err := internal.ParseObjectSchemaJSON(objectSchemaJSON)
+		if err != nil {
+			return nil, errors.Wrapf(err, "table %q", table.Name)
+		}
+		table.Kind = &v1pb.TableCatalog_ObjectSchema{ObjectSchema: obj}
+		return table, nil
 	}
 
 	table.Kind = &v1pb.TableCatalog_Columns_{
-		Columns: &v1pb.TableCatalog_Columns{
-			Columns: columnList,
-		},
+		Columns: &v1pb.TableCatalog_Columns{Columns: columnList},
 	}
-
 	return table, nil
 }
 
