@@ -17,6 +17,7 @@ resource "bytebase_setting" "classification" {
     classifications {
       id    = "1"
       title = "Basic"
+      level = 1
     }
 
     classifications {
@@ -34,6 +35,7 @@ resource "bytebase_setting" "classification" {
     classifications {
       id    = "2"
       title = "Employment"
+      level = 1
     }
 
     classifications {
