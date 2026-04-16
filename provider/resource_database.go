@@ -114,7 +114,7 @@ func resourceDatabase() *schema.Resource {
 													Optional:    true,
 													Computed:    true,
 													Description: "JSON-encoded ObjectSchema for document-oriented databases (e.g. OpenSearch, Elasticsearch). Mutually exclusive with `columns` on the same table. The JSON must match the v1.ObjectSchema proto shape; see the Bytebase API docs.",
-													StateFunc: func(v interface{}) string {
+													StateFunc: func(v any) string {
 														s, ok := v.(string)
 														if !ok {
 															return ""
@@ -128,7 +128,7 @@ func resourceDatabase() *schema.Resource {
 														}
 														return out
 													},
-													ValidateDiagFunc: func(v interface{}, _ cty.Path) diag.Diagnostics {
+													ValidateDiagFunc: func(v any, _ cty.Path) diag.Diagnostics {
 														s, ok := v.(string)
 														if !ok || s == "" {
 															return nil
