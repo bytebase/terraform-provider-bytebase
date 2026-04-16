@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -108,8 +109,39 @@ func resourceDatabase() *schema.Resource {
 													Default:     nil,
 													Description: "The classification id",
 												},
+												"object_schema_json": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Computed:    true,
+													Description: "JSON-encoded ObjectSchema for document-oriented databases (e.g. OpenSearch, Elasticsearch). Mutually exclusive with `columns` on the same table. The JSON must match the v1.ObjectSchema proto shape; see the Bytebase API docs.",
+													StateFunc: func(v interface{}) string {
+														s, ok := v.(string)
+														if !ok {
+															return ""
+														}
+														out, err := internal.NormalizeObjectSchemaJSON(s)
+														if err != nil {
+															// StateFunc cannot return an error; fall back to the raw
+															// value and let ValidateDiagFunc surface the problem with
+															// a clean diagnostic.
+															return s
+														}
+														return out
+													},
+													ValidateDiagFunc: func(v interface{}, _ cty.Path) diag.Diagnostics {
+														s, ok := v.(string)
+														if !ok || s == "" {
+															return nil
+														}
+														if _, err := internal.NormalizeObjectSchemaJSON(s); err != nil {
+															return diag.Errorf("object_schema_json: %v", err)
+														}
+														return nil
+													},
+												},
 												"columns": {
-													Required: true,
+													Optional: true,
+													Computed: true,
 													Type:     schema.TypeSet,
 													Elem: &schema.Resource{
 														Schema: map[string]*schema.Schema{

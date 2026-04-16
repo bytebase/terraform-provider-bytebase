@@ -75,6 +75,11 @@ func dataSourceDatabase() *schema.Resource {
 													Computed:    true,
 													Description: "The classification id",
 												},
+												"object_schema_json": {
+													Type:        schema.TypeString,
+													Computed:    true,
+													Description: "JSON-encoded ObjectSchema for document-oriented databases.",
+												},
 												"columns": {
 													Computed: true,
 													Type:     schema.TypeSet,
