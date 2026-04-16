@@ -191,12 +191,21 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 		},
 	}
 
+	testDbObjSchema := &v1pb.Database{
+		Name:  fmt.Sprintf("%s/%stest-db-objschema", ins.Name, DatabaseIDPrefix),
+		State: v1pb.State_ACTIVE,
+		Labels: map[string]string{
+			"bb.environment": envID,
+		},
+	}
+
 	mu.Lock()
 	defer mu.Unlock()
 	c.instanceMap[ins.Name] = ins
 	c.databaseMap[defaultDb.Name] = defaultDb
 	c.databaseMap[testDb.Name] = testDb
 	c.databaseMap[testDbLabels.Name] = testDbLabels
+	c.databaseMap[testDbObjSchema.Name] = testDbObjSchema
 
 	// Also create empty catalogs for the databases
 	c.databaseCatalogMap[defaultDb.Name] = &v1pb.DatabaseCatalog{
@@ -207,6 +216,9 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 	}
 	c.databaseCatalogMap[testDbLabels.Name] = &v1pb.DatabaseCatalog{
 		Name: testDbLabels.Name,
+	}
+	c.databaseCatalogMap[testDbObjSchema.Name] = &v1pb.DatabaseCatalog{
+		Name: testDbObjSchema.Name,
 	}
 	return ins, nil
 }
