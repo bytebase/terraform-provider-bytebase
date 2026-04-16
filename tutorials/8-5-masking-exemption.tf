@@ -1,10 +1,10 @@
 resource "bytebase_policy" "masking_exemption_policy" {
   depends_on = [
-    bytebase_project.project-two,
+    bytebase_project.project_two,
     bytebase_instance.prod
   ]
 
-  parent              = bytebase_project.project-two.name
+  parent              = bytebase_project.project_two.name
   type                = "MASKING_EXEMPTION"
   enforce             = true
   inherit_from_parent = false

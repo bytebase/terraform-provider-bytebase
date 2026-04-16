@@ -1,12 +1,12 @@
 resource "bytebase_database" "database" {
   depends_on = [
     bytebase_instance.prod,
-    bytebase_project.project-two,
+    bytebase_project.project_two,
     bytebase_setting.environments
   ]
 
   name        = "instances/prod-sample-instance/databases/hr_prod"
-  project     = bytebase_project.project-two.name
+  project     = bytebase_project.project_two.name
   environment = bytebase_setting.environments.environment_setting[0].environment[1].name
 
   catalog {

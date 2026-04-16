@@ -1,5 +1,5 @@
 # Project One - with all new project settings
-resource "bytebase_project" "project-one" {
+resource "bytebase_project" "project_one" {
   depends_on = [
     bytebase_instance.test
   ]
@@ -46,7 +46,7 @@ resource "bytebase_project" "project-one" {
 }
 
 # Project Two - minimal configuration
-resource "bytebase_project" "project-two" {
+resource "bytebase_project" "project_two" {
   depends_on = [
     bytebase_instance.prod
   ]

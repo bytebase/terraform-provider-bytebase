@@ -5,7 +5,7 @@ resource "bytebase_iam_policy" "project_iam" {
     bytebase_user.workspace_dba2
   ]
 
-  parent = bytebase_project.project-two.name
+  parent = bytebase_project.project_two.name
 
   iam_policy {
 
