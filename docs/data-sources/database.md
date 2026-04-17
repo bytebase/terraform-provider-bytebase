@@ -52,9 +52,10 @@ Read-Only:
 - `classification` (String)
 - `columns` (Set of Object) (see [below for nested schema](#nestedobjatt--catalog--schemas--tables--columns))
 - `name` (String)
+- `object_schema_json` (String)
 
 <a id="nestedobjatt--catalog--schemas--tables--columns"></a>
-### Nested Schema for `catalog.schemas.tables.name`
+### Nested Schema for `catalog.schemas.tables.columns`
 
 Read-Only:
 

@@ -365,3 +365,97 @@ func testAccCheckDatabaseDestroy(_ *terraform.State) error {
 	// In a real environment, the database deletion would be handled differently.
 	return nil
 }
+
+func TestAccDatabase_WithObjectSchemaCatalog(t *testing.T) {
+	identifier := "test_db_objschema"
+	resourceName := fmt.Sprintf("bytebase_database.%s", identifier)
+	instanceID := "test-instance"
+	databaseName := "test-db-objschema"
+	projectName := "projects/test-project"
+	environmentName := "environments/test"
+	databaseFullName := fmt.Sprintf("instances/%s/databases/%s", instanceID, databaseName)
+
+	objectSchemaV1 := `{"type":"OBJECT","structKind":{"properties":{"email":{"type":"STRING","semanticType":"sem-email"}}}}`
+	objectSchemaV2 := `{"type":"OBJECT","structKind":{"properties":{"email":{"type":"STRING","semanticType":"sem-email-v2"},"phone":{"type":"STRING","semanticType":"sem-phone"}}}}`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatabaseDestroy,
+		Steps: []resource.TestStep{
+			// Create with ObjectSchema v1.
+			{
+				Config: testAccCheckDatabaseResourceWithObjectSchema(identifier, databaseFullName, projectName, environmentName, objectSchemaV1),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttrSet(resourceName, "catalog.0.schemas.0.tables.0.object_schema_json"),
+				),
+			},
+			// Re-apply same config — must be a no-op (validates canonicalization).
+			{
+				Config:             testAccCheckDatabaseResourceWithObjectSchema(identifier, databaseFullName, projectName, environmentName, objectSchemaV1),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			// Update to ObjectSchema v2.
+			{
+				Config: testAccCheckDatabaseResourceWithObjectSchema(identifier, databaseFullName, projectName, environmentName, objectSchemaV2),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttrSet(resourceName, "catalog.0.schemas.0.tables.0.object_schema_json"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckDatabaseResourceWithObjectSchema(identifier, name, project, environment, objectSchemaJSON string) string {
+	instanceID := strings.Split(strings.TrimPrefix(name, "instances/"), "/")[0]
+	projectID := strings.TrimPrefix(project, "projects/")
+	environmentID := strings.TrimPrefix(environment, "environments/")
+	return fmt.Sprintf(`
+resource "bytebase_environment" "env_%s" {
+	resource_id = "%s"
+	title       = "Test Environment"
+	order       = 0
+}
+resource "bytebase_project" "proj_%s" {
+	resource_id = "%s"
+	title       = "Test Project"
+}
+resource "bytebase_instance" "inst_%s" {
+	resource_id = "%s"
+	title       = "Test Instance"
+	engine      = "POSTGRES"
+	environment = bytebase_environment.env_%s.name
+
+	data_sources {
+		id       = "admin"
+		type     = "ADMIN"
+		username = "postgres"
+		host     = "127.0.0.1"
+		port     = "5432"
+	}
+}
+resource "bytebase_database" "%s" {
+	name        = "%s"
+	project     = bytebase_project.proj_%s.name
+	environment = bytebase_environment.env_%s.name
+	catalog {
+		schemas {
+			name = ""
+			tables {
+				name               = "users_index"
+				object_schema_json = %q
+			}
+		}
+	}
+	depends_on = [bytebase_instance.inst_%s]
+}
+`, identifier, environmentID,
+		identifier, projectID,
+		identifier, instanceID, identifier,
+		identifier, name, identifier, identifier,
+		objectSchemaJSON,
+		identifier)
+}
