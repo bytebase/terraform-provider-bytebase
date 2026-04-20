@@ -57,7 +57,6 @@ func resourceGroup() *schema.Resource {
 			"members": {
 				Type:        schema.TypeSet,
 				Required:    true,
-				MinItems:    1,
 				Description: "The members in the group.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -237,17 +236,8 @@ func convertToMemberList(d *schema.ResourceData) ([]*v1pb.GroupMember, error) {
 	}
 
 	memberList := []*v1pb.GroupMember{}
-	existOwner := false
 	for _, m := range memberSet.List() {
-		member := convertToV1Member(m)
-		memberList = append(memberList, member)
-		if member.Role == v1pb.GroupMember_OWNER {
-			existOwner = true
-		}
-	}
-
-	if !existOwner {
-		return nil, errors.Errorf("require at least 1 group owner")
+		memberList = append(memberList, convertToV1Member(m))
 	}
 
 	return memberList, nil
