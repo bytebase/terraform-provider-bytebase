@@ -113,7 +113,7 @@ func NewClient(url, email, password string) (api.Client, error) {
 	}
 	if !strings.HasPrefix(workspace, "workspaces/") {
 		return nil, errors.Errorf(
-			"legacy workspace value %q (expected %q); this provider version requires Bytebase >= 3.17.0. Upgrade the server, or pin the provider to \"~> 3.16\".",
+			"legacy workspace value %q (expected %q); this provider version requires Bytebase >= 3.17.0, upgrade the server or pin the provider to \"~> 3.16\"",
 			workspace, "workspaces/<id>",
 		)
 	}
