@@ -56,7 +56,7 @@ func resourceGroup() *schema.Resource {
 			},
 			"members": {
 				Type:        schema.TypeSet,
-				Required:    true,
+				Optional:    true,
 				Description: "The members in the group.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{

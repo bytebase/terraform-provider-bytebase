@@ -259,17 +259,6 @@ resource "bytebase_group" "%s" {
 `, identifier, identifier, identifier),
 				ExpectError: regexp.MustCompile(`expected "title" to not be an empty string`),
 			},
-			// No members
-			{
-				Config: fmt.Sprintf(`
-resource "bytebase_group" "%s" {
-	email       = "group@example.com"
-	title       = "Test Group"
-	description = "Description"
-}
-`, identifier),
-				ExpectError: regexp.MustCompile(`(expected members to have at least|At least 1 "members" blocks are required|Missing required argument)`),
-			},
 			// Invalid member format
 			{
 				Config: fmt.Sprintf(`
