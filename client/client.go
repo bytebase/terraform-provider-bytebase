@@ -107,10 +107,17 @@ func NewClient(url, email, password string) (api.Client, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get actuator info")
 	}
-	c.workspaceName = actuatorResp.Msg.GetWorkspace()
-	if c.workspaceName == "" {
+	workspace := actuatorResp.Msg.GetWorkspace()
+	if workspace == "" {
 		return nil, errors.New("actuator returned empty workspace name; cannot initialize provider")
 	}
+	if !strings.HasPrefix(workspace, "workspaces/") {
+		return nil, errors.Errorf(
+			"legacy workspace value %q (expected %q); this provider version requires Bytebase >= 3.17.0, upgrade the server or pin the provider to \"~> 3.16\"",
+			workspace, "workspaces/<id>",
+		)
+	}
+	c.workspaceName = workspace
 
 	return &c, nil
 }
