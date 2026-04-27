@@ -55,7 +55,7 @@ Read-Only:
 - `object_schema_json` (String)
 
 <a id="nestedobjatt--catalog--schemas--tables--columns"></a>
-### Nested Schema for `catalog.schemas.tables.columns`
+### Nested Schema for `catalog.schemas.tables.object_schema_json`
 
 Read-Only:
 

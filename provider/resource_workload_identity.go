@@ -132,9 +132,6 @@ func resourceWorkloadIdentityCreate(ctx context.Context, d *schema.ResourceData,
 	c := m.(api.Client)
 
 	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), c.GetWorkspaceName())
-	if parent == "" {
-		return diag.Errorf("cannot resolve workload identity parent: workspace name is empty, check provider connection")
-	}
 	if err := d.Set("parent", parent); err != nil {
 		return diag.Errorf("cannot set parent: %s", err.Error())
 	}

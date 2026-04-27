@@ -18,12 +18,12 @@ The group resource. Workspace domain is required for creating groups.
 ### Required
 
 - `email` (String) The group email.
-- `members` (Block Set, Min: 1) The members in the group. (see [below for nested schema](#nestedblock--members))
 - `title` (String) The group title.
 
 ### Optional
 
 - `description` (String) The group description.
+- `members` (Block Set) The members in the group. (see [below for nested schema](#nestedblock--members))
 
 ### Read-Only
 

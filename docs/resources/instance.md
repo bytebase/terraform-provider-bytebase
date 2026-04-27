@@ -79,13 +79,25 @@ Optional:
 - `ssh_port` (String) SSH tunnel server port. Only available for MYSQL, TIDB, MARIADB, OCEANBASE, POSTGRES, REDIS with PASSWORD authentication.
 - `ssh_private_key` (String, Sensitive) SSH tunnel private key. Only available for MYSQL, TIDB, MARIADB, OCEANBASE, POSTGRES, REDIS with PASSWORD authentication.
 - `ssh_user` (String) SSH tunnel username. Only available for MYSQL, TIDB, MARIADB, OCEANBASE, POSTGRES, REDIS with PASSWORD authentication.
-- `ssl_ca` (String, Sensitive) The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
-- `ssl_cert` (String, Sensitive) The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
-- `ssl_key` (String, Sensitive) The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.
+- `ssl_ca` (String, Sensitive) The inline PEM CA certificate. Mutually exclusive with ssl_ca_path.
+- `ssl_ca_path` (String) Absolute filesystem path to the CA certificate on the Bytebase server. Mutually exclusive with ssl_ca.
+- `ssl_cert` (String, Sensitive) The inline PEM client certificate. Mutually exclusive with ssl_cert_path.
+- `ssl_cert_path` (String) Absolute filesystem path to the client certificate on the Bytebase server. Mutually exclusive with ssl_cert.
+- `ssl_key` (String, Sensitive) The inline PEM client private key. Mutually exclusive with ssl_key_path.
+- `ssl_key_path` (String) Absolute filesystem path to the client private key on the Bytebase server. Mutually exclusive with ssl_key.
 - `use_ssl` (Boolean) Enable SSL connection. Required to use SSL certificates.
 - `username` (String) The connection user name used by Bytebase to perform DDL and DML operations.
 - `verify_tls_certificate` (Boolean) Enable TLS certificate verification for SSL connections.
 - `warehouse_id` (String) Databricks warehouse ID. Only available for DATABRICKS engine.
+
+Read-Only:
+
+- `ssl_ca_path_set` (Boolean) Whether a CA certificate path has been configured.
+- `ssl_ca_set` (Boolean) Whether an inline CA certificate has been configured.
+- `ssl_cert_path_set` (Boolean) Whether a client certificate path has been configured.
+- `ssl_cert_set` (Boolean) Whether an inline client certificate has been configured.
+- `ssl_key_path_set` (Boolean) Whether a client private key path has been configured.
+- `ssl_key_set` (Boolean) Whether an inline client private key has been configured.
 
 <a id="nestedblock--data_sources--additional_addresses"></a>
 ### Nested Schema for `data_sources.additional_addresses`

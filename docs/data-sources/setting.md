@@ -47,11 +47,8 @@ Required:
 Required:
 
 - `id` (String) The classification unique id, must in {number}-{number} format.
-- `title` (String) The classification title.
-
-Optional:
-
 - `level` (Number) The classification sensitivity level. Maps to Level.level.
+- `title` (String) The classification title.
 
 
 <a id="nestedblock--classification--levels"></a>

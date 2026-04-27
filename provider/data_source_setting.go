@@ -245,8 +245,7 @@ func getClassificationSetting(computed bool) *schema.Schema {
 							},
 							"level": {
 								Type:        schema.TypeInt,
-								Computed:    computed,
-								Optional:    true,
+								Required:    true,
 								Description: "The classification sensitivity level. Maps to Level.level.",
 							},
 						},
