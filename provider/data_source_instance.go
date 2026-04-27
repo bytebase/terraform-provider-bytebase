@@ -145,6 +145,51 @@ func getDataSourceComputedSchema() map[string]*schema.Schema {
 			Sensitive:   true,
 			Description: "The client key.",
 		},
+		"ssl_ca_path": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Filesystem path to the CA certificate on the Bytebase server.",
+		},
+		"ssl_cert_path": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Filesystem path to the client certificate on the Bytebase server.",
+		},
+		"ssl_key_path": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Filesystem path to the client private key on the Bytebase server.",
+		},
+		"ssl_ca_set": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "Whether an inline CA certificate has been configured.",
+		},
+		"ssl_cert_set": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "Whether an inline client certificate has been configured.",
+		},
+		"ssl_key_set": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "Whether an inline client private key has been configured.",
+		},
+		"ssl_ca_path_set": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "Whether a CA certificate path has been configured.",
+		},
+		"ssl_cert_path_set": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "Whether a client certificate path has been configured.",
+		},
+		"ssl_key_path_set": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "Whether a client private key path has been configured.",
+		},
 		"verify_tls_certificate": {
 			Type:        schema.TypeBool,
 			Computed:    true,

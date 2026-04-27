@@ -248,7 +248,7 @@ func resourceInstance() *schema.Resource {
 							Sensitive:        true,
 							Computed:         true,
 							DiffSuppressFunc: suppressSensitiveFieldDiff,
-							Description:      "The CA certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
+							Description:      "The inline PEM CA certificate. Mutually exclusive with ssl_ca_path.",
 						},
 						"ssl_cert": {
 							Type:             schema.TypeString,
@@ -256,7 +256,7 @@ func resourceInstance() *schema.Resource {
 							Sensitive:        true,
 							Computed:         true,
 							DiffSuppressFunc: suppressSensitiveFieldDiff,
-							Description:      "The client certificate. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
+							Description:      "The inline PEM client certificate. Mutually exclusive with ssl_cert_path.",
 						},
 						"ssl_key": {
 							Type:             schema.TypeString,
@@ -264,7 +264,58 @@ func resourceInstance() *schema.Resource {
 							Sensitive:        true,
 							Computed:         true,
 							DiffSuppressFunc: suppressSensitiveFieldDiff,
-							Description:      "The client key. Optional, you can set this if the engine type is MYSQL, POSTGRES, TIDB or CLICKHOUSE.",
+							Description:      "The inline PEM client private key. Mutually exclusive with ssl_key_path.",
+						},
+						"ssl_ca_path": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressSensitiveFieldDiff,
+							Description:      "Absolute filesystem path to the CA certificate on the Bytebase server. Mutually exclusive with ssl_ca.",
+						},
+						"ssl_cert_path": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressSensitiveFieldDiff,
+							Description:      "Absolute filesystem path to the client certificate on the Bytebase server. Mutually exclusive with ssl_cert.",
+						},
+						"ssl_key_path": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: suppressSensitiveFieldDiff,
+							Description:      "Absolute filesystem path to the client private key on the Bytebase server. Mutually exclusive with ssl_key.",
+						},
+						"ssl_ca_set": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether an inline CA certificate has been configured.",
+						},
+						"ssl_cert_set": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether an inline client certificate has been configured.",
+						},
+						"ssl_key_set": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether an inline client private key has been configured.",
+						},
+						"ssl_ca_path_set": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether a CA certificate path has been configured.",
+						},
+						"ssl_cert_path_set": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether a client certificate path has been configured.",
+						},
+						"ssl_key_path_set": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether a client private key path has been configured.",
 						},
 						"host": {
 							Type:        schema.TypeString,
@@ -1070,11 +1121,22 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 			raw["extra_connection_parameters"] = dataSource.ExtraConnectionParameters
 		}
 
+		// TLS configured-flags are returned by the API.
+		raw["ssl_ca_set"] = dataSource.SslCaSet
+		raw["ssl_cert_set"] = dataSource.SslCertSet
+		raw["ssl_key_set"] = dataSource.SslKeySet
+		raw["ssl_ca_path_set"] = dataSource.SslCaPathSet
+		raw["ssl_cert_path_set"] = dataSource.SslCertPathSet
+		raw["ssl_key_path_set"] = dataSource.SslKeyPathSet
+
 		// These sensitive fields won't returned in the API. Propagate state value.
 		if ds, ok := oldDataSourceMap[dataSource.Id]; ok {
 			raw["ssl_ca"] = ds.SslCa
 			raw["ssl_cert"] = ds.SslCert
 			raw["ssl_key"] = ds.SslKey
+			raw["ssl_ca_path"] = ds.SslCaPath
+			raw["ssl_cert_path"] = ds.SslCertPath
+			raw["ssl_key_path"] = ds.SslKeyPath
 			// SSH sensitive fields
 			raw["ssh_password"] = ds.SshPassword
 			raw["ssh_private_key"] = ds.SshPrivateKey
@@ -1298,6 +1360,15 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 	}
 	if v, ok := obj["ssl_key"].(string); ok {
 		dataSource.SslKey = v
+	}
+	if v, ok := obj["ssl_ca_path"].(string); ok {
+		dataSource.SslCaPath = v
+	}
+	if v, ok := obj["ssl_cert_path"].(string); ok {
+		dataSource.SslCertPath = v
+	}
+	if v, ok := obj["ssl_key_path"].(string); ok {
+		dataSource.SslKeyPath = v
 	}
 	if v, ok := obj["host"].(string); ok {
 		dataSource.Host = v

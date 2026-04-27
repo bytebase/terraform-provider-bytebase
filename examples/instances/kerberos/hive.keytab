@@ -1,0 +1,4 @@
+EXAMPLE MOCK KERBEROS KEYTAB - DO NOT USE IN PRODUCTION
+This is a placeholder keytab file for Terraform example documentation.
+Replace with your actual Kerberos keytab before use.
+Binary keytab content would go here in a real deployment.

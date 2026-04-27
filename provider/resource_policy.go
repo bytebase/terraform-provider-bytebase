@@ -105,11 +105,7 @@ func resourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interface
 	// Self-heal legacy dirty state where the id was written with an empty parent
 	// (e.g. "/policies/MASKING_RULE") because c.GetWorkspaceName() was empty at create time.
 	if strings.HasPrefix(policyName, "/"+internal.PolicyNamePrefix) {
-		ws := c.GetWorkspaceName()
-		if ws == "" {
-			return diag.Errorf("policy id %q has empty parent and workspace name is unavailable; re-import the resource", policyName)
-		}
-		policyName = ws + policyName
+		policyName = c.GetWorkspaceName() + policyName
 		d.SetId(policyName)
 	}
 

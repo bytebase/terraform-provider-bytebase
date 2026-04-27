@@ -2,7 +2,7 @@
 terraform {
   required_providers {
     bytebase = {
-      version = "3.17.0"
+      version = "3.17.4"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -41,8 +41,8 @@ resource "bytebase_instance" "mysql_password" {
 }
 
 ###############################################################################
-# Example 2: PASSWORD with SSL/TLS
-# Enable SSL connection with certificate verification.
+# Example 2: PASSWORD with SSL/TLS (inline PEM)
+# Enable SSL connection with certificate verification using inline PEM content.
 ###############################################################################
 resource "bytebase_instance" "mysql_ssl" {
   resource_id = "mysql-ssl-example"
@@ -60,10 +60,66 @@ resource "bytebase_instance" "mysql_ssl" {
     password               = "your-password"
     use_ssl                = true
     verify_tls_certificate = true
-    ssl_ca                 = file("${path.module}/certs/ca.pem")
-    ssl_cert               = file("${path.module}/certs/client-cert.pem")
-    ssl_key                = file("${path.module}/certs/client-key.pem")
+    # Inline PEM is mutually exclusive with the matching *_path field.
+    ssl_ca   = file("${path.module}/certs/ca.pem")
+    ssl_cert = file("${path.module}/certs/client-cert.pem")
+    ssl_key  = file("${path.module}/certs/client-key.pem")
   }
+}
+
+###############################################################################
+# Example 2b: PASSWORD with SSL/TLS (filesystem paths)
+# Reference TLS material by absolute path. The path must be readable by the
+# Bytebase server process at connect time. Mix-and-match per slot is allowed
+# (e.g. inline CA with path-based client cert/key) but the inline and *_path
+# variants of the same slot cannot both be set.
+#
+# Here we use abspath() against the local mock files in ./certs so the example
+# is self-contained. In production, point these at paths that exist on the
+# Bytebase server host (e.g. "/etc/bytebase/certs/ca.pem").
+###############################################################################
+resource "bytebase_instance" "mysql_ssl_path" {
+  resource_id = "mysql-ssl-path-example"
+  environment = "environments/test"
+  title       = "MySQL with SSL (path-based)"
+  engine      = "MYSQL"
+  activation  = true
+
+  data_sources {
+    id                     = "admin"
+    type                   = "ADMIN"
+    host                   = "mysql.example.com"
+    port                   = "3306"
+    username               = "admin"
+    password               = "your-password"
+    use_ssl                = true
+    verify_tls_certificate = true
+    ssl_ca_path            = abspath("${path.module}/certs/ca-path.pem")
+    ssl_cert_path          = abspath("${path.module}/certs/client-cert-path.pem")
+    ssl_key_path           = abspath("${path.module}/certs/client-key-path.pem")
+  }
+}
+
+# The bytebase_instance resource exposes computed *_set flags that report
+# whether each TLS slot has been configured on the server. These are useful
+# for asserting state without leaking the inline PEM or path values, both of
+# which are write-only.
+#
+# data_sources is a Set whose elements include sensitive fields (password,
+# ssl_ca, etc.), so iterating over it taints the resulting expression.
+# nonsensitive() unwraps the bool flags, which are not sensitive themselves.
+output "mysql_ssl_path_tls_status" {
+  value = nonsensitive({
+    for ds in tolist(bytebase_instance.mysql_ssl_path.data_sources) :
+    ds.id => {
+      ssl_ca_set        = ds.ssl_ca_set
+      ssl_cert_set      = ds.ssl_cert_set
+      ssl_key_set       = ds.ssl_key_set
+      ssl_ca_path_set   = ds.ssl_ca_path_set
+      ssl_cert_path_set = ds.ssl_cert_path_set
+      ssl_key_path_set  = ds.ssl_key_path_set
+    }
+  })
 }
 
 ###############################################################################
@@ -677,25 +733,25 @@ resource "bytebase_instance" "cassandra" {
 # Data Sources - Query existing instances
 ###############################################################################
 
-# List all instances in an environment
-data "bytebase_instance_list" "all" {
-  environment = "environments/test"
-  engines = [
-    "MYSQL",
-    "POSTGRES"
-  ]
-}
+# # List all instances in an environment
+# data "bytebase_instance_list" "all" {
+#   environment = "environments/test"
+#   engines = [
+#     "MYSQL",
+#     "POSTGRES"
+#   ]
+# }
 
-output "all_instances" {
-  value = data.bytebase_instance_list.all
-}
+# output "all_instances" {
+#   value = data.bytebase_instance_list.all
+# }
 
-# Get a specific instance
-data "bytebase_instance" "mysql" {
-  resource_id        = "mysql-password-example"
-  list_all_databases = true
-}
+# # Get a specific instance
+# data "bytebase_instance" "mysql" {
+#   resource_id        = "mysql-password-example"
+#   list_all_databases = true
+# }
 
-output "mysql_instance" {
-  value = data.bytebase_instance.mysql
-}
+# output "mysql_instance" {
+#   value = data.bytebase_instance.mysql
+# }
