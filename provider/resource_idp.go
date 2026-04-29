@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/go-cty/cty"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -119,7 +120,7 @@ func getOAuth2ConfigSchema() *schema.Schema {
 				"client_secret": {
 					Type:        schema.TypeString,
 					Required:    true,
-					Sensitive:   true,
+					WriteOnly:   true,
 					Description: "The OAuth2 client secret.",
 				},
 				"scopes": {
@@ -175,7 +176,7 @@ func getOIDCConfigSchema() *schema.Schema {
 				"client_secret": {
 					Type:        schema.TypeString,
 					Required:    true,
-					Sensitive:   true,
+					WriteOnly:   true,
 					Description: "The OIDC client secret.",
 				},
 				"scopes": {
@@ -246,7 +247,7 @@ func getLDAPConfigSchema() *schema.Schema {
 				"bind_password": {
 					Type:        schema.TypeString,
 					Required:    true,
-					Sensitive:   true,
+					WriteOnly:   true,
 					Description: "The password of the bind user.",
 				},
 				"base_dn": {
@@ -414,9 +415,15 @@ func getIdentityProviderFromSchema(d *schema.ResourceData, idpName string) (*v1p
 			TokenUrl:      raw["token_url"].(string),
 			UserInfoUrl:   raw["user_info_url"].(string),
 			ClientId:      raw["client_id"].(string),
-			ClientSecret:  raw["client_secret"].(string),
 			SkipTlsVerify: raw["skip_tls_verify"].(bool),
 			AuthStyle:     v1pb.OAuth2AuthStyle(v1pb.OAuth2AuthStyle_value[raw["auth_style"].(string)]),
+		}
+		oauth2ClientSecret, diags := d.GetRawConfigAt(cty.GetAttrPath("oauth2_config").IndexInt(0).GetAttr("client_secret"))
+		if diags.HasError() {
+			return nil, diags
+		}
+		if !oauth2ClientSecret.IsNull() {
+			oauth2Config.ClientSecret = oauth2ClientSecret.AsString()
 		}
 		for _, s := range raw["scopes"].([]interface{}) {
 			oauth2Config.Scopes = append(oauth2Config.Scopes, s.(string))
@@ -433,9 +440,15 @@ func getIdentityProviderFromSchema(d *schema.ResourceData, idpName string) (*v1p
 		oidcConfig := &v1pb.OIDCIdentityProviderConfig{
 			Issuer:        raw["issuer"].(string),
 			ClientId:      raw["client_id"].(string),
-			ClientSecret:  raw["client_secret"].(string),
 			SkipTlsVerify: raw["skip_tls_verify"].(bool),
 			AuthStyle:     v1pb.OAuth2AuthStyle(v1pb.OAuth2AuthStyle_value[raw["auth_style"].(string)]),
+		}
+		oidcClientSecret, diags := d.GetRawConfigAt(cty.GetAttrPath("oidc_config").IndexInt(0).GetAttr("client_secret"))
+		if diags.HasError() {
+			return nil, diags
+		}
+		if !oidcClientSecret.IsNull() {
+			oidcConfig.ClientSecret = oidcClientSecret.AsString()
 		}
 		for _, s := range raw["scopes"].([]interface{}) {
 			oidcConfig.Scopes = append(oidcConfig.Scopes, s.(string))
@@ -454,9 +467,15 @@ func getIdentityProviderFromSchema(d *schema.ResourceData, idpName string) (*v1p
 			Port:          int32(raw["port"].(int)),
 			SkipTlsVerify: raw["skip_tls_verify"].(bool),
 			BindDn:        raw["bind_dn"].(string),
-			BindPassword:  raw["bind_password"].(string),
 			BaseDn:        raw["base_dn"].(string),
 			UserFilter:    raw["user_filter"].(string),
+		}
+		ldapBindPassword, diags := d.GetRawConfigAt(cty.GetAttrPath("ldap_config").IndexInt(0).GetAttr("bind_password"))
+		if diags.HasError() {
+			return nil, diags
+		}
+		if !ldapBindPassword.IsNull() {
+			ldapConfig.BindPassword = ldapBindPassword.AsString()
 		}
 		if v := raw["security_protocol"].(string); v != "" {
 			ldapConfig.SecurityProtocol = v1pb.LDAPIdentityProviderConfig_SecurityProtocol(
@@ -550,7 +569,6 @@ func flattenOAuth2Config(c *v1pb.OAuth2IdentityProviderConfig) []interface{} {
 			"token_url":       c.TokenUrl,
 			"user_info_url":   c.UserInfoUrl,
 			"client_id":       c.ClientId,
-			"client_secret":   c.ClientSecret,
 			"scopes":          c.Scopes,
 			"field_mapping":   flattenFieldMapping(c.FieldMapping),
 			"skip_tls_verify": c.SkipTlsVerify,
@@ -564,7 +582,6 @@ func flattenOIDCConfig(c *v1pb.OIDCIdentityProviderConfig) []interface{} {
 		map[string]interface{}{
 			"issuer":          c.Issuer,
 			"client_id":       c.ClientId,
-			"client_secret":   c.ClientSecret,
 			"scopes":          c.Scopes,
 			"field_mapping":   flattenFieldMapping(c.FieldMapping),
 			"skip_tls_verify": c.SkipTlsVerify,
@@ -581,7 +598,6 @@ func flattenLDAPConfig(c *v1pb.LDAPIdentityProviderConfig) []interface{} {
 			"port":              int(c.Port),
 			"skip_tls_verify":   c.SkipTlsVerify,
 			"bind_dn":           c.BindDn,
-			"bind_password":     c.BindPassword,
 			"base_dn":           c.BaseDn,
 			"user_filter":       c.UserFilter,
 			"security_protocol": c.SecurityProtocol.String(),

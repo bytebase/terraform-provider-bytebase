@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -45,36 +46,9 @@ func resourceUser() *schema.Resource {
 			},
 			"password": {
 				Type:        schema.TypeString,
-				Sensitive:   true,
 				Optional:    true,
-				Description: "The user login password.",
-				DiffSuppressFunc: func(_, oldValue, newValue string, d *schema.ResourceData) bool {
-					// During creation, never suppress
-					if d.Id() == "" {
-						return false
-					}
-
-					// Get the raw config value to see if password is set
-					rawConfig := d.GetRawConfig()
-					sensitiveConfig := rawConfig.GetAttr("password")
-
-					// If password is not in config, suppress the diff
-					if sensitiveConfig.IsNull() {
-						return true
-					}
-
-					// If password is in config, we need to hash it and compare
-					// The 'new' value here is already hashed by StateFunc
-					// The 'old' value is the hash from state
-
-					// If both are hashes and they're equal, suppress (no change)
-					if oldValue != "" && newValue != "" && oldValue == newValue {
-						return true
-					}
-
-					// Otherwise allow the diff (password changed)
-					return false
-				},
+				WriteOnly:   true,
+				Description: "The user login password. This value is write-only and will not be stored in Terraform state.",
 			},
 			"service_key": {
 				Type:        schema.TypeString,
@@ -148,7 +122,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 	user := &v1pb.User{
 		Name:     userName,
 		Title:    d.Get("title").(string),
-		Password: d.Get("password").(string),
+		Password: getWriteOnlyString(d, "password"),
 		Phone:    d.Get("phone").(string),
 		Email:    email,
 		State:    v1pb.State_ACTIVE,
@@ -227,7 +201,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	title := d.Get("title").(string)
 	phone := d.Get("phone").(string)
 	email := d.Get("email").(string)
-	password := d.Get("password").(string)
+	password := getWriteOnlyString(d, "password")
 
 	existedUser, err := c.GetUser(ctx, userName)
 	if err != nil {
@@ -261,7 +235,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	if d.HasChange("phone") {
 		paths = append(paths, "phone")
 	}
-	if d.HasChange("password") && password != "" {
+	if password != "" {
 		paths = append(paths, "password")
 	}
 
@@ -294,4 +268,12 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 func resourceUserDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 	return internal.ResourceDelete(ctx, d, c.DeleteUser)
+}
+
+func getWriteOnlyString(d *schema.ResourceData, attr string) string {
+	val, diags := d.GetRawConfigAt(cty.GetAttrPath(attr))
+	if diags.HasError() || val.IsNull() {
+		return ""
+	}
+	return val.AsString()
 }

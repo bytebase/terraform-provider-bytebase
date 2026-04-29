@@ -22,7 +22,7 @@ The user resource.
 
 ### Optional
 
-- `password` (String, Sensitive) The user login password.
+- `password` (String) The user login password. This value is write-only and will not be stored in Terraform state.
 - `phone` (String) The user phone.
 
 ### Read-Only

@@ -1,5 +1,6 @@
 # Examples for creating instances with different authentication types and engine-specific configurations
 terraform {
+  required_version = ">= 1.11"
   required_providers {
     bytebase = {
       version = "3.17.4"

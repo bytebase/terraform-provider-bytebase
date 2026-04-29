@@ -14,7 +14,7 @@ using Terraform Bytebase Provider to prepare those instances ready for applicati
 ### Prerequisites
 
 - [Go](https://golang.org/doc/install) (1.19 or later)
-- [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform) (1.3.5 or later)
+- [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform) (1.11 or later, required for write-only attributes)
 - [Bytebase](https://github.com/bytebase/bytebase) (3.17.1 or later)
 
 > If you have problems running `terraform` in MacOS with Apple Silicon, you can following https://stackoverflow.com/questions/66281882/how-can-i-get-terraform-init-to-run-on-my-apple-silicon-macbook-pro-for-the-go and use the `tfenv`.
@@ -40,6 +40,11 @@ air -c scripts/.air.toml
 ```bash
 # install the provider in your local machine
 cd terraform-provider-bytebase && make install
+
+# build for darwin_arm64
+go build -o terraform-provider-bytebase . && \
+mkdir -p ~/.terraform.d/plugins/terraform.local/bytebase/bytebase/3.17.5/darwin_arm64 && \
+cp terraform-provider-bytebase ~/.terraform.d/plugins/terraform.local/bytebase/bytebase/3.17.5/darwin_arm64/
 
 # test
 # Any BYTEBASE_SERVICE_ACCOUNT/BYTEBASE_SERVICE_KEY/BYTEBASE_URL value should work since the service is mocked
