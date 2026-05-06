@@ -17,6 +17,15 @@ description: |-
 
 ### Optional
 
+- `custom_header` (Block List) Custom HTTP headers to include in Bytebase API requests, for example headers required by a zero-trust gateway. (see [below for nested schema](#nestedblock--custom_header))
 - `service_account` (String) The Bytebase service account email. If not provided in the configuration, you must set the `BYTEBASE_SERVICE_ACCOUNT` variable in the environment.
 - `service_key` (String, Sensitive) The Bytebase service account key. If not provided in the configuration, you must set the `BYTEBASE_SERVICE_KEY` variable in the environment.
 - `url` (String) The external URL for your Bytebase server. If not provided in the configuration, you must set the `BYTEBASE_URL` variable in the environment.
+
+<a id="nestedblock--custom_header"></a>
+### Nested Schema for `custom_header`
+
+Required:
+
+- `name` (String) The custom HTTP header name.
+- `value` (String, Sensitive) The custom HTTP header value.
