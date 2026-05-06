@@ -4,9 +4,12 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/bytebase/terraform-provider-bytebase/client"
 )
@@ -16,10 +19,15 @@ const (
 	envKeyForServiceAccount = "BYTEBASE_SERVICE_ACCOUNT"
 	envKeyForServiceKey     = "BYTEBASE_SERVICE_KEY"
 
-	settingKeyForURL            = "url"
-	settingKeyForServiceAccount = "service_account"
-	settingKeyForServiceKey     = "service_key"
+	settingKeyForURL               = "url"
+	settingKeyForServiceAccount    = "service_account"
+	settingKeyForServiceKey        = "service_key"
+	settingKeyForCustomHeader      = "custom_header"
+	settingKeyForCustomHeaderName  = "name"
+	settingKeyForCustomHeaderValue = "value"
 )
+
+var customHeaderNameRegex = regexp.MustCompile("^[!#$%&'*+.^_`|~0-9A-Za-z-]+$")
 
 // NewProvider is the implement for Terraform Bytebase Provider.
 func NewProvider() *schema.Provider {
@@ -43,6 +51,30 @@ func NewProvider() *schema.Provider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(envKeyForServiceKey, nil),
 				Description: fmt.Sprintf("The Bytebase service account key. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForServiceKey),
+			},
+			settingKeyForCustomHeader: {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Custom HTTP headers to include in Bytebase API requests, for example headers required by a zero-trust gateway.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						settingKeyForCustomHeaderName: {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The custom HTTP header name.",
+							ValidateFunc: validation.StringMatch(
+								customHeaderNameRegex,
+								"must be a valid HTTP header field name",
+							),
+						},
+						settingKeyForCustomHeaderValue: {
+							Type:        schema.TypeString,
+							Required:    true,
+							Sensitive:   true,
+							Description: "The custom HTTP header value.",
+						},
+					},
+				},
 			},
 		},
 		ConfigureContextFunc: providerConfigure,
@@ -97,6 +129,17 @@ func NewProvider() *schema.Provider {
 	}
 }
 
+func getCustomHeaders(d *schema.ResourceData) map[string]string {
+	headers := map[string]string{}
+	for _, item := range d.Get(settingKeyForCustomHeader).([]interface{}) {
+		header := item.(map[string]interface{})
+		name := http.CanonicalHeaderKey(header[settingKeyForCustomHeaderName].(string))
+		value := header[settingKeyForCustomHeaderValue].(string)
+		headers[name] = value
+	}
+	return headers
+}
+
 func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
@@ -125,7 +168,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		return nil, diags
 	}
 
-	c, err := client.NewClient(bytebaseURL, email, key)
+	c, err := client.NewClient(bytebaseURL, email, key, client.WithCustomHeaders(getCustomHeaders(d)))
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
