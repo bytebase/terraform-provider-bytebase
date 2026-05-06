@@ -9,6 +9,21 @@ using Terraform Bytebase Provider to prepare those instances ready for applicati
 1. Download [provider](https://registry.terraform.io/providers/bytebase/bytebase).
 1. Follow [example](https://www.bytebase.com/docs/get-started/terraform).
 
+Provider configuration can include custom HTTP headers for access gateways:
+
+```hcl
+provider "bytebase" {
+  url             = "https://bytebase.example.com"
+  service_account = "service@example.com"
+  service_key     = var.bytebase_service_key
+
+  custom_header {
+    name  = "zero_trust_token"
+    value = var.zero_trust_token
+  }
+}
+```
+
 ## Development
 
 ### Prerequisites
