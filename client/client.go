@@ -49,8 +49,38 @@ func (c *client) GetWorkspaceName() string {
 	return c.workspaceName
 }
 
+type options struct {
+	customHeaders map[string]string
+}
+
+// Option configures the Bytebase API client.
+type Option func(*options)
+
+// WithCustomHeaders configures HTTP headers to include in Bytebase API requests.
+func WithCustomHeaders(headers map[string]string) Option {
+	return func(o *options) {
+		o.customHeaders = copyHeaders(headers)
+	}
+}
+
+func copyHeaders(headers map[string]string) map[string]string {
+	if len(headers) == 0 {
+		return nil
+	}
+	copied := make(map[string]string, len(headers))
+	for name, value := range headers {
+		copied[name] = value
+	}
+	return copied
+}
+
 // NewClient returns the new Bytebase API client.
-func NewClient(url, email, password string) (api.Client, error) {
+func NewClient(url, email, password string, opts ...Option) (api.Client, error) {
+	clientOptions := &options{}
+	for _, opt := range opts {
+		opt(clientOptions)
+	}
+
 	c := client{
 		url: strings.TrimSuffix(url, "/"),
 	}
@@ -60,7 +90,7 @@ func NewClient(url, email, password string) (api.Client, error) {
 		Timeout: 30 * time.Second,
 	}
 
-	authInt := &authInterceptor{}
+	authInt := &authInterceptor{customHeaders: clientOptions.customHeaders}
 	interceptors := connect.WithInterceptors(authInt)
 
 	// Create auth client without token first
@@ -74,6 +104,7 @@ func NewClient(url, email, password string) (api.Client, error) {
 		Email:    email,
 		Password: password,
 	})
+	setHeaders(loginReq.Header(), clientOptions.customHeaders)
 
 	loginResp, err := c.authClient.Login(context.Background(), loginReq)
 	if err != nil {
