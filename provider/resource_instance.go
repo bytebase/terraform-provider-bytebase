@@ -124,7 +124,7 @@ func resourceInstance() *schema.Resource {
 							Optional:    true,
 							MaxItems:    1,
 							MinItems:    0,
-							Description: "The external secret to get the database password. Only available when authentication_type is PASSWORD. Requires instance license. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager",
+							Description: "The external secret to get the database password. Only available when authentication_type is PASSWORD. Requires instance license. Learn more: https://docs.bytebase.com/get-started/connect/overview#secret-manager-integration",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"vault": {

@@ -11,7 +11,7 @@ Examples of using the Terraform Bytebase Provider to manage your resource:
 To run this provider on your local machine:
 
 1. Run your Bytebase service, then you can access the service via `http://localhost:8080`.
-1. Create the service account. Docs [Create service account](https://www.bytebase.com/docs/get-started/terraform#create-service-account).
+1. Create the service account. Docs [Create service account](https://docs.bytebase.com/integrations/terraform/overview#create-service-account).
 1. Replace the `service_account` and `service_key` with your Bytebase service account, and replace the `url` with your Bytebase service URL.
 1. Go to the [setup](./setup) to initialize the data.
 1. Go to the `environments`/`instances`/`role`/`projects` folder to query the data.

@@ -258,7 +258,7 @@ func getRolloutPolicySchema(computed bool) *schema.Schema {
 		Type:        schema.TypeList,
 		MinItems:    0,
 		MaxItems:    1,
-		Description: "Control issue rollout. Learn more: https://docs.bytebase.com/administration/environment-policy/rollout-policy",
+		Description: "Control issue rollout. Learn more: https://docs.bytebase.com/change-database/environment-policy/rollout-policy",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"automatic": {
