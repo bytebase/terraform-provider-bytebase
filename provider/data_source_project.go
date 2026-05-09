@@ -138,7 +138,7 @@ func getWebhooksSchema(computed bool) *schema.Schema {
 				"type": {
 					Type:        schema.TypeString,
 					Required:    true,
-					Description: "The webhook type. Check https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/project_service.proto#L449 for support types.",
+					Description: "The webhook type. Check https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/common.proto#L153 for support types.",
 					ValidateFunc: validation.StringInSlice([]string{
 						v1pb.WebhookType_SLACK.String(),
 						v1pb.WebhookType_DISCORD.String(),

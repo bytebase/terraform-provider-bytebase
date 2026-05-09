@@ -58,7 +58,7 @@ Optional:
 - `cluster` (String) CockroachDB cluster name. Only available for COCKROACHDB engine.
 - `database` (String) The database for the instance, you can set this if the engine type is POSTGRES.
 - `direct_connection` (Boolean) Use direct connection to MongoDB node. Only available for MONGODB engine.
-- `external_secret` (Block List, Max: 1) The external secret to get the database password. Only available when authentication_type is PASSWORD. Requires instance license. Learn more: https://www.bytebase.com/docs/get-started/instance/#use-external-secret-manager (see [below for nested schema](#nestedblock--data_sources--external_secret))
+- `external_secret` (Block List, Max: 1) The external secret to get the database password. Only available when authentication_type is PASSWORD. Requires instance license. Learn more: https://docs.bytebase.com/get-started/connect/overview#secret-manager-integration (see [below for nested schema](#nestedblock--data_sources--external_secret))
 - `extra_connection_parameters` (Map of String) Extra connection parameters as key-value pairs. Only available for MYSQL, MARIADB, OCEANBASE, POSTGRES, ORACLE, MSSQL, MONGODB.
 - `gcp_credential` (Block List, Max: 1) GCP IAM credential (service account JSON). Only valid when authentication_type is GOOGLE_CLOUD_SQL_IAM. (see [below for nested schema](#nestedblock--data_sources--gcp_credential))
 - `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake. Not required for some engines like DYNAMODB.

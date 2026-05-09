@@ -1,6 +1,6 @@
 # Setup examples
 
-_For a real world example, see https://github.com/bytebase/terraform-example._
+_For a real-world walkthrough, see the [Bytebase Terraform tutorials](https://docs.bytebase.com/integrations/terraform/overview)._
 
 This is the setup for examples.
 We will create two environments named `test` and `prod`. Each environment contains one instance.

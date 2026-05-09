@@ -25,7 +25,7 @@ The policy data source.
 - `masking_exemption_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exemption_policy))
 - `parent` (String) The policy parent name for the policy, support workspaces/{workspace id}, projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}. Defaults to the workspace if not specified.
 - `query_data_policy` (Block List, Max: 1) The policy for query data (see [below for nested schema](#nestedblock--query_data_policy))
-- `rollout_policy` (Block List, Max: 1) Control issue rollout. Learn more: https://docs.bytebase.com/administration/environment-policy/rollout-policy (see [below for nested schema](#nestedblock--rollout_policy))
+- `rollout_policy` (Block List, Max: 1) Control issue rollout. Learn more: https://docs.bytebase.com/change-database/environment-policy/rollout-policy (see [below for nested schema](#nestedblock--rollout_policy))
 
 ### Read-Only
 

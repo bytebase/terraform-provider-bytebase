@@ -17,7 +17,7 @@ The setting data source.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L109 for details
+- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details
 
 ### Optional
 
