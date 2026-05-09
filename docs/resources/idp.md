@@ -40,7 +40,7 @@ Required:
 
 - `base_dn` (String) The base DN to search for users.
 - `bind_dn` (String) The DN of the user to bind as a service account.
-- `bind_password` (String, Sensitive) The password of the bind user.
+- `bind_password` (String) The password of the bind user.
 - `field_mapping` (Block List, Min: 1, Max: 1) Mapping configuration for user attributes from LDAP response. (see [below for nested schema](#nestedblock--ldap_config--field_mapping))
 - `host` (String) The hostname or IP address of the LDAP server.
 - `user_filter` (String) The filter to search for users, e.g. (uid=%s).
@@ -73,7 +73,7 @@ Required:
 
 - `auth_url` (String) The authorization endpoint URL.
 - `client_id` (String) The OAuth2 client identifier.
-- `client_secret` (String, Sensitive) The OAuth2 client secret.
+- `client_secret` (String) The OAuth2 client secret.
 - `field_mapping` (Block List, Min: 1, Max: 1) Mapping configuration for user attributes. (see [below for nested schema](#nestedblock--oauth2_config--field_mapping))
 - `token_url` (String) The token endpoint URL.
 - `user_info_url` (String) The user information endpoint URL.
@@ -105,7 +105,7 @@ Optional:
 Required:
 
 - `client_id` (String) The OIDC client identifier.
-- `client_secret` (String, Sensitive) The OIDC client secret.
+- `client_secret` (String) The OIDC client secret.
 - `field_mapping` (Block List, Min: 1, Max: 1) Mapping configuration for user attributes from OIDC claims. (see [below for nested schema](#nestedblock--oidc_config--field_mapping))
 - `issuer` (String) The OIDC issuer URL.
 

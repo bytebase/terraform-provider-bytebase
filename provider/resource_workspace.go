@@ -4,6 +4,7 @@ import (
 	"context"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -41,8 +42,8 @@ func resourceWorkspace() *schema.Resource {
 			"license": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Sensitive:   true,
-				Description: "The license key for the workspace. Upload to activate a subscription plan.",
+				WriteOnly:   true,
+				Description: "The license key for the workspace. Upload to activate a subscription plan. This value is write-only and will not be stored in Terraform state.",
 			},
 			"subscription": {
 				Type:        schema.TypeList,
@@ -145,8 +146,13 @@ func resourceWorkspaceUpdate(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	if d.HasChange("license") {
-		license := d.Get("license").(string)
+	// license is write-only, must read from raw config
+	licenseVal, licDiags := d.GetRawConfigAt(cty.GetAttrPath("license"))
+	if licDiags.HasError() {
+		return licDiags
+	}
+	if !licenseVal.IsNull() {
+		license := licenseVal.AsString()
 		if license != "" {
 			if _, err := c.UploadLicense(ctx, license); err != nil {
 				return diag.FromErr(err)

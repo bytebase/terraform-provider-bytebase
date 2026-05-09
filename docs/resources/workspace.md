@@ -17,7 +17,7 @@ The workspace resource.
 
 ### Optional
 
-- `license` (String, Sensitive) The license key for the workspace. Upload to activate a subscription plan.
+- `license` (String) The license key for the workspace. Upload to activate a subscription plan. This value is write-only and will not be stored in Terraform state.
 - `logo` (String) The branding logo as a data URI (e.g. data:image/png;base64,...).
 - `title` (String) The workspace title.
 
