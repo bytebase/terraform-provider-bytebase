@@ -58,7 +58,7 @@ resource "bytebase_setting" "approval_flow" {
       }
 
       source    = "REQUEST_ACCESS"
-      condition = "resource.unmask == true"
+      condition = "request.unmask == true"
     }
 
     rules {
