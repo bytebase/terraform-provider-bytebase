@@ -25,6 +25,7 @@ func resourceSetting() *schema.Resource {
 		ReadContext:   resourceSettingRead,
 		UpdateContext: resourceSettingUpsert,
 		DeleteContext: resourceSettingDelete,
+		CustomizeDiff: validateSettingShape,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -32,13 +33,14 @@ func resourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String()),
 				),
 			},
 			"approval_flow":       getWorkspaceApprovalSetting(false),
@@ -46,8 +48,33 @@ func resourceSetting() *schema.Resource {
 			"classification":      getClassificationSetting(false),
 			"semantic_types":      getSemanticTypesSetting(false),
 			"environment_setting": getEnvironmentSetting(false),
+			"app_im":              getAppIMSetting(false),
 		},
 	}
+}
+
+// validateSettingShape enforces shape requirements per setting name at plan
+// time. Currently: when name is settings/APP_IM, the app_im block must be
+// present, since AppIMSetting has no "no-op" representation that wouldn't
+// clobber server state.
+func validateSettingShape(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() {
+		return nil
+	}
+	nameValue := rawConfig.GetAttr("name")
+	if nameValue.IsNull() || !nameValue.IsKnown() {
+		return nil
+	}
+	appIMName := fmt.Sprintf("%s%s", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String())
+	if nameValue.AsString() != appIMName {
+		return nil
+	}
+	appIMValue := rawConfig.GetAttr("app_im")
+	if appIMValue.IsNull() || !appIMValue.IsKnown() || appIMValue.LengthInt() == 0 {
+		return errors.Errorf("app_im block is required when name is %s", appIMName)
+	}
+	return nil
 }
 
 func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -115,6 +142,16 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		setting.Value = &v1pb.SettingValue{
 			Value: &v1pb.SettingValue_Environment{
 				Environment: environmentSetting,
+			},
+		}
+	case v1pb.Setting_APP_IM:
+		appIMSetting, err := convertToV1AppIMSetting(d.GetRawConfig())
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_AppIm{
+				AppIm: appIMSetting,
 			},
 		}
 	default:
@@ -621,6 +658,12 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 		setting.Value = &v1pb.SettingValue{
 			Value: &v1pb.SettingValue_Environment{
 				Environment: &v1pb.EnvironmentSetting{},
+			},
+		}
+	case v1pb.Setting_APP_IM:
+		setting.Value = &v1pb.SettingValue{
+			Value: &v1pb.SettingValue_AppIm{
+				AppIm: &v1pb.AppIMSetting{},
 			},
 		}
 	default:

@@ -17,7 +17,7 @@ The setting data source.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details
+- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details
 
 ### Optional
 
@@ -27,6 +27,7 @@ The setting data source.
 
 ### Read-Only
 
+- `app_im` (List of Object) The APP_IM workspace setting. Configures Slack/Feishu/Wecom/Lark/DingTalk/Teams integrations. All credential and identifier fields are write-only — the server returns empty payloads on GET, so values cannot round-trip through state. (see [below for nested schema](#nestedatt--app_im))
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
 - `id` (String) The ID of this resource.
@@ -174,6 +175,75 @@ Optional:
 - `require_reset_password_for_first_login` (Boolean) require_reset_password_for_first_login requires users to reset their password after the 1st login.
 - `require_special_character` (Boolean) require_special_character requires the password must contain at least one special character.
 - `require_uppercase_letter` (Boolean) require_uppercase_letter requires the password must contain at least one upper case letter.
+
+
+
+<a id="nestedatt--app_im"></a>
+### Nested Schema for `app_im`
+
+Read-Only:
+
+- `dingtalk` (List of Object) (see [below for nested schema](#nestedobjatt--app_im--dingtalk))
+- `feishu` (List of Object) (see [below for nested schema](#nestedobjatt--app_im--feishu))
+- `lark` (List of Object) (see [below for nested schema](#nestedobjatt--app_im--lark))
+- `slack` (List of Object) (see [below for nested schema](#nestedobjatt--app_im--slack))
+- `teams` (List of Object) (see [below for nested schema](#nestedobjatt--app_im--teams))
+- `wecom` (List of Object) (see [below for nested schema](#nestedobjatt--app_im--wecom))
+
+<a id="nestedobjatt--app_im--dingtalk"></a>
+### Nested Schema for `app_im.dingtalk`
+
+Read-Only:
+
+- `client_id` (String)
+- `client_secret` (String)
+- `robot_code` (String)
+
+
+<a id="nestedobjatt--app_im--feishu"></a>
+### Nested Schema for `app_im.feishu`
+
+Read-Only:
+
+- `app_id` (String)
+- `app_secret` (String)
+
+
+<a id="nestedobjatt--app_im--lark"></a>
+### Nested Schema for `app_im.lark`
+
+Read-Only:
+
+- `app_id` (String)
+- `app_secret` (String)
+
+
+<a id="nestedobjatt--app_im--slack"></a>
+### Nested Schema for `app_im.slack`
+
+Read-Only:
+
+- `token` (String)
+
+
+<a id="nestedobjatt--app_im--teams"></a>
+### Nested Schema for `app_im.teams`
+
+Read-Only:
+
+- `client_id` (String)
+- `client_secret` (String)
+- `tenant_id` (String)
+
+
+<a id="nestedobjatt--app_im--wecom"></a>
+### Nested Schema for `app_im.wecom`
+
+Read-Only:
+
+- `agent_id` (String)
+- `corp_id` (String)
+- `secret` (String)
 
 
 

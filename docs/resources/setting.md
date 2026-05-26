@@ -17,10 +17,11 @@ The setting resource.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details
+- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details
 
 ### Optional
 
+- `app_im` (Block List, Max: 1) The APP_IM workspace setting. Configures Slack/Feishu/Wecom/Lark/DingTalk/Teams integrations. All credential and identifier fields are write-only — the server returns empty payloads on GET, so values cannot round-trip through state. (see [below for nested schema](#nestedblock--app_im))
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
@@ -30,6 +31,75 @@ The setting resource.
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--app_im"></a>
+### Nested Schema for `app_im`
+
+Optional:
+
+- `dingtalk` (Block List, Max: 1) DingTalk integration. (see [below for nested schema](#nestedblock--app_im--dingtalk))
+- `feishu` (Block List, Max: 1) Feishu integration. (see [below for nested schema](#nestedblock--app_im--feishu))
+- `lark` (Block List, Max: 1) Lark integration. (see [below for nested schema](#nestedblock--app_im--lark))
+- `slack` (Block List, Max: 1) Slack integration. (see [below for nested schema](#nestedblock--app_im--slack))
+- `teams` (Block List, Max: 1) Microsoft Teams integration. (see [below for nested schema](#nestedblock--app_im--teams))
+- `wecom` (Block List, Max: 1) WeCom integration. (see [below for nested schema](#nestedblock--app_im--wecom))
+
+<a id="nestedblock--app_im--dingtalk"></a>
+### Nested Schema for `app_im.dingtalk`
+
+Required:
+
+- `client_id` (String) The DingTalk client id. This value is write-only and will not be stored in Terraform state.
+- `client_secret` (String) The DingTalk client secret. This value is write-only and will not be stored in Terraform state.
+- `robot_code` (String) The DingTalk robot code. This value is write-only and will not be stored in Terraform state.
+
+
+<a id="nestedblock--app_im--feishu"></a>
+### Nested Schema for `app_im.feishu`
+
+Required:
+
+- `app_id` (String) The Feishu app id. This value is write-only and will not be stored in Terraform state.
+- `app_secret` (String) The Feishu app secret. This value is write-only and will not be stored in Terraform state.
+
+
+<a id="nestedblock--app_im--lark"></a>
+### Nested Schema for `app_im.lark`
+
+Required:
+
+- `app_id` (String) The Lark app id. This value is write-only and will not be stored in Terraform state.
+- `app_secret` (String) The Lark app secret. This value is write-only and will not be stored in Terraform state.
+
+
+<a id="nestedblock--app_im--slack"></a>
+### Nested Schema for `app_im.slack`
+
+Required:
+
+- `token` (String) The Slack bot token. This value is write-only and will not be stored in Terraform state.
+
+
+<a id="nestedblock--app_im--teams"></a>
+### Nested Schema for `app_im.teams`
+
+Required:
+
+- `client_id` (String) The Teams client id. This value is write-only and will not be stored in Terraform state.
+- `client_secret` (String) The Teams client secret. This value is write-only and will not be stored in Terraform state.
+- `tenant_id` (String) The Teams tenant id. This value is write-only and will not be stored in Terraform state.
+
+
+<a id="nestedblock--app_im--wecom"></a>
+### Nested Schema for `app_im.wecom`
+
+Required:
+
+- `agent_id` (String) The WeCom agent id. This value is write-only and will not be stored in Terraform state.
+- `corp_id` (String) The WeCom corp id. This value is write-only and will not be stored in Terraform state.
+- `secret` (String) The WeCom secret. This value is write-only and will not be stored in Terraform state.
+
+
 
 <a id="nestedblock--approval_flow"></a>
 ### Nested Schema for `approval_flow`

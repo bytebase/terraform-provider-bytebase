@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,6 +28,7 @@ func resourceProjct() *schema.Resource {
 		ReadWithoutTimeout:   resourceProjectRead,
 		UpdateWithoutTimeout: resourceProjectUpdate,
 		DeleteContext:        resourceProjectDelete,
+		CustomizeDiff:        validateProjectWebhooks,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -161,7 +163,7 @@ func resourceProjct() *schema.Resource {
 				},
 			},
 			"databases": getDatabasesSchema(false),
-			"webhooks":  getWebhooksSchema(false),
+			"webhooks":  getWebhooksSchema(false, true),
 		},
 	}
 }
@@ -457,7 +459,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
-	resp := setProject(ctx, c, d, project)
+	resp := setProject(ctx, c, d, project, true)
 	tflog.Debug(ctx, "[read project] read project finished", map[string]interface{}{
 		"project": project.Name,
 	})
@@ -574,26 +576,69 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 	return nil
 }
 
-func convertToV1Webhook(rawSchema interface{}) *v1pb.Webhook {
-	rawWebhook := rawSchema.(map[string]interface{})
+type webhookIdentity struct {
+	title string
+	typ   string
+}
+
+// validateProjectWebhooks enforces (title, type) uniqueness within webhooks at
+// plan time. With url being write-only, (title, type) is the stable identity
+// used for diffing config webhooks against server-side webhooks; duplicates
+// would make that matching ambiguous.
+func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() {
+		return nil
+	}
+	webhooksValue := rawConfig.GetAttr("webhooks")
+	if webhooksValue.IsNull() || !webhooksValue.IsKnown() {
+		return nil
+	}
+
+	seen := map[webhookIdentity]bool{}
+	it := webhooksValue.ElementIterator()
+	for it.Next() {
+		_, element := it.Element()
+		if element.IsNull() {
+			continue
+		}
+		titleValue := element.GetAttr("title")
+		typeValue := element.GetAttr("type")
+		if !titleValue.IsKnown() || titleValue.IsNull() || !typeValue.IsKnown() || typeValue.IsNull() {
+			continue
+		}
+		identity := webhookIdentity{
+			title: titleValue.AsString(),
+			typ:   typeValue.AsString(),
+		}
+		if seen[identity] {
+			return fmt.Errorf("duplicate webhook with title=%q and type=%q; (title, type) must be unique within a project because url is write-only and (title, type) is the identity used for diffing", identity.title, identity.typ)
+		}
+		seen[identity] = true
+	}
+	return nil
+}
+
+// convertCtyWebhook builds a v1pb.Webhook from a single raw-config element.
+// Reading from raw config is necessary because url is WriteOnly and absent
+// from the SDK-tracked value returned by d.Get.
+func convertCtyWebhook(element cty.Value) *v1pb.Webhook {
 	webhook := &v1pb.Webhook{
-		Title: rawWebhook["title"].(string),
-		Url:   rawWebhook["url"].(string),
-		Type:  v1pb.WebhookType(v1pb.WebhookType_value[rawWebhook["type"].(string)]),
+		Title: element.GetAttr("title").AsString(),
+		Url:   element.GetAttr("url").AsString(),
+		Type:  v1pb.WebhookType(v1pb.WebhookType_value[element.GetAttr("type").AsString()]),
 	}
-	if dm, ok := rawWebhook["direct_message"].(bool); ok {
-		webhook.DirectMessage = dm
+	if dm := element.GetAttr("direct_message"); !dm.IsNull() {
+		webhook.DirectMessage = dm.True()
 	}
-	if rawTypes, ok := rawWebhook["notification_types"]; ok {
-		switch v := rawTypes.(type) {
-		case *schema.Set:
-			for _, n := range v.List() {
-				webhook.NotificationTypes = append(webhook.NotificationTypes, v1pb.Activity_Type(v1pb.Activity_Type_value[n.(string)]))
-			}
-		case []string:
-			for _, n := range v {
-				webhook.NotificationTypes = append(webhook.NotificationTypes, v1pb.Activity_Type(v1pb.Activity_Type_value[n]))
-			}
+	if nt := element.GetAttr("notification_types"); !nt.IsNull() {
+		it := nt.ElementIterator()
+		for it.Next() {
+			_, v := it.Element()
+			webhook.NotificationTypes = append(
+				webhook.NotificationTypes,
+				v1pb.Activity_Type(v1pb.Activity_Type_value[v.AsString()]),
+			)
 		}
 	}
 	return webhook
@@ -601,7 +646,8 @@ func convertToV1Webhook(rawSchema interface{}) *v1pb.Webhook {
 
 func updateWebhooksInProject(ctx context.Context, d *schema.ResourceData, client api.Client, projectName string) diag.Diagnostics {
 	rawConfig := d.GetRawConfig()
-	if config := rawConfig.GetAttr("webhooks"); config.IsNull() {
+	webhooksValue := rawConfig.GetAttr("webhooks")
+	if webhooksValue.IsNull() {
 		return nil
 	}
 
@@ -610,22 +656,32 @@ func updateWebhooksInProject(ctx context.Context, d *schema.ResourceData, client
 		return diag.FromErr(err)
 	}
 
-	existedWebhookMap := map[string]*v1pb.Webhook{}
-	for _, webhook := range project.Webhooks {
-		existedWebhookMap[webhook.Name] = webhook
+	// Index existing webhooks by (title, type) — best stable identity available
+	// without server-assigned `name` being present in config.
+	existedByIdentity := map[webhookIdentity]*v1pb.Webhook{}
+	for _, w := range project.Webhooks {
+		existedByIdentity[webhookIdentity{title: w.Title, typ: w.Type.String()}] = w
 	}
 
-	rawWebhooks := d.Get("webhooks").(*schema.Set)
-	for _, w := range rawWebhooks.List() {
-		webhook := convertToV1Webhook(w)
-		if v, ok := existedWebhookMap[webhook.Name]; ok && v.Type == webhook.Type {
-			// Not support change the webhook type.
+	it := webhooksValue.ElementIterator()
+	for it.Next() {
+		_, element := it.Element()
+		if element.IsNull() {
+			continue
+		}
+
+		webhook := convertCtyWebhook(element)
+		identity := webhookIdentity{title: webhook.Title, typ: webhook.Type.String()}
+
+		if existing, ok := existedByIdentity[identity]; ok {
+			// Update path: preserve server-assigned Name on the patch.
+			webhook.Name = existing.Name
 			if _, err := client.UpdateProjectWebhook(ctx, webhook, []string{
 				"title", "url", "notification_type", "direct_message",
 			}); err != nil {
-				return diag.Errorf("failed to update webhook %s with error: %v", webhook.Name, err.Error())
+				return diag.Errorf("failed to update webhook %s with error: %v", existing.Name, err.Error())
 			}
-			delete(existedWebhookMap, webhook.Name)
+			delete(existedByIdentity, identity)
 		} else {
 			if _, err := client.CreateProjectWebhook(ctx, project.Name, webhook); err != nil {
 				return diag.Errorf("failed to create webhook in project %s with error: %v", project.Name, err.Error())
@@ -633,9 +689,9 @@ func updateWebhooksInProject(ctx context.Context, d *schema.ResourceData, client
 		}
 	}
 
-	for webhookName := range existedWebhookMap {
-		if err := client.DeleteProjectWebhook(ctx, webhookName); err != nil {
-			return diag.Errorf("failed to delete webhook %s with error: %v", webhookName, err.Error())
+	for _, w := range existedByIdentity {
+		if err := client.DeleteProjectWebhook(ctx, w.Name); err != nil {
+			return diag.Errorf("failed to delete webhook %s with error: %v", w.Name, err.Error())
 		}
 	}
 
