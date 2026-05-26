@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
@@ -612,7 +613,7 @@ func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interf
 			typ:   typeValue.AsString(),
 		}
 		if seen[identity] {
-			return fmt.Errorf("duplicate webhook with title=%q and type=%q; (title, type) must be unique within a project because url is write-only and (title, type) is the identity used for diffing", identity.title, identity.typ)
+			return errors.Errorf("duplicate webhook with title=%q and type=%q; (title, type) must be unique within a project because url is write-only and (title, type) is the identity used for diffing", identity.title, identity.typ)
 		}
 		seen[identity] = true
 	}
