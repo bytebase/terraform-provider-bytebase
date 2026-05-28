@@ -139,7 +139,7 @@ func dataSourceProjectList() *schema.Resource {
 							},
 						},
 						"databases": getDatabasesSchema(true),
-						"webhooks":  getWebhooksSchema(true),
+						"webhooks":  getWebhooksSchema(true, false),
 					},
 				},
 			},
@@ -199,7 +199,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 
 		databaseList := flattenDatabaseList(databases)
 		proj["databases"] = databaseList
-		proj["webhooks"] = schema.NewSet(webhookHash, flattenWebhookList(project.Webhooks))
+		proj["webhooks"] = flattenWebhookList(project.Webhooks, false)
 
 		projects = append(projects, proj)
 	}

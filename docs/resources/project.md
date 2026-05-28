@@ -38,7 +38,7 @@ The project resource.
 - `postgres_database_tenant_mode` (Boolean) Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended "set role <db_owner>" statement.
 - `require_issue_approval` (Boolean) Whether to require issue approval before rollout.
 - `require_plan_check_no_error` (Boolean) Whether to require plan check to have no error before rollout.
-- `webhooks` (Set of Object) The webhooks in the project. (see [below for nested schema](#nestedatt--webhooks))
+- `webhooks` (List of Object) The webhooks in the project. When url is write-only, webhook identity for diffing uses the (title, type) pair, and duplicate (title, type) pairs are rejected at plan time. (see [below for nested schema](#nestedatt--webhooks))
 
 ### Read-Only
 

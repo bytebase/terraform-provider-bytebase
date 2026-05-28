@@ -22,13 +22,14 @@ func dataSourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details`,
+				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String()),
 				),
 			},
 			"approval_flow":       getWorkspaceApprovalSetting(true),
@@ -36,6 +37,7 @@ func dataSourceSetting() *schema.Resource {
 			"classification":      getClassificationSetting(true),
 			"semantic_types":      getSemanticTypesSetting(true),
 			"environment_setting": getEnvironmentSetting(true),
+			"app_im":              getAppIMSetting(true),
 		},
 	}
 }
@@ -608,6 +610,12 @@ func setSettingMessage(d *schema.ResourceData, setting *v1pb.Setting) diag.Diagn
 		settingVal := flattenEnvironmentSetting(value)
 		if err := d.Set("environment_setting", settingVal); err != nil {
 			return diag.Errorf("cannot set environment_setting: %s", err.Error())
+		}
+	}
+	if value := setting.GetValue().GetAppIm(); value != nil {
+		settingVal := flattenAppIMSetting(value)
+		if err := d.Set("app_im", settingVal); err != nil {
+			return diag.Errorf("cannot set app_im: %s", err.Error())
 		}
 	}
 

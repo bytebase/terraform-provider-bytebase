@@ -120,17 +120,22 @@ func dataSourceProject() *schema.Resource {
 				},
 			},
 			"databases": getDatabasesSchema(true),
-			"webhooks":  getWebhooksSchema(true),
+			"webhooks":  getWebhooksSchema(true, false),
 		},
 	}
 }
 
-func getWebhooksSchema(computed bool) *schema.Schema {
+func getWebhooksSchema(computed, urlWriteOnly bool) *schema.Schema {
+	urlDescription := "The webhook URL"
+	if urlWriteOnly {
+		urlDescription = "The webhook URL. This value is write-only and will not be stored in Terraform state."
+	}
+
 	return &schema.Schema{
-		Type:        schema.TypeSet,
+		Type:        schema.TypeList,
 		Optional:    !computed,
 		Computed:    computed,
-		Description: "The webhooks in the project.",
+		Description: "The webhooks in the project. When url is write-only, webhook identity for diffing uses the (title, type) pair, and duplicate (title, type) pairs are rejected at plan time.",
 		MinItems:    0,
 		ConfigMode:  schema.SchemaConfigModeAttr,
 		Elem: &schema.Resource{
@@ -163,7 +168,8 @@ func getWebhooksSchema(computed bool) *schema.Schema {
 				"url": {
 					Type:         schema.TypeString,
 					Required:     true,
-					Description:  "The webhook URL",
+					WriteOnly:    urlWriteOnly,
+					Description:  urlDescription,
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 				"direct_message": {
@@ -191,7 +197,6 @@ func getWebhooksSchema(computed bool) *schema.Schema {
 				},
 			},
 		},
-		Set: webhookHash,
 	}
 }
 
@@ -216,7 +221,7 @@ func dataSourceProjectRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	d.SetId(project.Name)
-	return setProject(ctx, c, d, project)
+	return setProject(ctx, c, d, project, false)
 }
 
 func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
@@ -227,14 +232,22 @@ func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
 	return dbList
 }
 
-func flattenWebhookList(webhooks []*v1pb.Webhook) []interface{} {
+// flattenWebhookList builds the state representation of a project's webhooks.
+//
+// When urlWriteOnly is true (resource read path), the url field is omitted
+// from the flattened map. plugin-sdk v2.37.0 does not auto-strip nested
+// WriteOnly attributes inside TypeList elements during state serialization,
+// so the provider must omit them explicitly to keep secrets out of state.
+// For the data source path (urlWriteOnly=false), url is included.
+func flattenWebhookList(webhooks []*v1pb.Webhook, urlWriteOnly bool) []interface{} {
 	rawWebhooks := []interface{}{}
 	for _, webhook := range webhooks {
 		rawWebhook := make(map[string]interface{})
 		rawWebhook["title"] = webhook.Title
 		rawWebhook["type"] = webhook.Type.String()
-		rawWebhook["url"] = webhook.Url
-		// Include name for reference but it shouldn't affect the hash
+		if !urlWriteOnly {
+			rawWebhook["url"] = webhook.Url
+		}
 		rawWebhook["name"] = webhook.Name
 		rawWebhook["direct_message"] = webhook.DirectMessage
 
@@ -256,6 +269,7 @@ func setProject(
 	client api.Client,
 	d *schema.ResourceData,
 	project *v1pb.Project,
+	urlWriteOnly bool,
 ) diag.Diagnostics {
 	tflog.Debug(ctx, "[read project] start reading project", map[string]interface{}{
 		"project": project.Name,
@@ -332,14 +346,9 @@ func setProject(
 		"ms":        time.Since(startTime).Milliseconds(),
 	})
 
-	if err := d.Set("webhooks", schema.NewSet(webhookHash, flattenWebhookList(project.Webhooks))); err != nil {
+	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks, urlWriteOnly)); err != nil {
 		return diag.Errorf("cannot set webhooks for project: %s", err.Error())
 	}
 
 	return nil
-}
-
-func webhookHash(rawSchema interface{}) int {
-	webhook := convertToV1Webhook(rawSchema)
-	return internal.ToHash(webhook)
 }

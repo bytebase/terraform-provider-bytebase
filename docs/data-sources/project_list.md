@@ -47,7 +47,7 @@ Read-Only:
 - `require_plan_check_no_error` (Boolean)
 - `resource_id` (String)
 - `title` (String)
-- `webhooks` (Set of Object) (see [below for nested schema](#nestedobjatt--projects--webhooks))
+- `webhooks` (List of Object) (see [below for nested schema](#nestedobjatt--projects--webhooks))
 
 <a id="nestedobjatt--projects--issue_labels"></a>
 ### Nested Schema for `projects.issue_labels`
