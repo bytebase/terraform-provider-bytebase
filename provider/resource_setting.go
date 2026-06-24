@@ -223,11 +223,11 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 		workspacePrfile.DatabaseChangeMode = v1pb.DatabaseChangeMode(v1pb.DatabaseChangeMode_value[raw["database_change_mode"].(string)])
 		updateMasks = append(updateMasks, "value.workspace_profile.database_change_mode")
 	}
-	if config := workspaceRawConfig.GetAttr("maximum_role_expiration_in_seconds"); !config.IsNull() {
-		workspacePrfile.MaximumRoleExpiration = &durationpb.Duration{
-			Seconds: int64(raw["maximum_role_expiration_in_seconds"].(int)),
+	if config := workspaceRawConfig.GetAttr("maximum_request_expiration_in_seconds"); !config.IsNull() {
+		workspacePrfile.MaximumRequestExpiration = &durationpb.Duration{
+			Seconds: int64(raw["maximum_request_expiration_in_seconds"].(int)),
 		}
-		updateMasks = append(updateMasks, "value.workspace_profile.maximum_role_expiration")
+		updateMasks = append(updateMasks, "value.workspace_profile.maximum_request_expiration")
 	}
 	if config := workspaceRawConfig.GetAttr("announcement"); !config.IsNull() {
 		rawList := raw["announcement"].([]interface{})
@@ -235,11 +235,18 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 			workspacePrfile.Announcement = &v1pb.Announcement{}
 		} else {
 			raw := rawList[0].(map[string]interface{})
-			workspacePrfile.Announcement = &v1pb.Announcement{
-				Text:  raw["text"].(string),
-				Link:  raw["link"].(string),
-				Level: v1pb.Announcement_AlertLevel(v1pb.Announcement_AlertLevel_value[raw["level"].(string)]),
+			announcement := &v1pb.Announcement{
+				Text: raw["text"].(string),
+				Link: raw["link"].(string),
 			}
+			if themeList, ok := raw["theme"].([]interface{}); ok && len(themeList) > 0 {
+				rawTheme := themeList[0].(map[string]interface{})
+				announcement.Theme = &v1pb.Announcement_AnnouncementTheme{
+					Background: rawTheme["background"].(string),
+					Text:       rawTheme["text"].(string),
+				}
+			}
+			workspacePrfile.Announcement = announcement
 		}
 		updateMasks = append(updateMasks, "value.workspace_profile.announcement")
 	}
@@ -632,7 +639,7 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 			"value.workspace_profile.enforce_identity_domain",
 			"value.workspace_profile.domains",
 			"value.workspace_profile.database_change_mode",
-			"value.workspace_profile.maximum_role_expiration",
+			"value.workspace_profile.maximum_request_expiration",
 			"value.workspace_profile.announcement",
 			"value.workspace_profile.enable_audit_log_stdout",
 			"value.workspace_profile.sql_result_size",

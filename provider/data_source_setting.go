@@ -308,11 +308,11 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					}, false),
 					Description: "The workspace database change mode, support EDITOR or PIPELINE. Default PIPELINE",
 				},
-				"maximum_role_expiration_in_seconds": {
+				"maximum_request_expiration_in_seconds": {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					Computed:    true,
-					Description: "The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
+					Description: "The max expiration duration in seconds for role grants and data access requests. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
 				},
 				"announcement": {
 					Type:        schema.TypeList,
@@ -332,16 +332,26 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 								Optional:    true,
 								Description: "The optional link, user can follow the link to check extra details",
 							},
-							"level": {
-								Type:        schema.TypeString,
+							"theme": {
+								Type:        schema.TypeList,
 								Optional:    true,
-								Description: "The alert level of announcement",
-								Default:     v1pb.Announcement_ALERT_LEVEL_UNSPECIFIED.String(),
-								ValidateFunc: validation.StringInSlice([]string{
-									v1pb.Announcement_INFO.String(),
-									v1pb.Announcement_WARNING.String(),
-									v1pb.Announcement_CRITICAL.String(),
-								}, false),
+								MinItems:    0,
+								MaxItems:    1,
+								Description: "Banner colors. Built-in presets (info/warning/critical) are a frontend-only concept that seeds these colors; the store only holds them.",
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"background": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Description: "The background color of the banner, in \"r g b\" format",
+										},
+										"text": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Description: "The text color of the banner, in \"r g b\" format",
+										},
+									},
+								},
 							},
 						},
 					},
@@ -683,21 +693,28 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	raw["domains"] = setting.Domains
 	raw["database_change_mode"] = setting.DatabaseChangeMode.String()
 
-	if v := setting.GetMaximumRoleExpiration(); v != nil {
-		raw["maximum_role_expiration_in_seconds"] = int(v.Seconds)
+	if v := setting.GetMaximumRequestExpiration(); v != nil {
+		raw["maximum_request_expiration_in_seconds"] = int(v.Seconds)
 	}
 	// Handle announcement field - need to be careful with empty announcements
 	if v := setting.GetAnnouncement(); v != nil {
 		// Check if this is truly an empty announcement (all fields at their zero/default values)
-		isEmpty := v.Text == "" && v.Link == "" && v.Level == v1pb.Announcement_ALERT_LEVEL_UNSPECIFIED
+		theme := v.GetTheme()
+		isEmpty := v.Text == "" && v.Link == "" && theme == nil
 		if !isEmpty {
-			raw["announcement"] = []any{
-				map[string]any{
-					"text":  v.Text,
-					"link":  v.Link,
-					"level": v.Level.String(),
-				},
+			announcement := map[string]any{
+				"text": v.Text,
+				"link": v.Link,
 			}
+			if theme != nil {
+				announcement["theme"] = []any{
+					map[string]any{
+						"background": theme.GetBackground(),
+						"text":       theme.GetText(),
+					},
+				}
+			}
+			raw["announcement"] = []any{announcement}
 		}
 		// If announcement is empty, don't set it at all - let Terraform handle it as unset
 	}

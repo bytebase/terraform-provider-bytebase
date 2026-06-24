@@ -1,11 +1,11 @@
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1 h1:j9yeqTWEFrtimt8Nng2MIeRrpoCvQzM9/g25XTvqUGg=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1/go.mod h1:tvtbpgaVXZX4g6Pn+AnzFycuRK3MOz5HJfEGeEllXYM=
-buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.2-20260423091057-19b17d399e1e.1 h1:7CbXw1DR+cNNCu+MNS+xCX9amVmfcbLETaFvULBqx88=
-buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.2-20260423091057-19b17d399e1e.1/go.mod h1:h6CUl7zybeb6KZKkPnNrZv+rCg7Tu81DOyPlfdu+BUY=
-buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260423091057-19b17d399e1e.1 h1:GGZUtSggAP44X1e7L1Stm4dS1q/irFvEFmbVFSGjyI0=
-buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260423091057-19b17d399e1e.1/go.mod h1:58Dgdo27pJRAZyhYEHsVpeVoZGGKP09/PW9k1p5a3J0=
-connectrpc.com/connect v1.19.2 h1:McQ83FGdzL+t60peksi0gXC7MQ/iLKgLduAnThbM0mo=
-connectrpc.com/connect v1.19.2/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.20.0-20260623093203-bfc501dc2ad7.1 h1:LoIcKBz3tg2mz/M0+0IBfggwV3jUay/afcUezYneKTM=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.20.0-20260623093203-bfc501dc2ad7.1/go.mod h1:oNdN2Lqjw98KqWYL5z0/71bKR06BYCLfqn5IDJAItaQ=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260623093203-bfc501dc2ad7.1 h1:DGTPjZzDkf/EzuzNk/SPxd2Iuj08F+XTAweyGCmZrqA=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260623093203-bfc501dc2ad7.1/go.mod h1:58Dgdo27pJRAZyhYEHsVpeVoZGGKP09/PW9k1p5a3J0=
+connectrpc.com/connect v1.20.0 h1:6TNDAB+WeNd2uolWNlYczB5E0KNNaVMNUEx8JEUsPmQ=
+connectrpc.com/connect v1.20.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
 github.com/Masterminds/goutils v1.1.0/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=

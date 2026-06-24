@@ -169,6 +169,7 @@ Read-Only:
 - `password_key_name` (String)
 - `secret_name` (String)
 - `token` (String)
+- `token_type` (String)
 - `url` (String)
 
 <a id="nestedobjatt--instances--data_sources--external_secret--vault--app_role"></a>

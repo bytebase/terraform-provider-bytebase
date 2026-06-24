@@ -418,6 +418,11 @@ func getExternalSecretSchema() *schema.Schema {
 								Sensitive:   true,
 								Description: "The root token without TTL. Learn more: https://developer.hashicorp.com/vault/docs/commands/operator/generate-root",
 							},
+							"token_type": {
+								Type:        schema.TypeString,
+								Computed:    true,
+								Description: "How to interpret the token field. PLAIN (the literal token value, default), ENVIRONMENT (the name of an environment variable on the Bytebase server holding the token), or FILE (a path to a file on the Bytebase server holding the token).",
+							},
 							"app_role": {
 								Type:        schema.TypeList,
 								Computed:    true,

@@ -1,13 +1,11 @@
 module github.com/bytebase/terraform-provider-bytebase
 
-go 1.24.4
-
-toolchain go1.24.5
+go 1.25.0
 
 require (
-	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.19.2-20260423091057-19b17d399e1e.1
-	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260423091057-19b17d399e1e.1
-	connectrpc.com/connect v1.19.2
+	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.20.0-20260623093203-bfc501dc2ad7.1
+	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.11-20260623093203-bfc501dc2ad7.1
+	connectrpc.com/connect v1.20.0
 	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
