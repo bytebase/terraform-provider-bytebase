@@ -164,7 +164,7 @@ func resourceProjct() *schema.Resource {
 				},
 			},
 			"databases": getDatabasesSchema(false),
-			"webhooks":  getWebhooksSchema(false, true),
+			"webhooks":  getWebhooksSchema(false, false),
 		},
 	}
 }
@@ -460,7 +460,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
-	resp := setProject(ctx, c, d, project, true)
+	resp := setProject(ctx, c, d, project, false)
 	tflog.Debug(ctx, "[read project] read project finished", map[string]interface{}{
 		"project": project.Name,
 	})

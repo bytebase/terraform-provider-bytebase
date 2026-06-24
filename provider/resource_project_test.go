@@ -6,12 +6,40 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
+
+// TestResourceProjectWebhookURLNotWriteOnly guards against the v3.18.1 regression
+// (PR #199) where bytebase_project.webhooks[*].url was marked WriteOnly and dropped
+// from state on read. Because `webhooks` is a TypeList + SchemaConfigModeAttr
+// attribute (not a nested block), the nested WriteOnly flag is silently inert, yet
+// the url was still omitted from state — producing a perpetual `url` diff on every
+// plan. The url must remain a normal, state-stored attribute.
+func TestResourceProjectWebhookURLNotWriteOnly(t *testing.T) {
+	webhooks, ok := resourceProjct().Schema["webhooks"]
+	if !ok {
+		t.Fatal("webhooks schema is missing")
+	}
+	elem, ok := webhooks.Elem.(*schema.Resource)
+	if !ok {
+		t.Fatalf("webhooks Elem = %T, want *schema.Resource", webhooks.Elem)
+	}
+	url, ok := elem.Schema["url"]
+	if !ok {
+		t.Fatal("webhooks.url schema is missing")
+	}
+	if url.WriteOnly {
+		t.Error("webhooks.url must not be WriteOnly: write-only is inert inside a TypeList+SchemaConfigModeAttr attribute, so it only causes the url to be dropped from state -> perpetual diff")
+	}
+	if !url.Required {
+		t.Error("webhooks.url should be Required so it is stored in and compared against state")
+	}
+}
 
 func TestAccProject(t *testing.T) {
 	identifier := "new_project"
