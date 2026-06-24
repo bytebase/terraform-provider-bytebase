@@ -1195,6 +1195,8 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 						},
 					}
 				}
+			default:
+				// Unknown authentication type; nothing to propagate.
 			}
 
 			// SASL config - propagate from old state
@@ -1261,12 +1263,16 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 						appRole["secret"] = ds.GetExternalSecret().GetAppRole().GetSecretId()
 					}
 					vault["app_role"] = []any{appRole}
+				default:
+					// Unknown vault auth type; leave auth fields unset.
 				}
 				raw["external_secret"] = []any{
 					map[string]interface{}{
 						"vault": []any{vault},
 					},
 				}
+			default:
+				// Unknown external secret type; nothing to propagate.
 			}
 		}
 		res = append(res, raw)
@@ -1536,6 +1542,8 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 				},
 			}
 		}
+	default:
+		// Unknown authentication type; no credential validation needed.
 	}
 
 	if v, ok := obj["authentication_private_key"].(string); ok && v != "" {

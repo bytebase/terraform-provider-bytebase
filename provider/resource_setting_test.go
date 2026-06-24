@@ -88,7 +88,8 @@ func TestAccSetting_WorkspaceProfile(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.enable_audit_log_stdout", "true"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.text", "Test announcement"),
-					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.level", "INFO"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.background", "255 247 224"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.text", "151 90 22"),
 				),
 			},
 		},
@@ -364,13 +365,16 @@ resource "bytebase_setting" "%s" {
 		disallow_password_signin           = false
 		database_change_mode               = "EDITOR"
 		domains                            = ["example.com", "test.com"]
-		enforce_identity_domain            = true
-		maximum_role_expiration_in_seconds = 86400
-		enable_audit_log_stdout            = true
+		enforce_identity_domain               = true
+		maximum_request_expiration_in_seconds = 86400
+		enable_audit_log_stdout               = true
 		announcement {
-			text  = "Test announcement"
-			link  = "https://example.com/announcement"
-			level = "INFO"
+			text = "Test announcement"
+			link = "https://example.com/announcement"
+			theme {
+				background = "255 247 224"
+				text       = "151 90 22"
+			}
 		}
 	}
 }

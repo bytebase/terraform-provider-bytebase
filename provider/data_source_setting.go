@@ -849,6 +849,8 @@ func flattenSemanticTypesSetting(setting *v1pb.SemanticTypeSetting) []interface{
 						},
 					},
 				}
+			default:
+				// Unknown masking algorithm; leave algorithm unset.
 			}
 		}
 

@@ -226,6 +226,8 @@ func flattenAppIMSetting(setting *v1pb.AppIMSetting) []interface{} {
 			block["dingtalk"] = []interface{}{map[string]interface{}{"client_id": "", "client_secret": "", "robot_code": ""}}
 		case v1pb.WebhookType_TEAMS:
 			block["teams"] = []interface{}{map[string]interface{}{"tenant_id": "", "client_id": "", "client_secret": ""}}
+		default:
+			// Unknown IM type; skip.
 		}
 	}
 

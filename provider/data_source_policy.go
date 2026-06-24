@@ -353,6 +353,8 @@ func flattenPolicyPayload(policy *v1pb.Policy) (string, interface{}, diag.Diagno
 			rolloutPolicy := flattenQueryDataPolicy(p)
 			return "query_data_policy", rolloutPolicy, nil
 		}
+	default:
+		// Unsupported policy type; fall through to the error below.
 	}
 
 	return "", nil, diag.Errorf("unsupported policy: %s", policy.Name)
