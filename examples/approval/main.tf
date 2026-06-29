@@ -40,20 +40,6 @@ resource "bytebase_setting" "approval_flow" {
 
     rules {
       flow {
-        title = "Project Owner review"
-
-        # Approval flow following the step order.
-        roles = [
-          "roles/projectOwner"
-        ]
-      }
-
-      source    = "EXPORT_DATA"
-      condition = "resource.environment_id == \"prod\" && resource.table_name == \"employee\""
-    }
-
-    rules {
-      flow {
         title = "Fallback rule 1"
 
         # Approval flow following the step order.

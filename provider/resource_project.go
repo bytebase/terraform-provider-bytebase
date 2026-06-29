@@ -583,9 +583,9 @@ type webhookIdentity struct {
 }
 
 // validateProjectWebhooks enforces (title, type) uniqueness within webhooks at
-// plan time. With url being write-only, (title, type) is the stable identity
-// used for diffing config webhooks against server-side webhooks; duplicates
-// would make that matching ambiguous.
+// plan time. The plaintext URL is not stored in state, so (title, type) is the
+// stable identity used for matching config webhooks against server-side
+// webhooks; duplicates would make that matching ambiguous.
 func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	rawConfig := d.GetRawConfig()
 	if rawConfig.IsNull() {
@@ -613,7 +613,7 @@ func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interf
 			typ:   typeValue.AsString(),
 		}
 		if seen[identity] {
-			return errors.Errorf("duplicate webhook with title=%q and type=%q; (title, type) must be unique within a project because url is write-only and (title, type) is the identity used for diffing", identity.title, identity.typ)
+			return errors.Errorf("duplicate webhook with title=%q and type=%q; (title, type) must be unique within a project because plaintext url is not stored in state and (title, type) is the identity used for matching", identity.title, identity.typ)
 		}
 		seen[identity] = true
 	}
@@ -621,8 +621,8 @@ func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interf
 }
 
 // convertCtyWebhook builds a v1pb.Webhook from a single raw-config element.
-// Reading from raw config is necessary because url is WriteOnly and absent
-// from the SDK-tracked value returned by d.Get.
+// Reading from raw config is necessary because d.Get returns the state-shaped
+// URL digest, while the API update needs the plaintext URL.
 func convertCtyWebhook(element cty.Value) *v1pb.Webhook {
 	webhook := &v1pb.Webhook{
 		Title: element.GetAttr("title").AsString(),

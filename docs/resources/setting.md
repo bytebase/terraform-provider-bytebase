@@ -118,7 +118,7 @@ Required:
 
 Optional:
 
-- `source` (String) The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, EXPORT_DATA, REQUEST_ROLE, or REQUEST_ACCESS. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.
+- `source` (String) The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, REQUEST_ROLE, or REQUEST_ACCESS. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.
 
 <a id="nestedblock--approval_flow--rules--flow"></a>
 ### Nested Schema for `approval_flow.rules.flow`
