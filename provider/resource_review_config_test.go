@@ -54,15 +54,12 @@ func TestReviewRuleHashIncludesPayload(t *testing.T) {
 	}
 }
 
-func TestSetReviewConfigPreservesConfiguredResourcesWhenResponseOmitsResources(t *testing.T) {
+func TestSetReviewConfigSetsResourcesFromResponse(t *testing.T) {
 	resourceSchema := resourceReviewConfig().Schema
 	d := schema.TestResourceDataRaw(t, resourceSchema, map[string]interface{}{
 		"resource_id": "review-config-for-env-test",
 		"title":       "Review config for env test",
 		"enabled":     true,
-		"resources": []interface{}{
-			"environments/test",
-		},
 		"rules": []interface{}{
 			map[string]interface{}{
 				"type":   v1pb.SQLReviewRule_STATEMENT_WHERE_REQUIRE_SELECT.String(),
@@ -76,6 +73,9 @@ func TestSetReviewConfigPreservesConfiguredResourcesWhenResponseOmitsResources(t
 		Name:    "reviewConfigs/review-config-for-env-test",
 		Title:   "Review config for env test",
 		Enabled: true,
+		Resources: []string{
+			"environments/test",
+		},
 		Rules: []*v1pb.SQLReviewRule{
 			{
 				Type:   v1pb.SQLReviewRule_STATEMENT_WHERE_REQUIRE_SELECT,
@@ -90,7 +90,7 @@ func TestSetReviewConfigPreservesConfiguredResourcesWhenResponseOmitsResources(t
 
 	resources := d.Get("resources").(*schema.Set)
 	if !resources.Contains("environments/test") {
-		t.Fatalf("expected configured resources to remain in state, got %#v", resources.List())
+		t.Fatalf("expected resources from response to be set in state, got %#v", resources.List())
 	}
 }
 

@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
@@ -600,7 +600,7 @@ func normalizeReviewRulePayloadForHash(raw interface{}) string {
 		for key := range rawMap {
 			keys = append(keys, key)
 		}
-		sort.Strings(keys)
+		slices.Sort(keys)
 
 		mapParts := make([]string, 0, len(keys))
 		for _, key := range keys {
