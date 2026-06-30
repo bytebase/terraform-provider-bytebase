@@ -365,6 +365,19 @@ func (c *mockClient) UpsertPolicy(_ context.Context, patch *v1pb.Policy, updateM
 				QueryDataPolicy: v,
 			}
 		}
+	case v1pb.PolicyType_TAG:
+		if !existed {
+			if patch.GetTagPolicy() == nil {
+				return nil, errors.Errorf("payload is required to create the policy")
+			}
+		}
+		if slices.Contains(updateMasks, "tag_policy") {
+			if v := patch.GetTagPolicy(); v != nil {
+				policy.Policy = &v1pb.Policy_TagPolicy{
+					TagPolicy: v,
+				}
+			}
+		}
 	default:
 		return nil, errors.Errorf("invalid policy type %v", policyType)
 	}
