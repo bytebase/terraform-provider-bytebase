@@ -2,7 +2,7 @@ package internal
 
 import (
 	"encoding/json"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -79,7 +79,7 @@ func sortMapKeys(v any) any {
 		for k := range t {
 			keys = append(keys, k)
 		}
-		sort.Strings(keys)
+		slices.Sort(keys)
 		out := make(map[string]any, len(t))
 		for _, k := range keys {
 			out[k] = sortMapKeys(t[k])

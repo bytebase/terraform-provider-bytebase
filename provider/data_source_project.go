@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -98,11 +100,7 @@ func dataSourceProject() *schema.Resource {
 							Computed:    true,
 							Description: "The label value/name.",
 						},
-						"color": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The color code for the label.",
-						},
+						"color": colorBlockSchema("The label color.", true),
 						"group": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -125,17 +123,21 @@ func dataSourceProject() *schema.Resource {
 	}
 }
 
-func getWebhooksSchema(computed, urlWriteOnly bool) *schema.Schema {
+func getWebhooksSchema(computed, hashURL bool) *schema.Schema {
 	urlDescription := "The webhook URL"
-	if urlWriteOnly {
-		urlDescription = "The webhook URL. This value is write-only and will not be stored in Terraform state."
+	if hashURL {
+		urlDescription = "The webhook URL. The plaintext value is not stored in Terraform state; only a SHA-256 digest is stored for diff detection."
+	}
+	description := "The webhooks in the project."
+	if hashURL {
+		description = "The webhooks in the project. The plaintext url is stored as a SHA-256 digest in Terraform state; webhook identity for updates uses the (title, type) pair, and duplicate (title, type) pairs are rejected at plan time."
 	}
 
 	return &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    !computed,
 		Computed:    computed,
-		Description: "The webhooks in the project. When url is write-only, webhook identity for diffing uses the (title, type) pair, and duplicate (title, type) pairs are rejected at plan time.",
+		Description: description,
 		MinItems:    0,
 		ConfigMode:  schema.SchemaConfigModeAttr,
 		Elem: &schema.Resource{
@@ -168,7 +170,8 @@ func getWebhooksSchema(computed, urlWriteOnly bool) *schema.Schema {
 				"url": {
 					Type:         schema.TypeString,
 					Required:     true,
-					WriteOnly:    urlWriteOnly,
+					Sensitive:    hashURL,
+					StateFunc:    webhookURLHashStateFunc(hashURL),
 					Description:  urlDescription,
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
@@ -197,6 +200,20 @@ func getWebhooksSchema(computed, urlWriteOnly bool) *schema.Schema {
 				},
 			},
 		},
+	}
+}
+
+func webhookURLHashStateFunc(enabled bool) schema.SchemaStateFunc {
+	if !enabled {
+		return nil
+	}
+	return func(v interface{}) string {
+		s, ok := v.(string)
+		if !ok || s == "" {
+			return ""
+		}
+		sum := sha256.Sum256([]byte(s))
+		return hex.EncodeToString(sum[:])
 	}
 }
 
@@ -234,18 +251,20 @@ func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
 
 // flattenWebhookList builds the state representation of a project's webhooks.
 //
-// When urlWriteOnly is true (resource read path), the url field is omitted
-// from the flattened map. plugin-sdk v2.37.0 does not auto-strip nested
-// WriteOnly attributes inside TypeList elements during state serialization,
-// so the provider must omit them explicitly to keep secrets out of state.
-// For the data source path (urlWriteOnly=false), url is included.
-func flattenWebhookList(webhooks []*v1pb.Webhook, urlWriteOnly bool) []interface{} {
+// When hashURL is true (resource read path), the url field is represented as
+// a SHA-256 digest so Terraform can diff URL changes without storing plaintext
+// webhook secrets in state. For the data source path (hashURL=false), url is
+// included as returned by the API.
+func flattenWebhookList(webhooks []*v1pb.Webhook, hashURL bool) []interface{} {
+	hashURLState := webhookURLHashStateFunc(hashURL)
 	rawWebhooks := []interface{}{}
 	for _, webhook := range webhooks {
 		rawWebhook := make(map[string]interface{})
 		rawWebhook["title"] = webhook.Title
 		rawWebhook["type"] = webhook.Type.String()
-		if !urlWriteOnly {
+		if hashURLState != nil {
+			rawWebhook["url"] = hashURLState(webhook.Url)
+		} else {
 			rawWebhook["url"] = webhook.Url
 		}
 		rawWebhook["name"] = webhook.Name
@@ -269,7 +288,7 @@ func setProject(
 	client api.Client,
 	d *schema.ResourceData,
 	project *v1pb.Project,
-	urlWriteOnly bool,
+	hashURL bool,
 ) diag.Diagnostics {
 	tflog.Debug(ctx, "[read project] start reading project", map[string]interface{}{
 		"project": project.Name,
@@ -346,7 +365,7 @@ func setProject(
 		"ms":        time.Since(startTime).Milliseconds(),
 	})
 
-	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks, urlWriteOnly)); err != nil {
+	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks, hashURL)); err != nil {
 		return diag.Errorf("cannot set webhooks for project: %s", err.Error())
 	}
 

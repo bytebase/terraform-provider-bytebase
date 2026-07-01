@@ -8,12 +8,99 @@ import (
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
+
+func TestReviewRuleHashIncludesPayload(t *testing.T) {
+	base := map[string]interface{}{
+		"type":   v1pb.SQLReviewRule_COLUMN_REQUIRED.String(),
+		"engine": v1pb.Engine_POSTGRES.String(),
+		"level":  v1pb.SQLReviewRule_WARNING.String(),
+	}
+
+	stringArrayRule := cloneReviewRuleForTest(base)
+	stringArrayRule["string_array_payload"] = []interface{}{"id"}
+	changedStringArrayRule := cloneReviewRuleForTest(base)
+	changedStringArrayRule["string_array_payload"] = []interface{}{"id", "created_ts"}
+	if reviewRuleHash(stringArrayRule) == reviewRuleHash(changedStringArrayRule) {
+		t.Fatal("review rule hash should change when string_array_payload changes")
+	}
+
+	namingRule := map[string]interface{}{
+		"type":   v1pb.SQLReviewRule_NAMING_TABLE.String(),
+		"engine": v1pb.Engine_POSTGRES.String(),
+		"level":  v1pb.SQLReviewRule_WARNING.String(),
+		"naming_payload": []interface{}{
+			map[string]interface{}{
+				"format":     "^[a-z]+$",
+				"max_length": 64,
+			},
+		},
+	}
+	changedNamingRule := cloneReviewRuleForTest(namingRule)
+	changedNamingRule["naming_payload"] = []interface{}{
+		map[string]interface{}{
+			"format":     "^[a-z][a-z0-9_]+$",
+			"max_length": 64,
+		},
+	}
+	if reviewRuleHash(namingRule) == reviewRuleHash(changedNamingRule) {
+		t.Fatal("review rule hash should change when naming_payload changes")
+	}
+}
+
+func TestSetReviewConfigSetsResourcesFromResponse(t *testing.T) {
+	resourceSchema := resourceReviewConfig().Schema
+	d := schema.TestResourceDataRaw(t, resourceSchema, map[string]interface{}{
+		"resource_id": "review-config-for-env-test",
+		"title":       "Review config for env test",
+		"enabled":     true,
+		"rules": []interface{}{
+			map[string]interface{}{
+				"type":   v1pb.SQLReviewRule_STATEMENT_WHERE_REQUIRE_SELECT.String(),
+				"engine": v1pb.Engine_POSTGRES.String(),
+				"level":  v1pb.SQLReviewRule_WARNING.String(),
+			},
+		},
+	})
+
+	diags := setReviewConfig(d, &v1pb.ReviewConfig{
+		Name:    "reviewConfigs/review-config-for-env-test",
+		Title:   "Review config for env test",
+		Enabled: true,
+		Resources: []string{
+			"environments/test",
+		},
+		Rules: []*v1pb.SQLReviewRule{
+			{
+				Type:   v1pb.SQLReviewRule_STATEMENT_WHERE_REQUIRE_SELECT,
+				Engine: v1pb.Engine_POSTGRES,
+				Level:  v1pb.SQLReviewRule_WARNING,
+			},
+		},
+	})
+	if diags.HasError() {
+		t.Fatalf("set review config returned diagnostics: %v", diags)
+	}
+
+	resources := d.Get("resources").(*schema.Set)
+	if !resources.Contains("environments/test") {
+		t.Fatalf("expected resources from response to be set in state, got %#v", resources.List())
+	}
+}
+
+func cloneReviewRuleForTest(rule map[string]interface{}) map[string]interface{} {
+	clone := make(map[string]interface{}, len(rule))
+	for key, value := range rule {
+		clone[key] = value
+	}
+	return clone
+}
 
 func TestAccReviewConfig(t *testing.T) {
 	identifier := "test_review"
@@ -151,6 +238,25 @@ resource "bytebase_review_config" "%s" {
 }
 `, identifier),
 				ExpectError: regexp.MustCompile(`(expected rules.0.level to be one of|must be one of)`),
+			},
+			// Invalid attached resource
+			{
+				Config: fmt.Sprintf(`
+resource "bytebase_review_config" "%s" {
+	resource_id = "test-review"
+	title       = "Test Review"
+	enabled     = true
+	resources = [
+		"instances/test",
+	]
+	rules {
+		type   = "STATEMENT_WHERE_REQUIRE_SELECT"
+		engine = "POSTGRES"
+		level  = "WARNING"
+	}
+}
+`, identifier),
+				ExpectError: regexp.MustCompile(`invalid resource, only support projects/\{id\} or environments/\{id\}`),
 			},
 		},
 	})

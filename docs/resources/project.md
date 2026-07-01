@@ -38,7 +38,7 @@ The project resource.
 - `postgres_database_tenant_mode` (Boolean) Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended "set role <db_owner>" statement.
 - `require_issue_approval` (Boolean) Whether to require issue approval before rollout.
 - `require_plan_check_no_error` (Boolean) Whether to require plan check to have no error before rollout.
-- `webhooks` (List of Object) The webhooks in the project. When url is write-only, webhook identity for diffing uses the (title, type) pair, and duplicate (title, type) pairs are rejected at plan time. (see [below for nested schema](#nestedatt--webhooks))
+- `webhooks` (List of Object) The webhooks in the project. The plaintext url is stored as a SHA-256 digest in Terraform state; webhook identity for updates uses the (title, type) pair, and duplicate (title, type) pairs are rejected at plan time. (see [below for nested schema](#nestedatt--webhooks))
 
 ### Read-Only
 
@@ -54,8 +54,18 @@ Required:
 
 Optional:
 
-- `color` (String) The color code for the label (e.g., hex color).
+- `color` (Block List, Max: 1) The label color. (see [below for nested schema](#nestedblock--issue_labels--color))
 - `group` (String) The group this label belongs to.
+
+<a id="nestedblock--issue_labels--color"></a>
+### Nested Schema for `issue_labels.color`
+
+Required:
+
+- `blue` (Number) The amount of blue in the color as a value in the interval [0, 1].
+- `green` (Number) The amount of green in the color as a value in the interval [0, 1].
+- `red` (Number) The amount of red in the color as a value in the interval [0, 1].
+
 
 
 <a id="nestedatt--webhooks"></a>

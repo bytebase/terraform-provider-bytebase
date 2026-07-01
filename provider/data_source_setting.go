@@ -308,11 +308,11 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					}, false),
 					Description: "The workspace database change mode, support EDITOR or PIPELINE. Default PIPELINE",
 				},
-				"maximum_role_expiration_in_seconds": {
+				"maximum_request_expiration_in_seconds": {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					Computed:    true,
-					Description: "The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
+					Description: "The max expiration duration in seconds for role grants and data access requests. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
 				},
 				"announcement": {
 					Type:        schema.TypeList,
@@ -332,17 +332,7 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 								Optional:    true,
 								Description: "The optional link, user can follow the link to check extra details",
 							},
-							"level": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								Description: "The alert level of announcement",
-								Default:     v1pb.Announcement_ALERT_LEVEL_UNSPECIFIED.String(),
-								ValidateFunc: validation.StringInSlice([]string{
-									v1pb.Announcement_INFO.String(),
-									v1pb.Announcement_WARNING.String(),
-									v1pb.Announcement_CRITICAL.String(),
-								}, false),
-							},
+							"theme": announcementThemeSchema(computed),
 						},
 					},
 				},
@@ -442,6 +432,26 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 	}
 }
 
+func announcementThemeSchema(computed bool) *schema.Schema {
+	result := &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    !computed,
+		Computed:    computed,
+		Description: "Banner colors. Built-in presets (info/warning/critical) are a frontend-only concept that seeds these colors; the store only holds them.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"background": colorBlockSchema("The background color of the banner.", computed),
+				"text":       colorBlockSchema("The text color of the banner.", computed),
+			},
+		},
+	}
+	if !computed {
+		result.MinItems = 0
+		result.MaxItems = 1
+	}
+	return result
+}
+
 func getEnvironmentSetting(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Computed:    computed,
@@ -474,11 +484,7 @@ func getEnvironmentSetting(computed bool) *schema.Schema {
 								ValidateFunc: validation.StringIsNotEmpty,
 								Description:  "The environment display name.",
 							},
-							"color": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								Description: "The environment color.",
-							},
+							"color": colorBlockSchema("The environment color.", computed),
 							"protected": {
 								Type:        schema.TypeBool,
 								Optional:    true,
@@ -542,11 +548,10 @@ func getWorkspaceApprovalSetting(computed bool) *schema.Schema {
 							"source": {
 								Optional:    true,
 								Type:        schema.TypeString,
-								Description: `The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, EXPORT_DATA, REQUEST_ROLE, or REQUEST_ACCESS. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.`,
+								Description: `The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, REQUEST_ROLE, or REQUEST_ACCESS. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.`,
 								ValidateFunc: validation.StringInSlice([]string{
 									v1pb.WorkspaceApprovalSetting_Rule_CHANGE_DATABASE.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_CREATE_DATABASE.String(),
-									v1pb.WorkspaceApprovalSetting_Rule_EXPORT_DATA.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_REQUEST_ROLE.String(),
 									v1pb.WorkspaceApprovalSetting_Rule_REQUEST_ACCESS.String(),
 								}, false),
@@ -629,7 +634,7 @@ func flattenEnvironmentSetting(setting *v1pb.EnvironmentSetting) []interface{} {
 		raw := map[string]interface{}{
 			"id":        environment.Id,
 			"name":      environment.Name,
-			"color":     environment.Color,
+			"color":     protoColorToBlock(environment.Color),
 			"title":     environment.Title,
 			"protected": environment.Tags["protected"] == "protected",
 		}
@@ -683,21 +688,28 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	raw["domains"] = setting.Domains
 	raw["database_change_mode"] = setting.DatabaseChangeMode.String()
 
-	if v := setting.GetMaximumRoleExpiration(); v != nil {
-		raw["maximum_role_expiration_in_seconds"] = int(v.Seconds)
+	if v := setting.GetMaximumRequestExpiration(); v != nil {
+		raw["maximum_request_expiration_in_seconds"] = int(v.Seconds)
 	}
 	// Handle announcement field - need to be careful with empty announcements
 	if v := setting.GetAnnouncement(); v != nil {
 		// Check if this is truly an empty announcement (all fields at their zero/default values)
-		isEmpty := v.Text == "" && v.Link == "" && v.Level == v1pb.Announcement_ALERT_LEVEL_UNSPECIFIED
+		theme := v.GetTheme()
+		isEmpty := v.Text == "" && v.Link == "" && theme == nil
 		if !isEmpty {
-			raw["announcement"] = []any{
-				map[string]any{
-					"text":  v.Text,
-					"link":  v.Link,
-					"level": v.Level.String(),
-				},
+			announcement := map[string]any{
+				"text": v.Text,
+				"link": v.Link,
 			}
+			if theme != nil {
+				announcement["theme"] = []any{
+					map[string]any{
+						"background": protoColorToBlock(theme.GetBackground()),
+						"text":       protoColorToBlock(theme.GetText()),
+					},
+				}
+			}
+			raw["announcement"] = []any{announcement}
 		}
 		// If announcement is empty, don't set it at all - let Terraform handle it as unset
 	}
@@ -832,6 +844,8 @@ func flattenSemanticTypesSetting(setting *v1pb.SemanticTypeSetting) []interface{
 						},
 					},
 				}
+			default:
+				// Unknown masking algorithm; leave algorithm unset.
 			}
 		}
 

@@ -173,6 +173,7 @@ Optional:
 
 - `app_role` (Block List, Max: 1) The Vault app role to get the password. (see [below for nested schema](#nestedblock--data_sources--external_secret--vault--app_role))
 - `token` (String, Sensitive) The root token without TTL. Learn more: https://developer.hashicorp.com/vault/docs/commands/operator/generate-root
+- `token_type` (String) How to interpret the token field. PLAIN (the literal token value, default), ENVIRONMENT (the name of an environment variable on the Bytebase server holding the token), or FILE (a path to a file on the Bytebase server holding the token).
 
 <a id="nestedblock--data_sources--external_secret--vault--app_role"></a>
 ### Nested Schema for `data_sources.external_secret.vault.app_role`

@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.18.0"
+      version = "3.20.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -32,17 +32,40 @@ resource "bytebase_setting" "workspace_profile" {
   name = "settings/WORKSPACE_PROFILE"
 
   workspace_profile {
-    external_url                      = "https://bytebase.example.com"
-    domains                           = ["bytebase.com"]
-    sql_result_size                   = 200 * 1024 * 1024 # 200MB
-    query_timeout_in_seconds          = 60                # 60 seconds
-    refresh_token_duration_in_seconds = 604800            # 7 days
-    access_token_duration_in_seconds  = 3600              # 1 hour
+    external_url                          = "https://bytebase.example.com"
+    domains                               = ["bytebase.com"]
+    sql_result_size                       = 200 * 1024 * 1024 # 200MB
+    query_timeout_in_seconds              = 60                # 60 seconds
+    refresh_token_duration_in_seconds     = 604800            # 7 days
+    access_token_duration_in_seconds      = 3600              # 1 hour
+    maximum_request_expiration_in_seconds = 2592000           # 30 days
 
     password_restriction {
       min_length                             = 8
       require_number                         = true
       require_reset_password_for_first_login = true
+    }
+
+    # Custom announcement banner shown in the Bytebase UI. Require ENTERPRISE subscription.
+    announcement {
+      text = "Scheduled maintenance this weekend."
+      link = "https://bytebase.example.com/maintenance"
+
+      # Banner colors as google.type.Color channel values in the interval [0, 1].
+      # The info/warning/critical presets are a frontend-only concept that simply
+      # seeds these colors.
+      theme {
+        background {
+          red   = 1
+          green = 0.968627
+          blue  = 0.878431
+        }
+        text {
+          red   = 0.592157
+          green = 0.352941
+          blue  = 0.086275
+        }
+      }
     }
   }
 }

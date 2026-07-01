@@ -141,11 +141,7 @@ func resourceProjct() *schema.Resource {
 							Required:    true,
 							Description: "The label value/name.",
 						},
-						"color": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "The color code for the label (e.g., hex color).",
-						},
+						"color": colorBlockSchema("The label color.", false),
 						"group": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -174,6 +170,10 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	projectID := d.Get("resource_id").(string)
 	projectName := fmt.Sprintf("%s%s", internal.ProjectNamePrefix, projectID)
+	issueLabels, err := convertToV1IssueLabels(d.Get("issue_labels").([]interface{}))
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	project := &v1pb.Project{
 		Name:                       projectName,
 		Title:                      d.Get("title").(string),
@@ -193,7 +193,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		RequirePlanCheckNoError:    d.Get("require_plan_check_no_error").(bool),
 		AllowRequestRole:           d.Get("allow_request_role").(bool),
 		AllowJustInTimeAccess:      d.Get("allow_just_in_time_access").(bool),
-		IssueLabels:                convertToV1IssueLabels(d.Get("issue_labels").([]interface{})),
+		IssueLabels:                issueLabels,
 		Labels:                     convertToStringMap(d.Get("labels").(map[string]interface{})),
 	}
 
@@ -403,6 +403,10 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	if len(paths) > 0 {
+		issueLabels, err := convertToV1IssueLabels(d.Get("issue_labels").([]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		if _, err := c.UpdateProject(ctx, &v1pb.Project{
 			Name:                       projectName,
 			Title:                      d.Get("title").(string),
@@ -422,7 +426,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			RequirePlanCheckNoError:    d.Get("require_plan_check_no_error").(bool),
 			AllowRequestRole:           d.Get("allow_request_role").(bool),
 			AllowJustInTimeAccess:      d.Get("allow_just_in_time_access").(bool),
-			IssueLabels:                convertToV1IssueLabels(d.Get("issue_labels").([]interface{})),
+			IssueLabels:                issueLabels,
 			Labels:                     convertToStringMap(d.Get("labels").(map[string]interface{})),
 		}, paths); err != nil {
 			diags = append(diags, diag.FromErr(err)...)
@@ -583,9 +587,9 @@ type webhookIdentity struct {
 }
 
 // validateProjectWebhooks enforces (title, type) uniqueness within webhooks at
-// plan time. With url being write-only, (title, type) is the stable identity
-// used for diffing config webhooks against server-side webhooks; duplicates
-// would make that matching ambiguous.
+// plan time. The plaintext URL is not stored in state, so (title, type) is the
+// stable identity used for matching config webhooks against server-side
+// webhooks; duplicates would make that matching ambiguous.
 func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	rawConfig := d.GetRawConfig()
 	if rawConfig.IsNull() {
@@ -613,7 +617,7 @@ func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interf
 			typ:   typeValue.AsString(),
 		}
 		if seen[identity] {
-			return errors.Errorf("duplicate webhook with title=%q and type=%q; (title, type) must be unique within a project because url is write-only and (title, type) is the identity used for diffing", identity.title, identity.typ)
+			return errors.Errorf("duplicate webhook with title=%q and type=%q; (title, type) must be unique within a project because plaintext url is not stored in state and (title, type) is the identity used for matching", identity.title, identity.typ)
 		}
 		seen[identity] = true
 	}
@@ -621,8 +625,8 @@ func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interf
 }
 
 // convertCtyWebhook builds a v1pb.Webhook from a single raw-config element.
-// Reading from raw config is necessary because url is WriteOnly and absent
-// from the SDK-tracked value returned by d.Get.
+// Reading from raw config is necessary because d.Get returns the state-shaped
+// URL digest, while the API update needs the plaintext URL.
 func convertCtyWebhook(element cty.Value) *v1pb.Webhook {
 	webhook := &v1pb.Webhook{
 		Title: element.GetAttr("title").AsString(),
@@ -699,22 +703,26 @@ func updateWebhooksInProject(ctx context.Context, d *schema.ResourceData, client
 	return nil
 }
 
-func convertToV1IssueLabels(rawLabels []interface{}) []*v1pb.Label {
+func convertToV1IssueLabels(rawLabels []interface{}) ([]*v1pb.Label, error) {
 	labels := make([]*v1pb.Label, 0, len(rawLabels))
 	for _, raw := range rawLabels {
 		rawLabel := raw.(map[string]interface{})
 		label := &v1pb.Label{
 			Value: rawLabel["value"].(string),
 		}
-		if color, ok := rawLabel["color"].(string); ok {
-			label.Color = color
+		if color, ok := rawLabel["color"].([]interface{}); ok {
+			protoColor, err := colorBlockToProto(color)
+			if err != nil {
+				return nil, err
+			}
+			label.Color = protoColor
 		}
 		if group, ok := rawLabel["group"].(string); ok {
 			label.Group = group
 		}
 		labels = append(labels, label)
 	}
-	return labels
+	return labels, nil
 }
 
 func flattenIssueLabels(labels []*v1pb.Label) []interface{} {
@@ -722,7 +730,7 @@ func flattenIssueLabels(labels []*v1pb.Label) []interface{} {
 	for _, label := range labels {
 		result = append(result, map[string]interface{}{
 			"value": label.Value,
-			"color": label.Color,
+			"color": protoColorToBlock(label.Color),
 			"group": label.Group,
 		})
 	}

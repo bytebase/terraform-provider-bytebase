@@ -56,12 +56,6 @@ air -c scripts/.air.toml
 # install the provider in your local machine
 cd terraform-provider-bytebase && make install
 
-# build for darwin_arm64
-# replace {version} with the real local version
-go build -o terraform-provider-bytebase . && \
-mkdir -p ~/.terraform.d/plugins/terraform.local/bytebase/bytebase/{version}/darwin_arm64 && \
-cp terraform-provider-bytebase ~/.terraform.d/plugins/terraform.local/bytebase/bytebase/{version}/darwin_arm64/
-
 # test
 # Any BYTEBASE_SERVICE_ACCOUNT/BYTEBASE_SERVICE_KEY/BYTEBASE_URL value should work since the service is mocked
 TF_ACC=1 BYTEBASE_SERVICE_ACCOUNT=test@service.bytebase.com BYTEBASE_SERVICE_KEY=test_secret BYTEBASE_URL=https://bytebase.example.com go test -v ./...

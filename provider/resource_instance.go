@@ -146,6 +146,16 @@ func resourceInstance() *schema.Resource {
 													Sensitive:   true,
 													Description: "The root token without TTL. Learn more: https://developer.hashicorp.com/vault/docs/commands/operator/generate-root",
 												},
+												"token_type": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "How to interpret the token field. PLAIN (the literal token value, default), ENVIRONMENT (the name of an environment variable on the Bytebase server holding the token), or FILE (a path to a file on the Bytebase server holding the token).",
+													ValidateFunc: validation.StringInSlice([]string{
+														v1pb.DataSourceExternalSecret_PLAIN.String(),
+														v1pb.DataSourceExternalSecret_ENVIRONMENT.String(),
+														v1pb.DataSourceExternalSecret_FILE.String(),
+													}, false),
+												},
 												"app_role": {
 													Type:        schema.TypeList,
 													Optional:    true,
@@ -1185,6 +1195,8 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 						},
 					}
 				}
+			default:
+				// Unknown authentication type; nothing to propagate.
 			}
 
 			// SASL config - propagate from old state
@@ -1238,6 +1250,7 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 				}
 				switch v.AuthType {
 				case v1pb.DataSourceExternalSecret_TOKEN:
+					vault["token_type"] = v.GetTokenType().String()
 					if ds, ok := oldDataSourceMap[dataSource.Id]; ok && ds.GetExternalSecret() != nil {
 						vault["token"] = ds.GetExternalSecret().GetToken()
 					}
@@ -1250,12 +1263,16 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 						appRole["secret"] = ds.GetExternalSecret().GetAppRole().GetSecretId()
 					}
 					vault["app_role"] = []any{appRole}
+				default:
+					// Unknown vault auth type; leave auth fields unset.
 				}
 				raw["external_secret"] = []any{
 					map[string]interface{}{
 						"vault": []any{vault},
 					},
 				}
+			default:
+				// Unknown external secret type; nothing to propagate.
 			}
 		}
 		res = append(res, raw)
@@ -1317,6 +1334,9 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 				externalSecret.AuthType = v1pb.DataSourceExternalSecret_TOKEN
 				externalSecret.AuthOption = &v1pb.DataSourceExternalSecret_Token{
 					Token: token,
+				}
+				if tokenType, ok := rawVault["token_type"].(string); ok && tokenType != "" {
+					externalSecret.TokenType = v1pb.DataSourceExternalSecret_TokenType(v1pb.DataSourceExternalSecret_TokenType_value[tokenType])
 				}
 			} else if v, ok := rawVault["app_role"].([]interface{}); ok && len(v) == 1 {
 				rawAppRole := v[0].(map[string]interface{})
@@ -1522,6 +1542,8 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 				},
 			}
 		}
+	default:
+		// Unknown authentication type; no credential validation needed.
 	}
 
 	if v, ok := obj["authentication_private_key"].(string); ok && v != "" {

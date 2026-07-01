@@ -22,7 +22,7 @@ The environment resource.
 
 ### Optional
 
-- `color` (String) The environment color.
+- `color` (Block List, Max: 1) The environment color. (see [below for nested schema](#nestedblock--color))
 - `order` (Number) The environment sorting order.
 - `protected` (Boolean) The environment is protected or not.
 
@@ -30,5 +30,14 @@ The environment resource.
 
 - `id` (String) The ID of this resource.
 - `name` (String) The environment readonly name in environments/{id} format.
+
+<a id="nestedblock--color"></a>
+### Nested Schema for `color`
+
+Required:
+
+- `blue` (Number) The amount of blue in the color as a value in the interval [0, 1].
+- `green` (Number) The amount of green in the color as a value in the interval [0, 1].
+- `red` (Number) The amount of red in the color as a value in the interval [0, 1].
 
 

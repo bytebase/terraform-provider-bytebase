@@ -175,8 +175,13 @@ resource "bytebase_instance" "postgres_vault" {
     authentication_type = "PASSWORD" # external_secret requires PASSWORD auth
     external_secret {
       vault {
-        url               = "https://vault.example.com:8200"
-        token             = "hvs.your-vault-token"
+        url   = "https://vault.example.com:8200"
+        token = "hvs.your-vault-token"
+        # How to interpret the token field:
+        #   PLAIN       - the literal token value (default)
+        #   ENVIRONMENT - the name of an environment variable on the Bytebase server that holds the token
+        #   FILE        - a path to a file on the Bytebase server that holds the token
+        token_type        = "PLAIN"
         engine_name       = "secret"
         secret_name       = "database/postgres"
         password_key_name = "password"

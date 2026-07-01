@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
@@ -222,7 +223,9 @@ func resourceReviewConfigUpsert(ctx context.Context, d *schema.ResourceData, m i
 		// only update attached resources if users set this field.
 		pendingDelete, pendingAdd := getResourceDiff(ctx, c, d)
 		removeReviewConfigTag(ctx, c, pendingDelete)
-		patchTagPolicy(ctx, c, review.Name, pendingAdd)
+		if diags := patchTagPolicy(ctx, c, review.Name, pendingAdd); diags.HasError() {
+			return diags
+		}
 	}
 
 	d.SetId(review.Name)
@@ -307,7 +310,7 @@ func patchTagPolicy(ctx context.Context, client api.Client, reviewName string, r
 					},
 				},
 			},
-		}, []string{"payload", "enforce"}); err != nil {
+		}, []string{"tag_policy", "enforce"}); err != nil {
 			return diag.Errorf("failed to attach review config %s to resource %s with error: %v", reviewName, resource, err.Error())
 		}
 	}
@@ -560,8 +563,50 @@ func convertToV1RuleList(d *schema.ResourceData) ([]*v1pb.SQLReviewRule, error) 
 }
 
 func reviewRuleHash(rawSchema interface{}) int {
-	// For hashing, we use a null cty.Value since we don't have raw config here.
-	// The hash is based on type, engine, level and payload values from the processed map.
-	rule := convertToV1Rule(rawSchema, cty.NilVal)
-	return internal.ToHash(rule)
+	rawRule, ok := rawSchema.(map[string]interface{})
+	if !ok {
+		return 0
+	}
+
+	hashParts := []string{
+		fmt.Sprintf("type=%v", rawRule["type"]),
+		fmt.Sprintf("engine=%v", rawRule["engine"]),
+		fmt.Sprintf("level=%v", rawRule["level"]),
+		fmt.Sprintf("number_payload=%v", rawRule["number_payload"]),
+		fmt.Sprintf("string_payload=%v", rawRule["string_payload"]),
+		fmt.Sprintf("string_array_payload=%v", rawRule["string_array_payload"]),
+		fmt.Sprintf("naming_payload=%s", normalizeReviewRulePayloadForHash(rawRule["naming_payload"])),
+		fmt.Sprintf("comment_convention_payload=%s", normalizeReviewRulePayloadForHash(rawRule["comment_convention_payload"])),
+		fmt.Sprintf("naming_case_payload=%v", rawRule["naming_case_payload"]),
+	}
+	return internal.ToHashcodeInt(strings.Join(hashParts, "|"))
+}
+
+func normalizeReviewRulePayloadForHash(raw interface{}) string {
+	list, ok := raw.([]interface{})
+	if !ok {
+		return fmt.Sprintf("%v", raw)
+	}
+
+	parts := make([]string, 0, len(list))
+	for _, item := range list {
+		rawMap, ok := item.(map[string]interface{})
+		if !ok {
+			parts = append(parts, fmt.Sprintf("%v", item))
+			continue
+		}
+
+		keys := make([]string, 0, len(rawMap))
+		for key := range rawMap {
+			keys = append(keys, key)
+		}
+		slices.Sort(keys)
+
+		mapParts := make([]string, 0, len(keys))
+		for _, key := range keys {
+			mapParts = append(mapParts, fmt.Sprintf("%s=%v", key, rawMap[key]))
+		}
+		parts = append(parts, strings.Join(mapParts, ","))
+	}
+	return strings.Join(parts, ";")
 }

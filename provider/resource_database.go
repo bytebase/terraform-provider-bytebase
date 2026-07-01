@@ -373,6 +373,8 @@ func convertToV1ColumnCatalog(raw interface{}) *v1pb.ColumnCatalog {
 					labels[key] = strVal
 				}
 			}
+		default:
+			// Unexpected labels type; leave labels empty.
 		}
 	}
 

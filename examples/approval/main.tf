@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.18.0"
+      version = "3.20.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "terraform.local/bytebase/bytebase"
     }
@@ -36,20 +36,6 @@ resource "bytebase_setting" "approval_flow" {
 
       source    = "CHANGE_DATABASE"
       condition = "resource.environment_id == \"prod\" && statement.affected_rows >= 100"
-    }
-
-    rules {
-      flow {
-        title = "Project Owner review"
-
-        # Approval flow following the step order.
-        roles = [
-          "roles/projectOwner"
-        ]
-      }
-
-      source    = "EXPORT_DATA"
-      condition = "resource.environment_id == \"prod\" && resource.table_name == \"employee\""
     }
 
     rules {

@@ -37,11 +37,7 @@ func dataSourceEnvironment() *schema.Resource {
 				Computed:    true,
 				Description: "The environment sorting order.",
 			},
-			"color": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The environment color.",
-			},
+			"color": colorBlockSchema("The environment color.", true),
 			"protected": {
 				Type:        schema.TypeBool,
 				Optional:    true,

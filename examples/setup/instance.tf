@@ -26,6 +26,7 @@ resource "bytebase_instance" "test" {
     # external_secret {
     #   vault {
     #     url               = "http://127.0.0.1:8200"
+    #     token_type        = "PLAIN"
     #     token             = "<root token>"
     #     engine_name       = "secret"
     #     secret_name       = "bytebase"

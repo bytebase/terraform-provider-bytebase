@@ -12,6 +12,11 @@ resource "bytebase_setting" "environments" {
       id        = local.environment_id_prod
       title     = "Prod"
       protected = true
+      color {
+        red   = 1
+        green = 0
+        blue  = 0
+      }
     }
   }
 }

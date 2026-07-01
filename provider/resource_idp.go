@@ -542,6 +542,8 @@ func setIdentityProvider(d *schema.ResourceData, idp *v1pb.IdentityProvider) dia
 			if err := d.Set("ldap_config", flattenLDAPConfig(config.GetLdapConfig())); err != nil {
 				return diag.Errorf("cannot set ldap_config: %s", err.Error())
 			}
+		default:
+			// No recognized IdP config; nothing to set.
 		}
 	}
 

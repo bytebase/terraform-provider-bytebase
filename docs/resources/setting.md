@@ -118,7 +118,7 @@ Required:
 
 Optional:
 
-- `source` (String) The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, EXPORT_DATA, REQUEST_ROLE, or REQUEST_ACCESS. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.
+- `source` (String) The source for this rule can be CHANGE_DATABASE, CREATE_DATABASE, REQUEST_ROLE, or REQUEST_ACCESS. If the source is not set, the condition must only contain "resource.project_id" or "true", and the rule will serve as a fallback without a specific source.
 
 <a id="nestedblock--approval_flow--rules--flow"></a>
 ### Nested Schema for `approval_flow.rules.flow`
@@ -182,12 +182,22 @@ Required:
 
 Optional:
 
-- `color` (String) The environment color.
+- `color` (Block List, Max: 1) The environment color. (see [below for nested schema](#nestedblock--environment_setting--environment--color))
 - `protected` (Boolean) The environment is protected or not.
 
 Read-Only:
 
 - `name` (String) The environment readonly name in environments/{id} format.
+
+<a id="nestedblock--environment_setting--environment--color"></a>
+### Nested Schema for `environment_setting.environment.color`
+
+Required:
+
+- `blue` (Number) The amount of blue in the color as a value in the interval [0, 1].
+- `green` (Number) The amount of green in the color as a value in the interval [0, 1].
+- `red` (Number) The amount of red in the color as a value in the interval [0, 1].
+
 
 
 
@@ -275,7 +285,7 @@ Optional:
 - `enable_audit_log_stdout` (Boolean) Enable audit logging to stdout in structured JSON format. Requires TEAM or ENTERPRISE license.
 - `enforce_identity_domain` (Boolean) Only user and group from the domains can be created and login.
 - `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
-- `maximum_role_expiration_in_seconds` (Number) The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
+- `maximum_request_expiration_in_seconds` (Number) The max expiration duration in seconds for role grants and data access requests. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
 - `password_restriction` (Block List, Max: 1) Password restriction settings. (see [below for nested schema](#nestedblock--workspace_profile--password_restriction))
 - `query_timeout_in_seconds` (Number) The maximum time allowed for a query to run in SQL Editor, in seconds. No limit when the value <= 0.
 - `refresh_token_duration_in_seconds` (Number) The duration for refresh token in seconds. Default is 604800 (7 days). The duration should be at least 3600 (one hour).
@@ -287,9 +297,38 @@ Optional:
 
 Optional:
 
-- `level` (String) The alert level of announcement
 - `link` (String) The optional link, user can follow the link to check extra details
 - `text` (String) The text of announcement. Leave it as empty string can clear the announcement
+- `theme` (Block List, Max: 1) Banner colors. Built-in presets (info/warning/critical) are a frontend-only concept that seeds these colors; the store only holds them. (see [below for nested schema](#nestedblock--workspace_profile--announcement--theme))
+
+<a id="nestedblock--workspace_profile--announcement--theme"></a>
+### Nested Schema for `workspace_profile.announcement.theme`
+
+Optional:
+
+- `background` (Block List, Max: 1) The background color of the banner. (see [below for nested schema](#nestedblock--workspace_profile--announcement--theme--background))
+- `text` (Block List, Max: 1) The text color of the banner. (see [below for nested schema](#nestedblock--workspace_profile--announcement--theme--text))
+
+<a id="nestedblock--workspace_profile--announcement--theme--background"></a>
+### Nested Schema for `workspace_profile.announcement.theme.background`
+
+Required:
+
+- `blue` (Number) The amount of blue in the color as a value in the interval [0, 1].
+- `green` (Number) The amount of green in the color as a value in the interval [0, 1].
+- `red` (Number) The amount of red in the color as a value in the interval [0, 1].
+
+
+<a id="nestedblock--workspace_profile--announcement--theme--text"></a>
+### Nested Schema for `workspace_profile.announcement.theme.text`
+
+Required:
+
+- `blue` (Number) The amount of blue in the color as a value in the interval [0, 1].
+- `green` (Number) The amount of green in the color as a value in the interval [0, 1].
+- `red` (Number) The amount of red in the color as a value in the interval [0, 1].
+
+
 
 
 <a id="nestedblock--workspace_profile--password_restriction"></a>

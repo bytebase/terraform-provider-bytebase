@@ -58,21 +58,7 @@ resource "bytebase_setting" "approval_flow" {
       }
 
       source    = "REQUEST_ACCESS"
-      condition = "request.unmask == true"
-    }
-
-    rules {
-      flow {
-        title = "Project Owner review"
-
-        # Approval flow following the step order.
-        roles = [
-          "roles/projectOwner"
-        ]
-      }
-
-      source    = "EXPORT_DATA"
-      condition = "resource.environment_id == \"prod\" && resource.table_name == \"employee\""
+      condition = "request.unmask == true && resource.environment_id == \"prod\" && resource.table_name == \"employee\""
     }
 
     rules {

@@ -146,7 +146,7 @@ Optional:
 - `enable_audit_log_stdout` (Boolean) Enable audit logging to stdout in structured JSON format. Requires TEAM or ENTERPRISE license.
 - `enforce_identity_domain` (Boolean) Only user and group from the domains can be created and login.
 - `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
-- `maximum_role_expiration_in_seconds` (Number) The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
+- `maximum_request_expiration_in_seconds` (Number) The max expiration duration in seconds for role grants and data access requests. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
 - `password_restriction` (Block List, Max: 1) Password restriction settings. (see [below for nested schema](#nestedblock--workspace_profile--password_restriction))
 - `query_timeout_in_seconds` (Number) The maximum time allowed for a query to run in SQL Editor, in seconds. No limit when the value <= 0.
 - `refresh_token_duration_in_seconds` (Number) The duration for refresh token in seconds. Default is 604800 (7 days). The duration should be at least 3600 (one hour).
@@ -158,9 +158,41 @@ Optional:
 
 Optional:
 
-- `level` (String) The alert level of announcement
 - `link` (String) The optional link, user can follow the link to check extra details
 - `text` (String) The text of announcement. Leave it as empty string can clear the announcement
+
+Read-Only:
+
+- `theme` (List of Object) Banner colors. Built-in presets (info/warning/critical) are a frontend-only concept that seeds these colors; the store only holds them. (see [below for nested schema](#nestedatt--workspace_profile--announcement--theme))
+
+<a id="nestedatt--workspace_profile--announcement--theme"></a>
+### Nested Schema for `workspace_profile.announcement.theme`
+
+Read-Only:
+
+- `background` (List of Object) (see [below for nested schema](#nestedobjatt--workspace_profile--announcement--theme--background))
+- `text` (List of Object) (see [below for nested schema](#nestedobjatt--workspace_profile--announcement--theme--text))
+
+<a id="nestedobjatt--workspace_profile--announcement--theme--background"></a>
+### Nested Schema for `workspace_profile.announcement.theme.background`
+
+Read-Only:
+
+- `blue` (Number)
+- `green` (Number)
+- `red` (Number)
+
+
+<a id="nestedobjatt--workspace_profile--announcement--theme--text"></a>
+### Nested Schema for `workspace_profile.announcement.theme.text`
+
+Read-Only:
+
+- `blue` (Number)
+- `green` (Number)
+- `red` (Number)
+
+
 
 
 <a id="nestedblock--workspace_profile--password_restriction"></a>
@@ -287,10 +319,19 @@ Read-Only:
 
 Read-Only:
 
-- `color` (String)
+- `color` (List of Object) (see [below for nested schema](#nestedobjatt--environment_setting--environment--color))
 - `id` (String)
 - `name` (String)
 - `protected` (Boolean)
 - `title` (String)
+
+<a id="nestedobjatt--environment_setting--environment--color"></a>
+### Nested Schema for `environment_setting.environment.color`
+
+Read-Only:
+
+- `blue` (Number)
+- `green` (Number)
+- `red` (Number)
 
 
