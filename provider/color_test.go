@@ -105,6 +105,22 @@ func TestProtoColorToBlockReturnsFloatChannels(t *testing.T) {
 	}
 }
 
+func TestProtoColorToBlockRoundsFloat32Noise(t *testing.T) {
+	got := protoColorToBlock(&colorpb.Color{
+		Red:   float32(1),
+		Green: float32(0.647059),
+		Blue:  float32(0),
+		Alpha: wrapperspb.Float(1),
+	})
+	if len(got) != 1 {
+		t.Fatalf("len(protoColorToBlock) = %d, want 1", len(got))
+	}
+	raw := got[0].(map[string]interface{})
+	if raw["green"].(float64) != 0.647059 {
+		t.Fatalf("green = %.16f, want 0.647059", raw["green"].(float64))
+	}
+}
+
 func TestProtoColorToBlockReturnsEmptyForNil(t *testing.T) {
 	if got := protoColorToBlock(nil); len(got) != 0 {
 		t.Fatalf("protoColorToBlock(nil) = %#v, want empty list", got)
