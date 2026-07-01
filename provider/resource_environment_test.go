@@ -21,10 +21,8 @@ func TestAccEnvironment(t *testing.T) {
 
 	resourceID := "test-environment"
 	title := "Test Environment"
-	color := "#FF5733"
 	order := 0
 	titleUpdated := fmt.Sprintf("%s Updated", title)
-	colorUpdated := "#33FF57"
 	orderUpdated := 0
 
 	resource.Test(t, resource.TestCase{
@@ -36,12 +34,14 @@ func TestAccEnvironment(t *testing.T) {
 		Steps: []resource.TestStep{
 			// resource create
 			{
-				Config: testAccCheckEnvironmentResource(identifier, resourceID, title, color, order, false),
+				Config: testAccCheckEnvironmentResource(identifier, resourceID, title, 1, 0.341176, 0.2, order, false),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "resource_id", resourceID),
 					resource.TestCheckResourceAttr(resourceName, "title", title),
-					resource.TestCheckResourceAttr(resourceName, "color", color),
+					resource.TestCheckResourceAttr(resourceName, "color.0.red", "1"),
+					resource.TestCheckResourceAttr(resourceName, "color.0.green", "0.341176"),
+					resource.TestCheckResourceAttr(resourceName, "color.0.blue", "0.2"),
 					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", order)),
 					resource.TestCheckResourceAttr(resourceName, "protected", "false"),
 					resource.TestCheckResourceAttr(resourceName, "name", fmt.Sprintf("environments/%s", resourceID)),
@@ -49,12 +49,14 @@ func TestAccEnvironment(t *testing.T) {
 			},
 			// resource update
 			{
-				Config: testAccCheckEnvironmentResource(identifier, resourceID, titleUpdated, colorUpdated, orderUpdated, true),
+				Config: testAccCheckEnvironmentResource(identifier, resourceID, titleUpdated, 0.2, 1, 0.341176, orderUpdated, true),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "resource_id", resourceID),
 					resource.TestCheckResourceAttr(resourceName, "title", titleUpdated),
-					resource.TestCheckResourceAttr(resourceName, "color", colorUpdated),
+					resource.TestCheckResourceAttr(resourceName, "color.0.red", "0.2"),
+					resource.TestCheckResourceAttr(resourceName, "color.0.green", "1"),
+					resource.TestCheckResourceAttr(resourceName, "color.0.blue", "0.341176"),
 					resource.TestCheckResourceAttr(resourceName, "order", fmt.Sprintf("%d", orderUpdated)),
 					resource.TestCheckResourceAttr(resourceName, "protected", "true"),
 					resource.TestCheckResourceAttr(resourceName, "name", fmt.Sprintf("environments/%s", resourceID)),
@@ -111,16 +113,20 @@ resource "bytebase_environment" "%s" {
 	})
 }
 
-func testAccCheckEnvironmentResource(identifier, resourceID, title, color string, order int, protected bool) string {
+func testAccCheckEnvironmentResource(identifier, resourceID, title string, red, green, blue float64, order int, protected bool) string {
 	return fmt.Sprintf(`
 resource "bytebase_environment" "%s" {
 	resource_id = "%s"
 	title       = "%s"
-	color       = "%s"
+	color {
+		red   = %f
+		green = %f
+		blue  = %f
+	}
 	order       = %d
 	protected   = %t
 }
-`, identifier, resourceID, title, color, order, protected)
+`, identifier, resourceID, title, red, green, blue, order, protected)
 }
 
 func testAccCheckEnvironmentDestroy(s *terraform.State) error {

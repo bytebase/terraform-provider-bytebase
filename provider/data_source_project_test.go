@@ -128,12 +128,20 @@ func testAccCheckProjectDataSourceWithSettings(identifier, resourceID, title str
 
 		issue_labels {
 			value = "bug"
-			color = "#FF0000"
+			color {
+				red   = 1
+				green = 0
+				blue  = 0
+			}
 			group = "type"
 		}
 		issue_labels {
 			value = "feature"
-			color = "#00FF00"
+			color {
+				red   = 0
+				green = 1
+				blue  = 0
+			}
 			group = "type"
 		}
 

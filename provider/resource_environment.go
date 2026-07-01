@@ -51,11 +51,7 @@ func resourceEnvironment() *schema.Resource {
 				Computed:    true,
 				Description: "The environment readonly name in environments/{id} format.",
 			},
-			"color": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The environment color.",
-			},
+			"color": colorBlockSchema("The environment color.", false),
 			"protected": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -79,7 +75,6 @@ func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m in
 		Id:    environmentID,
 		Name:  environmentName,
 		Title: d.Get("title").(string),
-		Color: d.Get("color").(string),
 		Tags: map[string]string{
 			"protected": "unprotected",
 		},
@@ -116,7 +111,11 @@ func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	if config := rawConfig.GetAttr("color"); !config.IsNull() {
-		v1Env.Color = d.Get("color").(string)
+		color, err := colorBlockToProto(d.Get("color").([]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		v1Env.Color = color
 	} else if existedEnv != nil {
 		// not configure the color field
 		v1Env.Color = existedEnv.Color
@@ -249,7 +248,7 @@ func setEnvironment(d *schema.ResourceData, env *v1pb.EnvironmentSetting_Environ
 	if err := d.Set("order", order); err != nil {
 		return diag.Errorf("cannot set order for environment: %s", err.Error())
 	}
-	if err := d.Set("color", env.Color); err != nil {
+	if err := d.Set("color", protoColorToBlock(env.Color)); err != nil {
 		return diag.Errorf("cannot set color for environment: %s", err.Error())
 	}
 	if err := d.Set("protected", env.Tags["protected"] == "protected"); err != nil {

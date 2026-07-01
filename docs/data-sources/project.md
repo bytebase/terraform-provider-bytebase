@@ -44,9 +44,19 @@ The project data source.
 
 Read-Only:
 
-- `color` (String)
+- `color` (List of Object) (see [below for nested schema](#nestedobjatt--issue_labels--color))
 - `group` (String)
 - `value` (String)
+
+<a id="nestedobjatt--issue_labels--color"></a>
+### Nested Schema for `issue_labels.color`
+
+Read-Only:
+
+- `blue` (Number)
+- `green` (Number)
+- `red` (Number)
+
 
 
 <a id="nestedatt--webhooks"></a>

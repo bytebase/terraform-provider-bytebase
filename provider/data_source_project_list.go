@@ -120,10 +120,7 @@ func dataSourceProjectList() *schema.Resource {
 										Type:     schema.TypeString,
 										Computed: true,
 									},
-									"color": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
+									"color": colorBlockSchema("The label color.", true),
 									"group": {
 										Type:     schema.TypeString,
 										Computed: true,

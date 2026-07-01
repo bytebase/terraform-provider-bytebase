@@ -241,9 +241,17 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 			}
 			if themeList, ok := raw["theme"].([]interface{}); ok && len(themeList) > 0 {
 				rawTheme := themeList[0].(map[string]interface{})
+				background, err := colorBlockToProto(rawTheme["background"].([]interface{}))
+				if err != nil {
+					return nil, nil, err
+				}
+				text, err := colorBlockToProto(rawTheme["text"].([]interface{}))
+				if err != nil {
+					return nil, nil, err
+				}
 				announcement.Theme = &v1pb.Announcement_AnnouncementTheme{
-					Background: rawTheme["background"].(string),
-					Text:       rawTheme["text"].(string),
+					Background: background,
+					Text:       text,
 				}
 			}
 			workspacePrfile.Announcement = announcement
@@ -453,10 +461,14 @@ func convertToV1EnvironmentSetting(d *schema.ResourceData) (*v1pb.EnvironmentSet
 		if !internal.ResourceIDRegex.MatchString(id) {
 			return nil, errors.Errorf("invalid environment id")
 		}
+		color, err := colorBlockToProto(rawEnv["color"].([]interface{}))
+		if err != nil {
+			return nil, err
+		}
 		v1Env := &v1pb.EnvironmentSetting_Environment{
 			Id:    id,
 			Title: rawEnv["title"].(string),
-			Color: rawEnv["color"].(string),
+			Color: color,
 			Tags: map[string]string{
 				"protected": "protected",
 			},

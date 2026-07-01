@@ -21,14 +21,23 @@ The environment data source.
 
 ### Optional
 
-- `color` (String) The environment color.
 - `protected` (Boolean) The environment is protected or not.
 
 ### Read-Only
 
+- `color` (List of Object) The environment color. (see [below for nested schema](#nestedatt--color))
 - `id` (String) The ID of this resource.
 - `name` (String) The environment full name in environments/{resource id} format.
 - `order` (Number) The environment sorting order.
 - `title` (String) The environment unique name.
+
+<a id="nestedatt--color"></a>
+### Nested Schema for `color`
+
+Read-Only:
+
+- `blue` (Number)
+- `green` (Number)
+- `red` (Number)
 
 

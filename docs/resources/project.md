@@ -54,8 +54,18 @@ Required:
 
 Optional:
 
-- `color` (String) The color code for the label (e.g., hex color).
+- `color` (Block List, Max: 1) The label color. (see [below for nested schema](#nestedblock--issue_labels--color))
 - `group` (String) The group this label belongs to.
+
+<a id="nestedblock--issue_labels--color"></a>
+### Nested Schema for `issue_labels.color`
+
+Required:
+
+- `blue` (Number) The amount of blue in the color as a value in the interval [0, 1].
+- `green` (Number) The amount of green in the color as a value in the interval [0, 1].
+- `red` (Number) The amount of red in the color as a value in the interval [0, 1].
+
 
 
 <a id="nestedatt--webhooks"></a>

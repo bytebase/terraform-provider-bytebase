@@ -182,12 +182,22 @@ Required:
 
 Optional:
 
-- `color` (String) The environment color.
+- `color` (Block List, Max: 1) The environment color. (see [below for nested schema](#nestedblock--environment_setting--environment--color))
 - `protected` (Boolean) The environment is protected or not.
 
 Read-Only:
 
 - `name` (String) The environment readonly name in environments/{id} format.
+
+<a id="nestedblock--environment_setting--environment--color"></a>
+### Nested Schema for `environment_setting.environment.color`
+
+Required:
+
+- `blue` (Number) The amount of blue in the color as a value in the interval [0, 1].
+- `green` (Number) The amount of green in the color as a value in the interval [0, 1].
+- `red` (Number) The amount of red in the color as a value in the interval [0, 1].
+
 
 
 
@@ -296,8 +306,28 @@ Optional:
 
 Optional:
 
-- `background` (String) The background color of the banner, in "r g b" format
-- `text` (String) The text color of the banner, in "r g b" format
+- `background` (Block List, Max: 1) The background color of the banner. (see [below for nested schema](#nestedblock--workspace_profile--announcement--theme--background))
+- `text` (Block List, Max: 1) The text color of the banner. (see [below for nested schema](#nestedblock--workspace_profile--announcement--theme--text))
+
+<a id="nestedblock--workspace_profile--announcement--theme--background"></a>
+### Nested Schema for `workspace_profile.announcement.theme.background`
+
+Required:
+
+- `blue` (Number) The amount of blue in the color as a value in the interval [0, 1].
+- `green` (Number) The amount of green in the color as a value in the interval [0, 1].
+- `red` (Number) The amount of red in the color as a value in the interval [0, 1].
+
+
+<a id="nestedblock--workspace_profile--announcement--theme--text"></a>
+### Nested Schema for `workspace_profile.announcement.theme.text`
+
+Required:
+
+- `blue` (Number) The amount of blue in the color as a value in the interval [0, 1].
+- `green` (Number) The amount of green in the color as a value in the interval [0, 1].
+- `red` (Number) The amount of red in the color as a value in the interval [0, 1].
+
 
 
 

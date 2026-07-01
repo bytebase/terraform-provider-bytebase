@@ -332,27 +332,7 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 								Optional:    true,
 								Description: "The optional link, user can follow the link to check extra details",
 							},
-							"theme": {
-								Type:        schema.TypeList,
-								Optional:    true,
-								MinItems:    0,
-								MaxItems:    1,
-								Description: "Banner colors. Built-in presets (info/warning/critical) are a frontend-only concept that seeds these colors; the store only holds them.",
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"background": {
-											Type:        schema.TypeString,
-											Optional:    true,
-											Description: "The background color of the banner, in \"r g b\" format",
-										},
-										"text": {
-											Type:        schema.TypeString,
-											Optional:    true,
-											Description: "The text color of the banner, in \"r g b\" format",
-										},
-									},
-								},
-							},
+							"theme": announcementThemeSchema(computed),
 						},
 					},
 				},
@@ -452,6 +432,26 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 	}
 }
 
+func announcementThemeSchema(computed bool) *schema.Schema {
+	result := &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    !computed,
+		Computed:    computed,
+		Description: "Banner colors. Built-in presets (info/warning/critical) are a frontend-only concept that seeds these colors; the store only holds them.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"background": colorBlockSchema("The background color of the banner.", computed),
+				"text":       colorBlockSchema("The text color of the banner.", computed),
+			},
+		},
+	}
+	if !computed {
+		result.MinItems = 0
+		result.MaxItems = 1
+	}
+	return result
+}
+
 func getEnvironmentSetting(computed bool) *schema.Schema {
 	return &schema.Schema{
 		Computed:    computed,
@@ -484,11 +484,7 @@ func getEnvironmentSetting(computed bool) *schema.Schema {
 								ValidateFunc: validation.StringIsNotEmpty,
 								Description:  "The environment display name.",
 							},
-							"color": {
-								Type:        schema.TypeString,
-								Optional:    true,
-								Description: "The environment color.",
-							},
+							"color": colorBlockSchema("The environment color.", computed),
 							"protected": {
 								Type:        schema.TypeBool,
 								Optional:    true,
@@ -638,7 +634,7 @@ func flattenEnvironmentSetting(setting *v1pb.EnvironmentSetting) []interface{} {
 		raw := map[string]interface{}{
 			"id":        environment.Id,
 			"name":      environment.Name,
-			"color":     environment.Color,
+			"color":     protoColorToBlock(environment.Color),
 			"title":     environment.Title,
 			"protected": environment.Tags["protected"] == "protected",
 		}
@@ -708,8 +704,8 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 			if theme != nil {
 				announcement["theme"] = []any{
 					map[string]any{
-						"background": theme.GetBackground(),
-						"text":       theme.GetText(),
+						"background": protoColorToBlock(theme.GetBackground()),
+						"text":       protoColorToBlock(theme.GetText()),
 					},
 				}
 			}

@@ -160,15 +160,38 @@ Optional:
 
 - `link` (String) The optional link, user can follow the link to check extra details
 - `text` (String) The text of announcement. Leave it as empty string can clear the announcement
-- `theme` (Block List, Max: 1) Banner colors. Built-in presets (info/warning/critical) are a frontend-only concept that seeds these colors; the store only holds them. (see [below for nested schema](#nestedblock--workspace_profile--announcement--theme))
 
-<a id="nestedblock--workspace_profile--announcement--theme"></a>
+Read-Only:
+
+- `theme` (List of Object) Banner colors. Built-in presets (info/warning/critical) are a frontend-only concept that seeds these colors; the store only holds them. (see [below for nested schema](#nestedatt--workspace_profile--announcement--theme))
+
+<a id="nestedatt--workspace_profile--announcement--theme"></a>
 ### Nested Schema for `workspace_profile.announcement.theme`
 
-Optional:
+Read-Only:
 
-- `background` (String) The background color of the banner, in "r g b" format
-- `text` (String) The text color of the banner, in "r g b" format
+- `background` (List of Object) (see [below for nested schema](#nestedobjatt--workspace_profile--announcement--theme--background))
+- `text` (List of Object) (see [below for nested schema](#nestedobjatt--workspace_profile--announcement--theme--text))
+
+<a id="nestedobjatt--workspace_profile--announcement--theme--background"></a>
+### Nested Schema for `workspace_profile.announcement.theme.background`
+
+Read-Only:
+
+- `blue` (Number)
+- `green` (Number)
+- `red` (Number)
+
+
+<a id="nestedobjatt--workspace_profile--announcement--theme--text"></a>
+### Nested Schema for `workspace_profile.announcement.theme.text`
+
+Read-Only:
+
+- `blue` (Number)
+- `green` (Number)
+- `red` (Number)
+
 
 
 
@@ -296,10 +319,19 @@ Read-Only:
 
 Read-Only:
 
-- `color` (String)
+- `color` (List of Object) (see [below for nested schema](#nestedobjatt--environment_setting--environment--color))
 - `id` (String)
 - `name` (String)
 - `protected` (Boolean)
 - `title` (String)
+
+<a id="nestedobjatt--environment_setting--environment--color"></a>
+### Nested Schema for `environment_setting.environment.color`
+
+Read-Only:
+
+- `blue` (Number)
+- `green` (Number)
+- `red` (Number)
 
 

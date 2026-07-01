@@ -51,11 +51,20 @@ resource "bytebase_setting" "workspace_profile" {
       text = "Scheduled maintenance this weekend."
       link = "https://bytebase.example.com/maintenance"
 
-      # Banner colors in "r g b" format. The info/warning/critical presets are a
-      # frontend-only concept that simply seeds these colors.
+      # Banner colors as google.type.Color channel values in the interval [0, 1].
+      # The info/warning/critical presets are a frontend-only concept that simply
+      # seeds these colors.
       theme {
-        background = "255 247 224"
-        text       = "151 90 22"
+        background {
+          red   = 1
+          green = 0.968627
+          blue  = 0.878431
+        }
+        text {
+          red   = 0.592157
+          green = 0.352941
+          blue  = 0.086275
+        }
       }
     }
   }

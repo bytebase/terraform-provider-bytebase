@@ -17,17 +17,29 @@ resource "bytebase_project" "sample_project" {
   # Issue labels for categorizing issues
   issue_labels {
     value = "bug"
-    color = "#FF0000"
+    color {
+      red   = 1
+      green = 0
+      blue  = 0
+    }
     group = "type"
   }
   issue_labels {
     value = "feature"
-    color = "#00FF00"
+    color {
+      red   = 0
+      green = 1
+      blue  = 0
+    }
     group = "type"
   }
   issue_labels {
     value = "urgent"
-    color = "#FFA500"
+    color {
+      red   = 1
+      green = 0.647059
+      blue  = 0
+    }
     group = "priority"
   }
 

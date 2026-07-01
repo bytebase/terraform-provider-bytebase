@@ -88,8 +88,12 @@ func TestAccSetting_WorkspaceProfile(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.enable_audit_log_stdout", "true"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.text", "Test announcement"),
-					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.background", "255 247 224"),
-					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.text", "151 90 22"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.background.0.red", "1"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.background.0.green", "0.968627"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.background.0.blue", "0.878431"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.text.0.red", "0.592157"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.text.0.green", "0.352941"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.theme.0.text.0.blue", "0.086275"),
 				),
 			},
 		},
@@ -178,6 +182,36 @@ func TestAccSetting_Environment(t *testing.T) {
 	})
 }
 
+func TestSettingEnvironmentColorBlockConfig(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "bytebase_setting" "environments" {
+	name = "settings/ENVIRONMENT"
+
+	environment_setting {
+		environment {
+			id        = "prod"
+			title     = "Prod"
+			protected = true
+			color {
+				red   = 1
+				green = 0
+				blue  = 0
+			}
+		}
+	}
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccSetting_InvalidInput(t *testing.T) {
 	identifier := "invalid_setting"
 
@@ -250,7 +284,11 @@ resource "bytebase_setting" "%s" {
 		environment {
 			id        = "invalid environment id"
 			title     = "Test"
-			color     = "#FF0000"
+			color {
+				red   = 1
+				green = 0
+				blue  = 0
+			}
 			protected = true
 		}
 	}
@@ -372,8 +410,16 @@ resource "bytebase_setting" "%s" {
 			text = "Test announcement"
 			link = "https://example.com/announcement"
 			theme {
-				background = "255 247 224"
-				text       = "151 90 22"
+				background {
+					red   = 1
+					green = 0.968627
+					blue  = 0.878431
+				}
+				text {
+					red   = 0.592157
+					green = 0.352941
+					blue  = 0.086275
+				}
 			}
 		}
 	}
@@ -493,19 +539,31 @@ resource "bytebase_setting" "%s" {
 		environment {
 			id        = "dev"
 			title     = "Development"
-			color     = "#00FF00"
+			color {
+				red   = 0
+				green = 1
+				blue  = 0
+			}
 			protected = false
 		}
 		environment {
 			id        = "staging"
 			title     = "Staging"
-			color     = "#FFFF00"
+			color {
+				red   = 1
+				green = 1
+				blue  = 0
+			}
 			protected = true
 		}
 		environment {
 			id        = "prod"
 			title     = "Production"
-			color     = "#FF0000"
+			color {
+				red   = 1
+				green = 0
+				blue  = 0
+			}
 			protected = true
 		}
 	}

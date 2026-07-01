@@ -141,11 +141,7 @@ func resourceProjct() *schema.Resource {
 							Required:    true,
 							Description: "The label value/name.",
 						},
-						"color": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "The color code for the label (e.g., hex color).",
-						},
+						"color": colorBlockSchema("The label color.", false),
 						"group": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -174,6 +170,10 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	projectID := d.Get("resource_id").(string)
 	projectName := fmt.Sprintf("%s%s", internal.ProjectNamePrefix, projectID)
+	issueLabels, err := convertToV1IssueLabels(d.Get("issue_labels").([]interface{}))
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	project := &v1pb.Project{
 		Name:                       projectName,
 		Title:                      d.Get("title").(string),
@@ -193,7 +193,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		RequirePlanCheckNoError:    d.Get("require_plan_check_no_error").(bool),
 		AllowRequestRole:           d.Get("allow_request_role").(bool),
 		AllowJustInTimeAccess:      d.Get("allow_just_in_time_access").(bool),
-		IssueLabels:                convertToV1IssueLabels(d.Get("issue_labels").([]interface{})),
+		IssueLabels:                issueLabels,
 		Labels:                     convertToStringMap(d.Get("labels").(map[string]interface{})),
 	}
 
@@ -403,6 +403,10 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	if len(paths) > 0 {
+		issueLabels, err := convertToV1IssueLabels(d.Get("issue_labels").([]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		if _, err := c.UpdateProject(ctx, &v1pb.Project{
 			Name:                       projectName,
 			Title:                      d.Get("title").(string),
@@ -422,7 +426,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			RequirePlanCheckNoError:    d.Get("require_plan_check_no_error").(bool),
 			AllowRequestRole:           d.Get("allow_request_role").(bool),
 			AllowJustInTimeAccess:      d.Get("allow_just_in_time_access").(bool),
-			IssueLabels:                convertToV1IssueLabels(d.Get("issue_labels").([]interface{})),
+			IssueLabels:                issueLabels,
 			Labels:                     convertToStringMap(d.Get("labels").(map[string]interface{})),
 		}, paths); err != nil {
 			diags = append(diags, diag.FromErr(err)...)
@@ -699,22 +703,26 @@ func updateWebhooksInProject(ctx context.Context, d *schema.ResourceData, client
 	return nil
 }
 
-func convertToV1IssueLabels(rawLabels []interface{}) []*v1pb.Label {
+func convertToV1IssueLabels(rawLabels []interface{}) ([]*v1pb.Label, error) {
 	labels := make([]*v1pb.Label, 0, len(rawLabels))
 	for _, raw := range rawLabels {
 		rawLabel := raw.(map[string]interface{})
 		label := &v1pb.Label{
 			Value: rawLabel["value"].(string),
 		}
-		if color, ok := rawLabel["color"].(string); ok {
-			label.Color = color
+		if color, ok := rawLabel["color"].([]interface{}); ok {
+			protoColor, err := colorBlockToProto(color)
+			if err != nil {
+				return nil, err
+			}
+			label.Color = protoColor
 		}
 		if group, ok := rawLabel["group"].(string); ok {
 			label.Group = group
 		}
 		labels = append(labels, label)
 	}
-	return labels
+	return labels, nil
 }
 
 func flattenIssueLabels(labels []*v1pb.Label) []interface{} {
@@ -722,7 +730,7 @@ func flattenIssueLabels(labels []*v1pb.Label) []interface{} {
 	for _, label := range labels {
 		result = append(result, map[string]interface{}{
 			"value": label.Value,
-			"color": label.Color,
+			"color": protoColorToBlock(label.Color),
 			"group": label.Group,
 		})
 	}
