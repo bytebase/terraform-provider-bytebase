@@ -35,7 +35,7 @@ resource "bytebase_review_config" "sample" {
     }
   }
   rules {
-    type           = "STATEMENT_MAXIMUM_LIMIT_VALUE"
+    type           = "STATEMENT_INSERT_ROW_LIMIT"
     engine         = "POSTGRES"
     level          = "ERROR"
     number_payload = 1000
