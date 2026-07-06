@@ -183,6 +183,8 @@ func upgradeColorAttribute(raw map[string]interface{}, key string) error {
 			return err
 		}
 		raw[key] = block
+	default:
+		return nil
 	}
 	return nil
 }
