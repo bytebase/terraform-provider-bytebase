@@ -16,12 +16,20 @@ resource "bytebase_project" "project-one" {
   # Issue labels
   issue_labels {
     value = "schema-change"
-    color = "#0066CC"
+    color {
+      red   = 0
+      green = 0.4
+      blue  = 0.8
+    }
     group = "type"
   }
   issue_labels {
     value = "data-change"
-    color = "#CC6600"
+    color {
+      red   = 0.8
+      green = 0.4
+      blue  = 0
+    }
     group = "type"
   }
 
