@@ -30,7 +30,7 @@ provider "bytebase" {
 
 - [Go](https://golang.org/doc/install) (1.19 or later)
 - [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform) (1.11 or later, required for write-only attributes)
-- [Bytebase](https://github.com/bytebase/bytebase) (3.17.1 or later)
+- [Bytebase](https://github.com/bytebase/bytebase) (3.20.0 or later)
 
 > If you have problems running `terraform` in MacOS with Apple Silicon, you can following https://stackoverflow.com/questions/66281882/how-can-i-get-terraform-init-to-run-on-my-apple-silicon-macbook-pro-for-the-go and use the `tfenv`.
 
