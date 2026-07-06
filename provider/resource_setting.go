@@ -21,6 +21,14 @@ import (
 func resourceSetting() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The setting resource.",
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Version: 0,
+				Type:    resourceSettingV0Type(),
+				Upgrade: upgradeSettingColorState,
+			},
+		},
 		CreateContext: resourceSettingUpsert,
 		ReadContext:   resourceSettingRead,
 		UpdateContext: resourceSettingUpsert,
@@ -29,27 +37,31 @@ func resourceSetting() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details`,
-				ValidateDiagFunc: internal.ResourceNameValidation(
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
-					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String()),
-				),
-			},
-			"approval_flow":       getWorkspaceApprovalSetting(false),
-			"workspace_profile":   getWorkspaceProfileSetting(false),
-			"classification":      getClassificationSetting(false),
-			"semantic_types":      getSemanticTypesSetting(false),
-			"environment_setting": getEnvironmentSetting(false),
-			"app_im":              getAppIMSetting(false),
+		Schema: resourceSettingSchema(),
+	}
+}
+
+func resourceSettingSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"name": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details`,
+			ValidateDiagFunc: internal.ResourceNameValidation(
+				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
+				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
+				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_DATA_CLASSIFICATION.String()),
+				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
+				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
+				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String()),
+			),
 		},
+		"approval_flow":       getWorkspaceApprovalSetting(false),
+		"workspace_profile":   getWorkspaceProfileSetting(false),
+		"classification":      getClassificationSetting(false),
+		"semantic_types":      getSemanticTypesSetting(false),
+		"environment_setting": getEnvironmentSetting(false),
+		"app_im":              getAppIMSetting(false),
 	}
 }
 

@@ -20,6 +20,14 @@ import (
 func resourceEnvironment() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The environment resource.",
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Version: 0,
+				Type:    resourceEnvironmentV0Type(),
+				Upgrade: upgradeEnvironmentColorState,
+			},
+		},
 		CreateContext: resourceEnvironmentUpsert,
 		ReadContext:   resourceEnvironmentRead,
 		UpdateContext: resourceEnvironmentUpsert,
@@ -27,36 +35,40 @@ func resourceEnvironment() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Schema: map[string]*schema.Schema{
-			"resource_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: internal.ResourceIDValidation,
-				Description:  "The environment unique id.",
-			},
-			"title": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The environment display name.",
-			},
-			"order": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Description:  "The environment sorting order.",
-				ValidateFunc: validation.IntAtLeast(0),
-			},
-			"name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The environment readonly name in environments/{id} format.",
-			},
-			"color": colorBlockSchema("The environment color.", false),
-			"protected": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "The environment is protected or not.",
-			},
+		Schema: resourceEnvironmentSchema(),
+	}
+}
+
+func resourceEnvironmentSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"resource_id": {
+			Type:         schema.TypeString,
+			Required:     true,
+			ValidateFunc: internal.ResourceIDValidation,
+			Description:  "The environment unique id.",
+		},
+		"title": {
+			Type:         schema.TypeString,
+			Required:     true,
+			ValidateFunc: validation.StringIsNotEmpty,
+			Description:  "The environment display name.",
+		},
+		"order": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Description:  "The environment sorting order.",
+			ValidateFunc: validation.IntAtLeast(0),
+		},
+		"name": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The environment readonly name in environments/{id} format.",
+		},
+		"color": colorBlockSchema("The environment color.", false),
+		"protected": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "The environment is protected or not.",
 		},
 	}
 }
