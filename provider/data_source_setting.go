@@ -312,7 +312,13 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					Computed:    true,
-					Description: "The max expiration duration in seconds for role grants and data access requests. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
+					Description: "The max expiration duration in seconds for data access requests. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
+				},
+				"maximum_role_expiration_in_seconds": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Computed:    true,
+					Description: "The max expiration duration in seconds for request role. Deprecated: use just-in-time access request flows instead. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
 				},
 				"announcement": {
 					Type:        schema.TypeList,
@@ -690,6 +696,9 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 
 	if v := setting.GetMaximumRequestExpiration(); v != nil {
 		raw["maximum_request_expiration_in_seconds"] = int(v.Seconds)
+	}
+	if v := setting.GetMaximumRoleExpiration(); v != nil {
+		raw["maximum_role_expiration_in_seconds"] = int(v.Seconds)
 	}
 	// Handle announcement field - need to be careful with empty announcements
 	if v := setting.GetAnnouncement(); v != nil {
