@@ -46,12 +46,6 @@ func getWorkspaceProfileSettingV0(computed bool) *schema.Schema {
 	result := getWorkspaceProfileSetting(computed)
 	workspaceProfile := result.Elem.(*schema.Resource)
 	delete(workspaceProfile.Schema, "maximum_request_expiration_in_seconds")
-	workspaceProfile.Schema["maximum_role_expiration_in_seconds"] = &schema.Schema{
-		Type:        schema.TypeInt,
-		Optional:    true,
-		Computed:    true,
-		Description: "The max duration in seconds for role expired. If the value is less than or equal to 0, we will remove the setting. AKA no limit.",
-	}
 
 	announcement := workspaceProfile.Schema["announcement"].Elem.(*schema.Resource)
 	delete(announcement.Schema, "theme")
@@ -148,12 +142,6 @@ func upgradeWorkspaceProfileState(rawState map[string]interface{}) {
 		profile, ok := rawProfile.(map[string]interface{})
 		if !ok {
 			continue
-		}
-		if oldValue, ok := profile["maximum_role_expiration_in_seconds"]; ok {
-			if _, exists := profile["maximum_request_expiration_in_seconds"]; !exists {
-				profile["maximum_request_expiration_in_seconds"] = oldValue
-			}
-			delete(profile, "maximum_role_expiration_in_seconds")
 		}
 		announcements, ok := profile["announcement"].([]interface{})
 		if !ok {

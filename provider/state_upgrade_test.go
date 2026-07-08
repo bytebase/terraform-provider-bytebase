@@ -65,7 +65,7 @@ func TestUpgradeSettingColorStateConvertsLegacyEnvironmentStringColors(t *testin
 	assertColorBlock(t, environment["color"], 0.2, 0.4, 0.6)
 }
 
-func TestUpgradeSettingColorStateRenamesMaximumRoleExpiration(t *testing.T) {
+func TestUpgradeSettingColorStatePreservesMaximumRoleExpiration(t *testing.T) {
 	got, err := upgradeSettingColorState(context.Background(), map[string]interface{}{
 		"name": "settings/WORKSPACE_PROFILE",
 		"workspace_profile": []interface{}{
@@ -87,11 +87,11 @@ func TestUpgradeSettingColorStateRenamesMaximumRoleExpiration(t *testing.T) {
 
 	profiles := got["workspace_profile"].([]interface{})
 	profile := profiles[0].(map[string]interface{})
-	if got := profile["maximum_request_expiration_in_seconds"]; got != 3600 {
-		t.Fatalf("maximum_request_expiration_in_seconds = %#v, want 3600", got)
+	if got := profile["maximum_role_expiration_in_seconds"]; got != 3600 {
+		t.Fatalf("maximum_role_expiration_in_seconds = %#v, want 3600", got)
 	}
-	if _, ok := profile["maximum_role_expiration_in_seconds"]; ok {
-		t.Fatal("maximum_role_expiration_in_seconds was not removed")
+	if _, ok := profile["maximum_request_expiration_in_seconds"]; ok {
+		t.Fatal("maximum_request_expiration_in_seconds was added")
 	}
 	announcement := profile["announcement"].([]interface{})[0].(map[string]interface{})
 	if _, ok := announcement["level"]; ok {

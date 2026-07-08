@@ -85,6 +85,8 @@ func TestAccSetting_WorkspaceProfile(t *testing.T) {
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.domains.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.enforce_identity_domain", "true"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.maximum_request_expiration_in_seconds", "86400"),
+					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.maximum_role_expiration_in_seconds", "86400"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.enable_audit_log_stdout", "true"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "workspace_profile.0.announcement.0.text", "Test announcement"),
@@ -405,6 +407,7 @@ resource "bytebase_setting" "%s" {
 		domains                            = ["example.com", "test.com"]
 		enforce_identity_domain               = true
 		maximum_request_expiration_in_seconds = 86400
+		maximum_role_expiration_in_seconds    = 86400
 		enable_audit_log_stdout               = true
 		announcement {
 			text = "Test announcement"

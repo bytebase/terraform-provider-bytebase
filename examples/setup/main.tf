@@ -38,7 +38,8 @@ resource "bytebase_setting" "workspace_profile" {
     query_timeout_in_seconds              = 60                # 60 seconds
     refresh_token_duration_in_seconds     = 604800            # 7 days
     access_token_duration_in_seconds      = 3600              # 1 hour
-    maximum_request_expiration_in_seconds = 2592000           # 30 days
+    maximum_request_expiration_in_seconds = 2592000           # 30 days for data access requests
+    maximum_role_expiration_in_seconds    = 2592000           # 30 days for request role grants
 
     password_restriction {
       min_length                             = 8
