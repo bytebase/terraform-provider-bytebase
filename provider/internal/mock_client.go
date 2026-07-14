@@ -152,6 +152,7 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 		ExternalLink: instance.ExternalLink,
 		DataSources:  instance.DataSources,
 		Environment:  instance.Environment,
+		Labels:       instance.Labels,
 	}
 
 	var envID string
@@ -241,6 +242,9 @@ func (c *mockClient) UpdateInstance(ctx context.Context, patch *v1pb.Instance, u
 	}
 	if slices.Contains(updateMasks, "sync_interval") {
 		ins.SyncInterval = patch.SyncInterval
+	}
+	if slices.Contains(updateMasks, "labels") {
+		ins.Labels = patch.Labels
 	}
 
 	mu.Lock()
@@ -542,6 +546,7 @@ func (c *mockClient) CreateProject(_ context.Context, projectID string, project 
 		RequireIssueApproval:       project.RequireIssueApproval,
 		RequirePlanCheckNoError:    project.RequirePlanCheckNoError,
 		AllowRequestRole:           project.AllowRequestRole,
+		AllowJustInTimeAccess:      project.AllowJustInTimeAccess,
 		IssueLabels:                project.IssueLabels,
 		Labels:                     project.Labels,
 	}
@@ -595,6 +600,9 @@ func (c *mockClient) UpdateProject(ctx context.Context, patch *v1pb.Project, upd
 	}
 	if slices.Contains(updateMasks, "allow_request_role") {
 		proj.AllowRequestRole = patch.AllowRequestRole
+	}
+	if slices.Contains(updateMasks, "allow_just_in_time_access") {
+		proj.AllowJustInTimeAccess = patch.AllowJustInTimeAccess
 	}
 	if slices.Contains(updateMasks, "issue_labels") {
 		proj.IssueLabels = patch.IssueLabels

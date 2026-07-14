@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"maps"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -54,6 +56,11 @@ func resourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: "Whether assign license for this instance or not.",
 			},
+			"state": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The lifecycle state of the instance.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -83,7 +90,14 @@ func resourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: "How often the instance is synced in seconds. Default 0, means never sync. Require instance license to enable this feature.",
 			},
+			"labels":         getInstanceLabelsSchema(true),
 			"sync_databases": getSyncDatabasesSchema(false),
+			"last_sync_time": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The last time the instance was synced.",
+			},
+			"roles": getInstanceRolesSchema(),
 			"data_sources": {
 				Type:        schema.TypeSet,
 				Required:    true,
@@ -462,6 +476,16 @@ func resourceInstance() *schema.Resource {
 								"Most other engines support PASSWORD, GOOGLE_CLOUD_SQL_IAM, AWS_RDS_IAM. " +
 								"Default is PASSWORD.",
 						},
+						"cloud_sql_ip_type": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								v1pb.DataSource_PUBLIC.String(),
+								v1pb.DataSource_PRIVATE.String(),
+								v1pb.DataSource_PSC.String(),
+							}, false),
+							Description: "Cloud SQL IP type. Only available when authentication_type is GOOGLE_CLOUD_SQL_IAM. Defaults to PUBLIC.",
+						},
 						"authentication_private_key": {
 							Type:             schema.TypeString,
 							Optional:         true,
@@ -699,6 +723,53 @@ func getSyncDatabasesSchema(computed bool) *schema.Schema {
 	}
 }
 
+func getInstanceLabelsSchema(optional bool) *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeMap,
+		Optional:    optional,
+		Computed:    true,
+		Description: "Labels are key-value pairs that can be attached to the instance.",
+		Elem:        &schema.Schema{Type: schema.TypeString},
+	}
+}
+
+func getInstanceRolesSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Computed:    true,
+		Description: "Database roles available in this instance.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The instance role full name.",
+				},
+				"role_name": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The role name.",
+				},
+				"connection_limit": {
+					Type:        schema.TypeInt,
+					Computed:    true,
+					Description: "The connection count limit for this role.",
+				},
+				"valid_until": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The expiration for the role's password.",
+				},
+				"attribute": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The role attribute.",
+				},
+			},
+		},
+	}
+}
+
 // suppressSensitiveFieldDiff suppresses diffs for write-only sensitive fields.
 func suppressSensitiveFieldDiff(_, oldValue, newValue string, _ *schema.ResourceData) bool {
 	// If the field was previously set (exists in state) and the new value is empty,
@@ -734,6 +805,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		State:         v1pb.State_ACTIVE,
 		Engine:        v1pb.Engine(v1pb.Engine_value[d.Get("engine").(string)]),
 		SyncDatabases: getSyncDatabases(d),
+		Labels:        convertToStringMap(d.Get("labels").(map[string]interface{})),
 	}
 	environment := d.Get("environment").(string)
 	if environment != "" {
@@ -797,6 +869,9 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 		}
 		if config := rawConfig.GetAttr("sync_databases"); !config.IsNull() {
 			updateMasks = append(updateMasks, "sync_databases")
+		}
+		if config := rawConfig.GetAttr("labels"); !config.IsNull() && !maps.Equal(instance.Labels, existedInstance.Labels) {
+			updateMasks = append(updateMasks, "labels")
 		}
 		if len(dataSourceList) > 0 {
 			updateMasks = append(updateMasks, "data_sources")
@@ -943,6 +1018,9 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	if d.HasChange("sync_databases") {
 		paths = append(paths, "sync_databases")
 	}
+	if d.HasChange("labels") {
+		paths = append(paths, "labels")
+	}
 
 	if len(paths) > 0 {
 		if _, err := c.UpdateInstance(ctx, &v1pb.Instance{
@@ -957,6 +1035,7 @@ func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m inter
 				Seconds: int64(d.Get("sync_interval").(int)),
 			},
 			SyncDatabases: getSyncDatabases(d),
+			Labels:        convertToStringMap(d.Get("labels").(map[string]interface{})),
 		}, paths); err != nil {
 			return diag.FromErr(err)
 		}
@@ -1011,6 +1090,9 @@ func setInstanceMessage(
 	if err := d.Set("activation", instance.Activation); err != nil {
 		return diag.Errorf("cannot set activation for instance: %s", err.Error())
 	}
+	if err := d.Set("state", instance.State.String()); err != nil {
+		return diag.Errorf("cannot set state for instance: %s", err.Error())
+	}
 	if err := d.Set("engine", instance.Engine.String()); err != nil {
 		return diag.Errorf("cannot set engine for instance: %s", err.Error())
 	}
@@ -1019,6 +1101,17 @@ func setInstanceMessage(
 	}
 	if err := d.Set("external_link", instance.ExternalLink); err != nil {
 		return diag.Errorf("cannot set external_link for instance: %s", err.Error())
+	}
+	if err := d.Set("labels", instance.Labels); err != nil {
+		return diag.Errorf("cannot set labels for instance: %s", err.Error())
+	}
+	if v := instance.LastSyncTime; v != nil {
+		if err := d.Set("last_sync_time", v.AsTime().UTC().Format(time.RFC3339)); err != nil {
+			return diag.Errorf("cannot set last_sync_time for instance: %s", err.Error())
+		}
+	}
+	if err := d.Set("roles", flattenInstanceRoles(instance.Roles)); err != nil {
+		return diag.Errorf("cannot set roles for instance: %s", err.Error())
 	}
 	if v := instance.GetSyncInterval(); v != nil {
 		if err := d.Set("sync_interval", v.GetSeconds()); err != nil {
@@ -1055,14 +1148,37 @@ func setInstanceMessage(
 	return nil
 }
 
-func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSource, engine v1pb.Engine) ([]interface{}, error) {
-	oldDataSourceList, err := convertDataSourceCreateList(d, false)
-	if err != nil {
-		return nil, err
+func flattenInstanceRoles(roles []*v1pb.InstanceRole) []interface{} {
+	result := make([]interface{}, 0, len(roles))
+	for _, role := range roles {
+		raw := map[string]interface{}{
+			"name":      role.Name,
+			"role_name": role.RoleName,
+		}
+		if role.ConnectionLimit != nil {
+			raw["connection_limit"] = int(role.GetConnectionLimit())
+		}
+		if role.ValidUntil != nil {
+			raw["valid_until"] = role.GetValidUntil()
+		}
+		if role.Attribute != nil {
+			raw["attribute"] = role.GetAttribute()
+		}
+		result = append(result, raw)
 	}
+	return result
+}
+
+func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSource, engine v1pb.Engine) ([]interface{}, error) {
 	oldDataSourceMap := make(map[string]*v1pb.DataSource)
-	for _, ds := range oldDataSourceList {
-		oldDataSourceMap[ds.Id] = ds
+	if d != nil {
+		oldDataSourceList, err := convertDataSourceCreateList(d, false)
+		if err != nil {
+			return nil, err
+		}
+		for _, ds := range oldDataSourceList {
+			oldDataSourceMap[ds.Id] = ds
+		}
 	}
 
 	res := []interface{}{}
@@ -1109,6 +1225,9 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 		// Authentication - non-sensitive fields
 		if dataSource.AuthenticationType != v1pb.DataSource_AUTHENTICATION_UNSPECIFIED {
 			raw["authentication_type"] = dataSource.AuthenticationType.String()
+		}
+		if dataSource.CloudSqlIpType != v1pb.DataSource_CLOUD_SQL_IP_TYPE_UNSPECIFIED {
+			raw["cloud_sql_ip_type"] = dataSource.CloudSqlIpType.String()
 		}
 
 		// Redis - non-sensitive fields (only for Redis engine to avoid hash mismatch
@@ -1402,6 +1521,9 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 	// SSL/Security
 	if v, ok := obj["verify_tls_certificate"].(bool); ok {
 		dataSource.VerifyTlsCertificate = v
+	}
+	if v, ok := obj["cloud_sql_ip_type"].(string); ok && v != "" {
+		dataSource.CloudSqlIpType = v1pb.DataSource_CloudSQLIPType(v1pb.DataSource_CloudSQLIPType_value[v])
 	}
 	// MongoDB
 	if v, ok := obj["srv"].(bool); ok {

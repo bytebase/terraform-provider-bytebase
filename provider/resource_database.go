@@ -66,6 +66,32 @@ func resourceDatabase() *schema.Resource {
 				Computed:    true,
 				Description: "The latest synchronization time.",
 			},
+			"release": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The release that was last applied to this database.",
+			},
+			"effective_environment": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The effective environment based on environment tag above and environment tag on the instance.",
+			},
+			"instance_resource": getDatabaseInstanceResourceSchema(),
+			"backup_available": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the database is available for DML prior backup.",
+			},
+			"sync_status": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The sync status of the database.",
+			},
+			"sync_error": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The error message if sync failed.",
+			},
 			"labels": {
 				Type:        schema.TypeMap,
 				Computed:    true,
@@ -185,6 +211,56 @@ func resourceDatabase() *schema.Resource {
 	}
 }
 
+func getDatabaseInstanceResourceSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Computed:    true,
+		Description: "The instance resource.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The instance full name.",
+				},
+				"title": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The instance title.",
+				},
+				"engine": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The instance engine.",
+				},
+				"engine_version": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The instance engine version.",
+				},
+				"activation": {
+					Type:        schema.TypeBool,
+					Computed:    true,
+					Description: "Whether the instance is activated.",
+				},
+				"environment": {
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "The instance environment.",
+				},
+				"data_sources": {
+					Type:     schema.TypeSet,
+					Computed: true,
+					Elem: &schema.Resource{
+						Schema: getDataSourceComputedSchema(),
+					},
+					Set: dataSourceHash,
+				},
+			},
+		},
+	}
+}
+
 func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
 	databaseName := d.Get("name").(string)
@@ -294,8 +370,30 @@ func setDatabase(
 	if err := d.Set("state", database.State.String()); err != nil {
 		return diag.Errorf("cannot set state for database: %s", err.Error())
 	}
-	if err := d.Set("successful_sync_time", database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)); err != nil {
-		return diag.Errorf("cannot set successful_sync_time for database: %s", err.Error())
+	if database.SuccessfulSyncTime != nil {
+		if err := d.Set("successful_sync_time", database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)); err != nil {
+			return diag.Errorf("cannot set successful_sync_time for database: %s", err.Error())
+		}
+	}
+	if err := d.Set("release", database.Release); err != nil {
+		return diag.Errorf("cannot set release for database: %s", err.Error())
+	}
+	if v := database.EffectiveEnvironment; v != nil {
+		if err := d.Set("effective_environment", *v); err != nil {
+			return diag.Errorf("cannot set effective_environment for database: %s", err.Error())
+		}
+	}
+	if err := d.Set("instance_resource", flattenDatabaseInstanceResource(database.InstanceResource)); err != nil {
+		return diag.Errorf("cannot set instance_resource for database: %s", err.Error())
+	}
+	if err := d.Set("backup_available", database.BackupAvailable); err != nil {
+		return diag.Errorf("cannot set backup_available for database: %s", err.Error())
+	}
+	if err := d.Set("sync_status", database.SyncStatus.String()); err != nil {
+		return diag.Errorf("cannot set sync_status for database: %s", err.Error())
+	}
+	if err := d.Set("sync_error", database.SyncError); err != nil {
+		return diag.Errorf("cannot set sync_error for database: %s", err.Error())
 	}
 	if err := d.Set("labels", database.Labels); err != nil {
 		return diag.Errorf("cannot set labels for database: %s", err.Error())
@@ -306,6 +404,27 @@ func setDatabase(
 	}
 
 	return nil
+}
+
+func flattenDatabaseInstanceResource(instance *v1pb.InstanceResource) []interface{} {
+	if instance == nil {
+		return nil
+	}
+	raw := map[string]interface{}{
+		"name":           instance.Name,
+		"title":          instance.Title,
+		"engine":         instance.Engine.String(),
+		"engine_version": instance.EngineVersion,
+		"activation":     instance.Activation,
+	}
+	if instance.Environment != nil {
+		raw["environment"] = *instance.Environment
+	}
+	dataSources, err := flattenDataSourceList(nil, instance.DataSources, instance.Engine)
+	if err == nil {
+		raw["data_sources"] = schema.NewSet(dataSourceHash, dataSources)
+	}
+	return []interface{}{raw}
 }
 
 func flattenDatabaseCatalog(catalog *v1pb.DatabaseCatalog) []interface{} {

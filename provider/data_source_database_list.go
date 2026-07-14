@@ -112,6 +112,32 @@ func dataSourceDatabaseList() *schema.Resource {
 							Computed:    true,
 							Description: "The latest synchronization time.",
 						},
+						"release": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The release that was last applied to this database.",
+						},
+						"effective_environment": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The effective environment based on environment tag above and environment tag on the instance.",
+						},
+						"instance_resource": getDatabaseInstanceResourceSchema(),
+						"backup_available": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether the database is available for DML prior backup.",
+						},
+						"sync_status": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The sync status of the database.",
+						},
+						"sync_error": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The error message if sync failed.",
+						},
 						"labels": {
 							Type:        schema.TypeMap,
 							Computed:    true,
@@ -164,9 +190,17 @@ func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m i
 		db["project"] = database.Project
 		if v := database.EffectiveEnvironment; v != nil {
 			db["environment"] = *v
+			db["effective_environment"] = *v
 		}
 		db["state"] = database.State.String()
-		db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
+		if database.SuccessfulSyncTime != nil {
+			db["successful_sync_time"] = database.SuccessfulSyncTime.AsTime().UTC().Format(time.RFC3339)
+		}
+		db["release"] = database.Release
+		db["instance_resource"] = flattenDatabaseInstanceResource(database.InstanceResource)
+		db["backup_available"] = database.BackupAvailable
+		db["sync_status"] = database.SyncStatus.String()
+		db["sync_error"] = database.SyncError
 		db["labels"] = database.Labels
 
 		dbList = append(dbList, db)

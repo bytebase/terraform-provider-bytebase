@@ -54,6 +54,21 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended \"set role <db_owner>\" statement.",
 			},
+			"execution_retry_policy": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The maximum number of retries for the lock timeout issue.",
+			},
+			"ci_sampling_size": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The maximum databases of rows to sample during CI data validation.",
+			},
+			"parallel_tasks_per_rollout": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The maximum number of parallel tasks to run during the rollout.",
+			},
 			"data_classification_config_id": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -325,6 +340,17 @@ func setProject(
 	}
 	if err := d.Set("postgres_database_tenant_mode", project.PostgresDatabaseTenantMode); err != nil {
 		return diag.Errorf("cannot set postgres_database_tenant_mode for project: %s", err.Error())
+	}
+	if project.ExecutionRetryPolicy != nil {
+		if err := d.Set("execution_retry_policy", project.ExecutionRetryPolicy.MaximumRetries); err != nil {
+			return diag.Errorf("cannot set execution_retry_policy for project: %s", err.Error())
+		}
+	}
+	if err := d.Set("ci_sampling_size", project.CiSamplingSize); err != nil {
+		return diag.Errorf("cannot set ci_sampling_size for project: %s", err.Error())
+	}
+	if err := d.Set("parallel_tasks_per_rollout", project.ParallelTasksPerRollout); err != nil {
+		return diag.Errorf("cannot set parallel_tasks_per_rollout for project: %s", err.Error())
 	}
 	if err := d.Set("data_classification_config_id", project.DataClassificationConfigId); err != nil {
 		return diag.Errorf("cannot set data_classification_config_id for project: %s", err.Error())

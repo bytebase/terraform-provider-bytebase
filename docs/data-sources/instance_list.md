@@ -41,8 +41,12 @@ Read-Only:
 - `engine_version` (String)
 - `environment` (String)
 - `external_link` (String)
+- `labels` (Map of String)
+- `last_sync_time` (String)
 - `name` (String)
 - `resource_id` (String)
+- `roles` (List of Object) (see [below for nested schema](#nestedobjatt--instances--roles))
+- `state` (String)
 - `sync_databases` (Set of String)
 - `sync_interval` (Number)
 - `title` (String)
@@ -59,6 +63,7 @@ Read-Only:
 - `authentication_type` (String)
 - `aws_credential` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--aws_credential))
 - `azure_credential` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--azure_credential))
+- `cloud_sql_ip_type` (String)
 - `cluster` (String)
 - `database` (String)
 - `direct_connection` (Boolean)
@@ -211,5 +216,19 @@ Read-Only:
 - `keytab` (String)
 - `primary` (String)
 - `realm` (String)
+
+
+
+
+<a id="nestedobjatt--instances--roles"></a>
+### Nested Schema for `instances.roles`
+
+Read-Only:
+
+- `attribute` (String)
+- `connection_limit` (Number)
+- `name` (String)
+- `role_name` (String)
+- `valid_until` (String)
 
 

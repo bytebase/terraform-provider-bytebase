@@ -18,6 +18,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 	title := "test instance"
 	engine := "POSTGRES"
 	environment := "environments/test"
+	dataSourceName := fmt.Sprintf("data.%s", resourceName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -29,16 +30,19 @@ func TestAccInstanceDataSource(t *testing.T) {
 			// get single instance test
 			{
 				Config: testAccCheckInstanceDataSource(
-					testAccCheckInstanceResource(identifier, resourceID, title, engine, environment),
+					testAccCheckInstanceResourceWithLabels(identifier, resourceID, title, engine, environment, "test", "platform"),
 					resourceName,
 					identifier,
 					resourceID,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					internal.TestCheckResourceExists(fmt.Sprintf("data.%s", resourceName)),
+					internal.TestCheckResourceExists(dataSourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", title),
 					resource.TestCheckResourceAttr(resourceName, "engine", engine),
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
+					resource.TestCheckResourceAttr(dataSourceName, "labels.%", "2"),
+					resource.TestCheckResourceAttr(dataSourceName, "labels.environment", "test"),
+					resource.TestCheckResourceAttr(dataSourceName, "labels.team", "platform"),
 				),
 			},
 		},

@@ -75,6 +75,21 @@ func dataSourceProjectList() *schema.Resource {
 							Computed:    true,
 							Description: "Whether to allow the issue creator to self-approve the issue.",
 						},
+						"execution_retry_policy": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The maximum number of retries for the lock timeout issue.",
+						},
+						"ci_sampling_size": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The maximum databases of rows to sample during CI data validation.",
+						},
+						"parallel_tasks_per_rollout": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The maximum number of parallel tasks to run during the rollout.",
+						},
 						"data_classification_config_id": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -179,6 +194,11 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["enforce_issue_title"] = project.EnforceIssueTitle
 		proj["allow_self_approval"] = project.AllowSelfApproval
 		proj["postgres_database_tenant_mode"] = project.PostgresDatabaseTenantMode
+		if project.ExecutionRetryPolicy != nil {
+			proj["execution_retry_policy"] = project.ExecutionRetryPolicy.MaximumRetries
+		}
+		proj["ci_sampling_size"] = project.CiSamplingSize
+		proj["parallel_tasks_per_rollout"] = project.ParallelTasksPerRollout
 		proj["data_classification_config_id"] = project.DataClassificationConfigId
 		proj["force_issue_labels"] = project.ForceIssueLabels
 		proj["enforce_sql_review"] = project.EnforceSqlReview

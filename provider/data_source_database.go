@@ -40,6 +40,32 @@ func dataSourceDatabase() *schema.Resource {
 				Computed:    true,
 				Description: "The latest synchronization time.",
 			},
+			"release": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The release that was last applied to this database.",
+			},
+			"effective_environment": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The effective environment based on environment tag above and environment tag on the instance.",
+			},
+			"instance_resource": getDatabaseInstanceResourceSchema(),
+			"backup_available": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the database is available for DML prior backup.",
+			},
+			"sync_status": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The sync status of the database.",
+			},
+			"sync_error": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The error message if sync failed.",
+			},
 			"labels": {
 				Type:        schema.TypeMap,
 				Computed:    true,
