@@ -278,11 +278,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		updateMasks = append(updateMasks, "environment")
 	}
 	if config := rawConfig.GetAttr("labels"); !config.IsNull() {
-		labels := map[string]string{}
-		for key, val := range d.Get("labels").(map[string]interface{}) {
-			labels[key] = val.(string)
-		}
-		database.Labels = labels
+		database.Labels = convertToStringMap(d.Get("labels").(map[string]interface{}))
 		updateMasks = append(updateMasks, "labels")
 	}
 

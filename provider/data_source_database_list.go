@@ -171,10 +171,10 @@ func dataSourceDatabaseListRead(ctx context.Context, d *schema.ResourceData, m i
 			filter.Engines = append(filter.Engines, v1pb.Engine(engineValue))
 		}
 	}
-	for key, val := range d.Get("labels").(map[string]interface{}) {
+	for key, val := range convertToStringMap(d.Get("labels").(map[string]interface{})) {
 		filter.Labels = append(filter.Labels, &api.Label{
 			Key:   key,
-			Value: val.(string),
+			Value: val,
 		})
 	}
 
