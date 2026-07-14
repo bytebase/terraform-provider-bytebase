@@ -33,7 +33,11 @@ The instance data source.
 - `environment` (String) The environment name for your instance in "environments/{resource id}" format.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
 - `id` (String) The ID of this resource.
+- `labels` (Map of String) Labels are key-value pairs that can be attached to the instance.
+- `last_sync_time` (String) The last time the instance was synced.
 - `name` (String) The instance full name in instances/{resource id} format.
+- `roles` (List of Object) Database roles available in this instance. (see [below for nested schema](#nestedatt--roles))
+- `state` (String) The lifecycle state of the instance.
 - `sync_databases` (Set of String) Enable sync for following databases. Default empty, means sync all schemas & databases.
 - `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync.
 - `title` (String) The instance title.
@@ -50,6 +54,7 @@ Read-Only:
 - `authentication_type` (String)
 - `aws_credential` (List of Object) (see [below for nested schema](#nestedobjatt--data_sources--aws_credential))
 - `azure_credential` (List of Object) (see [below for nested schema](#nestedobjatt--data_sources--azure_credential))
+- `cloud_sql_ip_type` (String)
 - `cluster` (String)
 - `database` (String)
 - `direct_connection` (Boolean)
@@ -202,5 +207,19 @@ Read-Only:
 - `keytab` (String)
 - `primary` (String)
 - `realm` (String)
+
+
+
+
+<a id="nestedatt--roles"></a>
+### Nested Schema for `roles`
+
+Read-Only:
+
+- `attribute` (String)
+- `connection_limit` (Number)
+- `name` (String)
+- `role_name` (String)
+- `valid_until` (String)
 
 

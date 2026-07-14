@@ -33,23 +33,29 @@ func TestAccInstance(t *testing.T) {
 		Steps: []resource.TestStep{
 			// resource create
 			{
-				Config: testAccCheckInstanceResource(identifier, resourceID, title, engine, environment),
+				Config: testAccCheckInstanceResourceWithLabels(identifier, resourceID, title, engine, environment, "test", "platform"),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", title),
 					resource.TestCheckResourceAttr(resourceName, "engine", engine),
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "labels.environment", "test"),
+					resource.TestCheckResourceAttr(resourceName, "labels.team", "platform"),
 					resource.TestCheckResourceAttr(resourceName, "data_sources.#", "1"),
 				),
 			},
 			// resource updated
 			{
-				Config: testAccCheckInstanceResource(identifier, resourceID, titleUpdated, engine, environment),
+				Config: testAccCheckInstanceResourceWithLabels(identifier, resourceID, titleUpdated, engine, environment, "prod", "database"),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", titleUpdated),
 					resource.TestCheckResourceAttr(resourceName, "engine", engine),
 					resource.TestCheckResourceAttr(resourceName, "environment", environment),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "labels.environment", "prod"),
+					resource.TestCheckResourceAttr(resourceName, "labels.team", "database"),
 					resource.TestCheckResourceAttr(resourceName, "data_sources.#", "1"),
 				),
 			},
@@ -162,12 +168,26 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 }
 
 func testAccCheckInstanceResource(identifier, id, name, engine, env string) string {
+	return testAccCheckInstanceResourceWithLabels(identifier, id, name, engine, env, "", "")
+}
+
+func testAccCheckInstanceResourceWithLabels(identifier, id, name, engine, env, labelEnvironment, labelTeam string) string {
+	labels := ""
+	if labelEnvironment != "" || labelTeam != "" {
+		labels = fmt.Sprintf(`
+		labels = {
+			environment = "%s"
+			team        = "%s"
+		}
+`, labelEnvironment, labelTeam)
+	}
 	return fmt.Sprintf(`
 	resource "bytebase_instance" "%s" {
 		resource_id = "%s"
 		title       = "%s"
 		engine      = "%s"
 		environment = "%s"
+		%s
 
 		data_sources {
 			id       = "admin data source"
@@ -177,5 +197,5 @@ func testAccCheckInstanceResource(identifier, id, name, engine, env string) stri
 			port     = "3306"
 		}
 	}
-	`, identifier, id, name, engine, env)
+	`, identifier, id, name, engine, env, labels)
 }

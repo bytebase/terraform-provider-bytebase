@@ -55,6 +55,11 @@ resource "bytebase_instance" "mysql" {
   engine      = "MYSQL"
   activation  = true
 
+  labels = {
+    environment = "test"
+    team        = "platform"
+  }
+
   data_sources {
     id       = "admin"
     type     = "ADMIN"

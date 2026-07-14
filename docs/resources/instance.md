@@ -27,6 +27,7 @@ The instance resource.
 - `activation` (Boolean) Whether assign license for this instance or not.
 - `environment` (String) The environment full name for the instance in environments/{environment id} format.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
+- `labels` (Map of String) Labels are key-value pairs that can be attached to the instance.
 - `list_all_databases` (Boolean) List all databases in this instance. If false, will only list 500 databases.
 - `sync_databases` (Set of String) Enable sync for following databases. Default empty, means sync all schemas & databases.
 - `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync. Require instance license to enable this feature.
@@ -36,7 +37,10 @@ The instance resource.
 - `databases` (Set of String) The databases full name in the resource.
 - `engine_version` (String) The engine version.
 - `id` (String) The ID of this resource.
+- `last_sync_time` (String) The last time the instance was synced.
 - `name` (String) The instance full name in instances/{resource id} format.
+- `roles` (List of Object) Database roles available in this instance. (see [below for nested schema](#nestedatt--roles))
+- `state` (String) The lifecycle state of the instance.
 
 <a id="nestedblock--data_sources"></a>
 ### Nested Schema for `data_sources`
@@ -55,6 +59,7 @@ Optional:
 - `authentication_type` (String) Authentication type. Supported values depend on engine: COSMOSDB only supports AZURE_IAM; MSSQL supports PASSWORD, AZURE_IAM; ELASTICSEARCH supports PASSWORD, AWS_RDS_IAM; SPANNER, BIGQUERY only support GOOGLE_CLOUD_SQL_IAM; Most other engines support PASSWORD, GOOGLE_CLOUD_SQL_IAM, AWS_RDS_IAM. Default is PASSWORD.
 - `aws_credential` (Block List, Max: 1) AWS IAM credential. Only valid when authentication_type is AWS_RDS_IAM. (see [below for nested schema](#nestedblock--data_sources--aws_credential))
 - `azure_credential` (Block List, Max: 1) Azure IAM credential. Only valid when authentication_type is AZURE_IAM. (see [below for nested schema](#nestedblock--data_sources--azure_credential))
+- `cloud_sql_ip_type` (String) Cloud SQL IP type. Only available when authentication_type is GOOGLE_CLOUD_SQL_IAM. Defaults to PUBLIC.
 - `cluster` (String) CockroachDB cluster name. Only available for COCKROACHDB engine.
 - `database` (String) The database for the instance, you can set this if the engine type is POSTGRES.
 - `direct_connection` (Boolean) Use direct connection to MongoDB node. Only available for MONGODB engine.
@@ -217,5 +222,19 @@ Optional:
 - `instance` (String) The instance component of the Kerberos principal.
 - `kdc_port` (String) The port of the Key Distribution Center (KDC).
 - `kdc_transport_protocol` (String) The transport protocol for KDC communication (tcp or udp).
+
+
+
+
+<a id="nestedatt--roles"></a>
+### Nested Schema for `roles`
+
+Read-Only:
+
+- `attribute` (String)
+- `connection_limit` (Number)
+- `name` (String)
+- `role_name` (String)
+- `valid_until` (String)
 
 

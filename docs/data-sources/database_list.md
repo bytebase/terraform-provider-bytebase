@@ -36,11 +36,196 @@ The database data source list.
 
 Read-Only:
 
+- `backup_available` (Boolean)
+- `effective_environment` (String)
 - `environment` (String)
+- `instance_resource` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource))
 - `labels` (Map of String)
 - `name` (String)
 - `project` (String)
+- `release` (String)
 - `state` (String)
 - `successful_sync_time` (String)
+- `sync_error` (String)
+- `sync_status` (String)
+
+<a id="nestedobjatt--databases--instance_resource"></a>
+### Nested Schema for `databases.instance_resource`
+
+Read-Only:
+
+- `activation` (Boolean)
+- `data_sources` (Set of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources))
+- `engine` (String)
+- `engine_version` (String)
+- `environment` (String)
+- `name` (String)
+- `title` (String)
+
+<a id="nestedobjatt--databases--instance_resource--data_sources"></a>
+### Nested Schema for `databases.instance_resource.data_sources`
+
+Read-Only:
+
+- `additional_addresses` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--additional_addresses))
+- `authentication_database` (String)
+- `authentication_private_key` (String)
+- `authentication_private_key_passphrase` (String)
+- `authentication_type` (String)
+- `aws_credential` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--aws_credential))
+- `azure_credential` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--azure_credential))
+- `cloud_sql_ip_type` (String)
+- `cluster` (String)
+- `database` (String)
+- `direct_connection` (Boolean)
+- `external_secret` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--external_secret))
+- `extra_connection_parameters` (Map of String)
+- `gcp_credential` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--gcp_credential))
+- `host` (String)
+- `id` (String)
+- `master_name` (String)
+- `master_password` (String)
+- `master_username` (String)
+- `password` (String)
+- `port` (String)
+- `redis_type` (String)
+- `region` (String)
+- `replica_set` (String)
+- `sasl_config` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--sasl_config))
+- `service_name` (String)
+- `sid` (String)
+- `srv` (Boolean)
+- `ssh_host` (String)
+- `ssh_password` (String)
+- `ssh_port` (String)
+- `ssh_private_key` (String)
+- `ssh_user` (String)
+- `ssl_ca` (String)
+- `ssl_ca_path` (String)
+- `ssl_ca_path_set` (Boolean)
+- `ssl_ca_set` (Boolean)
+- `ssl_cert` (String)
+- `ssl_cert_path` (String)
+- `ssl_cert_path_set` (Boolean)
+- `ssl_cert_set` (Boolean)
+- `ssl_key` (String)
+- `ssl_key_path` (String)
+- `ssl_key_path_set` (Boolean)
+- `ssl_key_set` (Boolean)
+- `type` (String)
+- `use_ssl` (Boolean)
+- `username` (String)
+- `verify_tls_certificate` (Boolean)
+- `warehouse_id` (String)
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--additional_addresses"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id`
+
+Read-Only:
+
+- `host` (String)
+- `port` (String)
+
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--aws_credential"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id`
+
+Read-Only:
+
+- `access_key_id` (String)
+- `external_id` (String)
+- `role_arn` (String)
+- `secret_access_key` (String)
+- `session_token` (String)
+
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--azure_credential"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id`
+
+Read-Only:
+
+- `client_id` (String)
+- `client_secret` (String)
+- `tenant_id` (String)
+
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--external_secret"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id`
+
+Read-Only:
+
+- `aws_secrets_manager` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--warehouse_id--aws_secrets_manager))
+- `gcp_secret_manager` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--warehouse_id--gcp_secret_manager))
+- `vault` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--warehouse_id--vault))
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--warehouse_id--aws_secrets_manager"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id.aws_secrets_manager`
+
+Read-Only:
+
+- `password_key_name` (String)
+- `secret_name` (String)
+
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--warehouse_id--gcp_secret_manager"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id.gcp_secret_manager`
+
+Read-Only:
+
+- `secret_name` (String)
+
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--warehouse_id--vault"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id.vault`
+
+Read-Only:
+
+- `app_role` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--warehouse_id--vault--app_role))
+- `engine_name` (String)
+- `password_key_name` (String)
+- `secret_name` (String)
+- `token` (String)
+- `token_type` (String)
+- `url` (String)
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--warehouse_id--vault--app_role"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id.vault.url`
+
+Read-Only:
+
+- `role_id` (String)
+- `secret` (String)
+- `secret_type` (String)
+
+
+
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--gcp_credential"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id`
+
+Read-Only:
+
+- `content` (String)
+
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--sasl_config"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id`
+
+Read-Only:
+
+- `kerberos` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--warehouse_id--kerberos))
+
+<a id="nestedobjatt--databases--instance_resource--data_sources--warehouse_id--kerberos"></a>
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id.kerberos`
+
+Read-Only:
+
+- `instance` (String)
+- `kdc_host` (String)
+- `kdc_port` (String)
+- `kdc_transport_protocol` (String)
+- `keytab` (String)
+- `primary` (String)
+- `realm` (String)
 
 

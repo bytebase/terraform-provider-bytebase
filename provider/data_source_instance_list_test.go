@@ -27,14 +27,24 @@ func TestAccInstanceListDataSource(t *testing.T) {
 				"instances",
 				0,
 			),
-			internal.GetTestStepForDataSourceList(
-				testAccCheckInstanceResource(identifier, "staging-instance", "staging instance", "POSTGRES", "environments/staging"),
-				fmt.Sprintf("bytebase_instance.%s", identifier),
-				"bytebase_instance_list",
-				"after",
-				"instances",
-				1,
-			),
+			{
+				Config: fmt.Sprintf(`
+%s
+
+data "bytebase_instance_list" "after" {
+	depends_on = [
+		bytebase_instance.%s
+	]
+}
+`, testAccCheckInstanceResourceWithLabels(identifier, "staging-instance", "staging instance", "POSTGRES", "environments/staging", "staging", "platform"), identifier),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists("data.bytebase_instance_list.after"),
+					resource.TestCheckResourceAttr("data.bytebase_instance_list.after", "instances.#", "1"),
+					resource.TestCheckResourceAttr("data.bytebase_instance_list.after", "instances.0.labels.%", "2"),
+					resource.TestCheckResourceAttr("data.bytebase_instance_list.after", "instances.0.labels.environment", "staging"),
+					resource.TestCheckResourceAttr("data.bytebase_instance_list.after", "instances.0.labels.team", "platform"),
+				),
+			},
 		},
 	})
 }

@@ -12,6 +12,11 @@ resource "bytebase_instance" "test" {
   engine      = "MYSQL"
   activation  = true
 
+  labels = {
+    environment = "test"
+    team        = "platform"
+  }
+
   # You need to specific the data source
   data_sources {
     id   = "admin data source"

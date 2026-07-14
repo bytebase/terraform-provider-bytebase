@@ -101,6 +101,11 @@ func dataSourceInstanceList() *schema.Resource {
 							Computed:    true,
 							Description: "Whether assign license for this instance or not.",
 						},
+						"state": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The lifecycle state of the instance.",
+						},
 						"engine": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -121,7 +126,14 @@ func dataSourceInstanceList() *schema.Resource {
 							Computed:    true,
 							Description: "How often the instance is synced in seconds. Default 0, means never sync.",
 						},
+						"labels":         getInstanceLabelsSchema(false),
 						"sync_databases": getSyncDatabasesSchema(true),
+						"last_sync_time": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The last time the instance was synced.",
+						},
+						"roles": getInstanceRolesSchema(),
 						"data_sources": {
 							Type:     schema.TypeSet,
 							Computed: true,
@@ -182,6 +194,7 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		ins["title"] = instance.Title
 		ins["name"] = instance.Name
 		ins["activation"] = instance.Activation
+		ins["state"] = instance.State.String()
 		ins["engine"] = instance.Engine.String()
 		ins["engine_version"] = instance.EngineVersion
 		ins["external_link"] = instance.ExternalLink
@@ -191,6 +204,11 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 		if v := instance.GetSyncInterval(); v != nil {
 			ins["sync_interval"] = v.GetSeconds()
 		}
+		ins["labels"] = instance.Labels
+		if v := instance.LastSyncTime; v != nil {
+			ins["last_sync_time"] = v.AsTime().UTC().Format(time.RFC3339)
+		}
+		ins["roles"] = flattenInstanceRoles(instance.Roles)
 		ins["sync_databases"] = instance.SyncDatabases
 
 		dataSources, err := flattenDataSourceList(d, instance.DataSources, instance.Engine)

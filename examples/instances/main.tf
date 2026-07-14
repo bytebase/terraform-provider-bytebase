@@ -3,7 +3,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.17.4"
+      version = "3.20.3"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -29,6 +29,11 @@ resource "bytebase_instance" "mysql_password" {
   title       = "MySQL with Password Auth"
   engine      = "MYSQL"
   activation  = true
+
+  labels = {
+    environment = "test"
+    team        = "platform"
+  }
 
   data_sources {
     id       = "admin"
@@ -368,6 +373,7 @@ resource "bytebase_instance" "cloudsql_gcp_iam" {
     database            = "postgres"
     username            = "service-account@project.iam"
     authentication_type = "GOOGLE_CLOUD_SQL_IAM"
+    cloud_sql_ip_type   = "PRIVATE"
     # Optional: Provide service account JSON
     gcp_credential {
       content = file("${path.module}/credentials/service-account.json")

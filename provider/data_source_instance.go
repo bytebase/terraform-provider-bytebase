@@ -42,6 +42,11 @@ func dataSourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: "Whether assign license for this instance or not.",
 			},
+			"state": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The lifecycle state of the instance.",
+			},
 			"engine": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -62,6 +67,13 @@ func dataSourceInstance() *schema.Resource {
 				Computed:    true,
 				Description: "How often the instance is synced in seconds. Default 0, means never sync.",
 			},
+			"labels": getInstanceLabelsSchema(false),
+			"last_sync_time": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The last time the instance was synced.",
+			},
+			"roles": getInstanceRolesSchema(),
 			"data_sources": {
 				Type:     schema.TypeSet,
 				Computed: true,
@@ -271,6 +283,11 @@ func getDataSourceComputedSchema() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "Authentication type: PASSWORD, GOOGLE_CLOUD_SQL_IAM, AWS_RDS_IAM, AZURE_IAM.",
+		},
+		"cloud_sql_ip_type": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Cloud SQL IP type.",
 		},
 		"authentication_private_key": {
 			Type:        schema.TypeString,
