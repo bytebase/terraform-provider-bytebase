@@ -19,9 +19,6 @@ import (
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 )
 
-// defaultProj is the default project name.
-var defaultProj = fmt.Sprintf("%sdefault", internal.ProjectNamePrefix)
-
 func resourceProjct() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The project resource.",
@@ -570,7 +567,7 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 		unassignDatabases := []*v1pb.UpdateDatabaseRequest{}
 		for _, db := range existedDBMap {
 			// move db to default project
-			db.Project = defaultProj
+			db.Project = client.GetDefaultProjectName()
 			unassignDatabases = append(unassignDatabases, &v1pb.UpdateDatabaseRequest{
 				Database: db,
 				UpdateMask: &fieldmaskpb.FieldMask{

@@ -71,6 +71,7 @@ func init() {
 
 type mockClient struct {
 	workspaceName       string
+	defaultProjectName  string
 	instanceMap         map[string]*v1pb.Instance
 	policyMap           map[string]*v1pb.Policy
 	projectMap          map[string]*v1pb.Project
@@ -92,12 +93,18 @@ func (c *mockClient) GetWorkspaceName() string {
 	return c.workspaceName
 }
 
+// GetDefaultProjectName returns the workspace default project resource name.
+func (c *mockClient) GetDefaultProjectName() string {
+	return c.defaultProjectName
+}
+
 // newMockClient returns the new Bytebase API mock client.
 func newMockClient(_, _, _ string) (api.Client, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	return &mockClient{
 		workspaceName:       fmt.Sprintf("%s%s", WorkspaceNamePrefix, MockWorkspaceID),
+		defaultProjectName:  fmt.Sprintf("%sdefault-%s", ProjectNamePrefix, MockWorkspaceID),
 		instanceMap:         instanceMap,
 		policyMap:           policyMap,
 		projectMap:          projectMap,
@@ -419,19 +426,29 @@ func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*v1pb.
 }
 
 // ListDatabase list the databases.
-func (c *mockClient) ListDatabase(_ context.Context, instaceID string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
+func (c *mockClient) ListDatabase(_ context.Context, parent string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
 	mu.RLock()
 	defer mu.RUnlock()
-	projectID := "-"
+	projectName := ""
 	if filter.Project != "" {
-		projectID = filter.Project
+		projectName = filter.Project
+	}
+	if strings.HasPrefix(parent, ProjectNamePrefix) {
+		projectName = parent
+	}
+	instanceName := ""
+	if parent != "-" && !strings.HasPrefix(parent, ProjectNamePrefix) && !strings.HasPrefix(parent, WorkspaceNamePrefix) {
+		instanceName = parent
+		if !strings.HasPrefix(instanceName, InstanceNamePrefix) {
+			instanceName = fmt.Sprintf("%s%s", InstanceNamePrefix, parent)
+		}
 	}
 	databases := make([]*v1pb.Database, 0)
 	for _, db := range c.databaseMap {
-		if projectID != "-" && fmt.Sprintf(`"%s"`, db.Project) != projectID {
+		if projectName != "" && db.Project != projectName {
 			continue
 		}
-		if instaceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("%s%s", InstanceNamePrefix, instaceID)) {
+		if instanceName != "" && !strings.HasPrefix(db.Name, instanceName) {
 			continue
 		}
 		databases = append(databases, db)

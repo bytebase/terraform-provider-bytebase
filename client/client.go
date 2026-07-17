@@ -18,9 +18,10 @@ import (
 
 // client is the API message for Bytebase API client.
 type client struct {
-	url           string
-	workspaceName string
-	client        *http.Client
+	url                string
+	workspaceName      string
+	defaultProjectName string
+	client             *http.Client
 
 	// Connect RPC clients
 	actuatorClient         bytebasev1connect.ActuatorServiceClient
@@ -47,6 +48,11 @@ type client struct {
 // GetWorkspaceName returns the workspace resource name.
 func (c *client) GetWorkspaceName() string {
 	return c.workspaceName
+}
+
+// GetDefaultProjectName returns the workspace default project resource name.
+func (c *client) GetDefaultProjectName() string {
+	return c.defaultProjectName
 }
 
 type options struct {
@@ -149,6 +155,10 @@ func NewClient(url, email, password string, opts ...Option) (api.Client, error) 
 		)
 	}
 	c.workspaceName = workspace
+	c.defaultProjectName = actuatorResp.Msg.GetDefaultProject()
+	if c.defaultProjectName == "" {
+		return nil, errors.New("actuator returned empty default project name; cannot initialize provider")
+	}
 
 	return &c, nil
 }

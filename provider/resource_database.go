@@ -329,7 +329,7 @@ func resourceDatabaseDelete(ctx context.Context, d *schema.ResourceData, m inter
 
 	if _, err := c.UpdateDatabase(ctx, &v1pb.Database{
 		Name:    databaseName,
-		Project: defaultProj,
+		Project: c.GetDefaultProjectName(),
 	}, []string{"project"}); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,

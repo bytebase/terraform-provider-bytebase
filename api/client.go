@@ -60,6 +60,8 @@ type GroupFilter struct {
 type Client interface {
 	// GetWorkspaceName returns the workspace resource name in "workspaces/{workspace-id}" format.
 	GetWorkspaceName() string
+	// GetDefaultProjectName returns the workspace default project resource name.
+	GetDefaultProjectName() string
 
 	// Instance
 	// ListInstance will return instances.

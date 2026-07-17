@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"buf.build/gen/go/bytebase/bytebase/connectrpc/go/v1/bytebasev1connect"
@@ -13,7 +14,7 @@ import (
 
 func TestNewClientSendsCustomHeadersToLoginAndAuthenticatedRequests(t *testing.T) {
 	authHandler := &recordingAuthHandler{}
-	actuatorHandler := &recordingActuatorHandler{}
+	actuatorHandler := &recordingActuatorHandler{defaultProject: "projects/default-test"}
 	workspaceHandler := &recordingWorkspaceHandler{}
 
 	mux := http.NewServeMux()
@@ -34,6 +35,9 @@ func TestNewClientSendsCustomHeadersToLoginAndAuthenticatedRequests(t *testing.T
 	apiClient, err := NewClient(server.URL, "service@example.com", "secret", WithCustomHeaders(headers))
 	if err != nil {
 		t.Fatalf("NewClient() error = %v", err)
+	}
+	if got, want := apiClient.GetDefaultProjectName(), "projects/default-test"; got != want {
+		t.Fatalf("GetDefaultProjectName() = %q, want %q", got, want)
 	}
 	if _, err := apiClient.GetWorkspace(context.Background(), "workspaces/test"); err != nil {
 		t.Fatalf("GetWorkspace() error = %v", err)
@@ -58,6 +62,28 @@ func TestNewClientSendsCustomHeadersToLoginAndAuthenticatedRequests(t *testing.T
 	}
 }
 
+func TestNewClientRequiresDefaultProject(t *testing.T) {
+	authHandler := &recordingAuthHandler{}
+	actuatorHandler := &recordingActuatorHandler{}
+
+	mux := http.NewServeMux()
+	authPath, authHTTPHandler := bytebasev1connect.NewAuthServiceHandler(authHandler)
+	actuatorPath, actuatorHTTPHandler := bytebasev1connect.NewActuatorServiceHandler(actuatorHandler)
+	mux.Handle(authPath, authHTTPHandler)
+	mux.Handle(actuatorPath, actuatorHTTPHandler)
+
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	_, err := NewClient(server.URL, "service@example.com", "secret")
+	if err == nil {
+		t.Fatal("NewClient() error = nil, want error")
+	}
+	if got, want := err.Error(), "actuator returned empty default project name"; !strings.Contains(got, want) {
+		t.Fatalf("NewClient() error = %q, want to contain %q", got, want)
+	}
+}
+
 type recordingAuthHandler struct {
 	bytebasev1connect.UnimplementedAuthServiceHandler
 	headers http.Header
@@ -70,12 +96,16 @@ func (h *recordingAuthHandler) Login(_ context.Context, req *connect.Request[v1p
 
 type recordingActuatorHandler struct {
 	bytebasev1connect.UnimplementedActuatorServiceHandler
-	headers http.Header
+	headers        http.Header
+	defaultProject string
 }
 
 func (h *recordingActuatorHandler) GetActuatorInfo(_ context.Context, req *connect.Request[v1pb.GetActuatorInfoRequest]) (*connect.Response[v1pb.ActuatorInfo], error) {
 	h.headers = req.Header()
-	return connect.NewResponse(&v1pb.ActuatorInfo{Workspace: "workspaces/test"}), nil
+	return connect.NewResponse(&v1pb.ActuatorInfo{
+		Workspace:      "workspaces/test",
+		DefaultProject: h.defaultProject,
+	}), nil
 }
 
 type recordingWorkspaceHandler struct {
