@@ -426,29 +426,19 @@ func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*v1pb.
 }
 
 // ListDatabase list the databases.
-func (c *mockClient) ListDatabase(_ context.Context, parent string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
+func (c *mockClient) ListDatabase(_ context.Context, instaceID string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
 	mu.RLock()
 	defer mu.RUnlock()
-	projectName := ""
+	projectID := "-"
 	if filter.Project != "" {
-		projectName = filter.Project
-	}
-	if strings.HasPrefix(parent, ProjectNamePrefix) {
-		projectName = parent
-	}
-	instanceName := ""
-	if parent != "-" && !strings.HasPrefix(parent, ProjectNamePrefix) && !strings.HasPrefix(parent, WorkspaceNamePrefix) {
-		instanceName = parent
-		if !strings.HasPrefix(instanceName, InstanceNamePrefix) {
-			instanceName = fmt.Sprintf("%s%s", InstanceNamePrefix, parent)
-		}
+		projectID = filter.Project
 	}
 	databases := make([]*v1pb.Database, 0)
 	for _, db := range c.databaseMap {
-		if projectName != "" && db.Project != projectName {
+		if projectID != "-" && fmt.Sprintf(`"%s"`, db.Project) != projectID {
 			continue
 		}
-		if instanceName != "" && !strings.HasPrefix(db.Name, instanceName) {
+		if instaceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("%s%s", InstanceNamePrefix, instaceID)) {
 			continue
 		}
 		databases = append(databases, db)
