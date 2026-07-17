@@ -71,6 +71,7 @@ func init() {
 
 type mockClient struct {
 	workspaceName       string
+	defaultProjectName  string
 	instanceMap         map[string]*v1pb.Instance
 	policyMap           map[string]*v1pb.Policy
 	projectMap          map[string]*v1pb.Project
@@ -92,12 +93,18 @@ func (c *mockClient) GetWorkspaceName() string {
 	return c.workspaceName
 }
 
+// GetDefaultProjectName returns the workspace default project resource name.
+func (c *mockClient) GetDefaultProjectName() string {
+	return c.defaultProjectName
+}
+
 // newMockClient returns the new Bytebase API mock client.
 func newMockClient(_, _, _ string) (api.Client, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	return &mockClient{
 		workspaceName:       fmt.Sprintf("%s%s", WorkspaceNamePrefix, MockWorkspaceID),
+		defaultProjectName:  fmt.Sprintf("%sdefault-%s", ProjectNamePrefix, MockWorkspaceID),
 		instanceMap:         instanceMap,
 		policyMap:           policyMap,
 		projectMap:          projectMap,

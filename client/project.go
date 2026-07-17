@@ -176,8 +176,7 @@ func (c *client) ListProject(ctx context.Context, filter *api.ProjectFilter) ([]
 			}
 
 			if filter.ExcludeDefault {
-				// Skip default project (you might need to adjust this logic)
-				if project.Name == "projects/default" {
+				if project.Name == c.defaultProjectName {
 					continue
 				}
 			}

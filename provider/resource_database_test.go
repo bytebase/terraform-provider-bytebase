@@ -1,12 +1,15 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"testing"
 
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
@@ -128,6 +131,52 @@ func TestAccDatabase_InvalidInput(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestResourceDatabaseDeleteMovesDatabaseToWorkspaceDefaultProject(t *testing.T) {
+	ctx := context.Background()
+	meta, diags := internal.MockProviderConfigure(ctx, schema.TestResourceDataRaw(t, NewProvider().Schema, map[string]interface{}{
+		"url":             "http://bytebase.example.com",
+		"service_account": "service@example.com",
+		"service_key":     "secret",
+	}))
+	if diags.HasError() {
+		t.Fatalf("MockProviderConfigure() returned diagnostics: %v", diags)
+	}
+
+	environment := "environments/test"
+	if _, err := meta.(interface {
+		CreateInstance(context.Context, string, *v1pb.Instance) (*v1pb.Instance, error)
+	}).CreateInstance(ctx, "delete-default-project", &v1pb.Instance{
+		Title:       "Test Instance",
+		Engine:      v1pb.Engine_POSTGRES,
+		Environment: &environment,
+	}); err != nil {
+		t.Fatalf("CreateInstance() error = %v", err)
+	}
+
+	databaseName := "instances/delete-default-project/databases/test-database"
+	d := schema.TestResourceDataRaw(t, resourceDatabase().Schema, map[string]interface{}{
+		"name":        databaseName,
+		"project":     "projects/test-project",
+		"environment": environment,
+	})
+	d.SetId(databaseName)
+
+	diags = resourceDatabaseDelete(ctx, d, meta)
+	if diags.HasError() {
+		t.Fatalf("resourceDatabaseDelete() returned diagnostics: %v", diags)
+	}
+
+	database, err := meta.(interface {
+		GetDatabase(context.Context, string) (*v1pb.Database, error)
+	}).GetDatabase(ctx, databaseName)
+	if err != nil {
+		t.Fatalf("GetDatabase() error = %v", err)
+	}
+	if got, want := database.Project, "projects/default-mock-workspace"; got != want {
+		t.Fatalf("database project after delete = %q, want %q", got, want)
+	}
 }
 
 func testAccCheckDatabaseResource(identifier, name, project, environment string) string {
