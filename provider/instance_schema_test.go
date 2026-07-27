@@ -183,7 +183,7 @@ func TestFlattenVaultExternalSecretPreservesInputOnlyTLS(t *testing.T) {
 	if vault["vault_ssl_key"] != "old-key-pem" {
 		t.Fatalf("vault_ssl_key = %q, want %q", vault["vault_ssl_key"], "old-key-pem")
 	}
-	if vault["skip_vault_tls_verification"] != true {
+	if !vault["skip_vault_tls_verification"].(bool) {
 		t.Fatalf("skip_vault_tls_verification = %v, want true", vault["skip_vault_tls_verification"])
 	}
 }
