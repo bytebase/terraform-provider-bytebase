@@ -113,7 +113,6 @@ var EngineValidation = validation.StringInSlice([]string{
 	v1pb.Engine_MYSQL.String(),
 	v1pb.Engine_POSTGRES.String(),
 	v1pb.Engine_SNOWFLAKE.String(),
-	v1pb.Engine_SQLITE.String(),
 	v1pb.Engine_TIDB.String(),
 	v1pb.Engine_MONGODB.String(),
 	v1pb.Engine_REDIS.String(),

@@ -109,7 +109,7 @@ func dataSourceInstanceList() *schema.Resource {
 						"engine": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.",
+							Description: "The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.",
 						},
 						"engine_version": {
 							Type:        schema.TypeString,
@@ -209,7 +209,7 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 			ins["last_sync_time"] = v.AsTime().UTC().Format(time.RFC3339)
 		}
 		ins["roles"] = flattenInstanceRoles(instance.Roles)
-		ins["sync_databases"] = instance.SyncDatabases
+		ins["sync_databases"] = flattenSyncDatabases(instance.SyncDatabases)
 
 		dataSources, err := flattenDataSourceList(d, instance.DataSources, instance.Engine)
 		if err != nil {

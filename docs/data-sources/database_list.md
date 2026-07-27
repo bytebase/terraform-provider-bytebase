@@ -83,11 +83,13 @@ Read-Only:
 - `gcp_credential` (List of Object) (see [below for nested schema](#nestedobjatt--databases--instance_resource--data_sources--gcp_credential))
 - `host` (String)
 - `id` (String)
+- `instance_id` (String)
 - `master_name` (String)
 - `master_password` (String)
 - `master_username` (String)
 - `password` (String)
 - `port` (String)
+- `project_id` (String)
 - `redis_type` (String)
 - `region` (String)
 - `replica_set` (String)
@@ -184,12 +186,16 @@ Read-Only:
 - `engine_name` (String)
 - `password_key_name` (String)
 - `secret_name` (String)
+- `skip_vault_tls_verification` (Boolean)
 - `token` (String)
 - `token_type` (String)
 - `url` (String)
+- `vault_ssl_ca` (String)
+- `vault_ssl_cert` (String)
+- `vault_ssl_key` (String)
 
 <a id="nestedobjatt--databases--instance_resource--data_sources--warehouse_id--vault--app_role"></a>
-### Nested Schema for `databases.instance_resource.data_sources.warehouse_id.vault.url`
+### Nested Schema for `databases.instance_resource.data_sources.warehouse_id.vault.vault_ssl_key`
 
 Read-Only:
 
