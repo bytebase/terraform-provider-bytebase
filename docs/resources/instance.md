@@ -18,7 +18,7 @@ The instance resource.
 ### Required
 
 - `data_sources` (Block Set, Min: 1) The connection for the instance. You can configure read-only or admin connection account here. (see [below for nested schema](#nestedblock--data_sources))
-- `engine` (String) The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.
+- `engine` (String) The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.
 - `resource_id` (String) The instance unique resource id.
 - `title` (String) The instance title.
 
@@ -67,11 +67,13 @@ Optional:
 - `extra_connection_parameters` (Map of String) Extra connection parameters as key-value pairs. Only available for MYSQL, MARIADB, OCEANBASE, POSTGRES, ORACLE, MSSQL, MONGODB.
 - `gcp_credential` (Block List, Max: 1) GCP IAM credential (service account JSON). Only valid when authentication_type is GOOGLE_CLOUD_SQL_IAM. (see [below for nested schema](#nestedblock--data_sources--gcp_credential))
 - `host` (String) Host or socket for your instance, or the account name if the instance type is Snowflake. Not required for some engines like DYNAMODB.
+- `instance_id` (String) GCP instance ID. Only available for SPANNER engine.
 - `master_name` (String) Redis Sentinel master name. Only available for REDIS engine.
 - `master_password` (String, Sensitive) Redis Sentinel master password. Only available for REDIS engine.
 - `master_username` (String) Redis Sentinel master username. Only available for REDIS engine.
 - `password` (String, Sensitive) The connection user password used by Bytebase to perform DDL and DML operations.
 - `port` (String) The port for your instance. Not required for some engines like SPANNER, BIGQUERY.
+- `project_id` (String) GCP project ID. Only available for SPANNER and BIGQUERY engines.
 - `redis_type` (String) Redis deployment type: STANDALONE, SENTINEL, CLUSTER. Only available for REDIS engine.
 - `region` (String) AWS region (e.g., us-east-1). Only available when authentication_type is AWS_RDS_IAM.
 - `replica_set` (String) The replica set name for MongoDB. Only available for MONGODB engine.
@@ -177,8 +179,12 @@ Required:
 Optional:
 
 - `app_role` (Block List, Max: 1) The Vault app role to get the password. (see [below for nested schema](#nestedblock--data_sources--external_secret--vault--app_role))
+- `skip_vault_tls_verification` (Boolean) Whether to skip TLS certificate verification when Bytebase connects to Vault.
 - `token` (String, Sensitive) The root token without TTL. Learn more: https://developer.hashicorp.com/vault/docs/commands/operator/generate-root
 - `token_type` (String) How to interpret the token field. PLAIN (the literal token value, default), ENVIRONMENT (the name of an environment variable on the Bytebase server holding the token), or FILE (a path to a file on the Bytebase server holding the token).
+- `vault_ssl_ca` (String, Sensitive) The inline PEM CA certificate for verifying the Vault server.
+- `vault_ssl_cert` (String, Sensitive) The inline PEM client certificate for mutual TLS authentication with Vault.
+- `vault_ssl_key` (String, Sensitive) The inline PEM client private key for mutual TLS authentication with Vault.
 
 <a id="nestedblock--data_sources--external_secret--vault--app_role"></a>
 ### Nested Schema for `data_sources.external_secret.vault.app_role`

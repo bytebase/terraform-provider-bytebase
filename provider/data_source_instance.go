@@ -50,7 +50,7 @@ func dataSourceInstance() *schema.Resource {
 			"engine": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.",
+				Description: "The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.",
 			},
 			"engine_version": {
 				Type:        schema.TypeString,
@@ -339,6 +339,16 @@ func getDataSourceComputedSchema() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "CockroachDB cluster name.",
 		},
+		"project_id": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "GCP project ID.",
+		},
+		"instance_id": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "GCP instance ID.",
+		},
 		// IAM Credentials
 		"azure_credential": {
 			Type:        schema.TypeList,
@@ -439,6 +449,29 @@ func getExternalSecretSchema() *schema.Schema {
 								Type:        schema.TypeString,
 								Computed:    true,
 								Description: "How to interpret the token field. PLAIN (the literal token value, default), ENVIRONMENT (the name of an environment variable on the Bytebase server holding the token), or FILE (a path to a file on the Bytebase server holding the token).",
+							},
+							"vault_ssl_ca": {
+								Type:        schema.TypeString,
+								Computed:    true,
+								Sensitive:   true,
+								Description: "The inline PEM CA certificate for verifying the Vault server.",
+							},
+							"vault_ssl_cert": {
+								Type:        schema.TypeString,
+								Computed:    true,
+								Sensitive:   true,
+								Description: "The inline PEM client certificate for mutual TLS authentication with Vault.",
+							},
+							"vault_ssl_key": {
+								Type:        schema.TypeString,
+								Computed:    true,
+								Sensitive:   true,
+								Description: "The inline PEM client private key for mutual TLS authentication with Vault.",
+							},
+							"skip_vault_tls_verification": {
+								Type:        schema.TypeBool,
+								Computed:    true,
+								Description: "Whether to skip TLS certificate verification when Bytebase connects to Vault.",
 							},
 							"app_role": {
 								Type:        schema.TypeList,

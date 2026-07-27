@@ -70,7 +70,7 @@ func resourceInstance() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: internal.EngineValidation,
-				Description:  "The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, SQLITE, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.",
+				Description:  "The instance engine. Supported engines: MYSQL, POSTGRES, TIDB, SNOWFLAKE, CLICKHOUSE, MONGODB, REDIS, ORACLE, SPANNER, MSSQL, REDSHIFT, MARIADB, OCEANBASE, STARROCKS, DORIS, HIVE, ELASTICSEARCH, BIGQUERY, DYNAMODB, DATABRICKS, COCKROACHDB, COSMOSDB, TRINO, CASSANDRA.",
 			},
 			"engine_version": {
 				Type:        schema.TypeString,
@@ -169,6 +169,36 @@ func resourceInstance() *schema.Resource {
 														v1pb.DataSourceExternalSecret_ENVIRONMENT.String(),
 														v1pb.DataSourceExternalSecret_FILE.String(),
 													}, false),
+												},
+												"vault_ssl_ca": {
+													Type:             schema.TypeString,
+													Optional:         true,
+													Sensitive:        true,
+													Computed:         true,
+													DiffSuppressFunc: suppressSensitiveFieldDiff,
+													Description:      "The inline PEM CA certificate for verifying the Vault server.",
+												},
+												"vault_ssl_cert": {
+													Type:             schema.TypeString,
+													Optional:         true,
+													Sensitive:        true,
+													Computed:         true,
+													DiffSuppressFunc: suppressSensitiveFieldDiff,
+													Description:      "The inline PEM client certificate for mutual TLS authentication with Vault.",
+												},
+												"vault_ssl_key": {
+													Type:             schema.TypeString,
+													Optional:         true,
+													Sensitive:        true,
+													Computed:         true,
+													DiffSuppressFunc: suppressSensitiveFieldDiff,
+													Description:      "The inline PEM client private key for mutual TLS authentication with Vault.",
+												},
+												"skip_vault_tls_verification": {
+													Type:        schema.TypeBool,
+													Optional:    true,
+													Computed:    true,
+													Description: "Whether to skip TLS certificate verification when Bytebase connects to Vault.",
 												},
 												"app_role": {
 													Type:        schema.TypeList,
@@ -551,6 +581,18 @@ func resourceInstance() *schema.Resource {
 							Optional:    true,
 							Default:     "",
 							Description: "CockroachDB cluster name. Only available for COCKROACHDB engine.",
+						},
+						"project_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "GCP project ID. Only available for SPANNER and BIGQUERY engines.",
+						},
+						"instance_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "GCP instance ID. Only available for SPANNER engine.",
 						},
 						// IAM Credentials (each only valid for its respective authentication_type)
 						"azure_credential": {
@@ -945,7 +987,7 @@ func resourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interfa
 	return resp
 }
 
-func getSyncDatabases(d *schema.ResourceData) []string {
+func getSyncDatabases(d *schema.ResourceData) *v1pb.SyncDatabases {
 	rawSet, ok := d.Get("sync_databases").(*schema.Set)
 	if !ok {
 		return nil
@@ -954,7 +996,17 @@ func getSyncDatabases(d *schema.ResourceData) []string {
 	for _, raw := range rawSet.List() {
 		dbList = append(dbList, raw.(string))
 	}
-	return dbList
+	if len(dbList) == 0 {
+		return nil
+	}
+	return &v1pb.SyncDatabases{Databases: dbList}
+}
+
+func flattenSyncDatabases(syncDatabases *v1pb.SyncDatabases) []string {
+	if syncDatabases == nil {
+		return nil
+	}
+	return syncDatabases.Databases
 }
 
 func resourceInstanceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -1141,7 +1193,7 @@ func setInstanceMessage(
 		return diag.Errorf("cannot set databases for instance: %s", err.Error())
 	}
 
-	if err := d.Set("sync_databases", instance.SyncDatabases); err != nil {
+	if err := d.Set("sync_databases", flattenSyncDatabases(instance.SyncDatabases)); err != nil {
 		return diag.Errorf("cannot set sync_databases for instance: %s", err.Error())
 	}
 
@@ -1244,6 +1296,8 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 		raw["region"] = dataSource.Region
 		raw["warehouse_id"] = dataSource.WarehouseId
 		raw["cluster"] = dataSource.Cluster
+		raw["project_id"] = dataSource.ProjectId
+		raw["instance_id"] = dataSource.InstanceId
 
 		// Extra connection parameters
 		if len(dataSource.ExtraConnectionParameters) > 0 {
@@ -1362,10 +1416,31 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 				}
 			case v1pb.DataSourceExternalSecret_VAULT_KV_V2:
 				vault := map[string]interface{}{
-					"url":               v.Url,
-					"engine_name":       v.EngineName,
-					"secret_name":       v.SecretName,
-					"password_key_name": v.PasswordKeyName,
+					"url":                         v.Url,
+					"engine_name":                 v.EngineName,
+					"secret_name":                 v.SecretName,
+					"password_key_name":           v.PasswordKeyName,
+					"skip_vault_tls_verification": v.GetSkipVaultTlsVerification(),
+				}
+				if v.GetVaultSslCa() != "" {
+					vault["vault_ssl_ca"] = v.GetVaultSslCa()
+				}
+				if v.GetVaultSslCert() != "" {
+					vault["vault_ssl_cert"] = v.GetVaultSslCert()
+				}
+				if v.GetVaultSslKey() != "" {
+					vault["vault_ssl_key"] = v.GetVaultSslKey()
+				}
+				if ds, ok := oldDataSourceMap[dataSource.Id]; ok && ds.GetExternalSecret() != nil {
+					if ds.GetExternalSecret().GetVaultSslCa() != "" {
+						vault["vault_ssl_ca"] = ds.GetExternalSecret().GetVaultSslCa()
+					}
+					if ds.GetExternalSecret().GetVaultSslCert() != "" {
+						vault["vault_ssl_cert"] = ds.GetExternalSecret().GetVaultSslCert()
+					}
+					if ds.GetExternalSecret().GetVaultSslKey() != "" {
+						vault["vault_ssl_key"] = ds.GetExternalSecret().GetVaultSslKey()
+					}
 				}
 				switch v.AuthType {
 				case v1pb.DataSourceExternalSecret_TOKEN:
@@ -1448,6 +1523,18 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 			externalSecret.EngineName = rawVault["engine_name"].(string)
 			externalSecret.SecretName = rawVault["secret_name"].(string)
 			externalSecret.PasswordKeyName = rawVault["password_key_name"].(string)
+			if v, ok := rawVault["skip_vault_tls_verification"].(bool); ok {
+				externalSecret.SkipVaultTlsVerification = v
+			}
+			if v, ok := rawVault["vault_ssl_ca"].(string); ok {
+				externalSecret.VaultSslCa = v
+			}
+			if v, ok := rawVault["vault_ssl_cert"].(string); ok {
+				externalSecret.VaultSslCert = v
+			}
+			if v, ok := rawVault["vault_ssl_key"].(string); ok {
+				externalSecret.VaultSslKey = v
+			}
 
 			if token, ok := rawVault["token"].(string); ok && token != "" {
 				externalSecret.AuthType = v1pb.DataSourceExternalSecret_TOKEN
@@ -1697,6 +1784,12 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 	if v, ok := obj["cluster"].(string); ok {
 		dataSource.Cluster = v
 	}
+	if v, ok := obj["project_id"].(string); ok {
+		dataSource.ProjectId = v
+	}
+	if v, ok := obj["instance_id"].(string); ok {
+		dataSource.InstanceId = v
+	}
 	// SASL Config
 	if v, ok := obj["sasl_config"].([]interface{}); ok && len(v) == 1 {
 		saslMap := v[0].(map[string]interface{})
@@ -1853,6 +1946,18 @@ func validateDataSourceFieldsForEngine(engine v1pb.Engine, ds *v1pb.DataSource) 
 	if ds.Cluster != "" {
 		if engine != v1pb.Engine_COCKROACHDB {
 			return errors.Errorf("cluster is only available for COCKROACHDB")
+		}
+	}
+
+	// GCP resource identifiers are only for Google database engines.
+	if ds.ProjectId != "" {
+		if engine != v1pb.Engine_SPANNER && engine != v1pb.Engine_BIGQUERY {
+			return errors.Errorf("project_id is only available for SPANNER or BIGQUERY")
+		}
+	}
+	if ds.InstanceId != "" {
+		if engine != v1pb.Engine_SPANNER {
+			return errors.Errorf("instance_id is only available for SPANNER")
 		}
 	}
 

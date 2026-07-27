@@ -3,7 +3,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.20.4"
+      version = "3.21.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -190,6 +190,12 @@ resource "bytebase_instance" "postgres_vault" {
         engine_name       = "secret"
         secret_name       = "database/postgres"
         password_key_name = "password"
+
+        # Optional TLS configuration for Bytebase connecting to Vault.
+        vault_ssl_ca                = file("${path.module}/certs/ca.pem")
+        vault_ssl_cert              = file("${path.module}/certs/client-cert.pem")
+        vault_ssl_key               = file("${path.module}/certs/client-key.pem")
+        skip_vault_tls_verification = false
       }
     }
   }
@@ -395,7 +401,8 @@ resource "bytebase_instance" "spanner" {
   data_sources {
     id                  = "admin"
     type                = "ADMIN"
-    host                = "projects/my-project/instances/my-instance"
+    project_id          = "my-project"
+    instance_id         = "my-instance"
     database            = "my-database"
     authentication_type = "GOOGLE_CLOUD_SQL_IAM" # Spanner requires GCP IAM
     gcp_credential {
@@ -418,7 +425,7 @@ resource "bytebase_instance" "bigquery" {
   data_sources {
     id                  = "admin"
     type                = "ADMIN"
-    host                = "my-gcp-project"
+    project_id          = "my-gcp-project"
     authentication_type = "GOOGLE_CLOUD_SQL_IAM" # BigQuery requires GCP IAM
     gcp_credential {
       content = file("${path.module}/credentials/service-account.json")
