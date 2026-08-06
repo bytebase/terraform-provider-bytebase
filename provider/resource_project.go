@@ -139,11 +139,14 @@ func resourceProjectSchema() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "Whether to allow just-in-time access in this project.",
 		},
+		// Deliberately not Computed. Terraform encodes "zero blocks" as an empty
+		// list and the SDK drops empty block collections before the diff runs, so a
+		// Computed block collection can never be cleared: the diff engine cannot
+		// tell "no blocks" from "not managed here" and suppresses the change.
 		"issue_labels": {
 			Type:        schema.TypeList,
 			Optional:    true,
-			Computed:    true,
-			Description: "Labels available for tagging issues in this project.",
+			Description: "Labels available for tagging issues in this project. Each label requires `value`, and optionally takes `group` and a `color` block with `red`, `green` and `blue` in the interval [0, 1]. Terraform owns this list: remove every `issue_labels` block to clear the labels stored in Bytebase.",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"value": {
@@ -164,7 +167,7 @@ func resourceProjectSchema() map[string]*schema.Schema {
 			Type:        schema.TypeMap,
 			Optional:    true,
 			Computed:    true,
-			Description: "Labels are key-value pairs that can be attached to the project. For example, { \"environment\": \"production\", \"team\": \"backend\" }",
+			Description: "Labels are key-value pairs that can be attached to the project. For example, { \"environment\": \"production\", \"team\": \"backend\" }. Unlike `issue_labels`, omitting this field leaves the labels stored in Bytebase untouched; set `labels = {}` to clear them.",
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
 			},

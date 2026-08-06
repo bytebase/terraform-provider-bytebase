@@ -174,6 +174,89 @@ func TestAccProjectWithSettings(t *testing.T) {
 	})
 }
 
+func TestResourceProjectIssueLabelsNotComputed(t *testing.T) {
+	issueLabels, ok := resourceProjct().Schema["issue_labels"]
+	if !ok {
+		t.Fatal("issue_labels schema is missing")
+	}
+	if !issueLabels.Optional {
+		t.Fatal("issue_labels should stay Optional")
+	}
+	if issueLabels.Computed {
+		t.Fatal("issue_labels must not be Computed: zero blocks reach the SDK as an empty collection, which it drops before the diff, so a Computed block collection can never be cleared")
+	}
+}
+
+func TestAccProjectClearIssueLabels(t *testing.T) {
+	identifier := "project_clear_issue_labels"
+	resourceName := fmt.Sprintf("bytebase_project.%s", identifier)
+
+	resourceID := "test-project-clear-issue-labels"
+	title := "test project clear issue labels"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckProjectDestroy,
+		Steps: []resource.TestStep{
+			// create with two labels
+			{
+				Config: testAccCheckProjectResourceWithSettings(identifier, resourceID, title),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "issue_labels.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "2"),
+				),
+			},
+			// removing every block clears the labels, while the labels map, which
+			// stays Optional+Computed, keeps what the server holds
+			{
+				Config: testAccCheckProjectResource(identifier, resourceID, title),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "issue_labels.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccProjectClearLabels(t *testing.T) {
+	identifier := "project_clear_labels"
+	resourceName := fmt.Sprintf("bytebase_project.%s", identifier)
+
+	resourceID := "test-project-clear-labels"
+	title := "test project clear labels"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckProjectDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckProjectResourceWithSettings(identifier, resourceID, title),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "2"),
+				),
+			},
+			// an explicit empty map clears the labels map
+			{
+				Config: testAccCheckProjectResourceWithEmptyLabels(identifier, resourceID, title),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckProjectDestroy(s *terraform.State) error {
 	c, ok := testAccProvider.Meta().(api.Client)
 	if !ok {
@@ -266,6 +349,17 @@ func testAccCheckProjectResourceWithSettingsUpdated(identifier, resourceID, titl
 		labels = {
 			owner = "dba-team"
 		}
+	}
+	`, identifier, resourceID, title)
+}
+
+func testAccCheckProjectResourceWithEmptyLabels(identifier, resourceID, title string) string {
+	return fmt.Sprintf(`
+	resource "bytebase_project" "%s" {
+		resource_id    = "%s"
+		title          = "%s"
+
+		labels = {}
 	}
 	`, identifier, resourceID, title)
 }
