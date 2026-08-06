@@ -32,7 +32,7 @@ The project resource.
 - `enforce_sql_review` (Boolean) Whether to enforce SQL review checks to pass before issue creation. If enabled, issues cannot be created when SQL review finds errors.
 - `execution_retry_policy` (Number) The maximum number of retries for the lock timeout issue.
 - `force_issue_labels` (Boolean) Force issue labels to be used when creating an issue.
-- `issue_labels` (Block List) Labels available for tagging issues in this project. Each label requires `value`, and optionally takes `group` and a `color` block with `red`, `green` and `blue` in the interval [0, 1]. Terraform owns this list: remove every `issue_labels` block to clear the labels stored in Bytebase. (see [below for nested schema](#nestedblock--issue_labels))
+- `issue_labels` (Block List) Labels available for tagging issues in this project. Terraform owns this list: remove every `issue_labels` block to clear the labels stored in Bytebase. (see [below for nested schema](#nestedblock--issue_labels))
 - `labels` (Map of String) Labels are key-value pairs that can be attached to the project. For example, { "environment": "production", "team": "backend" }. Unlike `issue_labels`, omitting this field leaves the labels stored in Bytebase untouched; set `labels = {}` to clear them.
 - `parallel_tasks_per_rollout` (Number) The maximum number of parallel tasks to run during the rollout.
 - `postgres_database_tenant_mode` (Boolean) Whether to enable the database tenant mode for PostgreSQL. If enabled, the issue will be created with the pre-appended "set role <db_owner>" statement.

@@ -146,7 +146,7 @@ func resourceProjectSchema() map[string]*schema.Schema {
 		"issue_labels": {
 			Type:        schema.TypeList,
 			Optional:    true,
-			Description: "Labels available for tagging issues in this project. Each label requires `value`, and optionally takes `group` and a `color` block with `red`, `green` and `blue` in the interval [0, 1]. Terraform owns this list: remove every `issue_labels` block to clear the labels stored in Bytebase.",
+			Description: "Labels available for tagging issues in this project. Terraform owns this list: remove every `issue_labels` block to clear the labels stored in Bytebase.",
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"value": {
