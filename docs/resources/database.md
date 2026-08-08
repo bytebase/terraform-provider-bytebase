@@ -22,7 +22,7 @@ The database resource.
 
 ### Optional
 
-- `catalog` (Block List, Max: 1) The databases catalog. (see [below for nested schema](#nestedblock--catalog))
+- `catalog` (Block List, Max: 1) The databases catalog. Terraform owns this block: remove the `catalog` block to clear the catalog stored in Bytebase. (see [below for nested schema](#nestedblock--catalog))
 - `environment` (String) The database environment, will follow the instance environment by default
 - `labels` (Map of String) The deployment and policy control labels.
 
@@ -270,5 +270,4 @@ Read-Only:
 - `keytab` (String)
 - `primary` (String)
 - `realm` (String)
-
 
