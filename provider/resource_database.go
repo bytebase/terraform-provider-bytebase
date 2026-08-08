@@ -101,11 +101,10 @@ func resourceDatabase() *schema.Resource {
 			},
 			"catalog": {
 				Type:        schema.TypeList,
-				Computed:    true,
 				Optional:    true,
 				MinItems:    0,
 				MaxItems:    1,
-				Description: "The databases catalog.",
+				Description: "The databases catalog. Terraform owns this block: remove the `catalog` block to clear the catalog stored in Bytebase.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"schemas": {
@@ -286,15 +285,18 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.Errorf("failed to update the database %s with error: %v", databaseName, err.Error())
 	}
 
-	if config := rawConfig.GetAttr("catalog"); !config.IsNull() {
+	if d.HasChange("catalog") {
 		catalog, err := convertToV1DatabaseCatalog(d, databaseName)
 		if err != nil {
 			return diag.Errorf("failed to convert database catalog %v with error: %v", databaseName, err.Error())
 		}
-		if catalog != nil {
-			if _, err := c.UpdateDatabaseCatalog(ctx, catalog); err != nil {
-				return diag.Errorf("failed to update database catalog %v with error: %v", databaseName, err.Error())
+		if catalog == nil {
+			catalog = &v1pb.DatabaseCatalog{
+				Name: fmt.Sprintf("%s%s", databaseName, internal.DatabaseCatalogNameSuffix),
 			}
+		}
+		if _, err := c.UpdateDatabaseCatalog(ctx, catalog); err != nil {
+			return diag.Errorf("failed to update database catalog %v with error: %v", databaseName, err.Error())
 		}
 	}
 
@@ -424,6 +426,10 @@ func flattenDatabaseInstanceResource(instance *v1pb.InstanceResource) []interfac
 }
 
 func flattenDatabaseCatalog(catalog *v1pb.DatabaseCatalog) []interface{} {
+	if catalog == nil || len(catalog.Schemas) == 0 {
+		return nil
+	}
+
 	schemaList := []interface{}{}
 	for _, schemaCatalog := range catalog.Schemas {
 		rawSchema := map[string]interface{}{

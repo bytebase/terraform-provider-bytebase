@@ -458,6 +458,77 @@ func TestAccDatabase_WithObjectSchemaCatalog(t *testing.T) {
 	})
 }
 
+func TestDatabaseCatalogCanBeCleared(t *testing.T) {
+	identifier := "test_db_catalog_clear"
+	resourceName := fmt.Sprintf("bytebase_database.%s", identifier)
+	instanceID := "test-instance-catalog-clear"
+	databaseName := "test-db-objschema"
+	projectName := "projects/test-project-catalog-clear"
+	environmentName := "environments/test-catalog-clear"
+	databaseFullName := fmt.Sprintf("instances/%s/databases/%s", instanceID, databaseName)
+
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckDatabaseResourceWithObjectSchema(identifier, databaseFullName, projectName, environmentName, `{"type":"OBJECT"}`),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "catalog.#", "1"),
+				),
+			},
+			{
+				Config: testAccCheckDatabaseResourceWithoutCatalog(identifier, databaseFullName, projectName, environmentName),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "catalog.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckDatabaseResourceWithoutCatalog(identifier, name, project, environment string) string {
+	instanceID := strings.Split(strings.TrimPrefix(name, "instances/"), "/")[0]
+	projectID := strings.TrimPrefix(project, "projects/")
+	environmentID := strings.TrimPrefix(environment, "environments/")
+	return fmt.Sprintf(`
+resource "bytebase_environment" "env_%s" {
+	resource_id = "%s"
+	title       = "Test Environment"
+	order       = 0
+}
+resource "bytebase_project" "proj_%s" {
+	resource_id = "%s"
+	title       = "Test Project"
+}
+resource "bytebase_instance" "inst_%s" {
+	resource_id = "%s"
+	title       = "Test Instance"
+	engine      = "POSTGRES"
+	environment = bytebase_environment.env_%s.name
+
+	data_sources {
+		id       = "admin"
+		type     = "ADMIN"
+		username = "postgres"
+		host     = "127.0.0.1"
+		port     = "5432"
+	}
+}
+resource "bytebase_database" "%s" {
+	name        = "%s"
+	project     = bytebase_project.proj_%s.name
+	environment = bytebase_environment.env_%s.name
+
+	depends_on = [bytebase_instance.inst_%s]
+}
+`, identifier, environmentID,
+		identifier, projectID,
+		identifier, instanceID, identifier,
+		identifier, name, identifier, identifier, identifier)
+}
+
 func testAccCheckDatabaseResourceWithObjectSchema(identifier, name, project, environment, objectSchemaJSON string) string {
 	instanceID := strings.Split(strings.TrimPrefix(name, "instances/"), "/")[0]
 	projectID := strings.TrimPrefix(project, "projects/")
