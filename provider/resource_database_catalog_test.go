@@ -176,3 +176,14 @@ func TestFlattenDatabaseCatalog_ColumnsPathUnchanged(t *testing.T) {
 		t.Fatalf("expected 1 column, got %d", len(cols))
 	}
 }
+
+func TestFlattenDatabaseCatalog_EmptyCatalog(t *testing.T) {
+	catalog := &v1pb.DatabaseCatalog{
+		Name: "instances/x/databases/y/catalog",
+	}
+
+	out := flattenDatabaseCatalog(catalog)
+	if len(out) != 0 {
+		t.Fatalf("expected empty catalog to flatten to no Terraform catalog block, got %d", len(out))
+	}
+}
