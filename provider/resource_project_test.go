@@ -73,6 +73,31 @@ func TestFlattenWebhookListHashesResourceWebhookURL(t *testing.T) {
 	}
 }
 
+func TestFlattenWebhookListPreservesResourceWebhookURLHash(t *testing.T) {
+	plaintext := "https://hooks.example.com/services/customer-secret"
+	sum := sha256.Sum256([]byte(plaintext))
+	want := hex.EncodeToString(sum[:])
+
+	prior := []interface{}{
+		map[string]interface{}{
+			"name":  "projects/project-id/webhooks/webhook-id",
+			"title": "release alerts",
+			"type":  v1pb.WebhookType_SLACK.String(),
+			"url":   want,
+		},
+	}
+	raw := flattenWebhookList([]*v1pb.Webhook{{
+		Name:  "projects/project-id/webhooks/webhook-id",
+		Title: "release alerts",
+		Type:  v1pb.WebhookType_SLACK,
+	}}, true, prior)
+
+	webhook := raw[0].(map[string]interface{})
+	if got := webhook["url"]; got != want {
+		t.Fatalf("flattened resource webhook url = %q, want prior SHA-256 %q", got, want)
+	}
+}
+
 func TestFlattenWebhookListKeepsDataSourceWebhookURLPlaintext(t *testing.T) {
 	plaintext := "https://hooks.example.com/services/customer-secret"
 

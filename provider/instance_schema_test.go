@@ -65,6 +65,17 @@ func TestDataSourceGCPResourceIDSupport(t *testing.T) {
 	}
 }
 
+func TestDataSourceClusterRemovedFromSchema(t *testing.T) {
+	resourceDataSourceSchema := resourceInstance().Schema["data_sources"].Elem.(*schema.Resource).Schema
+	if _, ok := resourceDataSourceSchema["cluster"]; ok {
+		t.Fatal("bytebase_instance.data_sources.cluster is present after the protocol field was removed")
+	}
+
+	if _, ok := getDataSourceComputedSchema()["cluster"]; ok {
+		t.Fatal("data.bytebase_instance.data_sources.cluster is present after the protocol field was removed")
+	}
+}
+
 func TestVaultExternalSecretTLSSchemaAndConversion(t *testing.T) {
 	resourceVaultSchema := resourceInstance().Schema["data_sources"].Elem.(*schema.Resource).Schema["external_secret"].Elem.(*schema.Resource).Schema["vault"].Elem.(*schema.Resource).Schema
 	assertSensitiveOptionalComputedSchema(t, "bytebase_instance.data_sources.external_secret.vault.vault_ssl_ca", resourceVaultSchema["vault_ssl_ca"])

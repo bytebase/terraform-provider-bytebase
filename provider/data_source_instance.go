@@ -334,11 +334,6 @@ func getDataSourceComputedSchema() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "Databricks warehouse ID.",
 		},
-		"cluster": {
-			Type:        schema.TypeString,
-			Computed:    true,
-			Description: "CockroachDB cluster name.",
-		},
 		"project_id": {
 			Type:        schema.TypeString,
 			Computed:    true,

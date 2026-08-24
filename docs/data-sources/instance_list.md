@@ -64,7 +64,6 @@ Read-Only:
 - `aws_credential` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--aws_credential))
 - `azure_credential` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--azure_credential))
 - `cloud_sql_ip_type` (String)
-- `cluster` (String)
 - `database` (String)
 - `direct_connection` (Boolean)
 - `external_secret` (List of Object) (see [below for nested schema](#nestedobjatt--instances--data_sources--external_secret))
