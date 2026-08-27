@@ -3,7 +3,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.21.0"
+      version = "3.22.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -610,8 +610,7 @@ resource "bytebase_instance" "databricks" {
 }
 
 ###############################################################################
-# Example 19: CockroachDB with engine-specific field
-# CockroachDB-specific field: cluster
+# Example 19: CockroachDB
 ###############################################################################
 resource "bytebase_instance" "cockroachdb" {
   resource_id = "cockroachdb-example"
@@ -628,7 +627,6 @@ resource "bytebase_instance" "cockroachdb" {
     database = "defaultdb"
     username = "user"
     password = "your-password"
-    cluster  = "my-cluster-123" # CockroachDB cluster name
     use_ssl  = true
   }
 }

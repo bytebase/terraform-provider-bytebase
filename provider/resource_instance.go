@@ -576,12 +576,6 @@ func resourceInstance() *schema.Resource {
 							Default:     "",
 							Description: "Databricks warehouse ID. Only available for DATABRICKS engine.",
 						},
-						"cluster": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "",
-							Description: "CockroachDB cluster name. Only available for COCKROACHDB engine.",
-						},
 						"project_id": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -1295,7 +1289,6 @@ func flattenDataSourceList(d *schema.ResourceData, dataSourceList []*v1pb.DataSo
 		// Cloud-specific
 		raw["region"] = dataSource.Region
 		raw["warehouse_id"] = dataSource.WarehouseId
-		raw["cluster"] = dataSource.Cluster
 		raw["project_id"] = dataSource.ProjectId
 		raw["instance_id"] = dataSource.InstanceId
 
@@ -1781,9 +1774,6 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 	if v, ok := obj["warehouse_id"].(string); ok {
 		dataSource.WarehouseId = v
 	}
-	if v, ok := obj["cluster"].(string); ok {
-		dataSource.Cluster = v
-	}
 	if v, ok := obj["project_id"].(string); ok {
 		dataSource.ProjectId = v
 	}
@@ -1939,13 +1929,6 @@ func validateDataSourceFieldsForEngine(engine v1pb.Engine, ds *v1pb.DataSource) 
 	if ds.WarehouseId != "" {
 		if engine != v1pb.Engine_DATABRICKS {
 			return errors.Errorf("warehouse_id is only available for DATABRICKS")
-		}
-	}
-
-	// CockroachDB-specific fields
-	if ds.Cluster != "" {
-		if engine != v1pb.Engine_COCKROACHDB {
-			return errors.Errorf("cluster is only available for COCKROACHDB")
 		}
 	}
 

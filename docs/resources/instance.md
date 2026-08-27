@@ -60,7 +60,6 @@ Optional:
 - `aws_credential` (Block List, Max: 1) AWS IAM credential. Only valid when authentication_type is AWS_RDS_IAM. (see [below for nested schema](#nestedblock--data_sources--aws_credential))
 - `azure_credential` (Block List, Max: 1) Azure IAM credential. Only valid when authentication_type is AZURE_IAM. (see [below for nested schema](#nestedblock--data_sources--azure_credential))
 - `cloud_sql_ip_type` (String) Cloud SQL IP type. Only available when authentication_type is GOOGLE_CLOUD_SQL_IAM. Defaults to PUBLIC.
-- `cluster` (String) CockroachDB cluster name. Only available for COCKROACHDB engine.
 - `database` (String) The database for the instance, you can set this if the engine type is POSTGRES.
 - `direct_connection` (Boolean) Use direct connection to MongoDB node. Only available for MONGODB engine.
 - `external_secret` (Block List, Max: 1) The external secret to get the database password. Only available when authentication_type is PASSWORD. Requires instance license. Learn more: https://docs.bytebase.com/get-started/connect/overview#secret-manager-integration (see [below for nested schema](#nestedblock--data_sources--external_secret))

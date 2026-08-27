@@ -50,11 +50,6 @@ func resourceUser() *schema.Resource {
 				WriteOnly:   true,
 				Description: "The user login password. This value is write-only and will not be stored in Terraform state.",
 			},
-			"service_key": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The service key for service account.",
-			},
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,

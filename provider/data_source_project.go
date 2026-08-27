@@ -142,10 +142,14 @@ func getWebhooksSchema(computed, hashURL bool) *schema.Schema {
 	urlDescription := "The webhook URL"
 	if hashURL {
 		urlDescription = "The webhook URL. The plaintext value is not stored in Terraform state; only a SHA-256 digest is stored for diff detection."
+	} else if computed {
+		urlDescription = "The webhook URL is write-only in Bytebase and is empty on reads."
 	}
 	description := "The webhooks in the project."
 	if hashURL {
 		description = "The webhooks in the project. The plaintext url is stored as a SHA-256 digest in Terraform state; webhook identity for updates uses the (title, type) pair, and duplicate (title, type) pairs are rejected at plan time."
+	} else if computed {
+		description = "The webhooks in the project. Webhook URLs are write-only and are not returned by Bytebase."
 	}
 
 	return &schema.Schema{
@@ -268,17 +272,42 @@ func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
 //
 // When hashURL is true (resource read path), the url field is represented as
 // a SHA-256 digest so Terraform can diff URL changes without storing plaintext
-// webhook secrets in state. For the data source path (hashURL=false), url is
-// included as returned by the API.
-func flattenWebhookList(webhooks []*v1pb.Webhook, hashURL bool) []interface{} {
+// webhook secrets in state. Bytebase no longer returns webhook URLs, so the
+// resource path preserves the prior digest for each returned webhook. Bytebase
+// requires every created webhook to have a valid URL.
+func flattenWebhookList(webhooks []*v1pb.Webhook, hashURL bool, priorLists ...[]interface{}) []interface{} {
 	hashURLState := webhookURLHashStateFunc(hashURL)
+	priorByName := map[string]string{}
+	priorByIdentity := map[string]string{}
+	if len(priorLists) > 0 {
+		for _, item := range priorLists[0] {
+			prior, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			url, _ := prior["url"].(string)
+			name, _ := prior["name"].(string)
+			title, _ := prior["title"].(string)
+			typ, _ := prior["type"].(string)
+			priorByName[name] = url
+			priorByIdentity[title+"\x00"+typ] = url
+		}
+	}
+
 	rawWebhooks := []interface{}{}
 	for _, webhook := range webhooks {
 		rawWebhook := make(map[string]interface{})
 		rawWebhook["title"] = webhook.Title
 		rawWebhook["type"] = webhook.Type.String()
 		if hashURLState != nil {
-			rawWebhook["url"] = hashURLState(webhook.Url)
+			url := hashURLState(webhook.Url)
+			if url == "" {
+				url = priorByName[webhook.Name]
+				if url == "" {
+					url = priorByIdentity[webhook.Title+"\x00"+webhook.Type.String()]
+				}
+			}
+			rawWebhook["url"] = url
 		} else {
 			rawWebhook["url"] = webhook.Url
 		}
@@ -391,7 +420,11 @@ func setProject(
 		"ms":        time.Since(startTime).Milliseconds(),
 	})
 
-	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks, hashURL)); err != nil {
+	var priorWebhooks []interface{}
+	if hashURL {
+		priorWebhooks, _ = d.Get("webhooks").([]interface{})
+	}
+	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks, hashURL, priorWebhooks)); err != nil {
 		return diag.Errorf("cannot set webhooks for project: %s", err.Error())
 	}
 

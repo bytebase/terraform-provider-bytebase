@@ -40,7 +40,7 @@ The project data source.
 - `require_issue_approval` (Boolean) Whether to require issue approval before rollout.
 - `require_plan_check_no_error` (Boolean) Whether to require plan check to have no error before rollout.
 - `title` (String) The project title.
-- `webhooks` (List of Object) The webhooks in the project. (see [below for nested schema](#nestedatt--webhooks))
+- `webhooks` (List of Object) The webhooks in the project. Webhook URLs are write-only and are not returned by Bytebase. (see [below for nested schema](#nestedatt--webhooks))
 
 <a id="nestedatt--issue_labels"></a>
 ### Nested Schema for `issue_labels`

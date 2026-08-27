@@ -26,7 +26,6 @@ This directory contains examples for creating and querying database instances wi
 | `sid`, `service_name` | ORACLE | Oracle connection identifiers |
 | `redis_type`, `master_name`, `master_username`, `master_password` | REDIS | Redis deployment configuration |
 | `warehouse_id` | DATABRICKS | SQL warehouse ID |
-| `cluster` | COCKROACHDB | CockroachDB cluster name |
 | `sasl_config` | HIVE | SASL/Kerberos authentication |
 | `region` | Any (with `AWS_RDS_IAM`) | AWS region for IAM auth |
 
