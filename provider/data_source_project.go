@@ -2,8 +2,6 @@ package provider
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -138,18 +136,29 @@ func dataSourceProject() *schema.Resource {
 	}
 }
 
-func getWebhooksSchema(computed, hashURL bool) *schema.Schema {
+func getWebhooksSchema(computed, preserveURL bool) *schema.Schema {
 	urlDescription := "The webhook URL"
-	if hashURL {
-		urlDescription = "The webhook URL. The plaintext value is not stored in Terraform state; only a SHA-256 digest is stored for diff detection."
+	if preserveURL {
+		urlDescription = "The webhook URL. Bytebase does not return this write-only value, so the provider preserves the configured value in Terraform state."
 	} else if computed {
 		urlDescription = "The webhook URL is write-only in Bytebase and is empty on reads."
 	}
 	description := "The webhooks in the project."
-	if hashURL {
-		description = "The webhooks in the project. The plaintext url is stored as a SHA-256 digest in Terraform state; webhook identity for updates uses the (title, type) pair, and duplicate (title, type) pairs are rejected at plan time."
+	if preserveURL {
+		description = "The webhooks in the project. Webhook URLs are write-only and are preserved in resource state; webhook identity for updates uses the (title, type) pair, and duplicate (title, type) pairs are rejected at plan time."
 	} else if computed {
 		description = "The webhooks in the project. Webhook URLs are write-only and are not returned by Bytebase."
+	}
+	urlSchema := &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    preserveURL,
+		Computed:    computed || preserveURL,
+		Sensitive:   preserveURL,
+		Description: urlDescription,
+	}
+	if preserveURL {
+		urlSchema.ValidateFunc = validation.IsURLWithHTTPorHTTPS
+		urlSchema.DiffSuppressFunc = suppressSensitiveFieldDiff
 	}
 
 	return &schema.Schema{
@@ -186,14 +195,7 @@ func getWebhooksSchema(computed, hashURL bool) *schema.Schema {
 					Computed:    true,
 					Description: "The webhook full name in projects/{resource id}/webhooks/{id} format.",
 				},
-				"url": {
-					Type:         schema.TypeString,
-					Required:     true,
-					Sensitive:    hashURL,
-					StateFunc:    webhookURLHashStateFunc(hashURL),
-					Description:  urlDescription,
-					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
-				},
+				"url": urlSchema,
 				"direct_message": {
 					Type:        schema.TypeBool,
 					Optional:    true,
@@ -222,25 +224,11 @@ func getWebhooksSchema(computed, hashURL bool) *schema.Schema {
 	}
 }
 
-func webhookURLHashStateFunc(enabled bool) schema.SchemaStateFunc {
-	if !enabled {
-		return nil
-	}
-	return func(v interface{}) string {
-		s, ok := v.(string)
-		if !ok || s == "" {
-			return ""
-		}
-		sum := sha256.Sum256([]byte(s))
-		return hex.EncodeToString(sum[:])
-	}
-}
-
-func getDatabasesSchema(computed bool) *schema.Schema {
+func getDatabasesSchema(computedOnly bool) *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeSet,
-		Computed:    computed,
-		Optional:    !computed,
+		Computed:    true,
+		Optional:    !computedOnly,
 		Description: "The databases full name in the resource.",
 		Elem: &schema.Schema{
 			Type: schema.TypeString,
@@ -270,16 +258,13 @@ func flattenDatabaseList(databases []*v1pb.Database) []interface{} {
 
 // flattenWebhookList builds the state representation of a project's webhooks.
 //
-// When hashURL is true (resource read path), the url field is represented as
-// a SHA-256 digest so Terraform can diff URL changes without storing plaintext
-// webhook secrets in state. Bytebase no longer returns webhook URLs, so the
-// resource path preserves the prior digest for each returned webhook. Bytebase
-// requires every created webhook to have a valid URL.
-func flattenWebhookList(webhooks []*v1pb.Webhook, hashURL bool, priorLists ...[]interface{}) []interface{} {
-	hashURLState := webhookURLHashStateFunc(hashURL)
+// Bytebase does not return write-only webhook URLs. The resource read path
+// preserves the prior configured value by server name or webhook identity,
+// matching the provider's handling of other write-only passwords.
+func flattenWebhookList(webhooks []*v1pb.Webhook, preserveURL bool, priorLists ...[]interface{}) []interface{} {
 	priorByName := map[string]string{}
 	priorByIdentity := map[string]string{}
-	if len(priorLists) > 0 {
+	if preserveURL && len(priorLists) > 0 {
 		for _, item := range priorLists[0] {
 			prior, ok := item.(map[string]interface{})
 			if !ok {
@@ -299,8 +284,8 @@ func flattenWebhookList(webhooks []*v1pb.Webhook, hashURL bool, priorLists ...[]
 		rawWebhook := make(map[string]interface{})
 		rawWebhook["title"] = webhook.Title
 		rawWebhook["type"] = webhook.Type.String()
-		if hashURLState != nil {
-			url := hashURLState(webhook.Url)
+		if preserveURL {
+			url := webhook.Url
 			if url == "" {
 				url = priorByName[webhook.Name]
 				if url == "" {
@@ -332,7 +317,7 @@ func setProject(
 	client api.Client,
 	d *schema.ResourceData,
 	project *v1pb.Project,
-	hashURL bool,
+	preserveWebhookURL bool,
 ) diag.Diagnostics {
 	tflog.Debug(ctx, "[read project] start reading project", map[string]interface{}{
 		"project": project.Name,
@@ -421,10 +406,10 @@ func setProject(
 	})
 
 	var priorWebhooks []interface{}
-	if hashURL {
+	if preserveWebhookURL {
 		priorWebhooks, _ = d.Get("webhooks").([]interface{})
 	}
-	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks, hashURL, priorWebhooks)); err != nil {
+	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks, preserveWebhookURL, priorWebhooks)); err != nil {
 		return diag.Errorf("cannot set webhooks for project: %s", err.Error())
 	}
 

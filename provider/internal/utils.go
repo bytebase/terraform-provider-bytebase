@@ -170,14 +170,23 @@ func GetSettingName(name string) (v1pb.Setting_SettingName, error) {
 	return v1pb.Setting_SettingName(v1pb.Setting_SettingName_value[tokens[0]]), nil
 }
 
-// GetInstanceID will parse the environment resource id and instance resource id.
-func GetInstanceID(name string) (string, error) {
-	// the instance request should be instances/{instance-id}
-	tokens, err := getNameParentTokens(name, InstanceNamePrefix)
-	if err != nil {
-		return "", err
+// FormatInstanceName formats a workspace- or project-scoped instance name.
+func FormatInstanceName(parent, resourceID string) string {
+	if parent == "" {
+		return fmt.Sprintf("%s%s", InstanceNamePrefix, resourceID)
 	}
-	return tokens[0], nil
+	return fmt.Sprintf("%s/%s%s", parent, InstanceNamePrefix, resourceID)
+}
+
+// GetInstanceParentAndID parses a workspace- or project-scoped instance name.
+func GetInstanceParentAndID(name string) (string, string, error) {
+	if tokens, err := getNameParentTokens(name, ProjectNamePrefix, InstanceNamePrefix); err == nil {
+		return fmt.Sprintf("%s%s", ProjectNamePrefix, tokens[0]), tokens[1], nil
+	}
+	if tokens, err := getNameParentTokens(name, InstanceNamePrefix); err == nil {
+		return "", tokens[0], nil
+	}
+	return "", "", errors.Errorf("invalid instance name %q", name)
 }
 
 // GetProjectID will parse the project resource id.

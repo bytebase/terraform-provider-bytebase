@@ -22,6 +22,7 @@ The instance data source.
 ### Optional
 
 - `list_all_databases` (Boolean) List all databases in this instance. If false, will only list 500 databases.
+- `parent` (String) The parent project in projects/{project} format. Omit for a workspace-owned instance.
 
 ### Read-Only
 
@@ -35,7 +36,7 @@ The instance data source.
 - `id` (String) The ID of this resource.
 - `labels` (Map of String) Labels are key-value pairs that can be attached to the instance.
 - `last_sync_time` (String) The last time the instance was synced.
-- `name` (String) The instance full name in instances/{resource id} format.
+- `name` (String) The instance full name in instances/{resource id} or projects/{project}/instances/{resource id} format.
 - `roles` (List of Object) Database roles available in this instance. (see [below for nested schema](#nestedatt--roles))
 - `state` (String) The lifecycle state of the instance.
 - `sync_databases` (Set of String) Enable sync for following databases. Default empty, means sync all schemas & databases.

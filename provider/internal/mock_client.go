@@ -13,6 +13,7 @@ import (
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -128,6 +129,10 @@ func (c *mockClient) ListInstance(_ context.Context, filter *api.InstanceFilter)
 	defer mu.RUnlock()
 	instances := make([]*v1pb.Instance, 0)
 	for _, ins := range c.instanceMap {
+		parent, _, err := GetInstanceParentAndID(ins.Name)
+		if err != nil || parent != filter.Parent {
+			continue
+		}
 		if ins.State == v1pb.State_DELETED && filter.State != v1pb.State_DELETED {
 			continue
 		}
@@ -150,9 +155,13 @@ func (c *mockClient) GetInstance(_ context.Context, instanceName string) (*v1pb.
 }
 
 // CreateInstance creates the instance.
-func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error) {
+func (c *mockClient) CreateInstance(_ context.Context, parent, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error) {
+	name := fmt.Sprintf("%s%s", InstanceNamePrefix, instanceID)
+	if parent != "" {
+		name = fmt.Sprintf("%s/%s%s", parent, InstanceNamePrefix, instanceID)
+	}
 	ins := &v1pb.Instance{
-		Name:         fmt.Sprintf("%s%s", InstanceNamePrefix, instanceID),
+		Name:         name,
 		State:        v1pb.State_ACTIVE,
 		Title:        instance.Title,
 		Engine:       instance.Engine,
@@ -175,8 +184,9 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 
 	// Create default database
 	defaultDb := &v1pb.Database{
-		Name:  fmt.Sprintf("%s/%sdefault", ins.Name, DatabaseIDPrefix),
-		State: v1pb.State_ACTIVE,
+		Name:    fmt.Sprintf("%s/%sdefault", ins.Name, DatabaseIDPrefix),
+		State:   v1pb.State_ACTIVE,
+		Project: parent,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
@@ -184,24 +194,27 @@ func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instan
 
 	// Also create test databases that will be used in tests
 	testDb := &v1pb.Database{
-		Name:  fmt.Sprintf("%s/%stest-database", ins.Name, DatabaseIDPrefix),
-		State: v1pb.State_ACTIVE,
+		Name:    fmt.Sprintf("%s/%stest-database", ins.Name, DatabaseIDPrefix),
+		State:   v1pb.State_ACTIVE,
+		Project: parent,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
 	}
 
 	testDbLabels := &v1pb.Database{
-		Name:  fmt.Sprintf("%s/%stest-database-labels", ins.Name, DatabaseIDPrefix),
-		State: v1pb.State_ACTIVE,
+		Name:    fmt.Sprintf("%s/%stest-database-labels", ins.Name, DatabaseIDPrefix),
+		State:   v1pb.State_ACTIVE,
+		Project: parent,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
 	}
 
 	testDbObjSchema := &v1pb.Database{
-		Name:  fmt.Sprintf("%s/%stest-db-objschema", ins.Name, DatabaseIDPrefix),
-		State: v1pb.State_ACTIVE,
+		Name:    fmt.Sprintf("%s/%stest-db-objschema", ins.Name, DatabaseIDPrefix),
+		State:   v1pb.State_ACTIVE,
+		Project: parent,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
@@ -426,7 +439,7 @@ func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*v1pb.
 }
 
 // ListDatabase list the databases.
-func (c *mockClient) ListDatabase(_ context.Context, instaceID string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
+func (c *mockClient) ListDatabase(_ context.Context, parent string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	projectID := "-"
@@ -438,8 +451,21 @@ func (c *mockClient) ListDatabase(_ context.Context, instaceID string, filter *a
 		if projectID != "-" && fmt.Sprintf(`"%s"`, db.Project) != projectID {
 			continue
 		}
-		if instaceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("%s%s", InstanceNamePrefix, instaceID)) {
-			continue
+		if parent != "-" {
+			switch {
+			case strings.HasPrefix(parent, ProjectNamePrefix):
+				if db.Project != parent {
+					continue
+				}
+			case strings.HasPrefix(parent, InstanceNamePrefix), strings.Contains(parent, "/instances/"):
+				if !strings.HasPrefix(db.Name, parent+"/") {
+					continue
+				}
+			default:
+				if !strings.HasPrefix(db.Name, fmt.Sprintf("%s%s/", InstanceNamePrefix, parent)) {
+					continue
+				}
+			}
 		}
 		databases = append(databases, db)
 	}
@@ -1457,18 +1483,53 @@ func (c *mockClient) DeleteDatabaseGroup(_ context.Context, groupName string) er
 }
 
 // CreateProjectWebhook creates the webhook in the project.
-func (*mockClient) CreateProjectWebhook(_ context.Context, _ string, _ *v1pb.Webhook) (*v1pb.Webhook, error) {
-	return &v1pb.Webhook{}, nil
+func (c *mockClient) CreateProjectWebhook(_ context.Context, projectName string, webhook *v1pb.Webhook) (*v1pb.Webhook, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	project, ok := c.projectMap[projectName]
+	if !ok {
+		return nil, errors.Errorf("cannot find project %s", projectName)
+	}
+
+	stored := proto.Clone(webhook).(*v1pb.Webhook)
+	stored.Name = fmt.Sprintf("%s/webhooks/%d", projectName, len(project.Webhooks)+1)
+	stored.Url = ""
+	project.Webhooks = append(project.Webhooks, stored)
+	return proto.Clone(stored).(*v1pb.Webhook), nil
 }
 
 // UpdateProjectWebhook updates the webhook.
-func (*mockClient) UpdateProjectWebhook(_ context.Context, _ *v1pb.Webhook, _ []string) (*v1pb.Webhook, error) {
-	return &v1pb.Webhook{}, nil
+func (c *mockClient) UpdateProjectWebhook(_ context.Context, webhook *v1pb.Webhook, _ []string) (*v1pb.Webhook, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	for _, project := range c.projectMap {
+		for i, existing := range project.Webhooks {
+			if existing.Name != webhook.Name {
+				continue
+			}
+			stored := proto.Clone(webhook).(*v1pb.Webhook)
+			stored.Url = ""
+			project.Webhooks[i] = stored
+			return proto.Clone(stored).(*v1pb.Webhook), nil
+		}
+	}
+	return nil, errors.Errorf("cannot find webhook %s", webhook.Name)
 }
 
 // DeleteProjectWebhook deletes the webhook.
-func (*mockClient) DeleteProjectWebhook(_ context.Context, _ string) error {
-	return nil
+func (c *mockClient) DeleteProjectWebhook(_ context.Context, webhookName string) error {
+	mu.Lock()
+	defer mu.Unlock()
+	for _, project := range c.projectMap {
+		for i, webhook := range project.Webhooks {
+			if webhook.Name != webhookName {
+				continue
+			}
+			project.Webhooks = append(project.Webhooks[:i], project.Webhooks[i+1:]...)
+			return nil
+		}
+	}
+	return errors.Errorf("cannot find webhook %s", webhookName)
 }
 
 // ListIdentityProvider lists all identity providers.

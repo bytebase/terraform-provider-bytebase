@@ -30,6 +30,16 @@ func resourceInstance() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"parent": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "The parent project in projects/{project} format. Omit for a workspace-owned instance.",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
+				),
+			},
 			"resource_id": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -64,7 +74,7 @@ func resourceInstance() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The instance full name in instances/{resource id} format.",
+				Description: "The instance full name in instances/{resource id} or projects/{project}/instances/{resource id} format.",
 			},
 			"engine": {
 				Type:         schema.TypeString,
@@ -826,7 +836,8 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	instanceID := d.Get("resource_id").(string)
-	instanceName := fmt.Sprintf("%s%s", internal.InstanceNamePrefix, instanceID)
+	parent := d.Get("parent").(string)
+	instanceName := internal.FormatInstanceName(parent, instanceID)
 	existedInstance, err := c.GetInstance(ctx, instanceName)
 	if err != nil {
 		tflog.Debug(ctx, fmt.Sprintf("get instance %s failed with error: %v", instanceName, err))
@@ -924,7 +935,7 @@ func resourceInstanceCreate(ctx context.Context, d *schema.ResourceData, m inter
 			}
 		}
 	} else {
-		if _, err := c.CreateInstance(ctx, instanceID, instance); err != nil {
+		if _, err := c.CreateInstance(ctx, parent, instanceID, instance); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -1112,9 +1123,12 @@ func setInstanceMessage(
 		"instance": instance.Name,
 	})
 
-	instanceID, err := internal.GetInstanceID(instance.Name)
+	parent, instanceID, err := internal.GetInstanceParentAndID(instance.Name)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+	if err := d.Set("parent", parent); err != nil {
+		return diag.Errorf("cannot set parent for instance: %s", err.Error())
 	}
 	if err := d.Set("resource_id", instanceID); err != nil {
 		return diag.Errorf("cannot set resource_id for instance: %s", err.Error())

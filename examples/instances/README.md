@@ -48,6 +48,8 @@ The `extra_connection_parameters` field is only available for:
 
 ```terraform
 resource "bytebase_instance" "mysql" {
+  # Omit parent to create a workspace-owned instance.
+  parent      = "projects/project-sample"
   resource_id = "mysql-example"
   environment = "environments/test"
   title       = "MySQL Instance"
@@ -152,23 +154,32 @@ resource "bytebase_instance" "mysql_ssh" {
 ## Query Instances
 
 ```terraform
-# List all instances
+# List project-owned instances. Omit parent to list workspace-owned instances.
 data "bytebase_instance_list" "all" {
+  parent      = "projects/project-sample"
   environment = "environments/test"
   engines     = ["MYSQL", "POSTGRES"]
 }
 
-# Get specific instance
+# Get a project-owned instance. Omit parent for a workspace-owned instance.
 data "bytebase_instance" "mysql" {
+  parent             = "projects/project-sample"
   resource_id        = "mysql-example"
   list_all_databases = true
 }
 ```
 
+Project-owned instance names use `projects/{project}/instances/{instance}`. Import
+them with the full name, for example:
+
+```bash
+terraform import bytebase_instance.mysql projects/project-sample/instances/mysql-example
+```
+
 ## Running the Examples
 
 1. Update the provider configuration in `main.tf` with your Bytebase credentials
-2. Run the [setup](../setup/) example first to create environments
+2. Run the [setup](../setup/) example first to create environments and the `project-sample` project
 3. Initialize and apply:
 
 ```bash

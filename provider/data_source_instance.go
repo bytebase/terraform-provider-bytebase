@@ -16,6 +16,14 @@ func dataSourceInstance() *schema.Resource {
 		Description:        "The instance data source.",
 		ReadWithoutTimeout: dataSourceInstanceRead,
 		Schema: map[string]*schema.Schema{
+			"parent": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The parent project in projects/{project} format. Omit for a workspace-owned instance.",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
+				),
+			},
 			"resource_id": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -30,7 +38,7 @@ func dataSourceInstance() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The instance full name in instances/{resource id} format.",
+				Description: "The instance full name in instances/{resource id} or projects/{project}/instances/{resource id} format.",
 			},
 			"title": {
 				Type:        schema.TypeString,
@@ -552,7 +560,7 @@ func getExternalSecretSchema() *schema.Schema {
 
 func dataSourceInstanceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(api.Client)
-	instanceName := fmt.Sprintf("%s%s", internal.InstanceNamePrefix, d.Get("resource_id").(string))
+	instanceName := internal.FormatInstanceName(d.Get("parent").(string), d.Get("resource_id").(string))
 
 	ins, err := c.GetInstance(ctx, instanceName)
 	if err != nil {

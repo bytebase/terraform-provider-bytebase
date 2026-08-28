@@ -62,12 +62,16 @@ func (c *client) ListInstance(ctx context.Context, filter *api.InstanceFilter) (
 	for {
 		startTimePerPage := time.Now()
 
-		req := connect.NewRequest(&v1pb.ListInstancesRequest{
+		request := &v1pb.ListInstancesRequest{
 			Filter:      filterStr,
 			PageSize:    500,
 			PageToken:   pageToken,
 			ShowDeleted: showDeleted,
-		})
+		}
+		if filter.Parent != "" {
+			request.Parent = &filter.Parent
+		}
+		req := connect.NewRequest(request)
 
 		resp, err := c.instanceClient.ListInstances(ctx, req)
 		if err != nil {
@@ -114,15 +118,19 @@ func (c *client) GetInstance(ctx context.Context, instanceName string) (*v1pb.In
 }
 
 // CreateInstance creates the instance using Connect RPC.
-func (c *client) CreateInstance(ctx context.Context, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error) {
+func (c *client) CreateInstance(ctx context.Context, parent, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error) {
 	if c.instanceClient == nil {
 		return nil, errors.New("instance service client not initialized")
 	}
 
-	req := connect.NewRequest(&v1pb.CreateInstanceRequest{
+	request := &v1pb.CreateInstanceRequest{
 		InstanceId: instanceID,
 		Instance:   instance,
-	})
+	}
+	if parent != "" {
+		request.Parent = &parent
+	}
+	req := connect.NewRequest(request)
 
 	resp, err := c.instanceClient.CreateInstance(ctx, req)
 	if err != nil {

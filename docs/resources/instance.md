@@ -29,6 +29,7 @@ The instance resource.
 - `external_link` (String) The external console URL managing this instance (e.g. AWS RDS console, your in-house DB instance console)
 - `labels` (Map of String) Labels are key-value pairs that can be attached to the instance.
 - `list_all_databases` (Boolean) List all databases in this instance. If false, will only list 500 databases.
+- `parent` (String) The parent project in projects/{project} format. Omit for a workspace-owned instance.
 - `sync_databases` (Set of String) Enable sync for following databases. Default empty, means sync all schemas & databases.
 - `sync_interval` (Number) How often the instance is synced in seconds. Default 0, means never sync. Require instance license to enable this feature.
 
@@ -38,7 +39,7 @@ The instance resource.
 - `engine_version` (String) The engine version.
 - `id` (String) The ID of this resource.
 - `last_sync_time` (String) The last time the instance was synced.
-- `name` (String) The instance full name in instances/{resource id} format.
+- `name` (String) The instance full name in instances/{resource id} or projects/{project}/instances/{resource id} format.
 - `roles` (List of Object) Database roles available in this instance. (see [below for nested schema](#nestedatt--roles))
 - `state` (String) The lifecycle state of the instance.
 
