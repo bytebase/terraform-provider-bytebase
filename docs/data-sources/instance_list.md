@@ -20,6 +20,7 @@ The instance data source list.
 - `engines` (Set of String) Filter instances by engines.
 - `environment` (String) The environment full name. Filter instances by environment.
 - `host` (String) Filter instances by host.
+- `parent` (String) The parent project in projects/{project} format. Omit to list workspace-owned instances.
 - `port` (String) Filter instances by port.
 - `project` (String) The project full name. Filter instances by project.
 - `query` (String) Filter instances by name or resource id with wildcard
@@ -44,6 +45,7 @@ Read-Only:
 - `labels` (Map of String)
 - `last_sync_time` (String)
 - `name` (String)
+- `parent` (String)
 - `resource_id` (String)
 - `roles` (List of Object) (see [below for nested schema](#nestedobjatt--instances--roles))
 - `state` (String)

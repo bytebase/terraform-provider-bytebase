@@ -146,8 +146,8 @@ func TestResourceDatabaseDeleteMovesDatabaseToWorkspaceDefaultProject(t *testing
 
 	environment := "environments/test"
 	if _, err := meta.(interface {
-		CreateInstance(context.Context, string, *v1pb.Instance) (*v1pb.Instance, error)
-	}).CreateInstance(ctx, "delete-default-project", &v1pb.Instance{
+		CreateInstance(context.Context, string, string, *v1pb.Instance) (*v1pb.Instance, error)
+	}).CreateInstance(ctx, "", "delete-default-project", &v1pb.Instance{
 		Title:       "Test Instance",
 		Engine:      v1pb.Engine_POSTGRES,
 		Environment: &environment,

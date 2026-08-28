@@ -3,7 +3,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.22.0"
+      version = "3.22.1"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -24,6 +24,7 @@ provider "bytebase" {
 # This is the default authentication type for most database engines.
 ###############################################################################
 resource "bytebase_instance" "mysql_password" {
+  parent      = "projects/project-sample"
   resource_id = "mysql-password-example"
   environment = "environments/test"
   title       = "MySQL with Password Auth"
@@ -750,8 +751,9 @@ resource "bytebase_instance" "cassandra" {
 # Data Sources - Query existing instances
 ###############################################################################
 
-# # List all instances in an environment
+# # List project-owned instances in an environment
 # data "bytebase_instance_list" "all" {
+#   parent      = "projects/project-sample"
 #   environment = "environments/test"
 #   engines = [
 #     "MYSQL",
@@ -765,6 +767,7 @@ resource "bytebase_instance" "cassandra" {
 
 # # Get a specific instance
 # data "bytebase_instance" "mysql" {
+#   parent             = "projects/project-sample"
 #   resource_id        = "mysql-password-example"
 #   list_all_databases = true
 # }

@@ -128,6 +128,10 @@ func (c *mockClient) ListInstance(_ context.Context, filter *api.InstanceFilter)
 	defer mu.RUnlock()
 	instances := make([]*v1pb.Instance, 0)
 	for _, ins := range c.instanceMap {
+		parent, _, err := GetInstanceParentAndID(ins.Name)
+		if err != nil || parent != filter.Parent {
+			continue
+		}
 		if ins.State == v1pb.State_DELETED && filter.State != v1pb.State_DELETED {
 			continue
 		}
@@ -150,9 +154,13 @@ func (c *mockClient) GetInstance(_ context.Context, instanceName string) (*v1pb.
 }
 
 // CreateInstance creates the instance.
-func (c *mockClient) CreateInstance(_ context.Context, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error) {
+func (c *mockClient) CreateInstance(_ context.Context, parent, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error) {
+	name := fmt.Sprintf("%s%s", InstanceNamePrefix, instanceID)
+	if parent != "" {
+		name = fmt.Sprintf("%s/%s%s", parent, InstanceNamePrefix, instanceID)
+	}
 	ins := &v1pb.Instance{
-		Name:         fmt.Sprintf("%s%s", InstanceNamePrefix, instanceID),
+		Name:         name,
 		State:        v1pb.State_ACTIVE,
 		Title:        instance.Title,
 		Engine:       instance.Engine,

@@ -76,6 +76,35 @@ func TestDataSourceClusterRemovedFromSchema(t *testing.T) {
 	}
 }
 
+func TestProjectInstanceParentSchema(t *testing.T) {
+	resourceParent, ok := resourceInstance().Schema["parent"]
+	if !ok {
+		t.Fatal("bytebase_instance.parent is missing")
+	}
+	assertStringSchema(t, "bytebase_instance.parent", resourceParent, true, true)
+	if !resourceParent.ForceNew {
+		t.Fatal("bytebase_instance.parent must force replacement")
+	}
+
+	dataSourceParent, ok := dataSourceInstance().Schema["parent"]
+	if !ok {
+		t.Fatal("data.bytebase_instance.parent is missing")
+	}
+	assertStringSchema(t, "data.bytebase_instance.parent", dataSourceParent, true, false)
+
+	listParent, ok := dataSourceInstanceList().Schema["parent"]
+	if !ok {
+		t.Fatal("data.bytebase_instance_list.parent is missing")
+	}
+	assertStringSchema(t, "data.bytebase_instance_list.parent", listParent, true, false)
+
+	listedInstanceParent, ok := dataSourceInstanceList().Schema["instances"].Elem.(*schema.Resource).Schema["parent"]
+	if !ok {
+		t.Fatal("data.bytebase_instance_list.instances.parent is missing")
+	}
+	assertStringSchema(t, "data.bytebase_instance_list.instances.parent", listedInstanceParent, false, true)
+}
+
 func TestVaultExternalSecretTLSSchemaAndConversion(t *testing.T) {
 	resourceVaultSchema := resourceInstance().Schema["data_sources"].Elem.(*schema.Resource).Schema["external_secret"].Elem.(*schema.Resource).Schema["vault"].Elem.(*schema.Resource).Schema
 	assertSensitiveOptionalComputedSchema(t, "bytebase_instance.data_sources.external_secret.vault.vault_ssl_ca", resourceVaultSchema["vault_ssl_ca"])

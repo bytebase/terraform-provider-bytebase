@@ -63,6 +63,68 @@ func TestAccInstance(t *testing.T) {
 	})
 }
 
+func TestAccProjectInstance(t *testing.T) {
+	const (
+		parent       = "projects/sample-project"
+		resourceID   = "project-instance"
+		instanceName = "projects/sample-project/instances/project-instance"
+	)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "bytebase_instance" "project" {
+  parent      = %q
+  resource_id = %q
+  title       = "Project instance"
+  engine      = "POSTGRES"
+  environment = "environments/test"
+
+  data_sources {
+    id       = "admin"
+    type     = "ADMIN"
+    username = "bytebase"
+    host     = "127.0.0.1"
+    port     = "5432"
+  }
+}
+
+data "bytebase_instance" "project" {
+  parent      = %q
+  resource_id = %q
+  depends_on  = [bytebase_instance.project]
+}
+
+data "bytebase_instance_list" "project" {
+  parent     = %q
+  depends_on = [bytebase_instance.project]
+}
+
+data "bytebase_instance_list" "workspace" {
+  depends_on = [bytebase_instance.project]
+}
+`, parent, resourceID, parent, resourceID, parent),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("bytebase_instance.project", "parent", parent),
+					resource.TestCheckResourceAttr("bytebase_instance.project", "name", instanceName),
+					resource.TestCheckResourceAttr("data.bytebase_instance.project", "parent", parent),
+					resource.TestCheckResourceAttr("data.bytebase_instance.project", "name", instanceName),
+					resource.TestCheckResourceAttr("data.bytebase_instance_list.project", "instances.#", "1"),
+					resource.TestCheckResourceAttr("data.bytebase_instance_list.project", "instances.0.parent", parent),
+					resource.TestCheckResourceAttr("data.bytebase_instance_list.project", "instances.0.name", instanceName),
+					resource.TestCheckResourceAttr("data.bytebase_instance_list.workspace", "instances.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccInstance_InvalidInput(t *testing.T) {
 	identifier := "another_instance"
 	engine := "POSTGRES"

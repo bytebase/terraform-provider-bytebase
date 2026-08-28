@@ -9,6 +9,7 @@ import (
 
 // InstanceFilter is the filter for list instances API.
 type InstanceFilter struct {
+	Parent      string
 	Query       string
 	Environment string
 	Project     string
@@ -69,7 +70,7 @@ type Client interface {
 	// GetInstance gets the instance by full name.
 	GetInstance(ctx context.Context, instanceName string) (*v1pb.Instance, error)
 	// CreateInstance creates the instance.
-	CreateInstance(ctx context.Context, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error)
+	CreateInstance(ctx context.Context, parent, instanceID string, instance *v1pb.Instance) (*v1pb.Instance, error)
 	// UpdateInstance updates the instance.
 	UpdateInstance(ctx context.Context, patch *v1pb.Instance, updateMasks []string) (*v1pb.Instance, error)
 	// UndeleteInstance undeletes the instance.

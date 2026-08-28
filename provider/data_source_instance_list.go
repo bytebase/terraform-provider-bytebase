@@ -21,6 +21,14 @@ func dataSourceInstanceList() *schema.Resource {
 		Description:        "The instance data source list.",
 		ReadWithoutTimeout: dataSourceInstanceListRead,
 		Schema: map[string]*schema.Schema{
+			"parent": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The parent project in projects/{project} format. Omit to list workspace-owned instances.",
+				ValidateDiagFunc: internal.ResourceNameValidation(
+					fmt.Sprintf("^%s%s$", internal.ProjectNamePrefix, internal.ResourceIDPattern),
+				),
+			},
 			"query": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -76,6 +84,11 @@ func dataSourceInstanceList() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"parent": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The parent project in projects/{project} format. Empty for a workspace-owned instance.",
+						},
 						"resource_id": {
 							Type:        schema.TypeString,
 							Computed:    true,
@@ -84,7 +97,7 @@ func dataSourceInstanceList() *schema.Resource {
 						"name": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "The instance full name in instances/{resource id} format.",
+							Description: "The instance full name in instances/{resource id} or projects/{project}/instances/{resource id} format.",
 						},
 						"environment": {
 							Type:        schema.TypeString,
@@ -156,6 +169,7 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 	var diags diag.Diagnostics
 
 	filter := &api.InstanceFilter{
+		Parent:      d.Get("parent").(string),
 		Query:       d.Get("query").(string),
 		Environment: d.Get("environment").(string),
 		Project:     d.Get("project").(string),
@@ -184,12 +198,13 @@ func dataSourceInstanceListRead(ctx context.Context, d *schema.ResourceData, m i
 
 	instances := make([]map[string]interface{}, 0)
 	for _, instance := range response {
-		instanceID, err := internal.GetInstanceID(instance.Name)
+		parent, instanceID, err := internal.GetInstanceParentAndID(instance.Name)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
 		ins := make(map[string]interface{})
+		ins["parent"] = parent
 		ins["resource_id"] = instanceID
 		ins["title"] = instance.Title
 		ins["name"] = instance.Name
