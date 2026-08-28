@@ -184,8 +184,9 @@ func (c *mockClient) CreateInstance(_ context.Context, parent, instanceID string
 
 	// Create default database
 	defaultDb := &v1pb.Database{
-		Name:  fmt.Sprintf("%s/%sdefault", ins.Name, DatabaseIDPrefix),
-		State: v1pb.State_ACTIVE,
+		Name:    fmt.Sprintf("%s/%sdefault", ins.Name, DatabaseIDPrefix),
+		State:   v1pb.State_ACTIVE,
+		Project: parent,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
@@ -193,24 +194,27 @@ func (c *mockClient) CreateInstance(_ context.Context, parent, instanceID string
 
 	// Also create test databases that will be used in tests
 	testDb := &v1pb.Database{
-		Name:  fmt.Sprintf("%s/%stest-database", ins.Name, DatabaseIDPrefix),
-		State: v1pb.State_ACTIVE,
+		Name:    fmt.Sprintf("%s/%stest-database", ins.Name, DatabaseIDPrefix),
+		State:   v1pb.State_ACTIVE,
+		Project: parent,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
 	}
 
 	testDbLabels := &v1pb.Database{
-		Name:  fmt.Sprintf("%s/%stest-database-labels", ins.Name, DatabaseIDPrefix),
-		State: v1pb.State_ACTIVE,
+		Name:    fmt.Sprintf("%s/%stest-database-labels", ins.Name, DatabaseIDPrefix),
+		State:   v1pb.State_ACTIVE,
+		Project: parent,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
 	}
 
 	testDbObjSchema := &v1pb.Database{
-		Name:  fmt.Sprintf("%s/%stest-db-objschema", ins.Name, DatabaseIDPrefix),
-		State: v1pb.State_ACTIVE,
+		Name:    fmt.Sprintf("%s/%stest-db-objschema", ins.Name, DatabaseIDPrefix),
+		State:   v1pb.State_ACTIVE,
+		Project: parent,
 		Labels: map[string]string{
 			"bb.environment": envID,
 		},
@@ -435,7 +439,7 @@ func (c *mockClient) GetDatabase(_ context.Context, databaseName string) (*v1pb.
 }
 
 // ListDatabase list the databases.
-func (c *mockClient) ListDatabase(_ context.Context, instaceID string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
+func (c *mockClient) ListDatabase(_ context.Context, parent string, filter *api.DatabaseFilter, _ bool) ([]*v1pb.Database, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	projectID := "-"
@@ -447,8 +451,21 @@ func (c *mockClient) ListDatabase(_ context.Context, instaceID string, filter *a
 		if projectID != "-" && fmt.Sprintf(`"%s"`, db.Project) != projectID {
 			continue
 		}
-		if instaceID != "-" && !strings.HasPrefix(db.Name, fmt.Sprintf("%s%s", InstanceNamePrefix, instaceID)) {
-			continue
+		if parent != "-" {
+			switch {
+			case strings.HasPrefix(parent, ProjectNamePrefix):
+				if db.Project != parent {
+					continue
+				}
+			case strings.HasPrefix(parent, InstanceNamePrefix), strings.Contains(parent, "/instances/"):
+				if !strings.HasPrefix(db.Name, parent+"/") {
+					continue
+				}
+			default:
+				if !strings.HasPrefix(db.Name, fmt.Sprintf("%s%s/", InstanceNamePrefix, parent)) {
+					continue
+				}
+			}
 		}
 		databases = append(databases, db)
 	}

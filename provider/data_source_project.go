@@ -224,11 +224,11 @@ func getWebhooksSchema(computed, preserveURL bool) *schema.Schema {
 	}
 }
 
-func getDatabasesSchema(computed bool) *schema.Schema {
+func getDatabasesSchema(computedOnly bool) *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeSet,
-		Computed:    computed,
-		Optional:    !computed,
+		Computed:    true,
+		Optional:    !computedOnly,
 		Description: "The databases full name in the resource.",
 		Elem: &schema.Schema{
 			Type: schema.TypeString,

@@ -179,6 +179,69 @@ func TestAccProject(t *testing.T) {
 	})
 }
 
+func TestAccProjectDatabasesOmittedConverges(t *testing.T) {
+	const resourceName = "bytebase_project.database_state"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckProjectDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckProjectWithProjectInstance(),
+			},
+			{
+				Config:   testAccCheckProjectWithProjectInstance(),
+				PlanOnly: true,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "databases.#", "4"),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceProjectDatabasesAreOptionalComputed(t *testing.T) {
+	databases, ok := resourceProjct().Schema["databases"]
+	if !ok {
+		t.Fatal("databases schema is missing")
+	}
+	if !databases.Optional || !databases.Computed {
+		t.Fatal("databases should be Optional+Computed so omission observes server assignments while explicit values remain authoritative")
+	}
+}
+
+func TestAccProjectDatabasesExplicitEmptyClears(t *testing.T) {
+	const resourceName = "bytebase_project.database_ownership"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckProjectDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckProjectDatabaseOwnership(""),
+			},
+			{
+				Config: testAccCheckProjectDatabaseOwnership(`databases = ["instances/project-database-ownership/databases/test-database"]`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "databases.#", "1"),
+				),
+			},
+			{
+				Config: testAccCheckProjectDatabaseOwnership("databases = []"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "databases.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccProjectWithSettings(t *testing.T) {
 	identifier := "project_with_settings"
 	resourceName := fmt.Sprintf("bytebase_project.%s", identifier)
@@ -357,6 +420,57 @@ func testAccCheckProjectResourceWithWebhooks(firstURL, secondURL string) string 
 		}
 	}
 	`, firstURL, secondURL)
+}
+
+func testAccCheckProjectWithProjectInstance() string {
+	return `
+resource "bytebase_project" "database_state" {
+  resource_id = "project-database-state"
+  title       = "Project database state"
+}
+
+resource "bytebase_instance" "database_state" {
+  parent      = bytebase_project.database_state.name
+  resource_id = "project-database-state"
+  title       = "Project database state"
+  engine      = "POSTGRES"
+  environment = "environments/test"
+
+  data_sources {
+    id       = "admin"
+    type     = "ADMIN"
+    username = "bytebase"
+    host     = "127.0.0.1"
+    port     = "5432"
+  }
+}
+`
+}
+
+func testAccCheckProjectDatabaseOwnership(databases string) string {
+	return fmt.Sprintf(`
+resource "bytebase_project" "database_ownership" {
+  resource_id = "project-database-ownership"
+  title       = "Project database ownership"
+
+  %s
+}
+
+resource "bytebase_instance" "database_ownership" {
+  resource_id = "project-database-ownership"
+  title       = "Project database ownership"
+  engine      = "POSTGRES"
+  environment = "environments/test"
+
+  data_sources {
+    id       = "admin"
+    type     = "ADMIN"
+    username = "bytebase"
+    host     = "127.0.0.1"
+    port     = "5432"
+  }
+}
+`, databases)
 }
 
 func testAccCheckProjectResourceWithSettings(identifier, resourceID, title string) string {

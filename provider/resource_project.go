@@ -43,6 +43,9 @@ func resourceProjct() *schema.Resource {
 }
 
 func resourceProjectSchema() map[string]*schema.Schema {
+	databasesSchema := getDatabasesSchema(false)
+	databasesSchema.Description = "The database full names assigned to the project. Omit this field to observe assignments made outside this resource without changing them; set it explicitly to manage the complete set, including `databases = []` to clear it."
+
 	return map[string]*schema.Schema{
 		"resource_id": {
 			Type:         schema.TypeString,
@@ -172,7 +175,7 @@ func resourceProjectSchema() map[string]*schema.Schema {
 				Type: schema.TypeString,
 			},
 		},
-		"databases": getDatabasesSchema(false),
+		"databases": databasesSchema,
 		"webhooks":  getWebhooksSchema(false, true),
 	}
 }
