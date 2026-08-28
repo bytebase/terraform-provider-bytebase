@@ -13,6 +13,7 @@ import (
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
 	v1alpha1 "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -1465,18 +1466,53 @@ func (c *mockClient) DeleteDatabaseGroup(_ context.Context, groupName string) er
 }
 
 // CreateProjectWebhook creates the webhook in the project.
-func (*mockClient) CreateProjectWebhook(_ context.Context, _ string, _ *v1pb.Webhook) (*v1pb.Webhook, error) {
-	return &v1pb.Webhook{}, nil
+func (c *mockClient) CreateProjectWebhook(_ context.Context, projectName string, webhook *v1pb.Webhook) (*v1pb.Webhook, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	project, ok := c.projectMap[projectName]
+	if !ok {
+		return nil, errors.Errorf("cannot find project %s", projectName)
+	}
+
+	stored := proto.Clone(webhook).(*v1pb.Webhook)
+	stored.Name = fmt.Sprintf("%s/webhooks/%d", projectName, len(project.Webhooks)+1)
+	stored.Url = ""
+	project.Webhooks = append(project.Webhooks, stored)
+	return proto.Clone(stored).(*v1pb.Webhook), nil
 }
 
 // UpdateProjectWebhook updates the webhook.
-func (*mockClient) UpdateProjectWebhook(_ context.Context, _ *v1pb.Webhook, _ []string) (*v1pb.Webhook, error) {
-	return &v1pb.Webhook{}, nil
+func (c *mockClient) UpdateProjectWebhook(_ context.Context, webhook *v1pb.Webhook, _ []string) (*v1pb.Webhook, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	for _, project := range c.projectMap {
+		for i, existing := range project.Webhooks {
+			if existing.Name != webhook.Name {
+				continue
+			}
+			stored := proto.Clone(webhook).(*v1pb.Webhook)
+			stored.Url = ""
+			project.Webhooks[i] = stored
+			return proto.Clone(stored).(*v1pb.Webhook), nil
+		}
+	}
+	return nil, errors.Errorf("cannot find webhook %s", webhook.Name)
 }
 
 // DeleteProjectWebhook deletes the webhook.
-func (*mockClient) DeleteProjectWebhook(_ context.Context, _ string) error {
-	return nil
+func (c *mockClient) DeleteProjectWebhook(_ context.Context, webhookName string) error {
+	mu.Lock()
+	defer mu.Unlock()
+	for _, project := range c.projectMap {
+		for i, webhook := range project.Webhooks {
+			if webhook.Name != webhookName {
+				continue
+			}
+			project.Webhooks = append(project.Webhooks[:i], project.Webhooks[i+1:]...)
+			return nil
+		}
+	}
+	return errors.Errorf("cannot find webhook %s", webhookName)
 }
 
 // ListIdentityProvider lists all identity providers.

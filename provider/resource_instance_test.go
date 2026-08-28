@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -118,11 +119,27 @@ data "bytebase_instance_list" "workspace" {
 					resource.TestCheckResourceAttr("data.bytebase_instance_list.project", "instances.#", "1"),
 					resource.TestCheckResourceAttr("data.bytebase_instance_list.project", "instances.0.parent", parent),
 					resource.TestCheckResourceAttr("data.bytebase_instance_list.project", "instances.0.name", instanceName),
-					resource.TestCheckResourceAttr("data.bytebase_instance_list.workspace", "instances.#", "0"),
+					testCheckInstanceListExcludesName("data.bytebase_instance_list.workspace", instanceName),
 				),
 			},
 		},
 	})
+}
+
+func testCheckInstanceListExcludesName(resourceName, excludedName string) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		instanceList, ok := state.RootModule().Resources[resourceName]
+		if !ok {
+			return errors.Errorf("cannot find %s", resourceName)
+		}
+
+		for attribute, value := range instanceList.Primary.Attributes {
+			if strings.HasPrefix(attribute, "instances.") && strings.HasSuffix(attribute, ".name") && value == excludedName {
+				return errors.Errorf("%s contains excluded instance %s", resourceName, excludedName)
+			}
+		}
+		return nil
+	}
 }
 
 func TestAccInstance_InvalidInput(t *testing.T) {

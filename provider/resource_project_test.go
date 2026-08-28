@@ -2,8 +2,6 @@ package provider
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -17,7 +15,7 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
 
-func TestResourceProjectWebhookURLStoredAsHash(t *testing.T) {
+func TestResourceProjectWebhookURLPreservedLikePassword(t *testing.T) {
 	webhooks, ok := resourceProjct().Schema["webhooks"]
 	if !ok {
 		t.Fatal("webhooks schema is missing")
@@ -36,22 +34,19 @@ func TestResourceProjectWebhookURLStoredAsHash(t *testing.T) {
 	if !urlSchema.Sensitive {
 		t.Fatal("webhooks.url should be Sensitive so plaintext is hidden in CLI output")
 	}
-	if urlSchema.StateFunc == nil {
-		t.Fatal("webhooks.url should hash plaintext before storing it in Terraform state")
+	if !urlSchema.Optional || !urlSchema.Computed {
+		t.Fatal("webhooks.url should be Optional+Computed like other write-only passwords")
 	}
-
-	plaintext := "https://hooks.example.com/services/customer-secret"
-	sum := sha256.Sum256([]byte(plaintext))
-	want := hex.EncodeToString(sum[:])
-	if got := urlSchema.StateFunc(plaintext); got != want {
-		t.Fatalf("url StateFunc = %q, want sha256 %q", got, want)
+	if urlSchema.StateFunc != nil {
+		t.Fatal("webhooks.url must not transform plaintext state")
+	}
+	if urlSchema.DiffSuppressFunc == nil {
+		t.Fatal("webhooks.url should suppress API-omitted values like other write-only passwords")
 	}
 }
 
-func TestFlattenWebhookListHashesResourceWebhookURL(t *testing.T) {
+func TestFlattenWebhookListKeepsResourceWebhookURLPlaintext(t *testing.T) {
 	plaintext := "https://hooks.example.com/services/customer-secret"
-	sum := sha256.Sum256([]byte(plaintext))
-	want := hex.EncodeToString(sum[:])
 
 	raw := flattenWebhookList([]*v1pb.Webhook{{
 		Name:              "projects/project-id/webhooks/webhook-id",
@@ -65,25 +60,20 @@ func TestFlattenWebhookListHashesResourceWebhookURL(t *testing.T) {
 		t.Fatalf("flattenWebhookList returned %d webhooks, want 1", len(raw))
 	}
 	webhook := raw[0].(map[string]interface{})
-	if got := webhook["url"]; got != want {
-		t.Fatalf("flattened resource webhook url = %q, want sha256 %q", got, want)
-	}
-	if got := webhook["url"]; got == plaintext {
-		t.Fatal("flattened resource webhook url stores plaintext")
+	if got := webhook["url"]; got != plaintext {
+		t.Fatalf("flattened resource webhook url = %q, want plaintext %q", got, plaintext)
 	}
 }
 
-func TestFlattenWebhookListPreservesResourceWebhookURLHash(t *testing.T) {
+func TestFlattenWebhookListPreservesResourceWebhookURL(t *testing.T) {
 	plaintext := "https://hooks.example.com/services/customer-secret"
-	sum := sha256.Sum256([]byte(plaintext))
-	want := hex.EncodeToString(sum[:])
 
 	prior := []interface{}{
 		map[string]interface{}{
 			"name":  "projects/project-id/webhooks/webhook-id",
 			"title": "release alerts",
 			"type":  v1pb.WebhookType_SLACK.String(),
-			"url":   want,
+			"url":   plaintext,
 		},
 	}
 	raw := flattenWebhookList([]*v1pb.Webhook{{
@@ -93,19 +83,16 @@ func TestFlattenWebhookListPreservesResourceWebhookURLHash(t *testing.T) {
 	}}, true, prior)
 
 	webhook := raw[0].(map[string]interface{})
-	if got := webhook["url"]; got != want {
-		t.Fatalf("flattened resource webhook url = %q, want prior SHA-256 %q", got, want)
+	if got := webhook["url"]; got != plaintext {
+		t.Fatalf("flattened resource webhook url = %q, want prior plaintext %q", got, plaintext)
 	}
 }
 
-func TestFlattenWebhookListKeepsDataSourceWebhookURLPlaintext(t *testing.T) {
-	plaintext := "https://hooks.example.com/services/customer-secret"
-
+func TestFlattenWebhookListKeepsDataSourceWebhookURLEmpty(t *testing.T) {
 	raw := flattenWebhookList([]*v1pb.Webhook{{
 		Name:              "projects/project-id/webhooks/webhook-id",
 		Title:             "release alerts",
 		Type:              v1pb.WebhookType_SLACK,
-		Url:               plaintext,
 		NotificationTypes: []v1pb.Activity_Type{v1pb.Activity_ISSUE_CREATED},
 	}}, false)
 
@@ -113,9 +100,48 @@ func TestFlattenWebhookListKeepsDataSourceWebhookURLPlaintext(t *testing.T) {
 		t.Fatalf("flattenWebhookList returned %d webhooks, want 1", len(raw))
 	}
 	webhook := raw[0].(map[string]interface{})
-	if got := webhook["url"]; got != plaintext {
-		t.Fatalf("flattened data source webhook url = %q, want plaintext %q", got, plaintext)
+	if got := webhook["url"]; got != "" {
+		t.Fatalf("flattened data source webhook url = %q, want empty write-only value", got)
 	}
+}
+
+func TestAccProjectWebhookConvergesWhenAPIHidesURL(t *testing.T) {
+	const resourceName = "bytebase_project.webhook_state"
+	firstURL := "https://hooks.example.com/services/first-secret"
+	secondURL := "https://hooks.example.com/services/second-secret"
+	rotatedSecondURL := "https://hooks.example.com/services/rotated-second-secret"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckProjectDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckProjectResourceWithWebhooks(firstURL, secondURL),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "webhooks.0.url", firstURL),
+					resource.TestCheckResourceAttr(resourceName, "webhooks.1.url", secondURL),
+				),
+			},
+			{
+				Config:   testAccCheckProjectResourceWithWebhooks(firstURL, secondURL),
+				PlanOnly: true,
+			},
+			{
+				Config: testAccCheckProjectResourceWithWebhooks(firstURL, rotatedSecondURL),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "webhooks.0.url", firstURL),
+					resource.TestCheckResourceAttr(resourceName, "webhooks.1.url", rotatedSecondURL),
+				),
+			},
+			{
+				Config:   testAccCheckProjectResourceWithWebhooks(firstURL, rotatedSecondURL),
+				PlanOnly: true,
+			},
+		},
+	})
 }
 
 func TestAccProject(t *testing.T) {
@@ -308,6 +334,29 @@ func testAccCheckProjectResource(identifier, resourceID, title string) string {
 		title          = "%s"
 	}
 	`, identifier, resourceID, title)
+}
+
+func testAccCheckProjectResourceWithWebhooks(firstURL, secondURL string) string {
+	return fmt.Sprintf(`
+	resource "bytebase_project" "webhook_state" {
+		resource_id = "webhook-state"
+		title       = "Webhook state"
+
+		webhooks {
+			title              = "Issue alerts"
+			type               = "SLACK"
+			url                = %q
+			notification_types = ["ISSUE_CREATED"]
+		}
+
+		webhooks {
+			title              = "Pipeline alerts"
+			type               = "SLACK"
+			url                = %q
+			notification_types = ["PIPELINE_COMPLETED"]
+		}
+	}
+	`, firstURL, secondURL)
 }
 
 func testAccCheckProjectResourceWithSettings(identifier, resourceID, title string) string {

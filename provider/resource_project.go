@@ -599,9 +599,8 @@ type webhookIdentity struct {
 }
 
 // validateProjectWebhooks enforces (title, type) uniqueness within webhooks at
-// plan time. The plaintext URL is not stored in state, so (title, type) is the
-// stable identity used for matching config webhooks against server-side
-// webhooks; duplicates would make that matching ambiguous.
+// plan time. This pair is the stable identity used for matching configured
+// webhooks against server-side webhooks; duplicates make that ambiguous.
 func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	rawConfig := d.GetRawConfig()
 	if rawConfig.IsNull() {
@@ -619,6 +618,10 @@ func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interf
 		if element.IsNull() {
 			continue
 		}
+		urlValue := element.GetAttr("url")
+		if urlValue.IsKnown() && (urlValue.IsNull() || urlValue.AsString() == "") {
+			return errors.New("webhook url must be configured")
+		}
 		titleValue := element.GetAttr("title")
 		typeValue := element.GetAttr("type")
 		if !titleValue.IsKnown() || titleValue.IsNull() || !typeValue.IsKnown() || typeValue.IsNull() {
@@ -629,7 +632,7 @@ func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interf
 			typ:   typeValue.AsString(),
 		}
 		if seen[identity] {
-			return errors.Errorf("duplicate webhook with title=%q and type=%q; (title, type) must be unique within a project because plaintext url is not stored in state and (title, type) is the identity used for matching", identity.title, identity.typ)
+			return errors.Errorf("duplicate webhook with title=%q and type=%q; (title, type) must be unique within a project because it is the identity used for matching", identity.title, identity.typ)
 		}
 		seen[identity] = true
 	}
@@ -637,13 +640,15 @@ func validateProjectWebhooks(_ context.Context, d *schema.ResourceDiff, _ interf
 }
 
 // convertCtyWebhook builds a v1pb.Webhook from a single raw-config element.
-// Reading from raw config is necessary because d.Get returns the state-shaped
-// URL digest, while the API update needs the plaintext URL.
+// Reading raw config ensures the API receives the configured plaintext URL,
+// rather than a computed value preserved during refresh.
 func convertCtyWebhook(element cty.Value) *v1pb.Webhook {
 	webhook := &v1pb.Webhook{
 		Title: element.GetAttr("title").AsString(),
-		Url:   element.GetAttr("url").AsString(),
 		Type:  v1pb.WebhookType(v1pb.WebhookType_value[element.GetAttr("type").AsString()]),
+	}
+	if url := element.GetAttr("url"); url.IsKnown() && !url.IsNull() {
+		webhook.Url = url.AsString()
 	}
 	if dm := element.GetAttr("direct_message"); !dm.IsNull() {
 		webhook.DirectMessage = dm.True()
