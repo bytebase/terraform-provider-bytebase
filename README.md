@@ -24,6 +24,33 @@ provider "bytebase" {
 }
 ```
 
+The provider can also exchange an external OIDC token for a short-lived
+Bytebase access token. An administrator must create the workload identity and
+grant its IAM roles before switching Terraform to this authentication mode.
+
+```hcl
+provider "bytebase" {
+  url                          = "https://bytebase.example.com"
+  workload_identity_email      = "terraform@workload.bytebase.com"
+  workload_identity_token_file = "/secrets/bytebase.jwt"
+}
+```
+
+Use exactly one authentication mode: either `service_account` with
+`service_key`, or `workload_identity_email` with one of
+`workload_identity_token` and `workload_identity_token_file`. The equivalent
+workload identity environment variables are:
+
+- `BYTEBASE_WORKLOAD_IDENTITY_EMAIL`
+- `BYTEBASE_WORKLOAD_IDENTITY_TOKEN`
+- `BYTEBASE_WORKLOAD_IDENTITY_TOKEN_FILE`
+
+The file-backed mode is recommended for workloads such as Nomad because the
+provider rereads the file when Bytebase authentication expires. External OIDC
+tokens and returned Bytebase tokens are kept out of Terraform state and should
+not be written to logs. Remove or unset `BYTEBASE_SERVICE_ACCOUNT` and
+`BYTEBASE_SERVICE_KEY` when switching to workload identity authentication.
+
 ## Development
 
 ### Prerequisites

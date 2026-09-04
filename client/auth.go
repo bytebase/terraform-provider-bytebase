@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"connectrpc.com/connect"
+	"github.com/pkg/errors"
 )
 
 // Note: The login method has been moved to client.go and now uses Connect RPC.
@@ -13,8 +15,34 @@ import (
 // has been migrated to use the AuthServiceClient from Connect RPC.
 // authInterceptor implements connect.Interceptor to add authentication headers.
 type authInterceptor struct {
-	token         string
+	tokenManager  *tokenManager
 	customHeaders map[string]string
+}
+
+type tokenManager struct {
+	mu            sync.RWMutex
+	token         string
+	authenticator authenticator
+}
+
+func (m *tokenManager) Token() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.token
+}
+
+func (m *tokenManager) RefreshIfCurrent(ctx context.Context, failedToken string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.token != failedToken {
+		return m.token, nil
+	}
+	token, err := m.authenticator.Authenticate(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to refresh authentication")
+	}
+	m.token = token
+	return token, nil
 }
 
 func setHeaders(dst http.Header, headers map[string]string) {
@@ -25,12 +53,24 @@ func setHeaders(dst http.Header, headers map[string]string) {
 
 func (a *authInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return connect.UnaryFunc(func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-		if req.Spec().IsClient {
-			setHeaders(req.Header(), a.customHeaders)
-			if a.token != "" {
-				req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
-			}
+		if !req.Spec().IsClient {
+			return next(ctx, req)
 		}
+		setHeaders(req.Header(), a.customHeaders)
+		failedToken := a.tokenManager.Token()
+		if failedToken != "" {
+			req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", failedToken))
+		}
+		resp, err := next(ctx, req)
+		if connect.CodeOf(err) != connect.CodeUnauthenticated {
+			return resp, err
+		}
+
+		refreshedToken, refreshErr := a.tokenManager.RefreshIfCurrent(ctx, failedToken)
+		if refreshErr != nil {
+			return nil, refreshErr
+		}
+		req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", refreshedToken))
 		return next(ctx, req)
 	})
 }
@@ -39,8 +79,8 @@ func (a *authInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) 
 	return connect.StreamingClientFunc(func(ctx context.Context, spec connect.Spec) connect.StreamingClientConn {
 		conn := next(ctx, spec)
 		setHeaders(conn.RequestHeader(), a.customHeaders)
-		if a.token != "" {
-			conn.RequestHeader().Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
+		if token := a.tokenManager.Token(); token != "" {
+			conn.RequestHeader().Set("Authorization", fmt.Sprintf("Bearer %s", token))
 		}
 		return conn
 	})

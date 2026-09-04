@@ -10,21 +10,28 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/pkg/errors"
 
 	"github.com/bytebase/terraform-provider-bytebase/client"
 )
 
 const (
-	envKeyForBytebaseURL    = "BYTEBASE_URL"
-	envKeyForServiceAccount = "BYTEBASE_SERVICE_ACCOUNT"
-	envKeyForServiceKey     = "BYTEBASE_SERVICE_KEY"
+	envKeyForBytebaseURL               = "BYTEBASE_URL"
+	envKeyForServiceAccount            = "BYTEBASE_SERVICE_ACCOUNT"
+	envKeyForServiceKey                = "BYTEBASE_SERVICE_KEY"
+	envKeyForWorkloadIdentityEmail     = "BYTEBASE_WORKLOAD_IDENTITY_EMAIL"
+	envKeyForWorkloadIdentityToken     = "BYTEBASE_WORKLOAD_IDENTITY_TOKEN"
+	envKeyForWorkloadIdentityTokenFile = "BYTEBASE_WORKLOAD_IDENTITY_TOKEN_FILE"
 
-	settingKeyForURL               = "url"
-	settingKeyForServiceAccount    = "service_account"
-	settingKeyForServiceKey        = "service_key"
-	settingKeyForCustomHeader      = "custom_header"
-	settingKeyForCustomHeaderName  = "name"
-	settingKeyForCustomHeaderValue = "value"
+	settingKeyForURL                       = "url"
+	settingKeyForServiceAccount            = "service_account"
+	settingKeyForServiceKey                = "service_key"
+	settingKeyForWorkloadIdentityEmail     = "workload_identity_email"
+	settingKeyForWorkloadIdentityToken     = "workload_identity_token"
+	settingKeyForWorkloadIdentityTokenFile = "workload_identity_token_file"
+	settingKeyForCustomHeader              = "custom_header"
+	settingKeyForCustomHeaderName          = "name"
+	settingKeyForCustomHeaderValue         = "value"
 )
 
 var customHeaderNameRegex = regexp.MustCompile("^[!#$%&'*+.^_`|~0-9A-Za-z-]+$")
@@ -51,6 +58,25 @@ func NewProvider() *schema.Provider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(envKeyForServiceKey, nil),
 				Description: fmt.Sprintf("The Bytebase service account key. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForServiceKey),
+			},
+			settingKeyForWorkloadIdentityEmail: {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc(envKeyForWorkloadIdentityEmail, nil),
+				Description: fmt.Sprintf("The Bytebase workload identity email. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForWorkloadIdentityEmail),
+			},
+			settingKeyForWorkloadIdentityToken: {
+				Type:        schema.TypeString,
+				Sensitive:   true,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc(envKeyForWorkloadIdentityToken, nil),
+				Description: fmt.Sprintf("The external OIDC token for the Bytebase workload identity. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForWorkloadIdentityToken),
+			},
+			settingKeyForWorkloadIdentityTokenFile: {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc(envKeyForWorkloadIdentityTokenFile, nil),
+				Description: fmt.Sprintf("The path to a file containing an external OIDC token for the Bytebase workload identity. If not provided in the configuration, you must set the `%s` variable in the environment.", envKeyForWorkloadIdentityTokenFile),
 			},
 			settingKeyForCustomHeader: {
 				Type:        schema.TypeList,
@@ -129,6 +155,60 @@ func NewProvider() *schema.Provider {
 	}
 }
 
+type resolvedAuthenticationConfig struct {
+	ServiceAccount   *resolvedServiceAccountAuthentication
+	WorkloadIdentity *resolvedWorkloadIdentityAuthentication
+}
+
+type resolvedServiceAccountAuthentication struct {
+	Email string
+	Key   string
+}
+
+type resolvedWorkloadIdentityAuthentication struct {
+	Email     string
+	Token     string
+	TokenFile string
+}
+
+func resolveAuthenticationConfig(d *schema.ResourceData) (resolvedAuthenticationConfig, error) {
+	serviceAccount := d.Get(settingKeyForServiceAccount).(string)
+	serviceKey := d.Get(settingKeyForServiceKey).(string)
+	workloadEmail := d.Get(settingKeyForWorkloadIdentityEmail).(string)
+	workloadToken := d.Get(settingKeyForWorkloadIdentityToken).(string)
+	workloadTokenFile := d.Get(settingKeyForWorkloadIdentityTokenFile).(string)
+
+	hasServiceMode := serviceAccount != "" || serviceKey != ""
+	hasWorkloadMode := workloadEmail != "" || workloadToken != "" || workloadTokenFile != ""
+	if hasServiceMode && hasWorkloadMode {
+		return resolvedAuthenticationConfig{}, errors.New("service account and workload identity authentication cannot be configured together")
+	}
+	if hasServiceMode {
+		if serviceAccount == "" || serviceKey == "" {
+			return resolvedAuthenticationConfig{}, errors.Errorf("%s and %s must be configured together", settingKeyForServiceAccount, settingKeyForServiceKey)
+		}
+		return resolvedAuthenticationConfig{ServiceAccount: &resolvedServiceAccountAuthentication{
+			Email: serviceAccount,
+			Key:   serviceKey,
+		}}, nil
+	}
+	if hasWorkloadMode {
+		if workloadEmail == "" {
+			return resolvedAuthenticationConfig{}, errors.Errorf("%s is required for workload identity authentication", settingKeyForWorkloadIdentityEmail)
+		}
+		if (workloadToken == "") == (workloadTokenFile == "") {
+			return resolvedAuthenticationConfig{}, errors.Errorf("exactly one of %s or %s must be configured", settingKeyForWorkloadIdentityToken, settingKeyForWorkloadIdentityTokenFile)
+		}
+		return resolvedAuthenticationConfig{WorkloadIdentity: &resolvedWorkloadIdentityAuthentication{
+			Email:     workloadEmail,
+			Token:     workloadToken,
+			TokenFile: workloadTokenFile,
+		}}, nil
+	}
+
+	return resolvedAuthenticationConfig{}, errors.New("one authentication mode must be configured")
+}
+
 func getCustomHeaders(d *schema.ResourceData) map[string]string {
 	headers := map[string]string{}
 	for _, item := range d.Get(settingKeyForCustomHeader).([]interface{}) {
@@ -141,23 +221,8 @@ func getCustomHeaders(d *schema.ResourceData) map[string]string {
 }
 
 func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
-
-	email := d.Get(settingKeyForServiceAccount).(string)
-	key := d.Get(settingKeyForServiceKey).(string)
 	bytebaseURL := d.Get(settingKeyForURL).(string)
-
-	if email == "" || key == "" {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to create the Bytebase client",
-			Detail:   fmt.Sprintf("%s or %s cannot be empty", envKeyForServiceAccount, envKeyForServiceKey),
-		})
-
-		return nil, diags
-	}
-
 	if bytebaseURL == "" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -168,12 +233,37 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		return nil, diags
 	}
 
-	c, err := client.NewClient(bytebaseURL, email, key, client.WithCustomHeaders(getCustomHeaders(d)))
+	resolved, err := resolveAuthenticationConfig(d)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Unable to create the Bytebase client",
-			Detail:   fmt.Sprintf("failed to login with error: %v", err.Error()),
+			Detail:   err.Error(),
+		})
+		return nil, diags
+	}
+
+	authentication := client.AuthenticationConfig{}
+	if service := resolved.ServiceAccount; service != nil {
+		authentication.ServiceAccount = &client.ServiceAccountAuthentication{
+			Email: service.Email,
+			Key:   service.Key,
+		}
+	}
+	if workload := resolved.WorkloadIdentity; workload != nil {
+		authentication.WorkloadIdentity = &client.WorkloadIdentityAuthentication{
+			Email:     workload.Email,
+			Token:     workload.Token,
+			TokenFile: workload.TokenFile,
+		}
+	}
+
+	c, err := client.NewClientWithAuthentication(bytebaseURL, authentication, client.WithCustomHeaders(getCustomHeaders(d)))
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Unable to create the Bytebase client",
+			Detail:   fmt.Sprintf("failed to authenticate to Bytebase: %v", err),
 		})
 
 		return nil, diags
