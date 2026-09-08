@@ -73,7 +73,7 @@ func resourceWorkloadIdentity() *schema.Resource {
 			},
 			"workload_identity_config": {
 				Type:        schema.TypeList,
-				Optional:    true,
+				Required:    true,
 				MaxItems:    1,
 				Description: "The workload identity configuration for OIDC token validation.",
 				Elem: &schema.Resource{
@@ -89,20 +89,20 @@ func resourceWorkloadIdentity() *schema.Resource {
 						},
 						"issuer_url": {
 							Type:        schema.TypeString,
-							Optional:    true,
-							Computed:    true,
-							Description: "The OIDC Issuer URL. Auto-filled based on provider_type if not specified.",
+							Required:    true,
+							Description: "The OIDC issuer URL. The token exchange fetches its OpenID configuration to verify a token.",
 						},
 						"allowed_audiences": {
 							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "The allowed audiences for token validation.",
+							Required:    true,
+							MinItems:    1,
+							Description: "The audiences a token may be minted for. A token authenticates if its aud claim matches any entry.",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 						"subject_pattern": {
 							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "The subject pattern to match (e.g., \"repo:owner/repo:ref:refs/heads/main\").",
+							Required:    true,
+							Description: "The subject a token must carry (e.g., \"repo:owner/repo:ref:refs/heads/main\"). A trailing \"*\" is a prefix match and must pin at least the owner segment, so \"repo:my-org/*\" is accepted and \"repo:*\" is not.",
 						},
 					},
 				},

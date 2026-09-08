@@ -40,8 +40,10 @@ resource "bytebase_workload_identity" "github_ci" {
   title                = "GitHub CI"
 
   workload_identity_config {
-    provider_type   = "GITHUB"
-    subject_pattern = "repo:bytebase/sample:ref:refs/heads/main"
+    provider_type     = "GITHUB"
+    issuer_url        = "https://token.actions.githubusercontent.com"
+    allowed_audiences = ["bytebase"]
+    subject_pattern   = "repo:bytebase/sample:ref:refs/heads/main"
   }
 }
 

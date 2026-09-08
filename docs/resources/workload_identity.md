@@ -18,12 +18,12 @@ The workload identity resource.
 ### Required
 
 - `title` (String) The display title of the workload identity.
+- `workload_identity_config` (Block List, Min: 1, Max: 1) The workload identity configuration for OIDC token validation. (see [below for nested schema](#nestedblock--workload_identity_config))
 - `workload_identity_id` (String) The ID for the workload identity, which becomes part of the email.
 
 ### Optional
 
 - `parent` (String) The parent resource. Format: projects/{project} for project-level, workspaces/{workspace id} for workspace-level. Defaults to the workspace if not specified.
-- `workload_identity_config` (Block List, Max: 1) The workload identity configuration for OIDC token validation. (see [below for nested schema](#nestedblock--workload_identity_config))
 
 ### Read-Only
 
@@ -38,12 +38,9 @@ The workload identity resource.
 
 Required:
 
+- `allowed_audiences` (List of String) The audiences a token may be minted for. A token authenticates if its aud claim matches any entry.
+- `issuer_url` (String) The OIDC issuer URL. The token exchange fetches its OpenID configuration to verify a token.
 - `provider_type` (String) The provider type. Supported values: GITHUB, GITLAB.
-
-Optional:
-
-- `allowed_audiences` (List of String) The allowed audiences for token validation.
-- `issuer_url` (String) The OIDC Issuer URL. Auto-filled based on provider_type if not specified.
-- `subject_pattern` (String) The subject pattern to match (e.g., "repo:owner/repo:ref:refs/heads/main").
+- `subject_pattern` (String) The subject a token must carry (e.g., "repo:owner/repo:ref:refs/heads/main"). A trailing "*" is a prefix match and must pin at least the owner segment, so "repo:my-org/*" is accepted and "repo:*" is not.
 
 
