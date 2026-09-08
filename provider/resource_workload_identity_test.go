@@ -44,6 +44,9 @@ func TestAccWorkloadIdentity(t *testing.T) {
 					resource.TestCheckResourceAttrSet(resourceName, "name"),
 					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.provider_type", v1pb.WorkloadIdentityConfig_GITHUB.String()),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.issuer_url", "https://token.actions.githubusercontent.com"),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.allowed_audiences.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.allowed_audiences.0", "bytebase"),
 					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.subject_pattern", "repo:owner/repo:ref:refs/heads/main"),
 				),
 			},
@@ -57,6 +60,9 @@ func TestAccWorkloadIdentity(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "state", v1pb.State_ACTIVE.String()),
 					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.provider_type", v1pb.WorkloadIdentityConfig_GITLAB.String()),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.issuer_url", "https://gitlab.com"),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.allowed_audiences.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.allowed_audiences.0", "bytebase"),
 					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.subject_pattern", "project_path:group/project:ref_type:branch:ref:main"),
 				),
 			},
@@ -153,6 +159,11 @@ func TestAccWorkloadIdentity_DataSourceList(t *testing.T) {
 }
 
 func testAccCheckWorkloadIdentityResourceConfig(identifier, parent, workloadIdentityID, title, providerType, subjectPattern string) string {
+	issuerURL := "https://token.actions.githubusercontent.com"
+	if providerType == v1pb.WorkloadIdentityConfig_GITLAB.String() {
+		issuerURL = "https://gitlab.com"
+	}
+
 	return fmt.Sprintf(`
 resource "bytebase_workload_identity" "%s" {
 	parent               = "%s"
@@ -160,11 +171,13 @@ resource "bytebase_workload_identity" "%s" {
 	title                = "%s"
 
 	workload_identity_config {
-		provider_type   = "%s"
-		subject_pattern = "%s"
+		provider_type     = "%s"
+		issuer_url        = "%s"
+		allowed_audiences = ["bytebase"]
+		subject_pattern   = "%s"
 	}
 }
-`, identifier, parent, workloadIdentityID, title, providerType, subjectPattern)
+`, identifier, parent, workloadIdentityID, title, providerType, issuerURL, subjectPattern)
 }
 
 func testAccCheckWorkloadIdentityResourceConfigSimple(identifier, parent, workloadIdentityID, title string) string {
@@ -173,6 +186,13 @@ resource "bytebase_workload_identity" "%s" {
 	parent               = "%s"
 	workload_identity_id = "%s"
 	title                = "%s"
+
+	workload_identity_config {
+		provider_type     = "GITHUB"
+		issuer_url        = "https://token.actions.githubusercontent.com"
+		allowed_audiences = ["bytebase"]
+		subject_pattern   = "repo:owner/repo:ref:refs/heads/main"
+	}
 }
 `, identifier, parent, workloadIdentityID, title)
 }
@@ -183,6 +203,13 @@ resource "bytebase_workload_identity" "%s" {
 	parent               = "%s"
 	workload_identity_id = "%s"
 	title                = "%s"
+
+	workload_identity_config {
+		provider_type     = "GITHUB"
+		issuer_url        = "https://token.actions.githubusercontent.com"
+		allowed_audiences = ["bytebase"]
+		subject_pattern   = "repo:owner/repo:ref:refs/heads/main"
+	}
 }
 
 data "bytebase_workload_identity" "%s" {
@@ -197,6 +224,13 @@ resource "bytebase_workload_identity" "%s" {
 	parent               = "%s"
 	workload_identity_id = "%s"
 	title                = "%s"
+
+	workload_identity_config {
+		provider_type     = "GITHUB"
+		issuer_url        = "https://token.actions.githubusercontent.com"
+		allowed_audiences = ["bytebase"]
+		subject_pattern   = "repo:owner/repo:ref:refs/heads/main"
+	}
 }
 
 data "bytebase_workload_identity_list" "%s" {
