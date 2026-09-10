@@ -551,7 +551,7 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 
 		if _, err := client.BatchUpdateDatabases(ctx, &v1pb.BatchUpdateDatabasesRequest{
 			Requests: batch,
-			Parent:   "instances/-",
+			Parent:   "-",
 		}); err != nil {
 			return diag.Errorf("failed to assign databases to project %s with error: %v", projectName, err.Error())
 		}
@@ -583,7 +583,7 @@ func updateDatabasesInProject(ctx context.Context, d *schema.ResourceData, clien
 		}
 		if _, err := client.BatchUpdateDatabases(ctx, &v1pb.BatchUpdateDatabasesRequest{
 			Requests: unassignDatabases,
-			Parent:   "instances/-",
+			Parent:   "-",
 		}); err != nil {
 			return diag.Errorf("failed to move databases to default project with error: %v", err.Error())
 		}
