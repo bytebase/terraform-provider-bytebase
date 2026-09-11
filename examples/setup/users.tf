@@ -47,6 +47,20 @@ resource "bytebase_workload_identity" "github_ci" {
   }
 }
 
+# Create or update a workload identity for a generic OIDC CI/CD provider.
+resource "bytebase_workload_identity" "generic_oidc_ci" {
+  workload_identity_id = "generic-oidc-ci"
+  title                = "Generic OIDC CI"
+
+  workload_identity_config {
+    provider_type     = "OIDC"
+    issuer_url        = "https://issuer.example.com"
+    jwks_url          = "https://issuer.example.com/.well-known/jwks.json"
+    allowed_audiences = ["bytebase"]
+    subject_pattern   = "sub:ci:deploy"
+  }
+}
+
 # Create or update the group.
 resource "bytebase_group" "developers" {
   depends_on = [

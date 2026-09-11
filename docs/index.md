@@ -21,6 +21,9 @@ description: |-
 - `service_account` (String) The Bytebase service account email. If not provided in the configuration, you must set the `BYTEBASE_SERVICE_ACCOUNT` variable in the environment.
 - `service_key` (String, Sensitive) The Bytebase service account key. If not provided in the configuration, you must set the `BYTEBASE_SERVICE_KEY` variable in the environment.
 - `url` (String) The external URL for your Bytebase server. If not provided in the configuration, you must set the `BYTEBASE_URL` variable in the environment.
+- `workload_identity_email` (String) The Bytebase workload identity email. If not provided in the configuration, you must set the `BYTEBASE_WORKLOAD_IDENTITY_EMAIL` variable in the environment.
+- `workload_identity_token` (String, Sensitive) The external OIDC token for the Bytebase workload identity. If not provided in the configuration, you must set the `BYTEBASE_WORKLOAD_IDENTITY_TOKEN` variable in the environment.
+- `workload_identity_token_file` (String) The path to a file containing an external OIDC token for the Bytebase workload identity. If not provided in the configuration, you must set the `BYTEBASE_WORKLOAD_IDENTITY_TOKEN_FILE` variable in the environment.
 
 <a id="nestedblock--custom_header"></a>
 ### Nested Schema for `custom_header`

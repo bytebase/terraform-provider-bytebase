@@ -24,31 +24,51 @@ provider "bytebase" {
 }
 ```
 
+The provider can also exchange an external OIDC token for a short-lived
+Bytebase access token. An administrator must create the workload identity and
+grant its IAM roles before switching Terraform to this authentication mode.
+
+```hcl
+provider "bytebase" {
+  url                          = "https://bytebase.example.com"
+  workload_identity_email      = "terraform@workload.bytebase.com"
+  workload_identity_token_file = "/secrets/bytebase.jwt"
+}
+```
+
+Use exactly one authentication mode: either `service_account` with
+`service_key`, or `workload_identity_email` with one of
+`workload_identity_token` and `workload_identity_token_file`. The equivalent
+workload identity environment variables are:
+
+- `BYTEBASE_WORKLOAD_IDENTITY_EMAIL`
+- `BYTEBASE_WORKLOAD_IDENTITY_TOKEN`
+- `BYTEBASE_WORKLOAD_IDENTITY_TOKEN_FILE`
+
+The file-backed mode is recommended for workloads such as Nomad because the
+provider rereads the file when Bytebase authentication expires. External OIDC
+tokens and returned Bytebase tokens are kept out of Terraform state and should
+not be written to logs. Remove or unset `BYTEBASE_SERVICE_ACCOUNT` and
+`BYTEBASE_SERVICE_KEY` when switching to workload identity authentication.
+
 ## Development
 
 ### Prerequisites
 
-- [Go](https://golang.org/doc/install) (1.19 or later)
+- [Go](https://go.dev/doc/install) (1.25.0 or later)
 - [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform) (1.11 or later, required for write-only attributes)
-- [Bytebase](https://github.com/bytebase/bytebase) (3.20.0 or later)
+- [Bytebase](https://github.com/bytebase/bytebase) (3.23.0 or later)
 
-> If you have problems running `terraform` in MacOS with Apple Silicon, you can following https://stackoverflow.com/questions/66281882/how-can-i-get-terraform-init-to-run-on-my-apple-silicon-macbook-pro-for-the-go and use the `tfenv`.
+> If Terraform has problems on macOS with Apple Silicon, follow this [troubleshooting guide](https://stackoverflow.com/questions/66281882/how-can-i-get-terraform-init-to-run-on-my-apple-silicon-macbook-pro-for-the-go) and use `tfenv`.
 
-### Prepare Bytebase OpenAPI server
+### Prepare a Bytebase server
 
 ```bash
-# clone Bytebase to get the OpenAPI server
 git clone git@github.com:bytebase/bytebase.git
-
 git clone git@github.com:bytebase/terraform-provider-bytebase.git
 ```
 
-```bash
-# start Bytebase OpenAPI server
-cd bytebase
-# check https://github.com/bytebase/bytebase for starting the Bytebase server.
-air -c scripts/.air.toml
-```
+Start a compatible Bytebase server by following the [Bytebase development instructions](https://github.com/bytebase/bytebase#development).
 
 ### Build and test
 
@@ -74,17 +94,17 @@ terraform apply
 terraform output
 
 # delete test resources
-terraform destory
+terraform destroy
 ```
 
 ### Generate docs
 
-> This will generate the doc template in the `docs` folder
+> This generates the documentation in the `docs` folder.
 >
 > Check https://github.com/hashicorp/terraform-plugin-docs and https://github.com/hashicorp/terraform-plugin-docs/issues/141 for details.
 
 ```bash
-go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs --provider-name=terraform-provider-bytebase
+tfplugindocs generate --provider-name=terraform-provider-bytebase
 ```
 
 ## Release

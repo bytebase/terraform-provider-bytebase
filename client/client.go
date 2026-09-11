@@ -80,8 +80,18 @@ func copyHeaders(headers map[string]string) map[string]string {
 	return copied
 }
 
-// NewClient returns the new Bytebase API client.
+// NewClient returns a Bytebase API client using service account authentication.
 func NewClient(url, email, password string, opts ...Option) (api.Client, error) {
+	return NewClientWithAuthentication(url, AuthenticationConfig{
+		ServiceAccount: &ServiceAccountAuthentication{
+			Email: email,
+			Key:   password,
+		},
+	}, opts...)
+}
+
+// NewClientWithAuthentication returns a Bytebase API client using the configured authentication mode.
+func NewClientWithAuthentication(url string, authentication AuthenticationConfig, opts ...Option) (api.Client, error) {
 	clientOptions := &options{}
 	for _, opt := range opts {
 		opt(clientOptions)
@@ -96,28 +106,28 @@ func NewClient(url, email, password string, opts ...Option) (api.Client, error) 
 		Timeout: 30 * time.Second,
 	}
 
-	authInt := &authInterceptor{customHeaders: clientOptions.customHeaders}
-	interceptors := connect.WithInterceptors(authInt)
-
-	// Create auth client without token first
+	// Create the auth client without the authenticated interceptor.
 	c.authClient = bytebasev1connect.NewAuthServiceClient(
 		c.client,
 		c.url,
 	)
 
-	// Login to get token
-	loginReq := connect.NewRequest(&v1pb.LoginRequest{
-		Email:    email,
-		Password: password,
-	})
-	setHeaders(loginReq.Header(), clientOptions.customHeaders)
-
-	loginResp, err := c.authClient.Login(context.Background(), loginReq)
+	authenticator, err := newAuthenticator(c.authClient, authentication, clientOptions.customHeaders)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to login")
+		return nil, err
 	}
-
-	authInt.token = loginResp.Msg.Token
+	token, err := authenticator.Authenticate(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	authInt := &authInterceptor{
+		tokenManager: &tokenManager{
+			token:         token,
+			authenticator: authenticator,
+		},
+		customHeaders: clientOptions.customHeaders,
+	}
+	interceptors := connect.WithInterceptors(authInt)
 
 	// Initialize other clients with auth token
 	c.actuatorClient = bytebasev1connect.NewActuatorServiceClient(c.client, c.url, interceptors)

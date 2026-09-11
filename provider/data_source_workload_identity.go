@@ -64,7 +64,7 @@ func getWorkloadIdentityConfigSchema() map[string]*schema.Schema {
 		"provider_type": {
 			Type:        schema.TypeString,
 			Computed:    true,
-			Description: "The provider type. Supported values: GITHUB, GITLAB.",
+			Description: "The provider type. Supported values: GITHUB, GITLAB, OIDC.",
 		},
 		"issuer_url": {
 			Type:        schema.TypeString,
@@ -81,6 +81,11 @@ func getWorkloadIdentityConfigSchema() map[string]*schema.Schema {
 			Type:        schema.TypeString,
 			Computed:    true,
 			Description: "The subject pattern to match.",
+		},
+		"jwks_url": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The optional JWKS endpoint. When empty, Bytebase uses OIDC discovery from issuer_url.",
 		},
 	}
 }
@@ -133,6 +138,7 @@ func flattenWorkloadIdentityConfig(config *v1pb.WorkloadIdentityConfig) []map[st
 			"issuer_url":        config.IssuerUrl,
 			"allowed_audiences": config.AllowedAudiences,
 			"subject_pattern":   config.SubjectPattern,
+			"jwks_url":          config.JwksUrl,
 		},
 	}
 }

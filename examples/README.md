@@ -15,7 +15,7 @@ To run this provider on your local machine:
 1. Replace the `service_account` and `service_key` with your Bytebase service account, and replace the `url` with your Bytebase service URL.
 1. Go to the [setup](./setup) to initialize the data.
 1. Go to the `environments`/`instances`/`role`/`projects` folder to query the data.
-1. Go to the [setup](./setup) and run `terraform destory` to delete the test resources.
+1. Go to the [setup](./setup) and run `terraform destroy` to delete the test resources.
 
 To run this provider for development and testing:
 

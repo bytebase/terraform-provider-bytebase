@@ -35,6 +35,7 @@ Read-Only:
 
 - `allowed_audiences` (List of String)
 - `issuer_url` (String)
+- `jwks_url` (String)
 - `provider_type` (String)
 - `subject_pattern` (String)
 
