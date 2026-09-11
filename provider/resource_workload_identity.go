@@ -84,8 +84,9 @@ func resourceWorkloadIdentity() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								v1pb.WorkloadIdentityConfig_GITHUB.String(),
 								v1pb.WorkloadIdentityConfig_GITLAB.String(),
+								v1pb.WorkloadIdentityConfig_OIDC.String(),
 							}, false),
-							Description: "The provider type. Supported values: GITHUB, GITLAB.",
+							Description: "The provider type. Supported values: GITHUB, GITLAB, OIDC.",
 						},
 						"issuer_url": {
 							Type:        schema.TypeString,
@@ -103,6 +104,11 @@ func resourceWorkloadIdentity() *schema.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The subject a token must carry (e.g., \"repo:owner/repo:ref:refs/heads/main\"). A trailing \"*\" is a prefix match and must pin at least the owner segment, so \"repo:my-org/*\" is accepted and \"repo:*\" is not.",
+						},
+						"jwks_url": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The optional JWKS endpoint. When omitted, Bytebase discovers the endpoint from issuer_url.",
 						},
 					},
 				},
@@ -317,6 +323,9 @@ func expandWorkloadIdentityConfig(d *schema.ResourceData) *v1pb.WorkloadIdentity
 	}
 	if v, ok := raw["subject_pattern"].(string); ok {
 		config.SubjectPattern = v
+	}
+	if v, ok := raw["jwks_url"].(string); ok {
+		config.JwksUrl = v
 	}
 
 	return config

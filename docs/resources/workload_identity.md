@@ -40,7 +40,11 @@ Required:
 
 - `allowed_audiences` (List of String) The audiences a token may be minted for. A token authenticates if its aud claim matches any entry.
 - `issuer_url` (String) The OIDC issuer URL. The token exchange fetches its OpenID configuration to verify a token.
-- `provider_type` (String) The provider type. Supported values: GITHUB, GITLAB.
+- `provider_type` (String) The provider type. Supported values: GITHUB, GITLAB, OIDC.
 - `subject_pattern` (String) The subject a token must carry (e.g., "repo:owner/repo:ref:refs/heads/main"). A trailing "*" is a prefix match and must pin at least the owner segment, so "repo:my-org/*" is accepted and "repo:*" is not.
+
+Optional:
+
+- `jwks_url` (String) The optional JWKS endpoint. When omitted, Bytebase discovers the endpoint from issuer_url.
 
 

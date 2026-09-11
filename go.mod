@@ -3,9 +3,9 @@ module github.com/bytebase/terraform-provider-bytebase
 go 1.25.0
 
 require (
-	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.20.0-20260824052207-02e25879dae8.1
-	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.12-20260824052207-02e25879dae8.1
-	connectrpc.com/connect v1.20.0
+	buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.21.0-20260903062617-1090b29e0945.1
+	buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.12-20260903062617-1090b29e0945.2
+	connectrpc.com/connect v1.21.0
 	github.com/hashicorp/go-cty v1.5.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
@@ -17,7 +17,7 @@ require (
 )
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20251209175733-2a1774d88802.1 // indirect
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20251209175733-2a1774d88802.2 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect

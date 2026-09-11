@@ -33,7 +33,7 @@ func TestAccWorkloadIdentity(t *testing.T) {
 		Steps: []resource.TestStep{
 			// resource create with config
 			{
-				Config: testAccCheckWorkloadIdentityResourceConfig(identifier, parent, workloadIdentityID, title, v1pb.WorkloadIdentityConfig_GITHUB.String(), "repo:owner/repo:ref:refs/heads/main"),
+				Config: testAccCheckWorkloadIdentityResourceConfig(identifier, parent, workloadIdentityID, title, v1pb.WorkloadIdentityConfig_GITHUB.String(), "repo:owner/repo:ref:refs/heads/main", ""),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", title),
@@ -52,7 +52,7 @@ func TestAccWorkloadIdentity(t *testing.T) {
 			},
 			// resource update title and config
 			{
-				Config: testAccCheckWorkloadIdentityResourceConfig(identifier, parent, workloadIdentityID, titleUpdated, v1pb.WorkloadIdentityConfig_GITLAB.String(), "project_path:group/project:ref_type:branch:ref:main"),
+				Config: testAccCheckWorkloadIdentityResourceConfig(identifier, parent, workloadIdentityID, titleUpdated, v1pb.WorkloadIdentityConfig_GITLAB.String(), "project_path:group/project:ref_type:branch:ref:main", ""),
 				Check: resource.ComposeTestCheckFunc(
 					internal.TestCheckResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "title", titleUpdated),
@@ -64,6 +64,17 @@ func TestAccWorkloadIdentity(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.allowed_audiences.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.allowed_audiences.0", "bytebase"),
 					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.subject_pattern", "project_path:group/project:ref_type:branch:ref:main"),
+				),
+			},
+			// resource update to generic OIDC with an explicit JWKS endpoint
+			{
+				Config: testAccCheckWorkloadIdentityResourceConfig(identifier, parent, workloadIdentityID, titleUpdated, "OIDC", "sub:ci:deploy", "https://issuer.example.com/.well-known/jwks.json"),
+				Check: resource.ComposeTestCheckFunc(
+					internal.TestCheckResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.provider_type", "OIDC"),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.issuer_url", "https://issuer.example.com"),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.jwks_url", "https://issuer.example.com/.well-known/jwks.json"),
+					resource.TestCheckResourceAttr(resourceName, "workload_identity_config.0.subject_pattern", "sub:ci:deploy"),
 				),
 			},
 		},
@@ -158,10 +169,12 @@ func TestAccWorkloadIdentity_DataSourceList(t *testing.T) {
 	})
 }
 
-func testAccCheckWorkloadIdentityResourceConfig(identifier, parent, workloadIdentityID, title, providerType, subjectPattern string) string {
+func testAccCheckWorkloadIdentityResourceConfig(identifier, parent, workloadIdentityID, title, providerType, subjectPattern, jwksURL string) string {
 	issuerURL := "https://token.actions.githubusercontent.com"
 	if providerType == v1pb.WorkloadIdentityConfig_GITLAB.String() {
 		issuerURL = "https://gitlab.com"
+	} else if providerType == "OIDC" {
+		issuerURL = "https://issuer.example.com"
 	}
 
 	return fmt.Sprintf(`
@@ -175,9 +188,10 @@ resource "bytebase_workload_identity" "%s" {
 		issuer_url        = "%s"
 		allowed_audiences = ["bytebase"]
 		subject_pattern   = "%s"
+		jwks_url          = "%s"
 	}
 }
-`, identifier, parent, workloadIdentityID, title, providerType, issuerURL, subjectPattern)
+`, identifier, parent, workloadIdentityID, title, providerType, issuerURL, subjectPattern, jwksURL)
 }
 
 func testAccCheckWorkloadIdentityResourceConfigSimple(identifier, parent, workloadIdentityID, title string) string {
