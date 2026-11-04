@@ -33,6 +33,7 @@ The policy data source.
 - `id` (String) The ID of this resource.
 - `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
 - `name` (String) The policy full name
+- `review_rule_policy` (List of Object) The standard review rule policy. Supported for workspaces and projects. A project policy overrides the workspace policy. (see [below for nested schema](#nestedatt--review_rule_policy))
 
 <a id="nestedblock--global_masking_policy"></a>
 ### Nested Schema for `global_masking_policy`
@@ -100,5 +101,13 @@ Optional:
 
 - `automatic` (Boolean) If all check pass, the change will be rolled out and executed automatically.
 - `roles` (Set of String) If any roles are specified, Bytebase requires users with those roles to manually roll out the change.
+
+
+<a id="nestedatt--review_rule_policy"></a>
+### Nested Schema for `review_rule_policy`
+
+Read-Only:
+
+- `rules` (List of String)
 
 

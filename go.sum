@@ -1,9 +1,9 @@
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20251209175733-2a1774d88802.2 h1:27vjNrBDRX9Yylib58IV8zLnzq1ByCwRj14H07MxlFc=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20251209175733-2a1774d88802.2/go.mod h1:TCt1lluMFnctISJXvkIQ4x3ABrPuUKCWKyjKdkJNBpw=
-buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.21.0-20260903062617-1090b29e0945.1 h1:P4bUs6GFJg+BvZIVsHE56KuE2LcBN9WabmoRCy5fZBw=
-buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.21.0-20260903062617-1090b29e0945.1/go.mod h1:92u/eFxKaWH28RqkDWAEbtKF8HnMyGG2heKODXHFAkc=
-buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.12-20260903062617-1090b29e0945.2 h1:1LMgk3sfyGf+1UfxWnRmGnsy8keOFV1PPfOOwS00CCM=
-buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.12-20260903062617-1090b29e0945.2/go.mod h1:ieBRwXToUqPMRF39ghSrJaMDuAVeORug0U1htheWtlM=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.21.0-20261022054008-32ae6efab969.1 h1:I6Q85j1RKTPleoEBMa9KmdjbHQlcj/5r+RfzaO2MpY0=
+buf.build/gen/go/bytebase/bytebase/connectrpc/go v1.21.0-20261022054008-32ae6efab969.1/go.mod h1:Ld13D5nuTjk+SOiozt432zBJrsYStiy4059YJL9d/Vs=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.12-20261022054008-32ae6efab969.2 h1:RMl+kNqqlvfmng734wdj/hF9cwzG+fydiTTlA3mWTrQ=
+buf.build/gen/go/bytebase/bytebase/protocolbuffers/go v1.36.12-20261022054008-32ae6efab969.2/go.mod h1:ieBRwXToUqPMRF39ghSrJaMDuAVeORug0U1htheWtlM=
 connectrpc.com/connect v1.21.0 h1:LhqSJt7jHf5NJBo9Jq/t/9FjcYAideif0mg+qe2jCUs=
 connectrpc.com/connect v1.21.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=

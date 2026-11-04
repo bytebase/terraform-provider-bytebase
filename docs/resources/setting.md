@@ -17,20 +17,38 @@ The setting resource.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details
+- `name` (String) The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", and "MCP". Check the proto https://github.com/bytebase/bytebase/blob/release/3.24.0/proto/v1/v1/setting_service.proto for details.
 
 ### Optional
 
-- `app_im` (Block List, Max: 1) The APP_IM workspace setting. Configures Slack/Feishu/Wecom/Lark/DingTalk/Teams integrations. All credential and identifier fields are write-only — the server returns empty payloads on GET, so values cannot round-trip through state. (see [below for nested schema](#nestedblock--app_im))
+- `ai` (Block List, Max: 1) The AI workspace setting. Omitted fields are not changed. AI provider settings are managed by the server in SaaS mode. Removing the Terraform resource preserves the server's AI settings; explicitly set enabled to false and apply before removal to disable AI. (see [below for nested schema](#nestedblock--ai))
+- `app_im` (Block List, Max: 1) The APP_IM workspace setting. Configures Slack/Feishu/Wecom/Lark/DingTalk/Teams integrations. All credential and identifier fields are write-only — the server returns empty payloads on GET, so values cannot round-trip through state. This resource owns all six integrations: omitted blocks disable those integrations, and destroying the resource disables all integrations. (see [below for nested schema](#nestedblock--app_im))
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
+- `mcp` (Block List, Max: 1) The MCP workspace setting. Removing the Terraform resource disables MCP for the workspace. (see [below for nested schema](#nestedblock--mcp))
 - `semantic_types` (Block Set) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--ai"></a>
+### Nested Schema for `ai`
+
+Optional:
+
+- `api_key` (String, Sensitive) The AI API key. The server redacts it on reads, so the configured value is retained in Terraform state. Omit to preserve the existing key. Cannot be changed in SaaS mode.
+- `enabled` (Boolean) Whether AI features are enabled. Cannot be changed in SaaS mode.
+- `endpoint` (String) The AI API endpoint. Required when AI is enabled. Cannot be changed in SaaS mode.
+- `model` (String) The AI model. Required when AI is enabled. Cannot be changed in SaaS mode.
+- `provider` (String) AI provider. Cannot be changed in SaaS mode.
+
+Read-Only:
+
+- `version` (String) The API version reported by Bytebase. Read-only because Bytebase 3.24 does not support updating this field.
+
 
 <a id="nestedblock--app_im"></a>
 ### Nested Schema for `app_im`
@@ -201,6 +219,14 @@ Required:
 
 
 
+<a id="nestedblock--mcp"></a>
+### Nested Schema for `mcp`
+
+Required:
+
+- `capability` (String) The workspace MCP capability ceiling: DISABLED, READ_ONLY, or READ_WRITE. MCP sessions remain bounded by the connected user's permissions.
+
+
 <a id="nestedblock--semantic_types"></a>
 ### Nested Schema for `semantic_types`
 
@@ -285,6 +311,7 @@ Optional:
 - `enable_audit_log_stdout` (Boolean) Enable audit logging to stdout in structured JSON format. Requires TEAM or ENTERPRISE license.
 - `enforce_identity_domain` (Boolean) Only user and group from the domains can be created and login.
 - `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
+- `inactive_session_timeout_in_seconds` (Number) The inactivity timeout for a session, in seconds. Zero disables the timeout. Requires the token duration control license feature.
 - `maximum_request_expiration_in_seconds` (Number) The max expiration duration in seconds for data access requests. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
 - `maximum_role_expiration_in_seconds` (Number) The max expiration duration in seconds for request role. Deprecated: use just-in-time access request flows instead. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
 - `password_restriction` (Block List, Max: 1) Password restriction settings. (see [below for nested schema](#nestedblock--workspace_profile--password_restriction))

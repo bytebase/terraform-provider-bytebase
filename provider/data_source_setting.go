@@ -22,7 +22,7 @@ func dataSourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details`,
+				Description: `The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", and "MCP". Check the proto https://github.com/bytebase/bytebase/blob/release/3.24.0/proto/v1/v1/setting_service.proto for details.`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
@@ -30,6 +30,8 @@ func dataSourceSetting() *schema.Resource {
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_AI.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_MCP.String()),
 				),
 			},
 			"approval_flow":       getWorkspaceApprovalSetting(true),
@@ -38,6 +40,8 @@ func dataSourceSetting() *schema.Resource {
 			"semantic_types":      getSemanticTypesSetting(true),
 			"environment_setting": getEnvironmentSetting(true),
 			"app_im":              getAppIMSetting(true),
+			"ai":                  getAISetting(true),
+			"mcp":                 getMCPSetting(true),
 		},
 	}
 }
@@ -378,6 +382,12 @@ func getWorkspaceProfileSetting(computed bool) *schema.Schema {
 					ValidateFunc: validation.IntAtLeast(60),
 					Description:  "The duration for access token in seconds. Default is 3600 (1 hour). The duration should be at least 60 (one minute).",
 				},
+				"inactive_session_timeout_in_seconds": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Computed:    true,
+					Description: "The inactivity timeout for a session, in seconds. Zero disables the timeout. Requires the token duration control license feature.",
+				},
 				"password_restriction": {
 					Type:        schema.TypeList,
 					Optional:    true,
@@ -629,6 +639,17 @@ func setSettingMessage(d *schema.ResourceData, setting *v1pb.Setting) diag.Diagn
 			return diag.Errorf("cannot set app_im: %s", err.Error())
 		}
 	}
+	if value := setting.GetValue().GetAi(); value != nil {
+		previousKey, _ := d.Get("ai.0.api_key").(string)
+		if err := d.Set("ai", flattenAISetting(value, previousKey)); err != nil {
+			return diag.Errorf("cannot set ai: %s", err.Error())
+		}
+	}
+	if value := setting.GetValue().GetMcp(); value != nil {
+		if err := d.Set("mcp", flattenMCPSetting(value)); err != nil {
+			return diag.Errorf("cannot set mcp: %s", err.Error())
+		}
+	}
 
 	return nil
 }
@@ -734,6 +755,7 @@ func flattenWorkspaceProfileSetting(setting *v1pb.WorkspaceProfileSetting) []int
 	if v := setting.GetAccessTokenDuration(); v != nil {
 		raw["access_token_duration_in_seconds"] = int(v.Seconds)
 	}
+	raw["inactive_session_timeout_in_seconds"] = int(setting.GetInactiveSessionTimeout().GetSeconds())
 
 	// Handle password_restriction field
 	if v := setting.GetPasswordRestriction(); v != nil {
