@@ -27,6 +27,7 @@ The policy resource.
 - `masking_exemption_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exemption_policy))
 - `parent` (String) The policy parent name for the policy, support workspaces/{workspace id}, projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}. Defaults to the workspace if not specified.
 - `query_data_policy` (Block List, Max: 1) The policy for query data (see [below for nested schema](#nestedblock--query_data_policy))
+- `review_rule_policy` (Block List, Max: 1) The standard review rule policy. Supported for workspaces and projects. A project policy overrides the workspace policy. (see [below for nested schema](#nestedblock--review_rule_policy))
 - `rollout_policy` (Block List, Max: 1) Control issue rollout. Learn more: https://docs.bytebase.com/change-database/environment-policy/rollout-policy (see [below for nested schema](#nestedblock--rollout_policy))
 
 ### Read-Only
@@ -91,6 +92,14 @@ Optional:
 - `disable_copy_data` (Boolean) Disable copying data in the SQL editor
 - `disable_export` (Boolean) Disable export data in the SQL editor
 - `maximum_result_rows` (Number) The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.
+
+
+<a id="nestedblock--review_rule_policy"></a>
+### Nested Schema for `review_rule_policy`
+
+Optional:
+
+- `rules` (List of String) The standard review rules switched on. An empty list switches every rule off. Without SYNTAX, every rule is off.
 
 
 <a id="nestedblock--rollout_policy"></a>

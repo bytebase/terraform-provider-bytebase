@@ -76,6 +76,12 @@ func resourceProjectSchema() map[string]*schema.Schema {
 			Computed:    true,
 			Description: "Whether to allow the issue creator to self-approve the issue.",
 		},
+		"allow_last_plan_editor_approval": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Computed:    true,
+			Description: "Whether to allow the last plan editor to approve the issue.",
+		},
 		"postgres_database_tenant_mode": {
 			Type:        schema.TypeBool,
 			Optional:    true,
@@ -190,12 +196,13 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 	project := &v1pb.Project{
-		Name:                       projectName,
-		Title:                      d.Get("title").(string),
-		State:                      v1pb.State_ACTIVE,
-		EnforceIssueTitle:          d.Get("enforce_issue_title").(bool),
-		AllowSelfApproval:          d.Get("allow_self_approval").(bool),
-		PostgresDatabaseTenantMode: d.Get("postgres_database_tenant_mode").(bool),
+		Name:                        projectName,
+		Title:                       d.Get("title").(string),
+		State:                       v1pb.State_ACTIVE,
+		EnforceIssueTitle:           d.Get("enforce_issue_title").(bool),
+		AllowSelfApproval:           d.Get("allow_self_approval").(bool),
+		AllowLastPlanEditorApproval: d.Get("allow_last_plan_editor_approval").(bool),
+		PostgresDatabaseTenantMode:  d.Get("postgres_database_tenant_mode").(bool),
 		ExecutionRetryPolicy: &v1pb.Project_ExecutionRetryPolicy{
 			MaximumRetries: int32(d.Get("execution_retry_policy").(int)),
 		},
@@ -224,6 +231,9 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 	if config := rawConfig.GetAttr("allow_self_approval"); !config.IsNull() {
 		updateMasks = append(updateMasks, "allow_self_approval")
+	}
+	if config := rawConfig.GetAttr("allow_last_plan_editor_approval"); !config.IsNull() {
+		updateMasks = append(updateMasks, "allow_last_plan_editor_approval")
 	}
 	if config := rawConfig.GetAttr("postgres_database_tenant_mode"); !config.IsNull() {
 		updateMasks = append(updateMasks, "postgres_database_tenant_mode")
@@ -377,6 +387,9 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("allow_self_approval") {
 		paths = append(paths, "allow_self_approval")
 	}
+	if d.HasChange("allow_last_plan_editor_approval") {
+		paths = append(paths, "allow_last_plan_editor_approval")
+	}
 	if d.HasChange("postgres_database_tenant_mode") {
 		paths = append(paths, "postgres_database_tenant_mode")
 	}
@@ -423,12 +436,13 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			return diag.FromErr(err)
 		}
 		if _, err := c.UpdateProject(ctx, &v1pb.Project{
-			Name:                       projectName,
-			Title:                      d.Get("title").(string),
-			State:                      v1pb.State_ACTIVE,
-			EnforceIssueTitle:          d.Get("enforce_issue_title").(bool),
-			AllowSelfApproval:          d.Get("allow_self_approval").(bool),
-			PostgresDatabaseTenantMode: d.Get("postgres_database_tenant_mode").(bool),
+			Name:                        projectName,
+			Title:                       d.Get("title").(string),
+			State:                       v1pb.State_ACTIVE,
+			EnforceIssueTitle:           d.Get("enforce_issue_title").(bool),
+			AllowSelfApproval:           d.Get("allow_self_approval").(bool),
+			AllowLastPlanEditorApproval: d.Get("allow_last_plan_editor_approval").(bool),
+			PostgresDatabaseTenantMode:  d.Get("postgres_database_tenant_mode").(bool),
 			ExecutionRetryPolicy: &v1pb.Project_ExecutionRetryPolicy{
 				MaximumRetries: int32(d.Get("execution_retry_policy").(int)),
 			},

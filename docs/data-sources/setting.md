@@ -17,7 +17,7 @@ The setting data source.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details
+- `name` (String) The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", and "MCP". Check the proto https://github.com/bytebase/bytebase/blob/release/3.24.0/proto/v1/v1/setting_service.proto for details.
 
 ### Optional
 
@@ -27,10 +27,12 @@ The setting data source.
 
 ### Read-Only
 
+- `ai` (List of Object) The AI workspace setting. (see [below for nested schema](#nestedatt--ai))
 - `app_im` (List of Object) The APP_IM workspace setting. Configures Slack/Feishu/Wecom/Lark/DingTalk/Teams integrations. All credential and identifier fields are write-only — the server returns empty payloads on GET, so values cannot round-trip through state. (see [below for nested schema](#nestedatt--app_im))
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
 - `id` (String) The ID of this resource.
+- `mcp` (List of Object) The MCP workspace setting. (see [below for nested schema](#nestedatt--mcp))
 
 <a id="nestedblock--classification"></a>
 ### Nested Schema for `classification`
@@ -146,6 +148,7 @@ Optional:
 - `enable_audit_log_stdout` (Boolean) Enable audit logging to stdout in structured JSON format. Requires TEAM or ENTERPRISE license.
 - `enforce_identity_domain` (Boolean) Only user and group from the domains can be created and login.
 - `external_url` (String) The URL user visits Bytebase. The external URL is used for: 1. Constructing the correct callback URL when configuring the VCS provider. The callback URL points to the frontend; 2. Creating the correct webhook endpoint when configuring the project GitOps workflow. The webhook endpoint points to the backend.
+- `inactive_session_timeout_in_seconds` (Number) The inactivity timeout for a session, in seconds. Zero disables the timeout. Requires the token duration control license feature.
 - `maximum_request_expiration_in_seconds` (Number) The max expiration duration in seconds for data access requests. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
 - `maximum_role_expiration_in_seconds` (Number) The max expiration duration in seconds for request role. Deprecated: use just-in-time access request flows instead. If the value is less than or equal to 0, we will remove the setting. AKA no limit.
 - `password_restriction` (Block List, Max: 1) Password restriction settings. (see [below for nested schema](#nestedblock--workspace_profile--password_restriction))
@@ -209,6 +212,19 @@ Optional:
 - `require_special_character` (Boolean) require_special_character requires the password must contain at least one special character.
 - `require_uppercase_letter` (Boolean) require_uppercase_letter requires the password must contain at least one upper case letter.
 
+
+
+<a id="nestedatt--ai"></a>
+### Nested Schema for `ai`
+
+Read-Only:
+
+- `api_key` (String)
+- `enabled` (Boolean)
+- `endpoint` (String)
+- `model` (String)
+- `provider` (String)
+- `version` (String)
 
 
 <a id="nestedatt--app_im"></a>
@@ -334,5 +350,15 @@ Read-Only:
 - `blue` (Number)
 - `green` (Number)
 - `red` (Number)
+
+
+
+
+<a id="nestedatt--mcp"></a>
+### Nested Schema for `mcp`
+
+Read-Only:
+
+- `capability` (String)
 
 

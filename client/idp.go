@@ -15,7 +15,9 @@ func (c *client) ListIdentityProvider(ctx context.Context) ([]*v1pb.IdentityProv
 		return nil, errors.New("identity provider service client not initialized")
 	}
 
-	req := connect.NewRequest(&v1pb.ListIdentityProvidersRequest{})
+	req := connect.NewRequest(&v1pb.ListIdentityProvidersRequest{
+		Parent: c.GetWorkspaceName(),
+	})
 
 	resp, err := c.idpClient.ListIdentityProviders(ctx, req)
 	if err != nil {

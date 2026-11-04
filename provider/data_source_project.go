@@ -47,6 +47,11 @@ func dataSourceProject() *schema.Resource {
 				Computed:    true,
 				Description: "Whether to allow the issue creator to self-approve the issue.",
 			},
+			"allow_last_plan_editor_approval": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether to allow the last plan editor to approve the issue.",
+			},
 			"postgres_database_tenant_mode": {
 				Type:        schema.TypeBool,
 				Computed:    true,
@@ -351,6 +356,9 @@ func setProject(
 	}
 	if err := d.Set("allow_self_approval", project.AllowSelfApproval); err != nil {
 		return diag.Errorf("cannot set allow_self_approval for project: %s", err.Error())
+	}
+	if err := d.Set("allow_last_plan_editor_approval", project.AllowLastPlanEditorApproval); err != nil {
+		return diag.Errorf("cannot set allow_last_plan_editor_approval for project: %s", err.Error())
 	}
 	if err := d.Set("postgres_database_tenant_mode", project.PostgresDatabaseTenantMode); err != nil {
 		return diag.Errorf("cannot set postgres_database_tenant_mode for project: %s", err.Error())
