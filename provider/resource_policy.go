@@ -26,6 +26,7 @@ func resourcePolicy() *schema.Resource {
 		ReadContext:   resourcePolicyRead,
 		UpdateContext: resourcePolicyUpdate,
 		DeleteContext: resourcePolicyDelete,
+		CustomizeDiff: customizeReviewPolicyDiff,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(_ context.Context, d *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {
 				parent, policyType, err := internal.GetPolicyParentAndType(d.Id())
@@ -63,15 +64,10 @@ func resourcePolicy() *schema.Resource {
 				Description: "The policy parent name for the policy, support workspaces/{workspace id}, projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}. Defaults to the workspace if not specified.",
 			},
 			"type": {
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					v1pb.PolicyType_MASKING_EXEMPTION.String(),
-					v1pb.PolicyType_MASKING_RULE.String(),
-					v1pb.PolicyType_ROLLOUT_POLICY.String(),
-					v1pb.PolicyType_DATA_QUERY.String(),
-				}, false),
-				Description: "The policy type.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringInSlice(supportedPolicyTypes(), false),
+				Description:  "The policy type.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -94,6 +90,7 @@ func resourcePolicy() *schema.Resource {
 			"global_masking_policy":    getGlobalMaskingPolicySchema(false),
 			"rollout_policy":           getRolloutPolicySchema(false),
 			"query_data_policy":        getDataQueryPolicySchema(false),
+			"review_rule_policy":       getReviewRulePolicySchema(false),
 		},
 	}
 }
@@ -140,6 +137,9 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	_, policyType, err := internal.GetPolicyParentAndType(policyName)
 	if err != nil {
+		return diag.FromErr(err)
+	}
+	if err := validateReviewPolicyParent(policyType, parent); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -194,6 +194,13 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 			QueryDataPolicy: queryDataPolicy,
 		}
 		updateMasks = append(updateMasks, "query_data_policy")
+	case v1pb.PolicyType_REVIEW_RULE:
+		reviewRulePolicy, err := convertToReviewRulePolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_ReviewRulePolicy{ReviewRulePolicy: reviewRulePolicy}
+		updateMasks = append(updateMasks, "review_rule_policy")
 	default:
 		return diag.Errorf("unsupport policy type: %v", policyName)
 	}
@@ -231,8 +238,11 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	c := m.(api.Client)
 	policyName := d.Id()
 
-	_, policyType, err := internal.GetPolicyParentAndType(policyName)
+	parent, policyType, err := internal.GetPolicyParentAndType(policyName)
 	if err != nil {
+		return diag.FromErr(err)
+	}
+	if err := validateReviewPolicyParent(policyType, parent); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -294,6 +304,14 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		patch.Policy = &v1pb.Policy_QueryDataPolicy{
 			QueryDataPolicy: queryDataPolicy,
 		}
+	}
+	if d.HasChange("review_rule_policy") {
+		updateMasks = append(updateMasks, "review_rule_policy")
+		reviewRulePolicy, err := convertToReviewRulePolicy(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_ReviewRulePolicy{ReviewRulePolicy: reviewRulePolicy}
 	}
 
 	var diags diag.Diagnostics

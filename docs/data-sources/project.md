@@ -22,6 +22,7 @@ The project data source.
 ### Read-Only
 
 - `allow_just_in_time_access` (Boolean) Whether to allow just-in-time access in this project.
+- `allow_last_plan_editor_approval` (Boolean) Whether to allow the last plan editor to approve the issue.
 - `allow_request_role` (Boolean) Whether to allow requesting roles in this project.
 - `allow_self_approval` (Boolean) Whether to allow the issue creator to self-approve the issue.
 - `ci_sampling_size` (Number) The maximum databases of rows to sample during CI data validation.

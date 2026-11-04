@@ -9,6 +9,9 @@ using Terraform Bytebase Provider to prepare those instances ready for applicati
 1. Download [provider](https://registry.terraform.io/providers/bytebase/bytebase).
 1. Follow [example](https://docs.bytebase.com/integrations/terraform/overview).
 
+Upgrading from provider 3.23.0? Read the [3.24.0 migration guide](migration/3.24.0.md)
+before applying changes.
+
 Provider configuration can include custom HTTP headers for access gateways:
 
 ```hcl
@@ -57,7 +60,7 @@ not be written to logs. Remove or unset `BYTEBASE_SERVICE_ACCOUNT` and
 
 - [Go](https://go.dev/doc/install) (1.25.0 or later)
 - [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform) (1.11 or later, required for write-only attributes)
-- [Bytebase](https://github.com/bytebase/bytebase) (3.23.0 or later)
+- [Bytebase](https://github.com/bytebase/bytebase) (3.24.0 or later)
 
 > If Terraform has problems on macOS with Apple Silicon, follow this [troubleshooting guide](https://stackoverflow.com/questions/66281882/how-can-i-get-terraform-init-to-run-on-my-apple-silicon-macbook-pro-for-the-go) and use `tfenv`.
 
