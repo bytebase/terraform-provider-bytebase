@@ -46,7 +46,7 @@ func resourceSettingSchema() map[string]*schema.Schema {
 		"name": {
 			Type:        schema.TypeString,
 			Required:    true,
-			Description: `The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", and "MCP". Check the proto https://github.com/bytebase/bytebase/blob/release/3.24.0/proto/v1/v1/setting_service.proto for details.`,
+			Description: `The setting name in settings/{name} format. The name support "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM". Check the proto https://github.com/bytebase/bytebase/blob/release/3.17.0/proto/v1/v1/setting_service.proto#L104 for details`,
 			ValidateDiagFunc: internal.ResourceNameValidation(
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
@@ -54,8 +54,6 @@ func resourceSettingSchema() map[string]*schema.Schema {
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_SEMANTIC_TYPES.String()),
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_ENVIRONMENT.String()),
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String()),
-				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_AI.String()),
-				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_MCP.String()),
 			),
 		},
 		"approval_flow":       getWorkspaceApprovalSetting(false),
@@ -64,13 +62,13 @@ func resourceSettingSchema() map[string]*schema.Schema {
 		"semantic_types":      getSemanticTypesSetting(false),
 		"environment_setting": getEnvironmentSetting(false),
 		"app_im":              getAppIMSetting(false),
-		"ai":                  getAISetting(false),
-		"mcp":                 getMCPSetting(false),
 	}
 }
 
 // validateSettingShape enforces shape requirements per setting name at plan
-// time for settings whose block must be explicitly configured.
+// time. Currently: when name is settings/APP_IM, the app_im block must be
+// present, since AppIMSetting has no "no-op" representation that wouldn't
+// clobber server state.
 func validateSettingShape(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	rawConfig := d.GetRawConfig()
 	if rawConfig.IsNull() || !rawConfig.IsKnown() {
@@ -81,22 +79,12 @@ func validateSettingShape(_ context.Context, d *schema.ResourceDiff, _ interface
 		return nil
 	}
 	appIMName := fmt.Sprintf("%s%s", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String())
-	aiName := fmt.Sprintf("%s%s", internal.SettingNamePrefix, v1pb.Setting_AI.String())
-	mcpName := fmt.Sprintf("%s%s", internal.SettingNamePrefix, v1pb.Setting_MCP.String())
-	blockName := ""
-	switch nameValue.AsString() {
-	case appIMName:
-		blockName = "app_im"
-	case aiName:
-		blockName = "ai"
-	case mcpName:
-		blockName = "mcp"
-	default:
+	if nameValue.AsString() != appIMName {
 		return nil
 	}
-	block := rawConfig.GetAttr(blockName)
-	if block.IsNull() || !block.IsKnown() || block.LengthInt() == 0 {
-		return errors.Errorf("%s block is required when name is %s", blockName, nameValue.AsString())
+	appIMValue := rawConfig.GetAttr("app_im")
+	if appIMValue.IsNull() || !appIMValue.IsKnown() || appIMValue.LengthInt() == 0 {
+		return errors.Errorf("app_im block is required when name is %s", appIMName)
 	}
 	return nil
 }
@@ -178,21 +166,6 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 				AppIm: appIMSetting,
 			},
 		}
-		updateMasks = appIMSettingUpdateMasks()
-	case v1pb.Setting_AI:
-		aiSetting, masks, err := convertToV1AISetting(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		setting.Value = &v1pb.SettingValue{Value: &v1pb.SettingValue_Ai{Ai: aiSetting}}
-		updateMasks = masks
-	case v1pb.Setting_MCP:
-		mcpSetting, err := convertToV1MCPSetting(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		setting.Value = &v1pb.SettingValue{Value: &v1pb.SettingValue_Mcp{Mcp: mcpSetting}}
-		updateMasks = []string{"value.mcp.capability"}
 	default:
 		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
 	}
@@ -332,12 +305,6 @@ func convertToV1WorkspaceProfileSetting(d *schema.ResourceData) (*v1pb.Workspace
 			Seconds: int64(raw["access_token_duration_in_seconds"].(int)),
 		}
 		updateMasks = append(updateMasks, "value.workspace_profile.access_token_duration")
-	}
-	if config := workspaceRawConfig.GetAttr("inactive_session_timeout_in_seconds"); !config.IsNull() {
-		workspacePrfile.InactiveSessionTimeout = &durationpb.Duration{
-			Seconds: int64(raw["inactive_session_timeout_in_seconds"].(int)),
-		}
-		updateMasks = append(updateMasks, "value.workspace_profile.inactive_session_timeout")
 	}
 	if config := workspaceRawConfig.GetAttr("password_restriction"); !config.IsNull() {
 		if pwRestrictionList, ok := raw["password_restriction"].([]interface{}); ok && len(pwRestrictionList) > 0 {
@@ -710,7 +677,6 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 			"value.workspace_profile.query_timeout",
 			"value.workspace_profile.refresh_token_duration",
 			"value.workspace_profile.access_token_duration",
-			"value.workspace_profile.inactive_session_timeout",
 		}
 	case v1pb.Setting_DATA_CLASSIFICATION:
 		setting.Value = &v1pb.SettingValue{
@@ -738,17 +704,6 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 				AppIm: &v1pb.AppIMSetting{},
 			},
 		}
-		updateMasks = appIMSettingUpdateMasks()
-	case v1pb.Setting_AI:
-		d.SetId("")
-		return diag.Diagnostics{{
-			Severity: diag.Warning,
-			Summary:  "AI settings are preserved",
-			Detail:   "Removing the Terraform resource does not change the server's AI settings. To disable AI, explicitly set enabled to false and apply before removing the resource.",
-		}}
-	case v1pb.Setting_MCP:
-		setting.Value = &v1pb.SettingValue{Value: &v1pb.SettingValue_Mcp{Mcp: &v1pb.MCPSetting{Capability: v1pb.MCPSetting_DISABLED}}}
-		updateMasks = []string{"value.mcp.capability"}
 	default:
 		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
 	}

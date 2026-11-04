@@ -21,12 +21,8 @@ import (
 // computed, but their values will always be empty strings — the data source
 // surfaces only which IM types are configured.
 func getAppIMSetting(computed bool) *schema.Schema {
-	description := "The APP_IM workspace setting. Configures Slack/Feishu/Wecom/Lark/DingTalk/Teams integrations. All credential and identifier fields are write-only — the server returns empty payloads on GET, so values cannot round-trip through state."
-	if !computed {
-		description += " This resource owns all six integrations: omitted blocks disable those integrations, and destroying the resource disables all integrations."
-	}
 	return singletonBlock(computed,
-		description,
+		"The APP_IM workspace setting. Configures Slack/Feishu/Wecom/Lark/DingTalk/Teams integrations. All credential and identifier fields are write-only — the server returns empty payloads on GET, so values cannot round-trip through state.",
 		map[string]*schema.Schema{
 			"slack": singletonBlock(computed, "Slack integration.", map[string]*schema.Schema{
 				"token": appIMField(computed, "The Slack bot token."),
@@ -91,19 +87,6 @@ func appIMField(computed bool, description string) *schema.Schema {
 		s.ValidateFunc = validation.StringIsNotEmpty
 	}
 	return s
-}
-
-// APP_IM owns the complete setting, so omitted providers must also be masked
-// for removal. Teams uses a different path in Bytebase's accepted vocabulary.
-func appIMSettingUpdateMasks() []string {
-	return []string{
-		"value.app_im.slack",
-		"value.app_im.feishu",
-		"value.app_im.wecom",
-		"value.app_im.lark",
-		"value.app_im.dingtalk",
-		"value.app_im_setting_value.teams",
-	}
 }
 
 // convertToV1AppIMSetting builds an AppIMSetting from raw config. All fields

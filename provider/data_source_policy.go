@@ -42,10 +42,15 @@ func dataSourcePolicy() *schema.Resource {
 				Description: "The policy parent name for the policy, support workspaces/{workspace id}, projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}. Defaults to the workspace if not specified.",
 			},
 			"type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice(supportedPolicyTypes(), false),
-				Description:  "The policy type.",
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					v1pb.PolicyType_MASKING_EXEMPTION.String(),
+					v1pb.PolicyType_MASKING_RULE.String(),
+					v1pb.PolicyType_ROLLOUT_POLICY.String(),
+					v1pb.PolicyType_DATA_QUERY.String(),
+				}, false),
+				Description: "The policy type.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -66,7 +71,6 @@ func dataSourcePolicy() *schema.Resource {
 			"global_masking_policy":    getGlobalMaskingPolicySchema(true),
 			"rollout_policy":           getRolloutPolicySchema(true),
 			"query_data_policy":        getDataQueryPolicySchema(true),
-			"review_rule_policy":       getReviewRulePolicySchema(true),
 		},
 	}
 }
@@ -284,10 +288,6 @@ func dataSourcePolicyRead(ctx context.Context, d *schema.ResourceData, m interfa
 	c := m.(api.Client)
 
 	parent := internal.ResolveWorkspaceParent(d.Get("parent").(string), c.GetWorkspaceName())
-	policyType := v1pb.PolicyType(v1pb.PolicyType_value[d.Get("type").(string)])
-	if err := validateReviewPolicyParent(policyType, parent); err != nil {
-		return diag.FromErr(err)
-	}
 	policyName := fmt.Sprintf("%s/%s%s", parent, internal.PolicyNamePrefix, d.Get("type").(string))
 
 	policy, err := c.GetPolicy(ctx, policyName)
@@ -352,10 +352,6 @@ func flattenPolicyPayload(policy *v1pb.Policy) (string, interface{}, diag.Diagno
 		if p := policy.GetQueryDataPolicy(); p != nil {
 			rolloutPolicy := flattenQueryDataPolicy(p)
 			return "query_data_policy", rolloutPolicy, nil
-		}
-	case v1pb.PolicyType_REVIEW_RULE:
-		if p := policy.GetReviewRulePolicy(); p != nil {
-			return "review_rule_policy", flattenReviewRulePolicy(p), nil
 		}
 	default:
 		// Unsupported policy type; fall through to the error below.

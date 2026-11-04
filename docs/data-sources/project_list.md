@@ -32,7 +32,6 @@ The project data source list.
 Read-Only:
 
 - `allow_just_in_time_access` (Boolean)
-- `allow_last_plan_editor_approval` (Boolean)
 - `allow_request_role` (Boolean)
 - `allow_self_approval` (Boolean)
 - `ci_sampling_size` (Number)

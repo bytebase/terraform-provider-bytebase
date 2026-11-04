@@ -3,7 +3,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.24.0"
+      version = "3.23.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -40,8 +40,4 @@ data "bytebase_project" "sample_project" {
 
 output "sample_project" {
   value = data.bytebase_project.sample_project
-}
-
-output "allow_last_plan_editor_approval" {
-  value = data.bytebase_project.sample_project.allow_last_plan_editor_approval
 }

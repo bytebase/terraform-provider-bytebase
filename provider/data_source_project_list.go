@@ -75,11 +75,6 @@ func dataSourceProjectList() *schema.Resource {
 							Computed:    true,
 							Description: "Whether to allow the issue creator to self-approve the issue.",
 						},
-						"allow_last_plan_editor_approval": {
-							Type:        schema.TypeBool,
-							Computed:    true,
-							Description: "Whether to allow the last plan editor to approve the issue.",
-						},
 						"execution_retry_policy": {
 							Type:        schema.TypeInt,
 							Computed:    true,
@@ -198,7 +193,6 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["title"] = project.Title
 		proj["enforce_issue_title"] = project.EnforceIssueTitle
 		proj["allow_self_approval"] = project.AllowSelfApproval
-		proj["allow_last_plan_editor_approval"] = project.AllowLastPlanEditorApproval
 		proj["postgres_database_tenant_mode"] = project.PostgresDatabaseTenantMode
 		if project.ExecutionRetryPolicy != nil {
 			proj["execution_retry_policy"] = project.ExecutionRetryPolicy.MaximumRetries

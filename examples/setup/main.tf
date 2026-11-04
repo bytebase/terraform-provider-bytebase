@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.24.0"
+      version = "3.23.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -38,7 +38,6 @@ resource "bytebase_setting" "workspace_profile" {
     query_timeout_in_seconds              = 60                # 60 seconds
     refresh_token_duration_in_seconds     = 604800            # 7 days
     access_token_duration_in_seconds      = 3600              # 1 hour
-    inactive_session_timeout_in_seconds   = 1800              # 30 minutes; zero disables the timeout
     maximum_request_expiration_in_seconds = 2592000           # 30 days for data access requests
     maximum_role_expiration_in_seconds    = 2592000           # 30 days for request role grants
 

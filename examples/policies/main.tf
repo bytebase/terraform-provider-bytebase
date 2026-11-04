@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.24.0"
+      version = "3.23.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -34,34 +34,4 @@ data "bytebase_policy" "global_masking_policy" {
 
 output "global_masking_policy" {
   value = data.bytebase_policy.global_masking_policy
-}
-
-resource "bytebase_policy" "review_rules" {
-  parent = "projects/project-sample"
-  type   = "REVIEW_RULE"
-
-  review_rule_policy {
-    # This is the complete enabled set, not additions to the workspace policy.
-    # SYNTAX must be included for any standard review rule to run.
-    rules = ["SYNTAX", "REQUIRE_WHERE", "REQUIRE_PRIMARY_KEY"]
-  }
-}
-
-data "bytebase_policy" "review_rules" {
-  parent     = "projects/project-sample"
-  type       = "REVIEW_RULE"
-  depends_on = [bytebase_policy.review_rules]
-}
-
-data "bytebase_policy_list" "project" {
-  parent     = "projects/project-sample"
-  depends_on = [bytebase_policy.review_rules]
-}
-
-output "review_rules" {
-  value = data.bytebase_policy.review_rules.review_rule_policy
-}
-
-output "project_policy_types" {
-  value = [for policy in data.bytebase_policy_list.project.policies : policy.type]
 }

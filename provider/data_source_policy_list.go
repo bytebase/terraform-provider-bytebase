@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+
 	"github.com/bytebase/terraform-provider-bytebase/api"
 	"github.com/bytebase/terraform-provider-bytebase/provider/internal"
 )
@@ -67,7 +69,6 @@ func dataSourcePolicyList() *schema.Resource {
 						"global_masking_policy":    getGlobalMaskingPolicySchema(true),
 						"rollout_policy":           getRolloutPolicySchema(true),
 						"query_data_policy":        getDataQueryPolicySchema(true),
-						"review_rule_policy":       getReviewRulePolicySchema(true),
 					},
 				},
 			},
@@ -87,7 +88,7 @@ func dataSourcePolicyListRead(ctx context.Context, d *schema.ResourceData, m int
 
 	policies := make([]map[string]interface{}, 0)
 	for _, policy := range response.Policies {
-		if !isSupportedPolicyType(policy.Type) {
+		if policy.Type != v1pb.PolicyType_MASKING_EXEMPTION && policy.Type != v1pb.PolicyType_MASKING_RULE {
 			continue
 		}
 		raw := make(map[string]interface{})

@@ -13,8 +13,6 @@ resource "bytebase_project" "sample_project" {
   allow_request_role          = true
   allow_just_in_time_access   = true
   force_issue_labels          = false
-  # Independent of allow_self_approval: the last plan editor cannot approve.
-  allow_last_plan_editor_approval = false
 
   # Issue labels for categorizing issues
   issue_labels {
