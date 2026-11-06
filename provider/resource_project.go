@@ -490,7 +490,18 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 
 	project, err := c.GetProject(ctx, projectName)
 	if err != nil {
+		if internal.IsNotFoundError(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", projectName))
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
+	}
+	if project.State == v1pb.State_DELETED {
+		// Create undeletes an archived project, so dropping it from state lets apply restore it.
+		tflog.Warn(ctx, fmt.Sprintf("Resource %s is archived, removing from state", projectName))
+		d.SetId("")
+		return nil
 	}
 
 	resp := setProject(ctx, c, d, project, true)
