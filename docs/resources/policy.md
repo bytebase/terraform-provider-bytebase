@@ -27,6 +27,7 @@ The policy resource.
 - `masking_exemption_policy` (Block List, Max: 1) (see [below for nested schema](#nestedblock--masking_exemption_policy))
 - `parent` (String) The policy parent name for the policy, support workspaces/{workspace id}, projects/{resource id}, environments/{resource id}, instances/{resource id}, or instances/{resource id}/databases/{database name}. Defaults to the workspace if not specified.
 - `query_data_policy` (Block List, Max: 1) The policy for query data (see [below for nested schema](#nestedblock--query_data_policy))
+- `review_ai_policy` (Block List, Max: 1) Optional custom instructions for AI SQL review. Supported for workspaces and projects. Both policies apply when enforced, and project instructions take precedence on conflicts. Not required to enable AI SQL review. (see [below for nested schema](#nestedblock--review_ai_policy))
 - `review_rule_policy` (Block List, Max: 1) The standard review rule policy. Supported for workspaces and projects. A project policy overrides the workspace policy. (see [below for nested schema](#nestedblock--review_rule_policy))
 - `rollout_policy` (Block List, Max: 1) Control issue rollout. Learn more: https://docs.bytebase.com/change-database/environment-policy/rollout-policy (see [below for nested schema](#nestedblock--rollout_policy))
 
@@ -90,8 +91,17 @@ Optional:
 
 - `allow_admin_data_source` (Boolean) Allow using the admin data source to query in the SQL editor. If true, users can select the admin data source or read-only data source. If false, when read-only data source is configured, users are forced to use the read-only data source; otherwise fallback to admin data source.
 - `disable_copy_data` (Boolean) Disable copying data in the SQL editor
-- `disable_export` (Boolean) Disable export data in the SQL editor
+- `disable_download` (Boolean) Hide the Download destination in the SQL Editor. Workspace-level only. Does not restrict the Export API or configured storage destinations. Omit to preserve the server value.
+- `disable_export` (Boolean, Deprecated) Deprecated compatibility field. Always false; true is rejected.
 - `maximum_result_rows` (Number) The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.
+
+
+<a id="nestedblock--review_ai_policy"></a>
+### Nested Schema for `review_ai_policy`
+
+Required:
+
+- `content` (String) Nonblank natural-language SQL review instructions, up to 65,536 UTF-8 bytes.
 
 
 <a id="nestedblock--review_rule_policy"></a>

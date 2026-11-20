@@ -67,6 +67,7 @@ func dataSourcePolicy() *schema.Resource {
 			"rollout_policy":           getRolloutPolicySchema(true),
 			"query_data_policy":        getDataQueryPolicySchema(true),
 			"review_rule_policy":       getReviewRulePolicySchema(true),
+			"review_ai_policy":         getReviewAIPolicySchema(true),
 		},
 	}
 }
@@ -227,9 +228,22 @@ func getDataQueryPolicySchema(computed bool) *schema.Schema {
 					Description: "The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.",
 				},
 				"disable_export": {
+					Type:       schema.TypeBool,
+					Optional:   true,
+					Deprecated: "Remove this field. Export authorization is controlled by bb.sql.export; use disable_download only to hide Download in the SQL Editor.",
+					ValidateFunc: func(v interface{}, _ string) ([]string, []error) {
+						if v.(bool) {
+							return nil, []error{errors.New("disable_export=true is no longer supported. Remove it and manage export authorization with bb.sql.export; use disable_download to hide Download in the SQL Editor")}
+						}
+						return nil, nil
+					},
+					Description: "Deprecated compatibility field. Always false; true is rejected.",
+				},
+				"disable_download": {
 					Type:        schema.TypeBool,
-					Optional:    true,
-					Description: "Disable export data in the SQL editor",
+					Optional:    !computed,
+					Computed:    true,
+					Description: "Hide the Download destination in the SQL Editor. Workspace-level only. Does not restrict the Export API or configured storage destinations. Omit to preserve the server value.",
 				},
 				"disable_copy_data": {
 					Type:        schema.TypeBool,
@@ -357,6 +371,10 @@ func flattenPolicyPayload(policy *v1pb.Policy) (string, interface{}, diag.Diagno
 		if p := policy.GetReviewRulePolicy(); p != nil {
 			return "review_rule_policy", flattenReviewRulePolicy(p), nil
 		}
+	case v1pb.PolicyType_REVIEW_AI:
+		if p := policy.GetReviewAiPolicy(); p != nil {
+			return "review_ai_policy", flattenReviewAIPolicy(p), nil
+		}
 	default:
 		// Unsupported policy type; fall through to the error below.
 	}
@@ -377,7 +395,8 @@ func flattenRolloutPolicy(p *v1pb.RolloutPolicy) []interface{} {
 func flattenQueryDataPolicy(p *v1pb.QueryDataPolicy) []interface{} {
 	policy := map[string]interface{}{
 		"maximum_result_rows":     int(p.MaximumResultRows),
-		"disable_export":          p.DisableExport,
+		"disable_export":          false,
+		"disable_download":        p.GetDisableDownload(),
 		"disable_copy_data":       p.DisableCopyData,
 		"allow_admin_data_source": p.AllowAdminDataSource,
 	}

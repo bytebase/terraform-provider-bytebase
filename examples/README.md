@@ -9,6 +9,8 @@ Examples of using the Terraform Bytebase Provider to manage your resource:
 - [projects](./projects): Use the Bytebase provider to query projects in your Bytebase instance.
 - [settings](./settings): Configure AI and MCP, and query workspace settings.
 - [policies](./policies): Configure standard review policies, and query policies.
+- [sharepoint](./sharepoint): Configure shared export credentials and a project destination on a licensed self-hosted server.
+- [ai_review](./ai_review): Enable AI SQL review and optionally configure custom review instructions.
 
 To run this provider on your local machine:
 

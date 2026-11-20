@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -91,6 +92,7 @@ func resourcePolicy() *schema.Resource {
 			"rollout_policy":           getRolloutPolicySchema(false),
 			"query_data_policy":        getDataQueryPolicySchema(false),
 			"review_rule_policy":       getReviewRulePolicySchema(false),
+			"review_ai_policy":         getReviewAIPolicySchema(false),
 		},
 	}
 }
@@ -142,6 +144,11 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	if err := validateReviewPolicyParent(policyType, parent); err != nil {
 		return diag.FromErr(err)
 	}
+	if err := validateReviewPolicyBlocks(policyType, func(field string) bool {
+		return len(d.Get(field).([]interface{})) > 0
+	}); err != nil {
+		return diag.FromErr(err)
+	}
 
 	patch := &v1pb.Policy{
 		Name:              policyName,
@@ -186,7 +193,7 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		if !strings.HasPrefix(parent, internal.WorkspaceNamePrefix) && !strings.HasPrefix(policyName, internal.ProjectNamePrefix) {
 			return diag.Errorf("policy %v only support workspace or project resource", policyName)
 		}
-		queryDataPolicy, err := convertToQueryDataPolicy(d)
+		queryDataPolicy, err := convertToQueryDataPolicy(ctx, c, d, policyName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -201,6 +208,13 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 		patch.Policy = &v1pb.Policy_ReviewRulePolicy{ReviewRulePolicy: reviewRulePolicy}
 		updateMasks = append(updateMasks, "review_rule_policy")
+	case v1pb.PolicyType_REVIEW_AI:
+		reviewAIPolicy, err := expandReviewAIPolicy(d.Get("review_ai_policy"))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_ReviewAiPolicy{ReviewAiPolicy: reviewAIPolicy}
+		updateMasks = append(updateMasks, "review_ai_policy")
 	default:
 		return diag.Errorf("unsupport policy type: %v", policyName)
 	}
@@ -226,6 +240,14 @@ func resourcePolicyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.SetId(p.Name)
 
+	// The API forces enforce=true on creation. Set false in a separate update
+	// when requested, retaining the created ID if the second operation fails.
+	if policyType == v1pb.PolicyType_REVIEW_AI && !patch.GetEnforce() && p.GetEnforce() {
+		if _, err := c.UpsertPolicy(ctx, &v1pb.Policy{Name: p.GetName(), Type: policyType, Enforce: false}, []string{"enforce"}); err != nil {
+			return diag.FromErr(errors.Wrap(err, "AI review policy was created but could not be disabled"))
+		}
+	}
+
 	diag := resourcePolicyRead(ctx, d, m)
 	if diag != nil {
 		diags = append(diags, diag...)
@@ -248,6 +270,11 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	if d.HasChange("type") || d.HasChange("parent") {
 		return diag.Errorf("cannot change policy type or parent")
+	}
+	if err := validateReviewPolicyBlocks(policyType, func(field string) bool {
+		return len(d.Get(field).([]interface{})) > 0
+	}); err != nil {
+		return diag.FromErr(err)
 	}
 
 	patch := &v1pb.Policy{
@@ -297,7 +324,7 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	if d.HasChange("query_data_policy") {
 		updateMasks = append(updateMasks, "query_data_policy")
-		queryDataPolicy, err := convertToQueryDataPolicy(d)
+		queryDataPolicy, err := convertToQueryDataPolicy(ctx, c, d, policyName)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -312,6 +339,14 @@ func resourcePolicyUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 			return diag.FromErr(err)
 		}
 		patch.Policy = &v1pb.Policy_ReviewRulePolicy{ReviewRulePolicy: reviewRulePolicy}
+	}
+	if d.HasChange("review_ai_policy") {
+		reviewAIPolicy, err := expandReviewAIPolicy(d.Get("review_ai_policy"))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		patch.Policy = &v1pb.Policy_ReviewAiPolicy{ReviewAiPolicy: reviewAIPolicy}
+		updateMasks = append(updateMasks, "review_ai_policy")
 	}
 
 	var diags diag.Diagnostics
@@ -485,17 +520,38 @@ func convertToRolloutPolicy(d *schema.ResourceData) (*v1pb.RolloutPolicy, error)
 	return policy, nil
 }
 
-func convertToQueryDataPolicy(d *schema.ResourceData) (*v1pb.QueryDataPolicy, error) {
+func convertToQueryDataPolicy(ctx context.Context, c api.Client, d *schema.ResourceData, policyName string) (*v1pb.QueryDataPolicy, error) {
 	rawList, ok := d.Get("query_data_policy").([]interface{})
 	if !ok || len(rawList) != 1 {
 		return nil, errors.Errorf("invalid query_data_policy")
 	}
 
 	raw := rawList[0].(map[string]interface{})
-	return &v1pb.QueryDataPolicy{
-		DisableExport:        raw["disable_export"].(bool),
+	if raw["disable_export"].(bool) {
+		return nil, errors.New("disable_export=true is no longer supported. Remove it and manage export authorization with bb.sql.export; use disable_download to hide Download in the SQL Editor")
+	}
+	policy := &v1pb.QueryDataPolicy{
+		DisableDownload:      raw["disable_download"].(bool),
 		DisableCopyData:      raw["disable_copy_data"].(bool),
 		MaximumResultRows:    int32(raw["maximum_result_rows"].(int)),
 		AllowAdminDataSource: raw["allow_admin_data_source"].(bool),
-	}, nil
+	}
+	if config := d.GetRawConfig(); config.IsKnown() && !config.IsNull() {
+		if block, ok := singleBlock(config, "query_data_policy"); ok {
+			if value := block.GetAttr("disable_download"); value.IsKnown() && !value.IsNull() {
+				return policy, nil
+			}
+		}
+	}
+	// A query_data_policy write replaces the whole payload, including flags
+	// introduced by the server migration or changed since the last refresh.
+	current, err := c.GetPolicy(ctx, policyName)
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			return nil, errors.Wrap(err, "cannot preserve the existing disable_download value")
+		}
+		return policy, nil
+	}
+	policy.DisableDownload = current.GetQueryDataPolicy().GetDisableDownload()
+	return policy, nil
 }

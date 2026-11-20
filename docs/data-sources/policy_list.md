@@ -35,6 +35,7 @@ Read-Only:
 - `masking_exemption_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--masking_exemption_policy))
 - `name` (String)
 - `query_data_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--query_data_policy))
+- `review_ai_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--review_ai_policy))
 - `review_rule_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--review_rule_policy))
 - `rollout_policy` (List of Object) (see [below for nested schema](#nestedobjatt--policies--rollout_policy))
 - `type` (String)
@@ -88,8 +89,17 @@ Read-Only:
 
 - `allow_admin_data_source` (Boolean)
 - `disable_copy_data` (Boolean)
+- `disable_download` (Boolean)
 - `disable_export` (Boolean)
 - `maximum_result_rows` (Number)
+
+
+<a id="nestedobjatt--policies--review_ai_policy"></a>
+### Nested Schema for `policies.review_ai_policy`
+
+Read-Only:
+
+- `content` (String)
 
 
 <a id="nestedobjatt--policies--review_rule_policy"></a>

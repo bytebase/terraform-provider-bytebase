@@ -36,8 +36,9 @@ func TestPolicyListIncludesSupportedTypes(t *testing.T) {
 		{Type: v1pb.PolicyType_ROLLOUT_POLICY, Policy: &v1pb.Policy_RolloutPolicy{RolloutPolicy: &v1pb.RolloutPolicy{Automatic: true}}},
 		{Type: v1pb.PolicyType_DATA_QUERY, Policy: &v1pb.Policy_QueryDataPolicy{QueryDataPolicy: &v1pb.QueryDataPolicy{MaximumResultRows: 100}}},
 		{Type: v1pb.PolicyType_REVIEW_RULE, Policy: &v1pb.Policy_ReviewRulePolicy{ReviewRulePolicy: &v1pb.ReviewRulePolicy{Rules: []v1pb.ReviewRuleType{v1pb.ReviewRuleType_SYNTAX}}}},
+		{Type: v1pb.PolicyType_REVIEW_AI, Policy: &v1pb.Policy_ReviewAiPolicy{ReviewAiPolicy: &v1pb.ReviewAIPolicy{Content: "Require reversible migrations."}}},
 	}
-	keys := []string{"masking_exemption_policy", "global_masking_policy", "rollout_policy", "query_data_policy", "review_rule_policy"}
+	keys := []string{"masking_exemption_policy", "global_masking_policy", "rollout_policy", "query_data_policy", "review_rule_policy", "review_ai_policy"}
 	for i, policy := range policies {
 		t.Run(policy.Type.String(), func(t *testing.T) {
 			policy.Name = fmt.Sprintf("projects/sample/policies/%s", policy.Type)
@@ -60,6 +61,11 @@ func TestPolicyListIncludesSupportedTypes(t *testing.T) {
 			if payload, ok := raw[keys[i]].([]interface{}); !ok || len(payload) != 1 {
 				t.Fatalf("policy payload %s = %v", keys[i], raw[keys[i]])
 			}
+			if policy.Type == v1pb.PolicyType_REVIEW_AI {
+				if got := d.Get("policies.0.review_ai_policy.0.content"); got != "Require reversible migrations." {
+					t.Fatalf("listed AI review content = %v", got)
+				}
+			}
 		})
 	}
 }
@@ -68,11 +74,6 @@ func TestPolicyListSkipsUnsupportedTypes(t *testing.T) {
 	c := &policyListTestClient{response: &v1pb.ListPoliciesResponse{Policies: []*v1pb.Policy{
 		{Type: v1pb.PolicyType_TAG},
 		{Type: v1pb.PolicyType(1000)},
-		{
-			Name:   "workspaces/test-workspace/policies/review_ai",
-			Type:   v1pb.PolicyType_REVIEW_AI,
-			Policy: &v1pb.Policy_ReviewAiPolicy{ReviewAiPolicy: &v1pb.ReviewAIPolicy{Content: "Require reversible migrations."}},
-		},
 	}}}
 	d := schema.TestResourceDataRaw(t, dataSourcePolicyList().Schema, nil)
 	if diags := dataSourcePolicyListRead(context.Background(), d, c); diags.HasError() {

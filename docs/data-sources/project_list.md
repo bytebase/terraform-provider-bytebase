@@ -41,6 +41,7 @@ Read-Only:
 - `enforce_issue_title` (Boolean)
 - `enforce_sql_review` (Boolean)
 - `execution_retry_policy` (Number)
+- `export_setting` (List of Object) (see [below for nested schema](#nestedobjatt--projects--export_setting))
 - `force_issue_labels` (Boolean)
 - `issue_labels` (List of Object) (see [below for nested schema](#nestedobjatt--projects--issue_labels))
 - `labels` (Map of String)
@@ -52,6 +53,22 @@ Read-Only:
 - `resource_id` (String)
 - `title` (String)
 - `webhooks` (List of Object) (see [below for nested schema](#nestedobjatt--projects--webhooks))
+
+<a id="nestedobjatt--projects--export_setting"></a>
+### Nested Schema for `projects.export_setting`
+
+Read-Only:
+
+- `sharepoint` (List of Object) (see [below for nested schema](#nestedobjatt--projects--export_setting--sharepoint))
+
+<a id="nestedobjatt--projects--export_setting--sharepoint"></a>
+### Nested Schema for `projects.export_setting.sharepoint`
+
+Read-Only:
+
+- `url` (String)
+
+
 
 <a id="nestedobjatt--projects--issue_labels"></a>
 ### Nested Schema for `projects.issue_labels`

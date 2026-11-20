@@ -68,6 +68,7 @@ func dataSourcePolicyList() *schema.Resource {
 						"rollout_policy":           getRolloutPolicySchema(true),
 						"query_data_policy":        getDataQueryPolicySchema(true),
 						"review_rule_policy":       getReviewRulePolicySchema(true),
+						"review_ai_policy":         getReviewAIPolicySchema(true),
 					},
 				},
 			},

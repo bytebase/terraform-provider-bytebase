@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -15,25 +16,16 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
-func TestAISettingExcludesDarkLaunchedReview(t *testing.T) {
+func TestAISettingSQLReviewSchema(t *testing.T) {
 	for name, resource := range map[string]*schema.Resource{"resource": resourceSetting(), "data_source": dataSourceSetting()} {
 		t.Run(name, func(t *testing.T) {
 			fields := resource.Schema["ai"].Elem.(*schema.Resource).Schema
-			if fields["sql_review_enabled"] != nil {
-				t.Fatal("dark-launched AI SQL review must not be exposed in the Terraform schema")
+			field := fields["sql_review_enabled"]
+			if field == nil || field.Type != schema.TypeBool || !field.Computed || field.Optional != (name == "resource") {
+				t.Fatalf("unexpected sql_review_enabled schema: %+v", field)
 			}
 		})
 	}
-	t.Run("flatten", func(t *testing.T) {
-		setting := aiSettingResponse().GetValue().GetAi()
-		raw := flattenAISetting(setting, "")[0].(map[string]interface{})
-		if _, ok := raw["sql_review_enabled"]; ok {
-			t.Fatal("dark-launched AI SQL review must not be written to Terraform state")
-		}
-		if !raw["enabled"].(bool) || raw["model"] != "model-a" {
-			t.Fatalf("ordinary AI fields were lost: %v", raw)
-		}
-	})
 }
 
 func TestAISettingSchema(t *testing.T) {
@@ -152,6 +144,78 @@ func TestAISettingUpsertPreservesUnmanagedFields(t *testing.T) {
 	if got := state.Attributes["ai.0.endpoint"]; got != "https://ai.example.com" {
 		t.Fatalf("unmanaged endpoint read = %q", got)
 	}
+	if got := state.Attributes["ai.0.sql_review_enabled"]; got != "true" {
+		t.Fatalf("unmanaged SQL review setting read = %q, want true", got)
+	}
+}
+
+func TestAISettingSQLReviewToggleOnly(t *testing.T) {
+	client := &settingTestClient{response: aiSettingResponse()}
+	fields := map[string]interface{}{"sql_review_enabled": true}
+	raw := map[string]interface{}{
+		"name": "settings/AI",
+		"ai":   []interface{}{fields},
+	}
+	var state *terraform.InstanceState
+	for _, tc := range []struct {
+		value bool
+		want  string
+	}{{true, "true"}, {false, "false"}} {
+		fields["sql_review_enabled"] = tc.value
+		client.response.GetValue().GetAi().SqlReviewEnabled = tc.value
+		state = applySettingTestConfig(t, raw, state, client)
+		// SaaS only accepts a toggle request with this lone field mask, even
+		// after prior reads have populated the AI provider settings in state.
+		if !reflect.DeepEqual(client.masks, []string{"value.ai.sql_review_enabled"}) {
+			t.Fatalf("SQL review toggle %t sent masks %v", tc.value, client.masks)
+		}
+		if got := client.patch.GetValue().GetAi(); !proto.Equal(got, &v1pb.AISetting{SqlReviewEnabled: tc.value}) {
+			t.Fatalf("SQL review toggle %t sent unrelated AI fields: %v", tc.value, got)
+		}
+		if got := state.Attributes["ai.0.sql_review_enabled"]; got != tc.want {
+			t.Fatalf("SQL review toggle state = %q, want %q", got, tc.want)
+		}
+		if diff := settingTestDiff(t, raw, state); diff != nil && !diff.Empty() {
+			t.Fatalf("SQL review toggle causes perpetual diff: %#v", diff.Attributes)
+		}
+	}
+	delete(fields, "sql_review_enabled")
+	fields["model"] = "model-b"
+	client.response.GetValue().GetAi().Model = "model-b"
+	state = applySettingTestConfig(t, raw, state, client)
+	if !reflect.DeepEqual(client.masks, []string{"value.ai.model"}) || state.Attributes["ai.0.sql_review_enabled"] != "false" {
+		t.Fatalf("omitting an applied SQL review toggle changed it: masks = %v, SQL review state = %v", client.masks, state.Attributes["ai.0.sql_review_enabled"])
+	}
+}
+
+func TestAISettingEmptyBlockDoesNotWrite(t *testing.T) {
+	client := &settingTestClient{response: aiSettingResponse()}
+	raw := map[string]interface{}{
+		"name": "settings/AI",
+		"ai":   []interface{}{map[string]interface{}{}},
+	}
+	state := applySettingTestConfig(t, raw, nil, client)
+	if client.patch != nil {
+		t.Fatalf("empty AI configuration wrote settings: masks = %v", client.masks)
+	}
+	if state.ID != "settings/AI" || state.Attributes["ai.0.sql_review_enabled"] != "true" {
+		t.Fatalf("empty AI configuration did not read the current setting: %v", state)
+	}
+}
+
+func TestAISettingEmptyBlockPropagatesReadFailureWithoutWriting(t *testing.T) {
+	client := &settingTestClient{response: aiSettingResponse(), getErr: errors.New("cannot read AI settings")}
+	raw := map[string]interface{}{
+		"name": "settings/AI",
+		"ai":   []interface{}{map[string]interface{}{}},
+	}
+	state, diags := resourceSetting().Apply(context.Background(), nil, settingTestDiff(t, raw, nil), client)
+	if !diags.HasError() || state != nil && state.ID != "" {
+		t.Fatalf("empty AI configuration ignored a read failure: state = %v, diags = %v", state, diags)
+	}
+	if client.patch != nil {
+		t.Fatalf("empty AI configuration wrote settings despite read failure: masks = %v", client.masks)
+	}
 }
 
 func TestAISettingDataSourceReadsRedactedKey(t *testing.T) {
@@ -164,6 +228,9 @@ func TestAISettingDataSourceReadsRedactedKey(t *testing.T) {
 	}
 	if got := d.Get("ai.0.api_key"); got != "" {
 		t.Fatalf("redacted data source API key = %v", got)
+	}
+	if got, ok := d.Get("ai.0.sql_review_enabled").(bool); !ok || !got {
+		t.Fatalf("data source AI SQL review enabled = %v, want true", got)
 	}
 }
 
@@ -202,10 +269,11 @@ type settingTestClient struct {
 	response *v1pb.Setting
 	patch    *v1pb.Setting
 	masks    []string
+	getErr   error
 }
 
 func (c *settingTestClient) GetSetting(context.Context, string) (*v1pb.Setting, error) {
-	return c.response, nil
+	return c.response, c.getErr
 }
 
 func (c *settingTestClient) UpsertSetting(_ context.Context, setting *v1pb.Setting, masks []string) (*v1pb.Setting, error) {
