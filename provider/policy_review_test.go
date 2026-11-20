@@ -17,53 +17,29 @@ import (
 	"github.com/bytebase/terraform-provider-bytebase/api"
 )
 
-func TestReviewAIPolicyUnsupported(t *testing.T) {
-	for name, r := range map[string]*schema.Resource{"resource": resourcePolicy(), "data_source": dataSourcePolicy()} {
-		t.Run(name, func(t *testing.T) {
-			config := terraform.NewResourceConfigRaw(map[string]interface{}{"type": "REVIEW_AI"})
-			if diags := r.Validate(config); !diags.HasError() {
-				t.Fatal("dark-launched REVIEW_AI policy type was accepted")
-			}
-		})
-	}
-}
-
-func TestReviewAIPolicySchemasAbsent(t *testing.T) {
+func TestReviewAIPolicySchemaModes(t *testing.T) {
 	for name, r := range map[string]*schema.Resource{
 		"resource":    resourcePolicy(),
 		"data_source": dataSourcePolicy(),
 		"list":        dataSourcePolicyList().Schema["policies"].Elem.(*schema.Resource),
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, ok := r.Schema["review_ai_policy"]; ok {
-				t.Fatal("dark-launched review_ai_policy is exposed in the schema")
+			writable := name == "resource"
+			field := r.Schema["review_ai_policy"]
+			if field == nil || field.Type != schema.TypeList || field.Optional != writable || field.Computed == writable {
+				t.Fatalf("unexpected review_ai_policy schema: %+v", field)
+			}
+			content := field.Elem.(*schema.Resource).Schema["content"]
+			if content == nil || content.Type != schema.TypeString || content.Required != writable || content.Computed == writable {
+				t.Fatalf("unexpected review_ai_policy.content schema: %+v", content)
 			}
 		})
 	}
 }
 
-func TestReviewAIPolicyReadUnsupported(t *testing.T) {
-	r := resourcePolicy()
-	data := schema.TestResourceDataRaw(t, r.Schema, nil)
-	data.SetId("projects/sample/policies/review_ai")
-	client := &reviewPolicyClient{policy: &v1pb.Policy{
-		Name: "projects/sample/policies/review_ai",
-		Type: v1pb.PolicyType_REVIEW_AI,
-		Policy: &v1pb.Policy_ReviewAiPolicy{ReviewAiPolicy: &v1pb.ReviewAIPolicy{
-			Content: "Require a rollback plan.",
-		}},
-	}}
-	if _, err := r.Importer.StateContext(context.Background(), data, client); err != nil {
-		t.Fatal(err)
-	}
-	if diags := r.ReadContext(context.Background(), data, client); !diags.HasError() {
-		t.Fatal("imported dark-launched REVIEW_AI policy was read into state")
-	}
-}
-
 func TestReviewPolicySchemas(t *testing.T) {
 	for name, r := range map[string]*schema.Resource{"resource": resourcePolicy(), "data_source": dataSourcePolicy()} {
-		for _, policyType := range []v1pb.PolicyType{v1pb.PolicyType_REVIEW_RULE} {
+		for _, policyType := range []v1pb.PolicyType{v1pb.PolicyType_REVIEW_RULE, v1pb.PolicyType_REVIEW_AI} {
 			t.Run(name+"/"+policyType.String(), func(t *testing.T) {
 				field := strings.ToLower(policyType.String()) + "_policy"
 				if r.Schema[field] == nil {
@@ -78,7 +54,7 @@ func TestReviewPolicySchemas(t *testing.T) {
 }
 
 func TestReviewPolicyLifecycle(t *testing.T) {
-	for _, policyType := range []v1pb.PolicyType{v1pb.PolicyType_REVIEW_RULE} {
+	for _, policyType := range []v1pb.PolicyType{v1pb.PolicyType_REVIEW_RULE, v1pb.PolicyType_REVIEW_AI} {
 		for _, parent := range []string{"", "projects/review-project"} {
 			t.Run(policyType.String()+"/"+parent, func(t *testing.T) {
 				r := resourcePolicy()
@@ -155,6 +131,51 @@ func TestReviewPolicyLifecycle(t *testing.T) {
 	}
 }
 
+func TestReviewAIPolicyCreateDisabled(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{name: "follow-up succeeds"},
+		{name: "follow-up fails", err: errors.New("permission to update the policy denied")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := resourcePolicy()
+			config := reviewPolicyConfig(v1pb.PolicyType_REVIEW_AI, "projects/sample", false)
+			config["enforce"] = false
+			client := &reviewPolicyClient{updateErr: tc.err}
+			state, diags := r.Apply(context.Background(), nil, reviewPolicyDiff(t, r, config, nil), client)
+			if diags.HasError() != (tc.err != nil) {
+				t.Fatalf("unexpected disabled AI policy create diagnostics: %v", diags)
+			}
+			if state == nil || state.ID != "projects/sample/policies/review_ai" {
+				t.Fatalf("state did not retain the created policy ID: %v", state)
+			}
+			if !slices.Equal(client.masks, []string{"enforce"}) || client.patch.GetEnforce() {
+				t.Fatalf("disable follow-up sent masks %v and policy %v", client.masks, client.patch)
+			}
+			if tc.err == nil {
+				if got := state.Attributes["enforce"]; got != "false" {
+					t.Fatalf("disabled AI review policy enforce state = %q, want false", got)
+				}
+				assertReviewPolicyPayload(t, v1pb.PolicyType_REVIEW_AI, client.policy, false)
+			}
+		})
+	}
+}
+
+func TestReviewAIPolicyAcceptsMaxUTF8Length(t *testing.T) {
+	r := resourcePolicy()
+	config := reviewPolicyConfig(v1pb.PolicyType_REVIEW_AI, "", false)
+	content := strings.Repeat("\u00e9", 32768)
+	config["review_ai_policy"].([]interface{})[0].(map[string]interface{})["content"] = content
+	client := &reviewPolicyClient{}
+	state := applyReviewPolicyConfig(t, r, config, nil, client)
+	if client.patch.GetReviewAiPolicy().GetContent() != content || state.Attributes["review_ai_policy.0.content"] != content {
+		t.Fatal("maximum-length AI review policy content did not round-trip unchanged")
+	}
+}
+
 func TestReviewPolicyValidation(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
@@ -169,6 +190,12 @@ func TestReviewPolicyValidation(t *testing.T) {
 		{"rule instance", v1pb.PolicyType_REVIEW_RULE, "instances/mysql", map[string]interface{}{"rules": []interface{}{"SYNTAX"}}},
 		{"rule database", v1pb.PolicyType_REVIEW_RULE, "instances/mysql/databases/app", map[string]interface{}{"rules": []interface{}{"SYNTAX"}}},
 		{"missing rule block", v1pb.PolicyType_REVIEW_RULE, "", nil},
+		{"blank AI content", v1pb.PolicyType_REVIEW_AI, "", map[string]interface{}{"content": " \n\t\u3000"}},
+		{"oversized AI UTF-8 content", v1pb.PolicyType_REVIEW_AI, "", map[string]interface{}{"content": strings.Repeat("\u00e9", 32768) + "x"}},
+		{"AI environment", v1pb.PolicyType_REVIEW_AI, "environments/prod", map[string]interface{}{"content": "Require a rollback plan."}},
+		{"AI instance", v1pb.PolicyType_REVIEW_AI, "instances/mysql", map[string]interface{}{"content": "Require a rollback plan."}},
+		{"AI database", v1pb.PolicyType_REVIEW_AI, "instances/mysql/databases/app", map[string]interface{}{"content": "Require a rollback plan."}},
+		{"missing AI block", v1pb.PolicyType_REVIEW_AI, "", nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := resourcePolicy()
@@ -221,6 +248,26 @@ func TestReviewPolicyPayloadType(t *testing.T) {
 			"review_rule_policy": []interface{}{map[string]interface{}{"rules": []interface{}{"SYNTAX"}}},
 			"query_data_policy":  []interface{}{map[string]interface{}{}},
 		}},
+		{"query with AI block", map[string]interface{}{
+			"type":              "DATA_QUERY",
+			"query_data_policy": []interface{}{map[string]interface{}{}},
+			"review_ai_policy":  []interface{}{map[string]interface{}{"content": "Require a rollback plan."}},
+		}},
+		{"rules with AI block", map[string]interface{}{
+			"type":               "REVIEW_RULE",
+			"review_rule_policy": []interface{}{map[string]interface{}{"rules": []interface{}{"SYNTAX"}}},
+			"review_ai_policy":   []interface{}{map[string]interface{}{"content": "Require a rollback plan."}},
+		}},
+		{"AI with rules block", map[string]interface{}{
+			"type":               "REVIEW_AI",
+			"review_rule_policy": []interface{}{map[string]interface{}{"rules": []interface{}{"SYNTAX"}}},
+			"review_ai_policy":   []interface{}{map[string]interface{}{"content": "Require a rollback plan."}},
+		}},
+		{"AI with query block", map[string]interface{}{
+			"type":              "REVIEW_AI",
+			"query_data_policy": []interface{}{map[string]interface{}{}},
+			"review_ai_policy":  []interface{}{map[string]interface{}{"content": "Require a rollback plan."}},
+		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if _, err := resourcePolicy().Diff(context.Background(), nil, terraform.NewResourceConfigRaw(tc.config), nil); err == nil {
@@ -245,6 +292,21 @@ func TestReviewPolicyUnknownType(t *testing.T) {
 	}
 }
 
+func TestReviewAIPolicyUnknownParent(t *testing.T) {
+	r := resourcePolicy()
+	value, err := schema.JSONMapToStateValue(reviewPolicyConfig(v1pb.PolicyType_REVIEW_AI, "", false), r.CoreConfigSchema())
+	if err != nil {
+		t.Fatal(err)
+	}
+	attrs := value.AsValueMap()
+	attrs["parent"] = cty.UnknownVal(cty.String)
+	value = cty.ObjectVal(attrs)
+	raw := terraform.NewResourceConfigShimmed(value, r.CoreConfigSchema())
+	if _, err := r.Diff(context.Background(), &terraform.InstanceState{RawConfig: value}, raw, nil); err != nil {
+		t.Fatalf("unknown policy parent must be deferred until apply: %v", err)
+	}
+}
+
 func TestReviewPolicyUnknownPayload(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
@@ -253,6 +315,7 @@ func TestReviewPolicyUnknownPayload(t *testing.T) {
 	}{
 		{"rules list", v1pb.PolicyType_REVIEW_RULE, cty.ObjectVal(map[string]cty.Value{"rules": cty.UnknownVal(cty.List(cty.String))})},
 		{"rule entry", v1pb.PolicyType_REVIEW_RULE, cty.ObjectVal(map[string]cty.Value{"rules": cty.ListVal([]cty.Value{cty.StringVal("SYNTAX"), cty.UnknownVal(cty.String)})})},
+		{"AI content", v1pb.PolicyType_REVIEW_AI, cty.ObjectVal(map[string]cty.Value{"content": cty.UnknownVal(cty.String)})},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := resourcePolicy()
@@ -277,19 +340,28 @@ func reviewPolicyConfig(policyType v1pb.PolicyType, parent string, updated bool)
 	if parent != "" {
 		config["parent"] = parent
 	}
-	if policyType == v1pb.PolicyType_REVIEW_RULE {
+	switch policyType {
+	case v1pb.PolicyType_REVIEW_RULE:
 		rules := []interface{}{"SYNTAX", "REQUIRE_WHERE"}
 		if updated {
 			rules = []interface{}{}
 		}
 		config["review_rule_policy"] = []interface{}{map[string]interface{}{"rules": rules}}
+	case v1pb.PolicyType_REVIEW_AI:
+		content := "Require a rollback plan."
+		if updated {
+			content = "\n  Require a rollback plan.\nFlag long locking migrations.\n"
+		}
+		config["review_ai_policy"] = []interface{}{map[string]interface{}{"content": content}}
+	default:
 	}
 	return config
 }
 
 func assertReviewPolicyPayload(t *testing.T, policyType v1pb.PolicyType, policy *v1pb.Policy, updated bool) {
 	t.Helper()
-	if policyType == v1pb.PolicyType_REVIEW_RULE {
+	switch policyType {
+	case v1pb.PolicyType_REVIEW_RULE:
 		want := []v1pb.ReviewRuleType{v1pb.ReviewRuleType_SYNTAX, v1pb.ReviewRuleType_REQUIRE_WHERE}
 		if updated {
 			want = []v1pb.ReviewRuleType{}
@@ -297,6 +369,15 @@ func assertReviewPolicyPayload(t *testing.T, policyType v1pb.PolicyType, policy 
 		if policy.GetReviewRulePolicy() == nil || !slices.Equal(policy.GetReviewRulePolicy().Rules, want) {
 			t.Fatalf("review rule payload = %v, want %v", policy.GetReviewRulePolicy(), want)
 		}
+	case v1pb.PolicyType_REVIEW_AI:
+		want := "Require a rollback plan."
+		if updated {
+			want = "\n  Require a rollback plan.\nFlag long locking migrations.\n"
+		}
+		if got := policy.GetReviewAiPolicy().GetContent(); got != want {
+			t.Fatalf("AI review payload = %q, want %q", got, want)
+		}
+	default:
 	}
 }
 
@@ -305,7 +386,8 @@ func assertReviewPolicyState(t *testing.T, state *terraform.InstanceState, field
 	if state.Attributes[field+".#"] != "1" {
 		t.Fatalf("state missing %s: %v", field, state.Attributes)
 	}
-	if field == "review_rule_policy" {
+	switch field {
+	case "review_rule_policy":
 		want := "2"
 		if updated {
 			want = "0"
@@ -313,6 +395,15 @@ func assertReviewPolicyState(t *testing.T, state *terraform.InstanceState, field
 		if got := state.Attributes[field+".0.rules.#"]; got != want {
 			t.Fatalf("rules count = %q, want %q", got, want)
 		}
+	case "review_ai_policy":
+		want := "Require a rollback plan."
+		if updated {
+			want = "\n  Require a rollback plan.\nFlag long locking migrations.\n"
+		}
+		if got := state.Attributes[field+".0.content"]; got != want {
+			t.Fatalf("AI review state = %q, want %q", got, want)
+		}
+	default:
 	}
 }
 
@@ -346,10 +437,11 @@ func applyReviewPolicyConfig(t *testing.T, r *schema.Resource, config map[string
 
 type reviewPolicyClient struct {
 	api.Client
-	policy  *v1pb.Policy
-	patch   *v1pb.Policy
-	masks   []string
-	deleted string
+	policy    *v1pb.Policy
+	patch     *v1pb.Policy
+	masks     []string
+	deleted   string
+	updateErr error
 }
 
 func (*reviewPolicyClient) GetWorkspaceName() string { return "workspaces/review-workspace" }
@@ -370,9 +462,12 @@ func (c *reviewPolicyClient) UpsertPolicy(_ context.Context, patch *v1pb.Policy,
 		parent, _, _ := strings.Cut(patch.Name, "/policies/")
 		c.policy.Name = parent + "/policies/" + strings.ToLower(patch.Type.String())
 	} else {
+		if c.updateErr != nil {
+			return nil, c.updateErr
+		}
 		for _, mask := range masks {
 			switch mask {
-			case "review_rule_policy":
+			case "review_rule_policy", "review_ai_policy":
 				c.policy.Policy = proto.Clone(patch).(*v1pb.Policy).Policy
 			case "enforce":
 				c.policy.Enforce = patch.Enforce

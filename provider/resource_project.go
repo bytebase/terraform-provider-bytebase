@@ -181,8 +181,9 @@ func resourceProjectSchema() map[string]*schema.Schema {
 				Type: schema.TypeString,
 			},
 		},
-		"databases": databasesSchema,
-		"webhooks":  getWebhooksSchema(false, true),
+		"databases":               databasesSchema,
+		"webhooks":                getWebhooksSchema(false, true),
+		projectExportSettingField: getProjectExportSettingSchema(false),
 	}
 }
 
@@ -192,6 +193,11 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	projectID := d.Get("resource_id").(string)
 	projectName := fmt.Sprintf("%s%s", internal.ProjectNamePrefix, projectID)
 	issueLabels, err := convertToV1IssueLabels(d.Get("issue_labels").([]interface{}))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	rawConfig := d.GetRawConfig()
+	exportSetting, manageExport, err := projectExportSettingFromConfig(rawConfig)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -224,7 +230,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		tflog.Debug(ctx, fmt.Sprintf("get project %s failed with error: %v", projectName, err))
 	}
 
-	rawConfig := d.GetRawConfig()
 	updateMasks := []string{}
 	if config := rawConfig.GetAttr("enforce_issue_title"); !config.IsNull() {
 		updateMasks = append(updateMasks, "enforce_issue_title")
@@ -306,8 +311,17 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 		if _, err := c.CreateProject(ctx, projectID, project); err != nil {
 			return diag.FromErr(err)
 		}
+		if manageExport {
+			// Retain a newly created project if configuring its destination fails.
+			d.SetId(projectName)
+		}
 	}
 
+	// CreateProject does not persist export_setting.
+	if manageExport {
+		project.ExportSetting = exportSetting
+		updateMasks = append(updateMasks, projectExportSettingField)
+	}
 	if len(updateMasks) > 0 {
 		if _, err := c.UpdateProject(ctx, project, updateMasks); err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -355,6 +369,10 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	c := m.(api.Client)
 	projectName := d.Id()
 
+	exportSetting, manageExport, err := projectExportSettingFromConfig(d.GetRawConfig())
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	existedProject, err := c.GetProject(ctx, projectName)
 	if err != nil {
 		return diag.Errorf("get project %s failed with error: %v", projectName, err)
@@ -429,6 +447,11 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("labels") {
 		paths = append(paths, "labels")
 	}
+	if manageExport && exportSetting.GetSharepoint().GetUrl() != existedProject.GetExportSetting().GetSharepoint().GetUrl() {
+		paths = append(paths, projectExportSettingField)
+	} else {
+		exportSetting = nil
+	}
 
 	if len(paths) > 0 {
 		issueLabels, err := convertToV1IssueLabels(d.Get("issue_labels").([]interface{}))
@@ -457,6 +480,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			AllowJustInTimeAccess:      d.Get("allow_just_in_time_access").(bool),
 			IssueLabels:                issueLabels,
 			Labels:                     convertToStringMap(d.Get("labels").(map[string]interface{})),
+			ExportSetting:              exportSetting,
 		}, paths); err != nil {
 			diags = append(diags, diag.FromErr(err)...)
 			return diags

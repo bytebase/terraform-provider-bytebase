@@ -33,6 +33,7 @@ The policy data source.
 - `id` (String) The ID of this resource.
 - `inherit_from_parent` (Boolean) Decide if the policy should inherit from the parent.
 - `name` (String) The policy full name
+- `review_ai_policy` (List of Object) Optional custom instructions for AI SQL review. Supported for workspaces and projects. Both policies apply when enforced, and project instructions take precedence on conflicts. Not required to enable AI SQL review. (see [below for nested schema](#nestedatt--review_ai_policy))
 - `review_rule_policy` (List of Object) The standard review rule policy. Supported for workspaces and projects. A project policy overrides the workspace policy. (see [below for nested schema](#nestedatt--review_rule_policy))
 
 <a id="nestedblock--global_masking_policy"></a>
@@ -90,8 +91,12 @@ Optional:
 
 - `allow_admin_data_source` (Boolean) Allow using the admin data source to query in the SQL editor. If true, users can select the admin data source or read-only data source. If false, when read-only data source is configured, users are forced to use the read-only data source; otherwise fallback to admin data source.
 - `disable_copy_data` (Boolean) Disable copying data in the SQL editor
-- `disable_export` (Boolean) Disable export data in the SQL editor
+- `disable_export` (Boolean, Deprecated) Deprecated compatibility field. Always false; true is rejected.
 - `maximum_result_rows` (Number) The return rows limit. If the value <= 0, will be treated as no limit. The default value is -1.
+
+Read-Only:
+
+- `disable_download` (Boolean) Hide the Download destination in the SQL Editor. Workspace-level only. Does not restrict the Export API or configured storage destinations. Omit to preserve the server value.
 
 
 <a id="nestedblock--rollout_policy"></a>
@@ -101,6 +106,14 @@ Optional:
 
 - `automatic` (Boolean) If all check pass, the change will be rolled out and executed automatically.
 - `roles` (Set of String) If any roles are specified, Bytebase requires users with those roles to manually roll out the change.
+
+
+<a id="nestedatt--review_ai_policy"></a>
+### Nested Schema for `review_ai_policy`
+
+Read-Only:
+
+- `content` (String)
 
 
 <a id="nestedatt--review_rule_policy"></a>

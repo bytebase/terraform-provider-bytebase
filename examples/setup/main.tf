@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.11"
   required_providers {
     bytebase = {
-      version = "3.24.0"
+      version = "3.25.0"
       # For local development, please use "terraform.local/bytebase/bytebase" instead
       source = "registry.terraform.io/bytebase/bytebase"
     }
@@ -78,7 +78,7 @@ resource "bytebase_policy" "query_data_policy" {
   type = "DATA_QUERY"
   query_data_policy {
     maximum_result_rows     = 100
-    disable_export          = true
+    disable_download        = true
     disable_copy_data       = true
     allow_admin_data_source = false
   }

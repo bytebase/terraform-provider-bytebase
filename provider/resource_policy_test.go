@@ -85,7 +85,7 @@ func TestAccPolicy_QueryData(t *testing.T) {
 					internal.TestCheckResourceExists("bytebase_policy.query_data_policy"),
 					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "type", v1pb.PolicyType_DATA_QUERY.String()),
 					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.disable_export", "true"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.disable_download", "true"),
 					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.maximum_result_rows", "500"),
 				),
 			},
@@ -100,7 +100,7 @@ func TestAccPolicy_QueryData(t *testing.T) {
 					internal.TestCheckResourceExists("bytebase_policy.query_data_policy"),
 					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "type", v1pb.PolicyType_DATA_QUERY.String()),
 					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.#", "1"),
-					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.disable_export", "false"),
+					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.disable_download", "false"),
 					resource.TestCheckResourceAttr("bytebase_policy.query_data_policy", "query_data_policy.0.maximum_result_rows", "1000"),
 				),
 			},
@@ -108,13 +108,13 @@ func TestAccPolicy_QueryData(t *testing.T) {
 	})
 }
 
-func getQueryDataPolicy(disableExport bool, maxResultRows int) string {
+func getQueryDataPolicy(disableDownload bool, maxResultRows int) string {
 	return fmt.Sprintf(`
 	query_data_policy {
-		disable_export       = %t
+			disable_download     = %t
 		maximum_result_rows  = %d
 	}
-	`, disableExport, maxResultRows)
+		`, disableDownload, maxResultRows)
 }
 
 func testAccCheckPolicyDestroy(s *terraform.State) error {

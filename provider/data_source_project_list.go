@@ -155,8 +155,9 @@ func dataSourceProjectList() *schema.Resource {
 								Type: schema.TypeString,
 							},
 						},
-						"databases": getDatabasesSchema(true),
-						"webhooks":  getWebhooksSchema(true, false),
+						"databases":               getDatabasesSchema(true),
+						"webhooks":                getWebhooksSchema(true, false),
+						projectExportSettingField: getProjectExportSettingSchema(true),
 					},
 				},
 			},
@@ -214,6 +215,7 @@ func dataSourceProjectListRead(ctx context.Context, d *schema.ResourceData, m in
 		proj["allow_just_in_time_access"] = project.AllowJustInTimeAccess
 		proj["issue_labels"] = flattenIssueLabels(project.IssueLabels)
 		proj["labels"] = project.Labels
+		proj[projectExportSettingField] = flattenProjectExportSetting(project.GetExportSetting(), false)
 
 		databases, err := c.ListDatabase(ctx, project.Name, &api.DatabaseFilter{}, false)
 		if err != nil {

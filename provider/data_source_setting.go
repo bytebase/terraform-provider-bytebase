@@ -22,7 +22,7 @@ func dataSourceSetting() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: `The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", and "MCP". Check the proto https://github.com/bytebase/bytebase/blob/release/3.24.0/proto/v1/v1/setting_service.proto for details.`,
+				Description: `The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", "MCP", and "EXPORT".`,
 				ValidateDiagFunc: internal.ResourceNameValidation(
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
@@ -32,6 +32,7 @@ func dataSourceSetting() *schema.Resource {
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_AI.String()),
 					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_MCP.String()),
+					fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_EXPORT.String()),
 				),
 			},
 			"approval_flow":       getWorkspaceApprovalSetting(true),
@@ -42,6 +43,7 @@ func dataSourceSetting() *schema.Resource {
 			"app_im":              getAppIMSetting(true),
 			"ai":                  getAISetting(true),
 			"mcp":                 getMCPSetting(true),
+			"export":              getExportSetting(true),
 		},
 	}
 }
@@ -596,10 +598,13 @@ func dataSourceSettingRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	d.SetId(setting.Name)
-	return setSettingMessage(d, setting)
+	return setSettingMessage(d, setting, true)
 }
 
-func setSettingMessage(d *schema.ResourceData, setting *v1pb.Setting) diag.Diagnostics {
+func setSettingMessage(d *schema.ResourceData, setting *v1pb.Setting, computed bool) diag.Diagnostics {
+	if err := d.Set("name", setting.GetName()); err != nil {
+		return diag.Errorf("cannot set setting name: %s", err.Error())
+	}
 	if value := setting.GetValue().GetWorkspaceApproval(); value != nil {
 		settingVal, err := flattenWorkspaceApprovalSetting(value)
 		if err != nil {
@@ -648,6 +653,24 @@ func setSettingMessage(d *schema.ResourceData, setting *v1pb.Setting) diag.Diagn
 	if value := setting.GetValue().GetMcp(); value != nil {
 		if err := d.Set("mcp", flattenMCPSetting(value)); err != nil {
 			return diag.Errorf("cannot set mcp: %s", err.Error())
+		}
+	}
+	if value := setting.GetValue().GetExport(); value != nil {
+		version, _ := d.Get("export.0.sharepoint.0.client_secret_version").(int)
+		keepBlock := false
+		if !computed {
+			// Refresh receives prior state without configuration. Keep local
+			// rotation metadata even if the application was removed remotely.
+			prior, _ := d.Get("export.0.sharepoint").([]interface{})
+			keepBlock = len(prior) > 0
+		}
+		if config := d.GetRawConfig(); !computed && config.IsKnown() && !config.IsNull() {
+			if block, err := exportSharePointConfig(config); err == nil && block.IsKnown() {
+				keepBlock = !block.IsNull()
+			}
+		}
+		if err := d.Set("export", flattenExportSetting(value, computed, version, keepBlock)); err != nil {
+			return diag.Errorf("cannot set export: %s", err.Error())
 		}
 	}
 

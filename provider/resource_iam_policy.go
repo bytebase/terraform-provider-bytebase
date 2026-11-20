@@ -153,19 +153,22 @@ func convertToV1Condition(rawSchema interface{}) (*expr.Expr, error) {
 			expressions = append(expressions, fmt.Sprintf(`%s in [%s]`, internal.CELAttributeResourceTableName, strings.Join(tableList, ",")))
 		}
 	}
-	if environments, ok := rawCondition["environment_ids"].(*schema.Set); ok {
-		envList := []string{}
-		for _, env := range environments.List() {
-			envList = append(envList, fmt.Sprintf(`"%s"`, env.(string)))
-		}
-		expressions = append(expressions, fmt.Sprintf(`%s in [%s]`, internal.CELAttributeResourceEnvironmentID, strings.Join(envList, ",")))
-	}
 	if expire, ok := rawCondition["expire_timestamp"].(string); ok && expire != "" {
 		formattedTime, err := time.Parse(time.RFC3339, expire)
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid time: %v", expire)
 		}
 		expressions = append(expressions, fmt.Sprintf(`%s < timestamp("%s")`, internal.CELAttributeRequestTime, formattedTime.Format(time.RFC3339)))
+	}
+
+	// Keep this clause last: the server strips it for non-DDL/DML permissions
+	// and only removes leftover conjunctions at the expression's ends.
+	if environments, ok := rawCondition["environment_ids"].(*schema.Set); ok {
+		envList := []string{}
+		for _, env := range environments.List() {
+			envList = append(envList, fmt.Sprintf(`"%s"`, env.(string)))
+		}
+		expressions = append(expressions, fmt.Sprintf(`%s in [%s]`, internal.CELAttributeResourceEnvironmentID, strings.Join(envList, ",")))
 	}
 
 	return &expr.Expr{
@@ -205,6 +208,7 @@ func convertToIAMPolicy(ctx context.Context, client api.Client, d *schema.Resour
 		if strings.Contains(expression, internal.CELAttributeResourceDatabase) && !roleContainsAnyPermission(
 			role,
 			"bb.sql.select",
+			"bb.sql.export",
 			"bb.sql.ddl",
 			"bb.sql.dml",
 			"bb.sql.explain",

@@ -135,8 +135,9 @@ func dataSourceProject() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"databases": getDatabasesSchema(true),
-			"webhooks":  getWebhooksSchema(true, false),
+			"databases":               getDatabasesSchema(true),
+			"webhooks":                getWebhooksSchema(true, false),
+			projectExportSettingField: getProjectExportSettingSchema(true),
 		},
 	}
 }
@@ -322,7 +323,7 @@ func setProject(
 	client api.Client,
 	d *schema.ResourceData,
 	project *v1pb.Project,
-	preserveWebhookURL bool,
+	resourceRead bool,
 ) diag.Diagnostics {
 	tflog.Debug(ctx, "[read project] start reading project", map[string]interface{}{
 		"project": project.Name,
@@ -401,6 +402,9 @@ func setProject(
 	if err := d.Set("labels", project.Labels); err != nil {
 		return diag.Errorf("cannot set labels for project: %s", err.Error())
 	}
+	if err := d.Set(projectExportSettingField, flattenProjectExportSetting(project.GetExportSetting(), resourceRead)); err != nil {
+		return diag.Errorf("cannot set export_setting for project: %s", err.Error())
+	}
 
 	startTime := time.Now()
 	databaseList := flattenDatabaseList(databases)
@@ -414,10 +418,10 @@ func setProject(
 	})
 
 	var priorWebhooks []interface{}
-	if preserveWebhookURL {
+	if resourceRead {
 		priorWebhooks, _ = d.Get("webhooks").([]interface{})
 	}
-	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks, preserveWebhookURL, priorWebhooks)); err != nil {
+	if err := d.Set("webhooks", flattenWebhookList(project.Webhooks, resourceRead, priorWebhooks)); err != nil {
 		return diag.Errorf("cannot set webhooks for project: %s", err.Error())
 	}
 

@@ -17,15 +17,16 @@ The setting resource.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", and "MCP". Check the proto https://github.com/bytebase/bytebase/blob/release/3.24.0/proto/v1/v1/setting_service.proto for details.
+- `name` (String) The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", "MCP", and "EXPORT".
 
 ### Optional
 
-- `ai` (Block List, Max: 1) The AI workspace setting. Omitted fields are not changed. AI provider settings are managed by the server in SaaS mode. Removing the Terraform resource preserves the server's AI settings; explicitly set enabled to false and apply before removal to disable AI. (see [below for nested schema](#nestedblock--ai))
+- `ai` (Block List, Max: 1) The AI workspace setting. Omitted fields are not changed. AI provider settings are managed by the server in SaaS mode. Removing the Terraform resource preserves the server's AI settings. To disable AI SQL review, set sql_review_enabled to false and apply before removal. On self-hosted instances, set enabled to false and apply to disable general AI. (see [below for nested schema](#nestedblock--ai))
 - `app_im` (Block List, Max: 1) The APP_IM workspace setting. Configures Slack/Feishu/Wecom/Lark/DingTalk/Teams integrations. All credential and identifier fields are write-only — the server returns empty payloads on GET, so values cannot round-trip through state. This resource owns all six integrations: omitted blocks disable those integrations, and destroying the resource disables all integrations. (see [below for nested schema](#nestedblock--app_im))
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `classification` (Block List, Max: 1) Classification for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--classification))
 - `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
+- `export` (Block List, Max: 1) The workspace SharePoint export application. Requires the SharePoint export license feature and a self-hosted server. Omitted fields preserve server values. Configure an empty export {} block to clear the application and its secret. Destroying the resource preserves these shared credentials. (see [below for nested schema](#nestedblock--export))
 - `mcp` (Block List, Max: 1) The MCP workspace setting. Removing the Terraform resource disables MCP for the workspace. (see [below for nested schema](#nestedblock--mcp))
 - `semantic_types` (Block Set) Semantic types for data masking. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--semantic_types))
 - `workspace_profile` (Block List, Max: 1) (see [below for nested schema](#nestedblock--workspace_profile))
@@ -44,10 +45,11 @@ Optional:
 - `endpoint` (String) The AI API endpoint. Required when AI is enabled. Cannot be changed in SaaS mode.
 - `model` (String) The AI model. Required when AI is enabled. Cannot be changed in SaaS mode.
 - `provider` (String) AI provider. Cannot be changed in SaaS mode.
+- `sql_review_enabled` (Boolean) Whether AI SQL review is enabled. Enabling it requires a Bytebase plan that includes AI SQL review. This does not change whether general AI features are enabled. In SaaS mode, configure only this field.
 
 Read-Only:
 
-- `version` (String) The API version reported by Bytebase. Read-only because Bytebase 3.24 does not support updating this field.
+- `version` (String) The API version reported by Bytebase. Read-only.
 
 
 <a id="nestedblock--app_im"></a>
@@ -216,6 +218,29 @@ Required:
 - `green` (Number) The amount of green in the color as a value in the interval [0, 1].
 - `red` (Number) The amount of red in the color as a value in the interval [0, 1].
 
+
+
+
+<a id="nestedblock--export"></a>
+### Nested Schema for `export`
+
+Optional:
+
+- `sharepoint` (Block List, Max: 1) The Microsoft Entra application used to upload exports to SharePoint. (see [below for nested schema](#nestedblock--export--sharepoint))
+
+<a id="nestedblock--export--sharepoint"></a>
+### Nested Schema for `export.sharepoint`
+
+Optional:
+
+- `client_id` (String) The Microsoft Entra application ID. Omit to preserve the current value.
+- `client_secret` (String, Sensitive) The application secret. Write-only: never stored in Terraform state. Set client_secret_version to a positive integer and increment it whenever this value changes. Omit both to preserve the stored secret.
+- `client_secret_version` (Number) Local rotation marker, not a server version. Set to at least 1 with client_secret and increment to rotate it. Unrelated updates never resend an unchanged secret.
+- `tenant_id` (String) The Microsoft Entra tenant ID. Omit to preserve the current value.
+
+Read-Only:
+
+- `client_secret_set` (Boolean) Whether the server stores a SharePoint application secret. The secret is never returned.
 
 
 

@@ -17,7 +17,7 @@ The setting data source.
 
 ### Required
 
-- `name` (String) The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", and "MCP". Check the proto https://github.com/bytebase/bytebase/blob/release/3.24.0/proto/v1/v1/setting_service.proto for details.
+- `name` (String) The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", "MCP", and "EXPORT".
 
 ### Optional
 
@@ -31,6 +31,7 @@ The setting data source.
 - `app_im` (List of Object) The APP_IM workspace setting. Configures Slack/Feishu/Wecom/Lark/DingTalk/Teams integrations. All credential and identifier fields are write-only — the server returns empty payloads on GET, so values cannot round-trip through state. (see [below for nested schema](#nestedatt--app_im))
 - `approval_flow` (Block List) Configure risk level and approval flow for different tasks. Require ENTERPRISE subscription. (see [below for nested schema](#nestedblock--approval_flow))
 - `environment_setting` (Block List) The environment (see [below for nested schema](#nestedblock--environment_setting))
+- `export` (List of Object) The workspace SharePoint export application. Requires the SharePoint export license feature and a self-hosted server. (see [below for nested schema](#nestedatt--export))
 - `id` (String) The ID of this resource.
 - `mcp` (List of Object) The MCP workspace setting. (see [below for nested schema](#nestedatt--mcp))
 
@@ -224,6 +225,7 @@ Read-Only:
 - `endpoint` (String)
 - `model` (String)
 - `provider` (String)
+- `sql_review_enabled` (Boolean)
 - `version` (String)
 
 
@@ -351,6 +353,24 @@ Read-Only:
 - `green` (Number)
 - `red` (Number)
 
+
+
+
+<a id="nestedatt--export"></a>
+### Nested Schema for `export`
+
+Read-Only:
+
+- `sharepoint` (List of Object) (see [below for nested schema](#nestedobjatt--export--sharepoint))
+
+<a id="nestedobjatt--export--sharepoint"></a>
+### Nested Schema for `export.sharepoint`
+
+Read-Only:
+
+- `client_id` (String)
+- `client_secret_set` (Boolean)
+- `tenant_id` (String)
 
 
 

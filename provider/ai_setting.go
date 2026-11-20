@@ -38,6 +38,10 @@ func getAISetting(computed bool) *schema.Schema {
 			Type:        schema.TypeString,
 			Description: "The AI model. Required when AI is enabled. Cannot be changed in SaaS mode.",
 		},
+		"sql_review_enabled": {
+			Type:        schema.TypeBool,
+			Description: "Whether AI SQL review is enabled. Enabling it requires a Bytebase plan that includes AI SQL review. This does not change whether general AI features are enabled. In SaaS mode, configure only this field.",
+		},
 	}
 	for _, field := range fields {
 		field.Optional = !computed
@@ -50,11 +54,11 @@ func getAISetting(computed bool) *schema.Schema {
 	fields["version"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Computed:    true,
-		Description: "The API version reported by Bytebase. Read-only because Bytebase 3.24 does not support updating this field.",
+		Description: "The API version reported by Bytebase. Read-only.",
 	}
 	description := "The AI workspace setting."
 	if !computed {
-		description += " Omitted fields are not changed. AI provider settings are managed by the server in SaaS mode. Removing the Terraform resource preserves the server's AI settings; explicitly set enabled to false and apply before removal to disable AI."
+		description += " Omitted fields are not changed. AI provider settings are managed by the server in SaaS mode. Removing the Terraform resource preserves the server's AI settings. To disable AI SQL review, set sql_review_enabled to false and apply before removal. On self-hosted instances, set enabled to false and apply to disable general AI."
 	}
 	return singletonBlock(computed, description, fields)
 }
@@ -70,7 +74,7 @@ func convertToV1AISetting(d *schema.ResourceData) (*v1pb.AISetting, []string, er
 	}
 	setting := &v1pb.AISetting{}
 	masks := []string{}
-	for _, field := range []string{"enabled", "provider", "endpoint", "api_key", "model"} {
+	for _, field := range []string{"enabled", "provider", "endpoint", "api_key", "model", "sql_review_enabled"} {
 		value := ai.GetAttr(field)
 		if value.IsNull() || !value.IsKnown() {
 			continue
@@ -91,6 +95,8 @@ func convertToV1AISetting(d *schema.ResourceData) (*v1pb.AISetting, []string, er
 			setting.ApiKey = value.AsString()
 		case "model":
 			setting.Model = value.AsString()
+		case "sql_review_enabled":
+			setting.SqlReviewEnabled = value.True()
 		default:
 			return nil, nil, errors.Errorf("unsupported AI setting field %q", field)
 		}
@@ -105,11 +111,12 @@ func flattenAISetting(setting *v1pb.AISetting, previousKey string) []interface{}
 		apiKey = previousKey
 	}
 	return []interface{}{map[string]interface{}{
-		"enabled":  setting.GetEnabled(),
-		"provider": setting.GetProvider().String(),
-		"endpoint": setting.GetEndpoint(),
-		"api_key":  apiKey,
-		"model":    setting.GetModel(),
-		"version":  setting.GetVersion(),
+		"enabled":            setting.GetEnabled(),
+		"provider":           setting.GetProvider().String(),
+		"endpoint":           setting.GetEndpoint(),
+		"api_key":            apiKey,
+		"model":              setting.GetModel(),
+		"version":            setting.GetVersion(),
+		"sql_review_enabled": setting.GetSqlReviewEnabled(),
 	}}
 }

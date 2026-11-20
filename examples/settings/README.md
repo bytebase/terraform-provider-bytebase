@@ -4,8 +4,8 @@ This example configures AI and MCP and reads the workspace's approval, profile,
 classification, and semantic-type settings. Run the [setup example](../setup/)
 first to populate the settings being queried.
 
-Use Bytebase 3.24.0 and provider 3.24.0. The example uses the Terraform Registry
-provider once version 3.24.0 is published. For local development, follow the
+Use Bytebase 3.25.0 and provider 3.25.0. The example uses the Terraform Registry
+provider once version 3.25.0 is published. For local development, follow the
 [local development instructions](../README.md) and change the provider source to
 `terraform.local/bytebase/bytebase`.
 
@@ -25,6 +25,19 @@ non-secret AI fields. `version` is read-only in Bytebase 3.24.0.
 
 Removing the AI resource preserves the server's configuration. To disable AI,
 set `enabled = false` and apply before removal.
+
+AI SQL review has a separate `ai.sql_review_enabled` switch. See the dedicated
+[AI review example](../ai_review/) for the licensed feature, including a SaaS
+toggle-only configuration. Enabling general AI here does not enable AI SQL
+review. Add the switch to the existing resource if it already manages
+`settings/AI`; do not manage the same setting in two resources.
+
+## SharePoint Export
+
+The dedicated [SharePoint example](../sharepoint/) configures `settings/EXPORT`
+and a project's export destination. It requires a self-hosted server with the
+SharePoint export license feature. This settings example does not enable that
+feature or change shared export credentials.
 
 ## MCP
 

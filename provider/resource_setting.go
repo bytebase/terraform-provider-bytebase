@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -46,7 +47,7 @@ func resourceSettingSchema() map[string]*schema.Schema {
 		"name": {
 			Type:        schema.TypeString,
 			Required:    true,
-			Description: `The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", and "MCP". Check the proto https://github.com/bytebase/bytebase/blob/release/3.24.0/proto/v1/v1/setting_service.proto for details.`,
+			Description: `The setting name in settings/{name} format. Supports "WORKSPACE_APPROVAL", "WORKSPACE_PROFILE", "DATA_CLASSIFICATION", "SEMANTIC_TYPES", "ENVIRONMENT", "APP_IM", "AI", "MCP", and "EXPORT".`,
 			ValidateDiagFunc: internal.ResourceNameValidation(
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_APPROVAL.String()),
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_WORKSPACE_PROFILE.String()),
@@ -56,6 +57,7 @@ func resourceSettingSchema() map[string]*schema.Schema {
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_APP_IM.String()),
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_AI.String()),
 				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_MCP.String()),
+				fmt.Sprintf("^%s%s$", internal.SettingNamePrefix, v1pb.Setting_EXPORT.String()),
 			),
 		},
 		"approval_flow":       getWorkspaceApprovalSetting(false),
@@ -66,6 +68,7 @@ func resourceSettingSchema() map[string]*schema.Schema {
 		"app_im":              getAppIMSetting(false),
 		"ai":                  getAISetting(false),
 		"mcp":                 getMCPSetting(false),
+		"export":              getExportSetting(false),
 	}
 }
 
@@ -85,6 +88,8 @@ func validateSettingShape(_ context.Context, d *schema.ResourceDiff, _ interface
 	mcpName := fmt.Sprintf("%s%s", internal.SettingNamePrefix, v1pb.Setting_MCP.String())
 	blockName := ""
 	switch nameValue.AsString() {
+	case "settings/EXPORT":
+		return validateExportSettingConfig(rawConfig)
 	case appIMName:
 		blockName = "app_im"
 	case aiName:
@@ -109,6 +114,10 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 	name, err := internal.GetSettingName(settingName)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+	if name == v1pb.Setting_EXPORT {
+		// A failed credential write must not advance the local rotation marker.
+		d.Partial(true)
 	}
 
 	setting := &v1pb.Setting{
@@ -193,14 +202,34 @@ func resourceSettingUpsert(ctx context.Context, d *schema.ResourceData, m interf
 		}
 		setting.Value = &v1pb.SettingValue{Value: &v1pb.SettingValue_Mcp{Mcp: mcpSetting}}
 		updateMasks = []string{"value.mcp.capability"}
+	case v1pb.Setting_EXPORT:
+		exportSetting, masks, err := convertToV1ExportSetting(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		setting.Value = &v1pb.SettingValue{Value: &v1pb.SettingValue_Export{Export: exportSetting}}
+		updateMasks = masks
 	default:
 		return diag.FromErr(errors.Errorf("Unsupport setting: %v", name))
 	}
 
+	if len(updateMasks) == 0 && (name == v1pb.Setting_AI || name == v1pb.Setting_EXPORT) {
+		current, err := c.GetSetting(ctx, settingName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(current.Name)
+		d.Partial(false)
+		return setSettingMessage(d, current, false)
+	}
 	updatedSetting, err := c.UpsertSetting(ctx, setting, updateMasks)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	if name == v1pb.Setting_EXPORT && slices.Contains(updateMasks, "value.export.sharepoint.client_secret") && !updatedSetting.GetValue().GetExport().GetSharepoint().GetClientSecretSet() {
+		return diag.Errorf("SharePoint secret was not stored. Configure both tenant_id and client_id for an unconfigured application before setting or rotating its secret.")
+	}
+	d.Partial(false)
 
 	d.SetId(updatedSetting.Name)
 
@@ -657,7 +686,7 @@ func resourceSettingRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
-	return setSettingMessage(d, setting)
+	return setSettingMessage(d, setting, false)
 }
 
 func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -744,7 +773,14 @@ func resourceSettingDelete(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.Diagnostics{{
 			Severity: diag.Warning,
 			Summary:  "AI settings are preserved",
-			Detail:   "Removing the Terraform resource does not change the server's AI settings. To disable AI, explicitly set enabled to false and apply before removing the resource.",
+			Detail:   "Removing the Terraform resource does not change the server's AI settings. Set sql_review_enabled to false and apply to disable AI review. On self-hosted servers, set enabled to false and apply to disable AI entirely before removing the resource.",
+		}}
+	case v1pb.Setting_EXPORT:
+		d.SetId("")
+		return diag.Diagnostics{{
+			Severity: diag.Warning,
+			Summary:  "SharePoint export credentials are preserved",
+			Detail:   "Removing the Terraform resource preserves these shared workspace credentials. To remove the application and its secret, configure an empty export {} block and apply before removing the resource.",
 		}}
 	case v1pb.Setting_MCP:
 		setting.Value = &v1pb.SettingValue{Value: &v1pb.SettingValue_Mcp{Mcp: &v1pb.MCPSetting{Capability: v1pb.MCPSetting_DISABLED}}}
