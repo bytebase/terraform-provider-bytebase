@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
@@ -101,12 +102,12 @@ func TestIAMPolicyKeyedTerraformPlan(t *testing.T) {
 				Config: strings.Replace(config(bob, "analytics"), "readers = {", "renamed = {", 1),
 				ConfigPlanChecks: keyedIAMPreApply(keyedIAMPlanCheck(func(change *tfjson.Change) error {
 					if !change.Actions.Update() {
-						return fmt.Errorf("key rename must update in place, got %v", change.Actions)
+						return errors.Errorf("key rename must update in place, got %v", change.Actions)
 					}
 					before, after := keyedIAMPlanBindings(change.Before), keyedIAMPlanBindings(change.After)
 					if len(before) != 2 || len(after) != 2 || before["renamed"] != nil || after["readers"] != nil ||
 						!reflect.DeepEqual(before["readers"], after["renamed"]) || !reflect.DeepEqual(before["writers"], after["writers"]) {
-						return fmt.Errorf("key rename changed grants: before=%v after=%v", before, after)
+						return errors.Errorf("key rename changed grants: before=%v after=%v", before, after)
 					}
 					return nil
 				})),
@@ -186,7 +187,7 @@ resource "bytebase_iam_policy" "test" {
 					defer client.mu.Unlock()
 					current := client.policy.Bindings[0].GetCondition().GetExpression()
 					if legacyExpression == "" || normalizeIAMConditionExpression(legacyExpression) != normalizeIAMConditionExpression(current) {
-						return fmt.Errorf("migration changed condition semantics: before=%q after=%q", legacyExpression, current)
+						return errors.Errorf("migration changed condition semantics: before=%q after=%q", legacyExpression, current)
 					}
 					return nil
 				},
@@ -222,19 +223,19 @@ func TestIAMPolicyKeyedTerraformDrift(t *testing.T) {
 				Config: config,
 				ConfigPlanChecks: keyedIAMPreApply(keyedIAMPlanCheck(func(change *tfjson.Change) error {
 					if !change.Actions.Update() {
-						return fmt.Errorf("drift should update in place, got %v", change.Actions)
+						return errors.Errorf("drift should update in place, got %v", change.Actions)
 					}
 					before, after := keyedIAMPlanBindings(change.Before), keyedIAMPlanBindings(change.After)
 					if len(before) != 2 || len(after) != 1 {
-						return fmt.Errorf("remote binding must remain visible as drift: before=%v after=%v", before, after)
+						return errors.Errorf("remote binding must remain visible as drift: before=%v after=%v", before, after)
 					}
 					readers, ok := before["readers"].(map[string]interface{})
 					if !ok || !reflect.DeepEqual(keyedIAMSortedMembers(readers["members"]), []string{"user:alice@example.com", "user:remote@example.com"}) {
-						return fmt.Errorf("remote member drift lost the readers key or grant: %v", before)
+						return errors.Errorf("remote member drift lost the readers key or grant: %v", before)
 					}
 					for key, value := range before {
 						if key != "readers" && value.(map[string]interface{})["role"] != "roles/remote" {
-							return fmt.Errorf("unexpected generated binding: %s=%v", key, value)
+							return errors.Errorf("unexpected generated binding: %s=%v", key, value)
 						}
 					}
 					return nil
@@ -243,7 +244,7 @@ func TestIAMPolicyKeyedTerraformDrift(t *testing.T) {
 					client.mu.Lock()
 					defer client.mu.Unlock()
 					if len(client.policy.Bindings) != 1 || !reflect.DeepEqual(client.policy.Bindings[0].Members, []string{"user:alice@example.com"}) {
-						return fmt.Errorf("authoritative apply did not correct drift: %v", client.policy)
+						return errors.Errorf("authoritative apply did not correct drift: %v", client.policy)
 					}
 					return nil
 				},
@@ -271,15 +272,15 @@ func TestIAMPolicyKeyedTerraformWorkspaceImport(t *testing.T) {
 			{
 				ResourceName:  keyedIAMAddress,
 				ImportState:   true,
-				ImportStateId: "workspaces/test-workspace",
+				ImportStateID: "workspaces/test-workspace",
 				ImportStateCheck: func(state *tfjson.State) error {
 					values := keyedIAMStateValues(state)
 					if values["id"] != "workspaces/test-workspace" || values["parent"] != "workspaces/test-workspace" {
-						return fmt.Errorf("unexpected imported policy: %v", values)
+						return errors.Errorf("unexpected imported policy: %v", values)
 					}
 					bindings, ok := values["bindings"].(map[string]interface{})
 					if !ok || len(bindings) != 1 {
-						return fmt.Errorf("import should expose keyed bindings: %v", values)
+						return errors.Errorf("import should expose keyed bindings: %v", values)
 					}
 					for _, value := range bindings {
 						binding := value.(map[string]interface{})
@@ -287,7 +288,7 @@ func TestIAMPolicyKeyedTerraformWorkspaceImport(t *testing.T) {
 							return nil
 						}
 					}
-					return fmt.Errorf("imported binding is missing grants: %v", bindings)
+					return errors.Errorf("imported binding is missing grants: %v", bindings)
 				},
 			},
 		},
@@ -417,7 +418,7 @@ type keyedIAMTestStep struct {
 	ExpectError              *regexp.Regexp
 	ResourceName             string
 	ImportState              bool
-	ImportStateId            string
+	ImportStateID            string
 	ImportStateCheck         func(*tfjson.State) error
 }
 
@@ -475,7 +476,7 @@ provider "bytebase" {}
 				if err := os.Remove(filepath.Join(dir, "terraform.tfstate")); err != nil {
 					t.Fatal(err)
 				}
-				if err := tf.Import(ctx, step.ResourceName, step.ImportStateId, tfexec.Reattach(reattach)); err != nil {
+				if err := tf.Import(ctx, step.ResourceName, step.ImportStateID, tfexec.Reattach(reattach)); err != nil {
 					t.Fatalf("step %d: terraform import: %v", index+1, err)
 				}
 			} else {
@@ -577,7 +578,7 @@ func keyedIAMServe(t *testing.T, server tfprotov6.ProviderServer) (tfexec.Reatta
 func keyedIAMExpectAction(_ string, expected string) keyedIAMPlanCheck {
 	return func(change *tfjson.Change) error {
 		if len(change.Actions) != 1 || string(change.Actions[0]) != expected {
-			return fmt.Errorf("expected %s action, got %v", expected, change.Actions)
+			return errors.Errorf("expected %s action, got %v", expected, change.Actions)
 		}
 		return nil
 	}
@@ -603,7 +604,7 @@ func keyedIAMResourceAttr(_ string, path, expected string) func(*tfjson.State) e
 			}
 		}
 		if value != expected {
-			return fmt.Errorf("%s: expected %s, got %v", path, expected, value)
+			return errors.Errorf("%s: expected %s, got %v", path, expected, value)
 		}
 		return nil
 	}
@@ -661,20 +662,20 @@ type keyedIAMPlanCheck func(*tfjson.Change) error
 func keyedIAMBindingChange(key, field string, expectedBefore, expectedAfter interface{}) keyedIAMPlanCheck {
 	return keyedIAMPlanCheck(func(change *tfjson.Change) error {
 		if !change.Actions.Update() {
-			return fmt.Errorf("binding edit must update in place, got %v", change.Actions)
+			return errors.Errorf("binding edit must update in place, got %v", change.Actions)
 		}
 		before, after := keyedIAMPlanBindings(change.Before), keyedIAMPlanBindings(change.After)
 		if len(before) != len(after) || len(before) != 2 {
-			return fmt.Errorf("binding edit changed map keys: before=%v after=%v", before, after)
+			return errors.Errorf("binding edit changed map keys: before=%v after=%v", before, after)
 		}
 		for bindingKey, beforeValue := range before {
 			afterValue, ok := after[bindingKey]
 			if !ok {
-				return fmt.Errorf("binding edit lost key %q", bindingKey)
+				return errors.Errorf("binding edit lost key %q", bindingKey)
 			}
 			if bindingKey != key {
 				if !reflect.DeepEqual(beforeValue, afterValue) {
-					return fmt.Errorf("binding edit changed unrelated binding %q: before=%v after=%v", bindingKey, beforeValue, afterValue)
+					return errors.Errorf("binding edit changed unrelated binding %q: before=%v after=%v", bindingKey, beforeValue, afterValue)
 				}
 				continue
 			}
@@ -686,7 +687,7 @@ func keyedIAMBindingChange(key, field string, expectedBefore, expectedAfter inte
 						oldValue, newValue = keyedIAMSortedMembers(oldValue), keyedIAMSortedMembers(newValue)
 					}
 					if !reflect.DeepEqual(oldValue, expectedBefore) || !reflect.DeepEqual(newValue, expectedAfter) {
-						return fmt.Errorf("unexpected %s change: before=%v after=%v", field, oldValue, newValue)
+						return errors.Errorf("unexpected %s change: before=%v after=%v", field, oldValue, newValue)
 					}
 					continue
 				}
@@ -696,16 +697,16 @@ func keyedIAMBindingChange(key, field string, expectedBefore, expectedAfter inte
 						newConditionValue := newCondition[conditionField]
 						if "condition."+conditionField == field {
 							if oldConditionValue != expectedBefore || newConditionValue != expectedAfter {
-								return fmt.Errorf("unexpected %s change: before=%v after=%v", field, oldConditionValue, newConditionValue)
+								return errors.Errorf("unexpected %s change: before=%v after=%v", field, oldConditionValue, newConditionValue)
 							}
 						} else if !reflect.DeepEqual(oldConditionValue, newConditionValue) {
-							return fmt.Errorf("condition edit changed unrelated field %q", conditionField)
+							return errors.Errorf("condition edit changed unrelated field %q", conditionField)
 						}
 					}
 					continue
 				}
 				if !reflect.DeepEqual(oldValue, newValue) {
-					return fmt.Errorf("binding edit changed unrelated field %q: before=%v after=%v", attribute, oldValue, newValue)
+					return errors.Errorf("binding edit changed unrelated field %q: before=%v after=%v", attribute, oldValue, newValue)
 				}
 			}
 		}
@@ -743,7 +744,7 @@ func newKeyedIAMTestClient() *keyedIAMTestClient {
 
 func (*keyedIAMTestClient) GetWorkspaceName() string { return "workspaces/test-workspace" }
 
-func (client *keyedIAMTestClient) GetRole(_ context.Context, name string) (*v1pb.Role, error) {
+func (*keyedIAMTestClient) GetRole(_ context.Context, name string) (*v1pb.Role, error) {
 	return &v1pb.Role{Name: name, Permissions: []string{"bb.sql.select", "bb.sql.ddl"}}, nil
 }
 
@@ -762,7 +763,7 @@ func (client *keyedIAMTestClient) SetProjectIAMPolicy(_ context.Context, parent 
 	defer client.mu.Unlock()
 	client.writes++
 	if request.Resource != parent {
-		return nil, fmt.Errorf("policy request parent %q does not match %q", request.Resource, parent)
+		return nil, errors.Errorf("policy request parent %q does not match %q", request.Resource, parent)
 	}
 	if client.conflictNext {
 		client.conflictNext = false
@@ -770,7 +771,7 @@ func (client *keyedIAMTestClient) SetProjectIAMPolicy(_ context.Context, parent 
 	}
 	if client.checkEtag && request.Policy.Etag != client.policy.Etag {
 		client.conflicts++
-		return nil, fmt.Errorf("etag conflict: sent %q, current %q", request.Policy.Etag, client.policy.Etag)
+		return nil, errors.Errorf("etag conflict: sent %q, current %q", request.Policy.Etag, client.policy.Etag)
 	}
 	client.policy = proto.Clone(request.Policy).(*v1pb.IamPolicy)
 	client.nextEtag()

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	v1pb "buf.build/gen/go/bytebase/bytebase/protocolbuffers/go/v1"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -151,7 +152,7 @@ func validateIAMBindingIdentities(bindings map[string]*v1pb.Binding) error {
 	for _, key := range sortedIAMBindingKeys(bindings) {
 		identity := iamBindingIdentity(bindings[key])
 		if previous, ok := seen[identity]; ok {
-			return fmt.Errorf("bindings %q and %q have the same role and condition; combine their members into one binding", previous, key)
+			return errors.Errorf("bindings %q and %q have the same role and condition; combine their members into one binding", previous, key)
 		}
 		seen[identity] = key
 	}
@@ -170,11 +171,11 @@ func reconcileIAMBindings(remote []*v1pb.Binding, prior map[string]*v1pb.Binding
 		if existing := merged[identity]; existing != nil {
 			existing.Members = append(existing.Members, binding.Members...)
 		} else {
-			copy := proto.Clone(binding).(*v1pb.Binding)
-			if copy.GetCondition().GetTitle() == "" && copy.GetCondition().GetDescription() == "" && copy.GetCondition().GetExpression() == "" && copy.GetCondition().GetLocation() == "" {
-				copy.Condition = nil
+			cloned := proto.Clone(binding).(*v1pb.Binding)
+			if cloned.GetCondition().GetTitle() == "" && cloned.GetCondition().GetDescription() == "" && cloned.GetCondition().GetExpression() == "" && cloned.GetCondition().GetLocation() == "" {
+				cloned.Condition = nil
 			}
-			merged[identity] = copy
+			merged[identity] = cloned
 		}
 	}
 	for _, binding := range merged {

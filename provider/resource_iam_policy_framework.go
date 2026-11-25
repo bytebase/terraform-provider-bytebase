@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdkschema "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/type/expr"
 
 	"github.com/bytebase/terraform-provider-bytebase/api"
@@ -95,6 +96,8 @@ func iamFrameworkLegacyConditionAttributes() map[string]schema.Attribute {
 			attribute.Computed = true
 			attribute.Default = setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{}))
 			attributes[name] = attribute
+		default:
+			continue
 		}
 	}
 	return attributes
@@ -306,7 +309,7 @@ func (r *iamPolicyFrameworkResource) getPolicy(ctx context.Context, parent strin
 		policy, err = r.client.GetWorkspaceIAMPolicy(ctx)
 	}
 	if err == nil && policy == nil {
-		return nil, fmt.Errorf("server returned an empty IAM policy")
+		return nil, errors.New("server returned an empty IAM policy")
 	}
 	return policy, err
 }
@@ -317,7 +320,7 @@ func (r *iamPolicyFrameworkResource) upsert(ctx context.Context, model *iamPolic
 		return err
 	}
 	if !known {
-		return fmt.Errorf("IAM policy bindings must be known before apply")
+		return errors.New("IAM policy bindings must be known before apply")
 	}
 	if !model.Bindings.IsNull() {
 		if err := validateIAMBindingIdentities(bindings); err != nil {
@@ -329,16 +332,16 @@ func (r *iamPolicyFrameworkResource) upsert(ctx context.Context, model *iamPolic
 	for key := range bindings {
 		keys = append(keys, key)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 	for _, key := range keys {
 		binding := bindings[key]
 		role, err := r.client.GetRole(ctx, binding.Role)
 		if err != nil {
-			return fmt.Errorf("failed to get role %s: %w", binding.Role, err)
+			return errors.Wrapf(err, "failed to get role %s", binding.Role)
 		}
 		if binding.Condition != nil && strings.Contains(binding.Condition.Expression, internal.CELAttributeResourceDatabase) && !roleContainsAnyPermission(role,
 			"bb.sql.select", "bb.sql.export", "bb.sql.ddl", "bb.sql.dml", "bb.sql.explain", "bb.sql.info") {
-			return fmt.Errorf(`role "%s" without "bb.sql." permissions shouldn't configure the database condition`, binding.Role)
+			return errors.Errorf(`role "%s" without "bb.sql." permissions shouldn't configure the database condition`, binding.Role)
 		}
 		policy.Bindings = append(policy.Bindings, binding)
 	}
@@ -389,6 +392,8 @@ func iamFrameworkValueKnown(value attr.Value) bool {
 				return false
 			}
 		}
+	default:
+		return true
 	}
 	return true
 }
@@ -401,11 +406,11 @@ func iamFrameworkBindings(model iamPolicyFrameworkModel) (map[string]*v1pb.Bindi
 		}
 		for key, value := range model.Bindings.Elements() {
 			if value.IsNull() {
-				return nil, true, fmt.Errorf("binding %q must not be null", key)
+				return nil, true, errors.Errorf("binding %q must not be null", key)
 			}
 			binding, err := iamFrameworkBinding(value.(types.Object), false)
 			if err != nil {
-				return nil, true, fmt.Errorf("binding %q: %w", key, err)
+				return nil, true, errors.Wrapf(err, "binding %q", key)
 			}
 			bindings[key] = binding
 		}
@@ -415,7 +420,7 @@ func iamFrameworkBindings(model iamPolicyFrameworkModel) (map[string]*v1pb.Bindi
 		return bindings, false, nil
 	}
 	if len(model.IAMPolicy.Elements()) != 1 {
-		return nil, true, fmt.Errorf("configure bindings or exactly one iam_policy block")
+		return nil, true, errors.New("configure bindings or exactly one iam_policy block")
 	}
 	policy := model.IAMPolicy.Elements()[0].(types.Object)
 	for i, value := range policy.Attributes()["binding"].(types.Set).Elements() {
@@ -446,14 +451,14 @@ func iamFrameworkBinding(object types.Object, legacy bool) (*v1pb.Binding, error
 	for _, member := range members.Elements() {
 		value := member.(types.String).ValueString()
 		if value != "allUsers" && !strings.HasPrefix(value, "user:") && !strings.HasPrefix(value, "group:") && !strings.HasPrefix(value, "serviceAccount:") && !strings.HasPrefix(value, "workloadIdentity:") {
-			return nil, fmt.Errorf("invalid member %q", value)
+			return nil, errors.Errorf("invalid member %q", value)
 		}
 	}
 	raw := map[string]interface{}{"role": role, "members": iamFrameworkStringSet(members)}
 	var condition types.Object
 	conditionSet := attributes["condition"].(types.Set)
 	if len(conditionSet.Elements()) > 1 {
-		return nil, fmt.Errorf("should only set one condition")
+		return nil, errors.New("should only set one condition")
 	}
 	if len(conditionSet.Elements()) == 1 {
 		condition = conditionSet.Elements()[0].(types.Object)
@@ -467,13 +472,15 @@ func iamFrameworkBinding(object types.Object, legacy bool) (*v1pb.Binding, error
 				rawCondition[name] = value.ValueString()
 			case types.Set:
 				rawCondition[name] = iamFrameworkStringSet(value)
+			default:
+				continue
 			}
 		}
 		if database, _ := rawCondition["database"].(string); database == "" {
 			schema, _ := rawCondition["schema"].(string)
 			tables, _ := rawCondition["tables"].(*sdkschema.Set)
 			if schema != "" || tables != nil && tables.Len() > 0 {
-				return nil, fmt.Errorf("condition schema and tables require a nonempty database")
+				return nil, errors.New("condition schema and tables require a nonempty database")
 			}
 		}
 		conditions = append(conditions, rawCondition)
@@ -486,20 +493,20 @@ func iamFrameworkKeyedBinding(object types.Object) (*v1pb.Binding, error) {
 	attributes := object.Attributes()
 	role := attributes["role"].(types.String).ValueString()
 	if !strings.HasPrefix(role, internal.RoleNamePrefix) {
-		return nil, fmt.Errorf("invalid role format, role must in roles/{id} format")
+		return nil, errors.New("invalid role format, role must in roles/{id} format")
 	}
 	binding := &v1pb.Binding{Role: role}
 	for _, member := range attributes["members"].(types.Set).Elements() {
 		value := member.(types.String).ValueString()
 		if value != "allUsers" && !strings.HasPrefix(value, "user:") && !strings.HasPrefix(value, "group:") && !strings.HasPrefix(value, "serviceAccount:") && !strings.HasPrefix(value, "workloadIdentity:") {
-			return nil, fmt.Errorf("invalid member %q", value)
+			return nil, errors.Errorf("invalid member %q", value)
 		}
 		binding.Members = append(binding.Members, value)
 	}
 	if len(binding.Members) == 0 {
-		return nil, fmt.Errorf("empty members")
+		return nil, errors.New("empty members")
 	}
-	sort.Strings(binding.Members)
+	slices.Sort(binding.Members)
 	condition := attributes["condition"].(types.Object)
 	if condition.IsNull() {
 		return binding, nil
@@ -508,7 +515,7 @@ func iamFrameworkKeyedBinding(object types.Object) (*v1pb.Binding, error) {
 	for _, field := range []string{"tables", "environment_ids"} {
 		for _, element := range conditionAttributes[field].(types.Set).Elements() {
 			if element.IsNull() {
-				return nil, fmt.Errorf("condition %s must not contain null elements", field)
+				return nil, errors.Errorf("condition %s must not contain null elements", field)
 			}
 		}
 	}
@@ -516,7 +523,7 @@ func iamFrameworkKeyedBinding(object types.Object) (*v1pb.Binding, error) {
 	schema := conditionAttributes["schema"].(types.String).ValueString()
 	tables := conditionAttributes["tables"].(types.Set)
 	if database == "" && (schema != "" || len(tables.Elements()) > 0) {
-		return nil, fmt.Errorf("condition schema and tables require a nonempty database")
+		return nil, errors.New("condition schema and tables require a nonempty database")
 	}
 	clauses := []string{}
 	appendString := func(attribute, value string) {
@@ -531,7 +538,7 @@ func iamFrameworkKeyedBinding(object types.Object) (*v1pb.Binding, error) {
 		for _, item := range set.Elements() {
 			values = append(values, item.(types.String).ValueString())
 		}
-		sort.Strings(values)
+		slices.Sort(values)
 		encoded, _ := json.Marshal(values)
 		clauses = append(clauses, attribute+" in "+string(encoded))
 	}
@@ -545,7 +552,7 @@ func iamFrameworkKeyedBinding(object types.Object) (*v1pb.Binding, error) {
 	if expiry := conditionAttributes["expire_timestamp"].(types.String).ValueString(); expiry != "" {
 		parsed, err := time.Parse(time.RFC3339Nano, expiry)
 		if err != nil {
-			return nil, fmt.Errorf("invalid time %q: %w", expiry, err)
+			return nil, errors.Wrapf(err, "invalid time %q", expiry)
 		}
 		encoded, _ := json.Marshal(parsed.Format(time.RFC3339Nano))
 		clauses = append(clauses, internal.CELAttributeRequestTime+" < timestamp("+string(encoded)+")")
@@ -559,7 +566,7 @@ func iamFrameworkKeyedBinding(object types.Object) (*v1pb.Binding, error) {
 
 func iamFrameworkSetPolicy(model *iamPolicyFrameworkModel, parent string, policy *v1pb.IamPolicy) error {
 	if policy == nil {
-		return fmt.Errorf("server returned an empty IAM policy")
+		return errors.New("server returned an empty IAM policy")
 	}
 	model.ID = types.StringValue(parent)
 	if model.Parent.IsNull() || model.Parent.IsUnknown() {
@@ -649,7 +656,7 @@ func iamFrameworkFlattenBinding(binding *v1pb.Binding, template types.Object, le
 func iamFrameworkFlattenKeyedBinding(binding *v1pb.Binding, template types.Object) (types.Object, error) {
 	condition := binding.GetCondition()
 	unsupported := func() (types.Object, error) {
-		return types.Object{}, fmt.Errorf("binding for %q has a condition that cannot be represented by bindings; review and update the remote policy to use supported structured conditions before managing it with this resource", binding.Role)
+		return types.Object{}, errors.Errorf("binding for %q has a condition that cannot be represented by bindings; review and update the remote policy to use supported structured conditions before managing it with this resource", binding.Role)
 	}
 	parsed, ok := parseIAMConditionExpression(condition.GetExpression())
 	if !ok || condition.GetTitle() != "" || condition.GetDescription() != "" {

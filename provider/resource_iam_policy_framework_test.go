@@ -135,7 +135,7 @@ func TestIAMPolicyFrameworkUpdateWritesEtagAndFullPolicy(t *testing.T) {
 	state := frameworkIAMState(t, old)
 	planned := frameworkIAMState(t, plan)
 	response := resource.UpdateResponse{State: state}
-	r.Update(ctx, resource.UpdateRequest{State: state, Plan: tfsdk.Plan{Schema: planned.Schema, Raw: planned.Raw}}, &response)
+	r.Update(ctx, resource.UpdateRequest{State: state, Plan: tfsdk.Plan(planned)}, &response)
 	if response.Diagnostics.HasError() {
 		t.Fatal(response.Diagnostics)
 	}
@@ -161,7 +161,7 @@ func TestIAMPolicyFrameworkConflictIsNotRetried(t *testing.T) {
 	r.client = client
 	state := frameworkIAMState(t, frameworkIAMModel(t, "workspaces/test"))
 	response := resource.UpdateResponse{State: state}
-	r.Update(ctx, resource.UpdateRequest{State: state, Plan: tfsdk.Plan{Schema: state.Schema, Raw: state.Raw}}, &response)
+	r.Update(ctx, resource.UpdateRequest{State: state, Plan: tfsdk.Plan(state)}, &response)
 	if !response.Diagnostics.HasError() || len(client.writes) != 1 {
 		t.Fatalf("expected an unretried conflict, got %v, %v", client.writes, response.Diagnostics)
 	}
@@ -201,7 +201,7 @@ func TestIAMPolicyFrameworkUnknownValidation(t *testing.T) {
 		model.Bindings = unknown
 		state := frameworkIAMState(t, model)
 		response := resource.ValidateConfigResponse{}
-		r.ValidateConfig(ctx, resource.ValidateConfigRequest{Config: tfsdk.Config{Schema: state.Schema, Raw: state.Raw}}, &response)
+		r.ValidateConfig(ctx, resource.ValidateConfigRequest{Config: tfsdk.Config(state)}, &response)
 		if response.Diagnostics.HasError() {
 			t.Fatal(response.Diagnostics)
 		}
@@ -284,11 +284,11 @@ func TestIAMPolicyFrameworkLegacyPlanClearsComputedMap(t *testing.T) {
 	plannedModel := model
 	plannedModel.Bindings = types.MapUnknown(iamFrameworkBindingType())
 	planned := frameworkIAMState(t, plannedModel)
-	response := resource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: planned.Schema, Raw: planned.Raw}}
+	response := resource.ModifyPlanResponse{Plan: tfsdk.Plan(planned)}
 	r := newIAMPolicyFrameworkResource().(resource.ResourceWithModifyPlan)
 	r.ModifyPlan(ctx, resource.ModifyPlanRequest{
-		Config: tfsdk.Config{Schema: configured.Schema, Raw: configured.Raw},
-		Plan:   tfsdk.Plan{Schema: planned.Schema, Raw: planned.Raw},
+		Config: tfsdk.Config(configured),
+		Plan:   tfsdk.Plan(planned),
 	}, &response)
 	if response.Diagnostics.HasError() {
 		t.Fatal(response.Diagnostics)
@@ -314,7 +314,7 @@ func TestIAMPolicyFrameworkValidatesDuplicateAndConflictingInputs(t *testing.T) 
 		}
 		state := frameworkIAMState(t, model)
 		response := resource.ValidateConfigResponse{}
-		newIAMPolicyFrameworkResource().(resource.ResourceWithValidateConfig).ValidateConfig(ctx, resource.ValidateConfigRequest{Config: tfsdk.Config{Schema: state.Schema, Raw: state.Raw}}, &response)
+		newIAMPolicyFrameworkResource().(resource.ResourceWithValidateConfig).ValidateConfig(ctx, resource.ValidateConfigRequest{Config: tfsdk.Config(state)}, &response)
 		if !response.Diagnostics.HasError() {
 			t.Fatalf("expected invalid configuration (conflict=%v) to be rejected", conflict)
 		}
@@ -333,11 +333,13 @@ func TestIAMPolicyFrameworkUnknownNestedValidation(t *testing.T) {
 			attributes[field] = types.SetUnknown(types.StringType)
 		case "condition":
 			attributes[field] = types.ObjectUnknown(iamFrameworkConditionType().AttrTypes)
+		default:
+			t.Fatalf("unexpected field %q", field)
 		}
 		model.Bindings = types.MapValueMust(iamFrameworkBindingType(), map[string]attr.Value{"reader": types.ObjectValueMust(iamFrameworkBindingType().AttrTypes, attributes)})
 		state := frameworkIAMState(t, model)
 		response := resource.ValidateConfigResponse{}
-		newIAMPolicyFrameworkResource().(resource.ResourceWithValidateConfig).ValidateConfig(ctx, resource.ValidateConfigRequest{Config: tfsdk.Config{Schema: state.Schema, Raw: state.Raw}}, &response)
+		newIAMPolicyFrameworkResource().(resource.ResourceWithValidateConfig).ValidateConfig(ctx, resource.ValidateConfigRequest{Config: tfsdk.Config(state)}, &response)
 		if response.Diagnostics.HasError() {
 			t.Fatalf("%s should defer validation until known: %v", field, response.Diagnostics)
 		}
@@ -375,10 +377,10 @@ func TestIAMPolicyFrameworkParentChangesDoNotRetainOldPlannedID(t *testing.T) {
 	configured := frameworkIAMState(t, model)
 	model.ID = types.StringUnknown()
 	planned := frameworkIAMState(t, model)
-	response := resource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: planned.Schema, Raw: planned.Raw}}
+	response := resource.ModifyPlanResponse{Plan: tfsdk.Plan(planned)}
 	r.ModifyPlan(ctx, resource.ModifyPlanRequest{
-		State: previous, Config: tfsdk.Config{Schema: configured.Schema, Raw: configured.Raw},
-		Plan: tfsdk.Plan{Schema: planned.Schema, Raw: planned.Raw},
+		State: previous, Config: tfsdk.Config(configured),
+		Plan: tfsdk.Plan(planned),
 	}, &response)
 	if response.Diagnostics.HasError() {
 		t.Fatal(response.Diagnostics)
@@ -419,7 +421,7 @@ func TestIAMPolicyFrameworkChangedParentUsesTargetEtag(t *testing.T) {
 	model.ID = types.StringUnknown()
 	planned := frameworkIAMState(t, model)
 	response := resource.UpdateResponse{State: previous}
-	r.Update(ctx, resource.UpdateRequest{State: previous, Plan: tfsdk.Plan{Schema: planned.Schema, Raw: planned.Raw}}, &response)
+	r.Update(ctx, resource.UpdateRequest{State: previous, Plan: tfsdk.Plan(planned)}, &response)
 	if response.Diagnostics.HasError() {
 		t.Fatal(response.Diagnostics)
 	}
@@ -463,7 +465,7 @@ func TestIAMPolicyFrameworkCreateReadsExistingPolicyEtag(t *testing.T) {
 	model.ID = types.StringUnknown()
 	planned := frameworkIAMState(t, model)
 	response := resource.CreateResponse{State: planned}
-	r.Create(ctx, resource.CreateRequest{Plan: tfsdk.Plan{Schema: planned.Schema, Raw: planned.Raw}}, &response)
+	r.Create(ctx, resource.CreateRequest{Plan: tfsdk.Plan(planned)}, &response)
 	if response.Diagnostics.HasError() {
 		t.Fatal(response.Diagnostics)
 	}
@@ -543,7 +545,7 @@ func TestIAMPolicyFrameworkMissingEtagRequiresRefresh(t *testing.T) {
 		r := newIAMPolicyFrameworkResource().(*iamPolicyFrameworkResource)
 		r.client = client
 		response := resource.UpdateResponse{State: state}
-		r.Update(ctx, resource.UpdateRequest{State: state, Plan: tfsdk.Plan{Schema: state.Schema, Raw: state.Raw}}, &response)
+		r.Update(ctx, resource.UpdateRequest{State: state, Plan: tfsdk.Plan(state)}, &response)
 		if !response.Diagnostics.HasError() || len(client.writes) != 0 {
 			t.Fatal("update without a known etag should require refresh rather than write unprotected")
 		}

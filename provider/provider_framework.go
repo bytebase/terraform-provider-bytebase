@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	frameworkprovider "github.com/hashicorp/terraform-plugin-framework/provider"
@@ -13,12 +12,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
 	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/pkg/errors"
 )
 
 // NewProtocol6Server combines SDK resources with the keyed IAM Framework resource.
 func NewProtocol6Server(ctx context.Context, legacy *schema.Provider) (tfprotov6.ProviderServer, error) {
 	if legacy == nil {
-		return nil, fmt.Errorf("legacy provider must not be nil")
+		return nil, errors.New("legacy provider must not be nil")
 	}
 	legacyCopy := *legacy
 	legacyCopy.ResourcesMap = make(map[string]*schema.Resource, len(legacy.ResourcesMap))
