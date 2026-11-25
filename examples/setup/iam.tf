@@ -13,8 +13,8 @@ resource "bytebase_iam_policy" "workspace_iam" {
 
   # parent defaults to workspace. You can also explicitly set: parent = "workspaces/{id}"
 
-  iam_policy {
-    binding {
+  bindings = {
+    workspace_admin = {
       role = "roles/workspaceAdmin"
       members = [
         format("user:%s", bytebase_user.workspace_owner.email),
@@ -22,21 +22,21 @@ resource "bytebase_iam_policy" "workspace_iam" {
       ]
     }
 
-    binding {
+    workspace_dba = {
       role = "roles/workspaceDBA"
       members = [
         format("user:%s", bytebase_user.workspace_dba.email),
       ]
     }
 
-    binding {
+    auditor = {
       role = bytebase_role.auditor.name
       members = [
         format("user:%s", bytebase_user.workspace_auditor.email)
       ]
     }
 
-    binding {
+    project_viewer = {
       role = "roles/projectViewer"
       members = [
         format("user:%s", bytebase_user.project_developer.email),
@@ -44,7 +44,7 @@ resource "bytebase_iam_policy" "workspace_iam" {
       ]
     }
 
-    binding {
+    workspace_member = {
       role = "roles/workspaceMember"
       members = [
         format("serviceAccount:%s", bytebase_service_account.ci_bot.email),
@@ -66,8 +66,8 @@ resource "bytebase_iam_policy" "project_iam" {
 
   parent = bytebase_project.sample_project.name
 
-  iam_policy {
-    binding {
+  bindings = {
+    project_owners = {
       role = "roles/projectOwner"
       members = [
         format("user:%s", bytebase_user.workspace_dba.email),
@@ -75,7 +75,7 @@ resource "bytebase_iam_policy" "project_iam" {
       ]
     }
 
-    binding {
+    project_developers = {
       role = "roles/projectDeveloper"
       members = [
         "allUsers",
@@ -83,12 +83,12 @@ resource "bytebase_iam_policy" "project_iam" {
       ]
     }
 
-    binding {
+    sql_users = {
       role = "roles/sqlEditorUser"
       members = [
         format("user:%s", bytebase_user.project_developer.email)
       ]
-      condition {
+      condition = {
         database         = "instances/test-sample-instance/databases/employee"
         tables           = ["dept_emp", "dept_manager"]
         expire_timestamp = "2027-03-09T16:17:49Z"

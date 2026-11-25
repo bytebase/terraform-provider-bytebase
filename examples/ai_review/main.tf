@@ -3,7 +3,7 @@ terraform {
   required_providers {
     bytebase = {
       source  = "bytebase/bytebase"
-      version = "3.25.0"
+      version = "3.25.1"
     }
   }
 }

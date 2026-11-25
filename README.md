@@ -9,9 +9,16 @@ using Terraform Bytebase Provider to prepare those instances ready for applicati
 1. Download [provider](https://registry.terraform.io/providers/bytebase/bytebase).
 1. Follow [example](https://docs.bytebase.com/integrations/terraform/overview).
 
-Upgrading from provider 3.24.0? Read the [3.25.0 migration guide](migration/3.25.0.md)
-before applying changes. For earlier upgrades, see the
+Upgrading to provider 3.25.1? Read the [3.25.1 migration guide](migration/3.25.1.md)
+before applying changes. If coming from 3.24.x or earlier, first follow the
+[3.25.0 migration guide](migration/3.25.0.md). For earlier upgrades, see the
 [3.24.0 migration guide](migration/3.24.0.md).
+
+For readable IAM membership and condition plans, use the keyed `bindings`
+map in [`bytebase_iam_policy`](docs/resources/iam_policy.md). Existing
+`iam_policy { binding {} }` configurations remain supported. The provider
+uses plugin protocol v6 with the SDK compatibility layer (Terraform 1.1.5+);
+write-only attributes require Terraform 1.11+.
 
 Provider configuration can include custom HTTP headers for access gateways:
 

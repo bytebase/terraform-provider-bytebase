@@ -1,5 +1,9 @@
 # Corresponding Tutorials
 
+These configurations select provider 3.25.1. Part 7 uses keyed IAM `bindings`,
+introduced in 3.25.1. Follow the [migration guide](../migration/3.25.1.md) when
+upgrading an existing configuration from legacy `iam_policy` blocks.
+
 - Part 1: [Manage Environments with Terraform](https://docs.bytebase.com/tutorials/manage-environments-with-terraform) - Set up environments with policies
 - Part 2: [Manage Databases with Terraform](https://docs.bytebase.com/tutorials/manage-databases-with-terraform) - Register database instances
 - Part 3: [Manage Projects with Terraform](https://docs.bytebase.com/tutorials/manage-projects-with-terraform) - Organize databases into projects

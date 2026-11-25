@@ -4,8 +4,8 @@ This example reads masking policies, manages project standard-review policies,
 and lists the project's supported policies. Run the [setup example](../setup/)
 first to create `projects/project-sample`.
 
-Use Bytebase 3.25.0 and provider 3.25.0. The example uses the Terraform Registry
-provider once version 3.25.0 is published. For local development, follow the
+Use Bytebase 3.25.0 and provider 3.25.1. The example uses the Terraform Registry
+provider once version 3.25.1 is published. For local development, follow the
 [local development instructions](../README.md) and change the provider source to
 `terraform.local/bytebase/bytebase`.
 

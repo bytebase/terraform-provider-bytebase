@@ -1,7 +1,7 @@
 # AI SQL Review Example
 
 Enable the workspace's AI SQL review switch and optionally manage custom
-natural-language review instructions. Use Bytebase and provider 3.25.0,
+natural-language review instructions. Use Bytebase 3.25.0 and provider 3.25.1,
 Terraform 1.11 or later, and the AI SQL review license feature. Applying this
 configuration does not start a review.
 

@@ -7,9 +7,8 @@ resource "bytebase_iam_policy" "project_iam" {
 
   parent = bytebase_project.project-two.name
 
-  iam_policy {
-
-    binding {
+  bindings = {
+    project_owners = {
       role = "roles/projectOwner"
       members = [
         format("user:%s", bytebase_user.workspace_dba1.email),
@@ -17,7 +16,7 @@ resource "bytebase_iam_policy" "project_iam" {
       ]
     }
 
-    binding {
+    project_developers = {
       role = "roles/projectDeveloper"
       members = [
         "allUsers",
@@ -25,18 +24,19 @@ resource "bytebase_iam_policy" "project_iam" {
       ]
     }
 
-    binding {
+    sql_users = {
       role = "roles/sqlEditorUser"
       members = [
         format("group:%s", bytebase_group.developers.email)
       ]
-      condition {
+      condition = {
         database         = "instances/prod-sample-instance/databases/hr_prod"
         schema           = "public"
-        tables           = ["employee","salary"]
+        tables           = ["employee", "salary"]
         expire_timestamp = "2027-07-10T16:17:49Z"
+        # Preserve the legacy condition's empty DDL/DML environment scope.
+        environment_ids = []
       }
     }
-
   }
 }
