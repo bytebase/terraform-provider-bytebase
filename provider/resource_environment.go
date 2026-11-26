@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -94,7 +95,7 @@ func resourceEnvironmentUpsert(ctx context.Context, d *schema.ResourceData, m in
 
 	existedEnv, oldOrder, enironmentList, err := findEnvironment(ctx, c, environmentName)
 	if err != nil {
-		if !strings.HasPrefix(err.Error(), "cannot found the environment") {
+		if !isEnvironmentNotFound(err) {
 			return diag.FromErr(err)
 		}
 	}
@@ -178,6 +179,11 @@ func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m inte
 
 	env, order, _, err := findEnvironment(ctx, c, environmentName)
 	if err != nil {
+		if isEnvironmentNotFound(err) {
+			tflog.Warn(ctx, fmt.Sprintf("Resource %s not found, removing from state", environmentName))
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
@@ -193,12 +199,14 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m in
 
 	_, order, enironmentList, err := findEnvironment(ctx, c, environmentName)
 	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	enironmentList = slices.Delete(enironmentList, order, order+1)
-	if err := updateEnvironmentSetting(ctx, c, enironmentList); err != nil {
-		return diag.FromErr(err)
+		if !isEnvironmentNotFound(err) {
+			return diag.FromErr(err)
+		}
+	} else {
+		enironmentList = slices.Delete(enironmentList, order, order+1)
+		if err := updateEnvironmentSetting(ctx, c, enironmentList); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId("")
@@ -239,7 +247,13 @@ func findEnvironment(ctx context.Context, client api.Client, name string) (*v1pb
 			return env, index, enironmentList, nil
 		}
 	}
-	return nil, 0, enironmentList, errors.Errorf("cannot found the environment %v", name)
+	return nil, 0, enironmentList, errors.Errorf("%s %v", environmentNotFoundMessage, name)
+}
+
+const environmentNotFoundMessage = "cannot found the environment"
+
+func isEnvironmentNotFound(err error) bool {
+	return err != nil && strings.HasPrefix(err.Error(), environmentNotFoundMessage)
 }
 
 func setEnvironment(d *schema.ResourceData, env *v1pb.EnvironmentSetting_Environment, order int) diag.Diagnostics {
