@@ -10,9 +10,8 @@ resource "bytebase_iam_policy" "workspace_iam" {
 
   # parent defaults to workspace when not specified.
 
-  iam_policy {
-
-    binding {
+  bindings = {
+    workspace_admins = {
       role = "roles/workspaceAdmin"
       members = [
         format("user:%s", bytebase_user.workspace_admin.email),
@@ -22,7 +21,7 @@ resource "bytebase_iam_policy" "workspace_iam" {
       ]
     }
 
-    binding {
+    workspace_dbas = {
       role = "roles/workspaceDBA"
       members = [
         format("user:%s", bytebase_user.workspace_dba1.email),
@@ -31,14 +30,14 @@ resource "bytebase_iam_policy" "workspace_iam" {
       ]
     }
 
-    binding {
+    workspace_members = {
       role = "roles/workspaceMember"
       members = [
         "allUsers"
       ]
     }
 
-    binding {
+    project_viewers = {
       role = "roles/projectViewer"
       members = [
         format("group:%s", bytebase_group.qa.email),

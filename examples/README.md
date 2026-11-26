@@ -2,11 +2,16 @@
 
 Examples of using the Terraform Bytebase Provider to manage your resource:
 
+These examples select provider 3.25.1. IAM resources in the setup example use
+keyed `bindings`, introduced in 3.25.1. See the [migration guide](../migration/3.25.1.md)
+before converting an existing IAM configuration.
+
 - [setup](./setup): Initialize the data.
 - [environments](./environments): Use the Bytebase provider to query the environment.
 - [instances](./instances): Use the Bytebase provider to query the instance.
 - [roles](./roles): Use the Bytebase provider to manage instance role in your instance.
 - [projects](./projects): Use the Bytebase provider to query projects in your Bytebase instance.
+- [iamPolicy](./iamPolicy): Read workspace and project IAM policies, with a keyed resource example.
 - [settings](./settings): Configure AI and MCP, and query workspace settings.
 - [policies](./policies): Configure standard review policies, and query policies.
 - [sharepoint](./sharepoint): Configure shared export credentials and a project destination on a licensed self-hosted server.

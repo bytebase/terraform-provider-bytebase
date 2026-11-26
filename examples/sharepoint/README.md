@@ -1,7 +1,7 @@
 # SharePoint Export Example
 
 Configure the workspace's shared Microsoft Entra application and create a
-project with a SharePoint export destination. Use Bytebase and provider 3.25.0,
+project with a SharePoint export destination. Use Bytebase 3.25.0 and provider 3.25.1,
 Terraform 1.11 or later, and a self-hosted server with the SharePoint export
 license feature. SharePoint export is not available in Bytebase Cloud.
 

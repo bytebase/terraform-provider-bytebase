@@ -5,6 +5,10 @@ _For a real-world walkthrough, see the [Bytebase Terraform tutorials](https://do
 This is the setup for examples.
 We will create two environments named `test` and `prod`. Each environment contains one instance.
 
+The IAM resources use keyed `bindings`, requiring provider 3.25.1 or later.
+For an existing setup, follow the [migration guide](../../migration/3.25.1.md)
+before changing its IAM configuration.
+
 Before you start, please make sure you have running your Bytebase service and have created the service account, and replace the provider initial variables. Check the [README](../README.md) for details.
 
 1. Run `terraform init` to install the provider.
